@@ -1,0 +1,2955 @@
+openapi: 3.1.0
+info:
+  version: 1.5.0
+  title: Podman Quadlet Management API
+  termsOfService: "https://access.redhat.com/articles/2726611"
+  contact:
+    email: jhonce@redhat.com
+    url: "https://www.linkedin.com/in/jhonce"
+  license:
+    name: Apache 2.0
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+  x-logo:
+    url: "https://raw.githubusercontent.com/containers/podman/main/logo/podman-logo.png"
+  description: |
+    # Podman Quadlet API
+
+    The Podman Quadlet API provides a comprehensive interface for managing systemd unit files for containerized workloads. Quadlet allows you to define and manage different types of units that integrate with systemd, enabling seamless container lifecycle management in systemd-based environments.
+
+    ## Key Features
+
+    - **Build Units**: Define and execute container image builds
+    - **Container Units**: Manage container configurations with systemd integration
+    - **Image Units**: Handle container image operations and policies
+    - **Kube Units**: Deploy and manage Kubernetes workloads
+    - **Network Units**: Configure custom container networks
+    - **Pod Units**: Orchestrate multi-container pods with shared networking and storage
+    - **Volume Units**: Create and manage persistent storage volumes
+
+    ## Unit Types Supported
+
+    - **BuildUnit**: Container image building with build arguments and contexts
+    - **ContainerUnit**: Individual container configurations with networking, volumes, and environment settings
+    - **ImageUnit**: Image pull policies and registry management
+    - **KubeUnit**: Kubernetes deployment management
+    - **NetworkUnit**: Custom network creation and configuration
+    - **PodUnit**: Multi-container pod orchestration with shared resources
+    - **VolumeUnit**: Persistent storage management with various drivers
+
+    ## Authentication
+
+    This API requires proper authentication to access Podman's systemd integration features. Ensure you have the necessary permissions to manage systemd units and container resources.
+
+    ## Target Audience
+
+    This API is designed for:
+    - System administrators managing containerized workloads
+    - DevOps engineers integrating containers with systemd
+    - Developers building container orchestration tools
+    - Platform engineers managing container infrastructure
+externalDocs:
+  description: Podman Quadlet Documentation
+  url: "https://docs.podman.io/en/latest/markdown/podman-quadlet.1.html"
+tags:
+  - name: libpod
+    description: Libpod quadlet operations.
+  - name: quadlet
+    description: Quadlet unit management operations.
+servers:
+  - url: "http://example-quadlet.com/v5.y.0/libpod/quadlets"
+  - url: "https://example-quadlet.com/v5.y.0/libpod/quadlets"
+security:
+  - main_auth: []
+paths:
+  "/":
+    get:
+      tags:
+        - libpod
+        - quadlet
+      summary: Get all quadlets
+      description: Retrieve a list of all quadlets.
+      operationId: getAllQuadletsLibpod
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Quadlet"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}":
+    parameters:
+      - name: name
+        in: query
+        description: quadlet name to inspect and report
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - libpod
+        - quadlet
+      summary: Get quadlet by name
+      description: |
+        Read the quadlet system unit files by name and render them as JSON.
+      operationId: getQuadletByNameLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quadlet"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Quadlet not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}/build":
+    get:
+      tags:
+        - libpod
+        - build
+      summary: Get build unit by quadlet name
+      description: Retrieve the build unit configuration for a specific quadlet.
+      operationId: getBuildUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Build unit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildUnit"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Build unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - libpod
+        - build
+      summary: Create build unit
+      description: Create a new build unit for a specific quadlet.
+      operationId: createBuildUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+        - $ref: "#/components/parameters/ForceParam"
+      security:
+        - main_auth:
+            - "write:builds"
+      responses:
+        "201":
+          description: Build unit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildUnit"
+        "400":
+          description: Invalid build unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Build unit already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildUnit"
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        description: 
+          Build unit configuration (JSON) or BuildUnit file that is passed opaquely
+          between the client to the server.
+        required: true
+    put:
+      tags:
+        - libpod
+        - build
+      summary: Update build unit
+      description: Update the build unit configuration for a specific quadlet.
+      operationId: updateBuildUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:builds"
+      responses:
+        "200":
+          description: Build unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildUnit"
+        "400":
+          description: Invalid build unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Build unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BuildUnit"
+        description: Updated build unit configuration
+        required: true
+    delete:
+      tags:
+        - libpod
+        - build
+      summary: Delete build unit
+      description: Delete the build unit configuration for a specific quadlet.
+      operationId: deleteBuildUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:builds"
+      responses:
+        "204":
+          description: Build unit deleted successfully
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Build unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}/container":
+    get:
+      tags:
+        - libpod
+        - container
+      summary: Get container unit by quadlet name
+      description: Retrieve the container unit configuration for a specific quadlet.
+      operationId: getContainerUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Container unit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerUnit"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Container unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - libpod
+        - container
+      summary: Create container unit
+      description: Create a new container unit for a specific quadlet.
+      operationId: createContainerUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+        - $ref: "#/components/parameters/ForceParam"
+      security:
+        - main_auth:
+            - "write:containers"
+      responses:
+        "201":
+          description: Container unit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerUnit"
+        "400":
+          description: Invalid container unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Container unit already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContainerUnit"
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        description: 
+          Container unit configuration (JSON) or ContainerUnit file that is passed opaquely
+          between the client to the server.
+        required: true
+    put:
+      tags:
+        - libpod
+        - container
+      summary: Update container unit
+      description: Update the container unit configuration for a specific quadlet.
+      operationId: updateContainerUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:containers"
+      responses:
+        "200":
+          description: Container unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContainerUnit"
+        "400":
+          description: Invalid container unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Container unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContainerUnit"
+        description: Updated container unit configuration
+        required: true
+    delete:
+      tags:
+        - libpod
+        - container
+      summary: Delete container unit
+      description: Delete the container unit configuration for a specific quadlet.
+      operationId: deleteContainerUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:containers"
+      responses:
+        "204":
+          description: Container unit deleted successfully
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Container unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}/image":
+    get:
+      tags:
+        - libpod
+        - image
+      summary: Get image unit by quadlet name
+      description: Retrieve the image unit configuration for a specific quadlet.
+      operationId: getImageUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Image unit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageUnit"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Image unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - libpod
+        - image
+      summary: Create image unit
+      description: Create a new image unit for a specific quadlet.
+      operationId: createImageUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+        - $ref: "#/components/parameters/ForceParam"
+      security:
+        - main_auth:
+            - "write:images"
+      responses:
+        "201":
+          description: Image unit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageUnit"
+        "400":
+          description: Invalid image unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Image unit already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImageUnit"
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        description: 
+          Image unit configuration (JSON) or ImageUnit file that is passed opaquely
+          between the client to the server.
+        required: true
+    put:
+      tags:
+        - libpod
+        - image
+      summary: Update image unit
+      description: Update the image unit configuration for a specific quadlet.
+      operationId: updateImageUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:images"
+      responses:
+        "200":
+          description: Image unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageUnit"
+        "400":
+          description: Invalid image unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Image unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImageUnit"
+        description: Updated image unit configuration
+        required: true
+    delete:
+      tags:
+        - libpod
+        - image
+      summary: Delete image unit
+      description: Delete the image unit configuration for a specific quadlet.
+      operationId: deleteImageUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:images"
+      responses:
+        "204":
+          description: Image unit deleted successfully
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Image unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}/kube":
+    get:
+      tags:
+        - libpod
+        - kube
+      summary: Get kube unit by quadlet name
+      description: Retrieve the kube unit configuration for a specific quadlet.
+      operationId: getKubeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Kube unit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KubeUnit"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Kube unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - libpod
+        - kube
+      summary: Create kube unit
+      description: Create a new kube unit for a specific quadlet.
+      operationId: createKubeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+        - $ref: "#/components/parameters/ForceParam"
+      security:
+        - main_auth:
+            - "write:kubes"
+      responses:
+        "201":
+          description: Kube unit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KubeUnit"
+        "400":
+          description: Invalid kube unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Kube unit already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KubeUnit"
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        description: 
+          Kube unit configuration (JSON) or KubeUnit file that is passed opaquely
+          between the client to the server.
+        required: true
+    put:
+      tags:
+        - libpod
+        - kube
+      summary: Update kube unit
+      description: Update the kube unit configuration for a specific quadlet.
+      operationId: updateKubeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:kubes"
+      responses:
+        "200":
+          description: Kube unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KubeUnit"
+        "400":
+          description: Invalid kube unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Kube unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KubeUnit"
+        description: Updated kube unit configuration
+        required: true
+    delete:
+      tags:
+        - libpod
+        - kube
+      summary: Delete kube unit
+      description: Delete the kube unit configuration for a specific quadlet.
+      operationId: deleteKubeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:kubes"
+      responses:
+        "204":
+          description: Kube unit deleted successfully
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Kube unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}/network":
+    get:
+      tags:
+        - libpod
+        - network
+      summary: Get network unit by quadlet name
+      description: Retrieve the network unit configuration for a specific quadlet.
+      operationId: getNetworkUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Network unit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkUnit"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Network unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - libpod
+        - network
+      summary: Create network unit
+      description: Create a new network unit for a specific quadlet.
+      operationId: createNetworkUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+        - $ref: "#/components/parameters/ForceParam"
+      security:
+        - main_auth:
+            - "write:networks"
+      responses:
+        "201":
+          description: Network unit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkUnit"
+        "400":
+          description: Invalid network unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Network unit already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NetworkUnit"
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        description: 
+          Network unit configuration (JSON) or NetworkUnit file that is passed opaquely
+          between the client to the server.
+        required: true
+    put:
+      tags:
+        - libpod
+        - network
+      summary: Update network unit
+      description: Update the network unit configuration for a specific quadlet.
+      operationId: updateNetworkUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:networks"
+      responses:
+        "200":
+          description: Network unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkUnit"
+        "400":
+          description: Invalid network unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Network unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NetworkUnit"
+        description: Updated network unit configuration
+        required: true
+    delete:
+      tags:
+        - libpod
+        - network
+      summary: Delete network unit
+      description: Delete the network unit configuration for a specific quadlet.
+      operationId: deleteNetworkUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:networks"
+      responses:
+        "204":
+          description: Network unit deleted successfully
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Network unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  "/{name}/volume":
+    get:
+      tags:
+        - libpod
+        - volume
+      summary: Get volume unit by quadlet name
+      description: Retrieve the volume unit configuration for a specific quadlet.
+      operationId: getVolumeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth: []
+      responses:
+        "200":
+          description: Volume unit retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolumeUnit"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Volume unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - libpod
+        - volume
+      summary: Create volume unit
+      description: Create a new volume unit for a specific quadlet.
+      operationId: createVolumeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+        - $ref: "#/components/parameters/ForceParam"
+      security:
+        - main_auth:
+            - "write:volumes"
+      responses:
+        "201":
+          description: Volume unit created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolumeUnit"
+        "400":
+          description: Invalid volume unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Volume unit already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolumeUnit"
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        description: 
+          Volume unit configuration (JSON) or VolumeUnit file that is passed opaquely
+          between the client to the server.
+        required: true
+    put:
+      tags:
+        - libpod
+        - volume
+      summary: Update volume unit
+      description: Update the volume unit configuration for a specific quadlet.
+      operationId: updateVolumeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:volumes"
+      responses:
+        "200":
+          description: Volume unit updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolumeUnit"
+        "400":
+          description: Invalid volume unit supplied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Volume unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VolumeUnit"
+        description: Updated volume unit configuration
+        required: true
+    delete:
+      tags:
+        - libpod
+        - volume
+      summary: Delete volume unit
+      description: Delete the volume unit configuration for a specific quadlet.
+      operationId: deleteVolumeUnitLibpod
+      parameters:
+        - $ref: "#/components/parameters/NameParam"
+      security:
+        - main_auth:
+            - "write:volumes"
+      responses:
+        "204":
+          description: Volume unit deleted successfully
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Volume unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  parameters:
+    NameParam:
+      name: name
+      in: path
+      description: The name of the quadlet
+      required: true
+      schema:
+        type: string
+    ForceParam:
+      name: force
+      in: query
+      description: Overwrite an existing unit file
+      required: false
+      schema:
+        type: boolean
+        default: false
+  securitySchemes:
+    main_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: "http://example.com/api/oauth/dialog"
+          scopes:
+            "read:users": read users info
+            "write:users": modify or remove users
+  schemas:
+    BuildUnit:
+      type: object
+      description:
+        Podman build unit configuration. (FIXME:Documentation is inconsistent
+        between the code, the table and the properties list.)
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description:
+            Tri-state boolean indicating the active status of the unit.
+            True when systemd reports the unit is active, false when systemd
+            reports the unit is not active, null when unable to connect to systemd.
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file or a
+            drop-in file exists
+          example: true
+        BuildSection:
+          type: object
+          description: Build section. Will populate the [Build] section of the unit file.
+          properties:
+            Annotation:
+              type: array
+              items:
+                type: string
+              description: List of OCI annotations to set on the built image
+            Arch:
+              type: string
+              description: Architecture for the built image
+            AuthFile:
+              type: string
+              description: Path to the authentication file
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: List of containers.conf modules to load
+            DNS:
+              type: array
+              items:
+                type: string
+              description: List of DNS servers for the build process
+              example: ["8.8.8.8", "1.1.1.1"]
+            DNSOption:
+              type: array
+              items:
+                type: string
+              description: List of DNS options for the build process
+              example: ["ndots:2", "timeout:3"]
+            DNSSearch:
+              type: array
+              items:
+                type: string
+              description: List of DNS search domains for the build process
+              example: ["example.com", "local"]
+            Environment:
+              type: array
+              items:
+                type: string
+              description: List of environment variables for the build process
+              example: ["BUILD_ENV=production", "NODE_ENV=development"]
+            File:
+              type: string
+              description: Path to the Containerfile or Dockerfile
+            ForceRM:
+              type: boolean
+              description: Whether to force removal of intermediate containers
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of global arguments for the build
+            GroupAdd:
+              type: array
+              items:
+                type: string
+              description:
+                List of additional groups for the container. A special flag
+                "keep-groups" is supported.
+              example: ["docker", "wheel"]
+            ImageTag:
+              type: string
+              description: Tag for the image to be built
+            Label:
+              type: array
+              items:
+                type: string
+              description: List of labels for the built image
+            Network:
+              type: string
+              description: Network mode for the build process
+              example: "bridge"
+            Platform:
+              type: array
+              items:
+                type: string
+              description: List of target platforms for the build
+            Pull:
+              type: string
+              enum: ["always", "missing", "never", "newer"]
+              description: Pull policy for base images
+              example: "missing"
+            Retry:
+              type: integer
+              description: Number of retry attempts for the build
+            RetryDelay:
+              type: integer
+              description: Delay between retry attempts in seconds
+            Secret:
+              type: array
+              items:
+                type: string
+              description: List of secrets to use during the build process
+              example:
+                [
+                  "id=mysecret,src=/path/to/secret",
+                  "id=anothersecret,src=/path/to/another",
+                ]
+            SetWorkingDirectory:
+              type: string
+              description: Set the working directory to the path of the unit file
+            Target:
+              type: string
+              description: Target stage in multi-stage builds
+            TLSVerify:
+              type: boolean
+              description: Whether to verify TLS certificates
+            Variant:
+              type: string
+              description: Variant of the build unit
+            Volume:
+              type: array
+              items:
+                type: string
+              description: List of volumes to mount during the build process
+              example: ["/host/path:/container/path:ro", "myvolume:/app/data"]
+          required:
+            - ImageTag
+      example:
+        Active: true
+        Enabled: true
+        BuildSection:
+          ImageTag: "localhost/image_name"
+          SetWorkingDirectory: "unit"
+          File: "Containerfile"
+          Environment:
+            - "BUILD_ENV=production"
+          Label:
+            - "org.test.Key=value"
+          Platform:
+            - "linux/amd64"
+          Target: "production"
+          Pull: "missing"
+
+    ContainerUnit:
+      type: object
+      description: Podman container unit configuration
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description: 
+            Tri-state boolean indicating the active status of the unit.
+            True when systemd reports the unit is active, false when systemd
+            reports the unit is not active, null when unable to connect to systemd.
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file, a
+            drop-in file exists, or a drop-in file should be created with an
+            [install] section
+          example: true
+        After:
+          type: array
+          items:
+            type: string
+          description:
+            List of units to add the service to. Will populate the After field
+            in the [Unit] section.
+          example: ["multi-user.target", "graphical.target"]
+        DefaultInstance:
+          type: integer
+          description:
+            Default instance for the service Will populate the DefaultInstance
+            field in the [Install] section.
+          example: 1
+        Description:
+          type: string
+          description:
+            Description of the container. Will populate the Description field in
+            the [Unit] section.
+          example: "My Nginx container"
+        RequiredBy:
+          type: array
+          items:
+            type: string
+          description: List of units to add the service to
+          example: ["multi-user.target", "graphical.target"]
+        Requires:
+          type: array
+          items:
+            type: string
+          description:
+            List of units to add the service to. Will populate the Requires
+            field in the [Unit] section.
+          example: ["multi-user.target", "graphical.target"]
+        WantedBy:
+          type: array
+          items:
+            type: string
+          description:
+            List of units to add the service to. Will populate the WantedBy
+            field in the [Install] section.
+          example: ["multi-user.target", "graphical.target"]
+        ContainerSection:
+          type: object
+          description:
+            Container section. Will populate the [Container] section of the unit
+            file.
+          properties:
+            AddCapability:
+              type: array
+              items:
+                type: string
+              description: List of Linux capabilities to add to the container
+              example: ["NET_ADMIN", "SYS_ADMIN", "CAP_DAC_OVERRIDE"]
+            AddDevice:
+              type: array
+              items:
+                type: string
+              description: List of devices to add to the container
+              example: ["/dev/snd", "/dev/dri"]
+            AddHost:
+              type: array
+              items:
+                type: string
+              description:
+                List of host-to-IP mappings to add to the container's /etc/hosts
+                file
+              example: ["hostname:127.0.0.1", "example.com:192.168.1.100"]
+            Annotation:
+              type: array
+              items:
+                type: string
+              description: List of OCI annotations to set on the container
+              example:
+                ["io.containers.autoupdate=registry", "com.example.version=1.0"]
+            AutoUpdate:
+              type: string
+              enum: ["registry", "local"]
+              description: Policy for automatically updating the container
+              example: "registry"
+            CgroupsMode:
+              type: string
+              enum: ["enabled", "disabled", "no-conmon", "split"]
+              default: "split"
+              description: Cgroups mode for the container
+              example: "split"
+            ContainerName:
+              type: string
+              description: Name to assign to the container
+              example: "my-nginx-container"
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: List of containers.conf modules to load
+              example: ["/etc/containers/containers.conf.d/override.conf"]
+            DNS:
+              type: array
+              items:
+                type: string
+              description: List of DNS servers for the container
+              example: ["8.8.8.8", "1.1.1.1"]
+            DNSOption:
+              type: array
+              items:
+                type: string
+              description: List of DNS options for the container
+              example: ["ndots:2", "timeout:3"]
+            DNSSearch:
+              type: array
+              items:
+                type: string
+              description: List of DNS search domains for the container
+              example: ["example.com", "local"]
+            DropCapability:
+              type: array
+              items:
+                type: string
+              description: List of Linux capabilities to drop from the container
+              example: ["ALL"]
+            Entrypoint:
+              type: string
+              description:
+                Entrypoint for the container. Specify multi option commands in
+                the form of an embedded JSON string
+              example: "/bin/sh"
+            Environment:
+              type: array
+              items:
+                type: string
+              description: List of environment variables to set in the container
+              example: ["NODE_ENV=production", "PORT=8080"]
+            EnvironmentFile:
+              type: array
+              items:
+                type: string
+                description:
+                  List of files containing environment variables for the
+                  container (FIXME:We should consider not supporting this
+                  option. See Environment, systemd developers have suggested
+                  this is not a good idea.)
+              example: ["/etc/environment", "/home/user/.env"]
+            EnvironmentHost:
+              type: boolean
+              description: Whether to pass all host environment variables to the container
+              example: false
+            Exec:
+              type: array
+              items:
+                type: string
+              description: List of commands to execute in the container
+              example: ["echo 'Container started'", "nginx -g 'daemon off;'"]
+            ExposeHostPort:
+              type: array
+              items:
+                type: string
+              description: List of ports to expose on the host
+              example: ["8080", "9090"]
+            GIDMap:
+              type: array
+              items:
+                type: string
+              description: List of GID mappings for the container
+              example: ["1000:1000", "1001:1001"]
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of global arguments for the container
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Group:
+              type: integer
+              description:
+                Group for the container. (FIXME:Should this be a number, since
+                GroupAdd is a list of strings?)
+              example: 1000
+            GroupAdd:
+              type: array
+              items:
+                type: string
+              description:
+                List of additional groups for the container, as numbers. The
+                special flag "keep-groups" is supported.
+              example: ["1000", "1001"]
+            HealthCmd:
+              type: string
+              description: Command to run for health checks
+              example: "curl -f http://localhost:8080/health || exit 1"
+            HealthInterval:
+              type: integer
+              description: Time interval in seconds between health checks
+              example: 30
+            HealthLogDestination:
+              type: string
+              description: Destination for health check logs
+              example: "journald"
+            HealthMaxLogCount:
+              type: integer
+              description: Maximum number of health check logs to keep
+              example: 5
+            HealthMaxLogSize:
+              type: integer
+              description: Maximum size of health check logs in bytes
+              example: 1048576
+            HealthOnFailure:
+              type: string
+              enum: ["none", "kill", "restart", "stop"]
+              default: "none"
+              description: Action to take when health check fails
+              example: "none"
+            HealthRetries:
+              type: integer
+              description: Number of retries for health checks
+              example: 3
+            HealthStartPeriod:
+              type: integer
+              description: Start period for health checks
+              example: 30
+            HealthStartupCmd:
+              type: string
+              description: Command to run for startup health checks
+              example: "pg_isready -U postgres"
+            HealthStartupInterval:
+              type: integer
+              description: Time interval in seconds between startup health checks
+              example: 10
+            HealthStartupRetries:
+              type: integer
+              description: Number of retries for startup health checks
+              example: 5
+            HealthStartupSuccess:
+              type: integer
+              description: Number of consecutive successful startup health checks required
+              example: 1
+            HealthStartupTimeout:
+              type: integer
+              description: Timeout in seconds for startup health checks
+              example: 30
+            HealthTimeout:
+              type: integer
+              description: Timeout for health checks in seconds
+              example: 10
+            HostName:
+              type: string
+              description: Hostname for the container
+              example: "my-container"
+            HttpProxy:
+              type: boolean
+              description: Whether to use HTTP proxy
+              example: false
+            Image:
+              type: string
+              description: Image to use for the container
+              example: "nginx:latest"
+            IP:
+              type: string
+              format: ipv4
+              description: IPv4 address for the container
+              example: "192.168.1.100"
+            IP6:
+              type: string
+              format: ipv6
+              description: IPv6 address for the container
+              example: "2001:db8::1"
+            Label:
+              type: array
+              items:
+                type: string
+              description: List of labels for the container
+              example: ["app=nginx", "version=1.0", "environment=production"]
+            LogDriver:
+              type: string
+              description: Log driver for the container
+              example: "journald"
+            LogOpt:
+              type: array
+              items:
+                type: string
+              description: List of log options for the container
+              example: ["max-size=10m", "max-file=3"]
+            Mask:
+              type: array
+              items:
+                type: string
+              description: List of paths to mask in the container
+              example: ["/proc/sys/kernel/hostname"]
+            Memory:
+              type: integer
+              description: Memory limit for the container. The value is in bytes.
+              example: 1073741824
+            Mount:
+              type: array
+              items:
+                type: string
+              description: List of mounts for the container
+              example: ["/host/path:/container/path:ro", "type=tmpfs,dst=/tmp"]
+            Network:
+              type: array
+              items:
+                type: string
+              description: List of networks for the container
+              example: ["bridge", "my-custom-network"]
+            NetworkAlias:
+              type: array
+              items:
+                type: string
+              description: List of network aliases for the container
+              example: ["web", "app"]
+            NoNewPrivileges:
+              type: boolean
+              description: Whether to disable new privileges
+              default: false
+              example: true
+            Notify:
+              type: boolean
+              description: Whether to enable systemd notifications
+              default: false
+              example: true
+            PidsLimit:
+              type: integer
+              description: PID limit for the container
+              example: 1024
+            Pod:
+              type: string
+              description: Pod to join
+              example: "my-pod"
+            PodmanArgs:
+              type: array
+              items:
+                type: string
+              description: List of additional arguments for Podman
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            PublishPort:
+              type: array
+              items:
+                type: string
+              description: List of ports to publish from the container to the host
+              example: ["8080:80", "9090:9090"]
+            Pull:
+              type: string
+              enum: ["always", "missing", "never", "newer"]
+              default: "missing"
+              description: Pull policy for the container
+              example: "missing"
+            ReadOnly:
+              type: boolean
+              description: Whether the container filesystem is read-only
+              default: false
+              example: true
+            ReadOnlyTmpfs:
+              type: boolean
+              description: Whether to mount a tmpfs on /tmp
+              default: true
+              example: false
+            ReloadCmd:
+              type: string
+              description: Command to run on reload. Mutually exclusive with ReloadSignal
+              example: "nginx -s reload"
+            ReloadSignal:
+              type: string
+              description: Signal to send on reload. Mutually exclusive with ReloadCmd
+              example: "SIGHUP"
+            Retry:
+              type: integer
+              description: Number of retries for the container
+              default: 5
+              example: 3
+            RetryDelay:
+              type: integer
+              description: Delay between retries in seconds
+              example: 10
+            Rootfs:
+              type: string
+              description: Root filesystem for the container
+              example: "/var/lib/containers/storage/overlay/abc123/merged"
+            RunInit:
+              type: boolean
+              description: Whether to run an init inside the container
+              default: false
+              example: true
+            SeccompProfile:
+              type: string
+              description:
+                Path to the seccomp profile. Set to "unconfined" to disable the
+                seccomp filters. (FIXME:Should this be an encoded JSON string
+                rather than a path?)
+              example: "unconfined"
+            Secret:
+              type: array
+              items:
+                type: string
+              description:
+                List of secrets to add to the container (FIXME:How should env
+                type secrets be represented?)
+              example: ["mysecret", "dbpassword"]
+            SecurityLabelDisable:
+              type: boolean
+              description: Whether to disable security labels
+              default: false
+              example: true
+            SecurityLabelFileType:
+              type: string
+              description: File type for security labels
+              example: "container_file_t"
+            SecurityLabelLevel:
+              type: string
+              description: Level for security labels
+              example: "s0:c123,c456"
+            SecurityLabelNested:
+              type: boolean
+              description: Whether to use nested security labels
+              example: true
+            SecurityLabelType:
+              type: string
+              description: Type for security labels
+              example: "container_t"
+            ShmSize:
+              type: integer
+              description: Size of /dev/shm. The value is in bytes.
+              example: 67108864
+            StartWithPod:
+              type: boolean
+              description: Whether to start the container with the pod
+              default: true
+              example: false
+            StopSignal:
+              type: string
+              description: Signal to stop the container
+              default: SIGTERM
+              example: "SIGKILL"
+            StopTimeout:
+              type: integer
+              description: Timeout to stop the container in seconds
+              example: 30
+            SubGIDMap:
+              type: string
+              description: GID map for the container
+              example: "1000:1000:1"
+            SubUIDMap:
+              type: string
+              description: UID map for the container
+              example: "1000:1000:1"
+            Sysctl:
+              type: array
+              items:
+                type: string
+              description: List of sysctl settings for the container
+              example: ["net.core.somaxconn=1024", "kernel.msgmax=65536"]
+            Timezone:
+              type: string
+              description:
+                Timezone for the container. If unset uses system-configured
+                default.
+              example: "America/New_York"
+            Tmpfs:
+              type: array
+              items:
+                type: string
+              description: List of tmpfs mounts for the container
+              example: ["/tmp:rw,size=1G", "/var/tmp:rw"]
+            UIDMap:
+              type: array
+              items:
+                type: string
+              description: List of UID mappings for the container
+              example: ["1000:1000:1", "1001:1001:1"]
+            Ulimit:
+              type: array
+              items:
+                type: string
+              description: List of ulimit settings for the container
+              example: ["nofile=1024:2048", "nproc=100:200"]
+            Unmask:
+              type: array
+              items:
+                type: string
+              description:
+                List of paths to unmask in the container. "ALL" can be used to
+                unmask all paths.
+              example: ["/proc/sys/kernel/hostname"]
+            User:
+              type: integer
+              description: User for the container
+              example: 1000
+            UserNS:
+              type: string
+              description: User namespace mode for the container
+              example: "host"
+            Volume:
+              type: array
+              items:
+                type: string
+              description: List of volumes to mount in the container
+              example: ["/host/data:/container/data:rw", "myvolume:/app/data"]
+            WorkingDir:
+              type: string
+              description: Working directory for the container
+              example: "/app"
+          required:
+            - Image
+        ServiceSection:
+          type: object
+          properties:
+            Restart:
+              type: string
+              description: Restart policy for the container
+              example: "always"
+            TimeoutStartSec:
+              type: integer
+              description: Timeout for the service to start
+              example: 30
+
+      example:
+        Active: true
+        Enabled: true
+        ContainerSection:
+          Image: "nginx:latest"
+          ContainerName: "my-nginx"
+          PublishPort:
+            - "8080:80"
+          Environment:
+            - "NGINX_HOST=localhost"
+          Network:
+            - "bridge"
+          Volume:
+            - "/var/www:/usr/share/nginx/html:ro"
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message describing what went wrong
+      required:
+        - message
+      example:
+        message: "An error occurred"
+
+    ImageUnit:
+      type: object
+      description: Podman image unit configuration
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description: 
+            Tri-state boolean indicating the active status of the unit.
+            True when systemd reports the unit is active, false when systemd
+            reports the unit is not active, null when unable to connect to systemd.
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file or a
+            drop-in file exists
+          example: true
+        ImageSection:
+          type: object
+          description: Image section. Will populate the [Image] section of the unit file.
+          properties:
+            AllTags:
+              type: boolean
+              description: Whether to pull all tagged images in the repository
+              example: false
+            Arch:
+              type: string
+              description:
+                Override the architecture, defaults to hosts, of the image to be
+                pulled
+              example: "amd64"
+            AuthFile:
+              type: string
+              description: Path of the authentication file
+              example: "/etc/containers/auth.json"
+            CertDir:
+              type: string
+              description:
+                Use certificates at path (*.crt, *.cert, *.key) to connect to
+                the registry
+              example: "/etc/containers/certs.d"
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: Load the specified containers.conf(5) module
+              example: ["/etc/containers/containers.conf.d/override.conf"]
+            Creds:
+              type: string
+              description:
+                The [username[:password]] to use to authenticate with the
+                registry
+              example: "myuser:mypassword"
+            DecryptionKey:
+              type: string
+              description: The [key[:passphrase]] to be used for decryption of images
+              example: "mykey:mysecret"
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of arguments passed directly between podman and image
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Image:
+              type: string
+              description: The image to pull (fully qualified image name recommended)
+              example: "quay.io/podman/stable:latest"
+            ImageTag:
+              type: string
+              description:
+                Actual FQIN of the referenced Image (for file or directory
+                archives)
+              example: "localhost/myimage:latest"
+            OS:
+              type: string
+              description: Override the OS, defaults to hosts, of the image to be pulled
+              example: "linux"
+            PodmanArgs:
+              type: array
+              items:
+                type: string
+              description:
+                List of arguments passed directly to the end of the podman image
+                pull command
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Policy:
+              type: string
+              enum: ["always", "missing", "never", "newer"]
+              default: "missing"
+              description: The pull policy to use when pulling the image
+              example: "missing"
+            Retry:
+              type: integer
+              description: Number of times to retry the image pull when a HTTP error occurs
+              example: 3
+            RetryDelay:
+              type: integer
+              description: Delay between retries in seconds
+              example: 10
+            TLSVerify:
+              type: boolean
+              description:
+                Require HTTPS and verification of certificates when contacting
+                registries
+              example: true
+            Variant:
+              type: string
+              description: Override the default architecture variant of the container image
+              example: "v7"
+          required:
+            - Image
+      example:
+        Active: true
+        Enabled: true
+        ImageSection:
+          Image: "quay.io/podman/stable:latest"
+          AllTags: false
+          Arch: "amd64"
+          AuthFile: "/etc/containers/auth.json"
+          Policy: "missing"
+          Retry: 3
+          RetryDelay: 10
+          TLSVerify: true
+
+    KubeUnit:
+      type: object
+      description: Podman kube unit configuration
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description: 
+            Tri-state boolean indicating the active status of the unit.
+            True when systemd reports the unit is active, false when systemd
+            reports the unit is not active, null when unable to connect to systemd.
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file or a
+            drop-in file exists
+          example: true
+        KubeSection:
+          type: object
+          description: Kube section. Will populate the [Kube] section of the unit file.
+          properties:
+            AutoUpdate:
+              type: string
+              enum: ["registry", "local"]
+              description: Policy for automatically updating the kube deployment
+              example: "registry"
+            ConfigMap:
+              type: array
+              items:
+                type: string
+              description: List of ConfigMaps to mount in the kube deployment
+              example: ["my-config:/etc/config", "app-config:/app/config"]
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: List of containers.conf modules to load
+              example: ["/etc/containers/containers.conf.d/override.conf"]
+            ExitCodePropagation:
+              type: string
+              enum: ["all", "any", "none"]
+              description: Policy for propagating exit code from the kube deployment
+              example: "all"
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of global arguments for the kube deployment
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            KubeDownForce:
+              type: boolean
+              description: Whether to force kube down when stopping the service
+              example: true
+            LogDriver:
+              type: string
+              description: Log driver for the kube deployment
+              example: "journald"
+            Network:
+              type: string
+              description: Network mode for the kube deployment
+              example: "bridge"
+            PodmanArgs:
+              type: array
+              items:
+                type: string
+              description: List of additional arguments for Podman
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            PublishPort:
+              type: array
+              items:
+                type: string
+              description: List of ports to publish from the kube deployment
+              example: ["8080:80"]
+            SetWorkingDirectory:
+              type: string
+              description: Set the working directory for the kube deployment
+              example: "yaml"
+            UserNS:
+              type: string
+              description: User namespace mode for the kube deployment
+              example: "host"
+            Yaml:
+              type: string
+              description: Path to the Kubernetes YAML file to deploy
+              example: "/opt/k8s/deployment.yml"
+          required:
+            - Yaml
+      example:
+        Active: true
+        Enabled: true
+        KubeSection:
+          Yaml: "/opt/k8s/deployment.yml"
+          KubeDown: true
+          Service: "my-service"
+          Replicas: 3
+          PublishPort:
+            - "8080:80"
+          Network: "bridge"
+          Hostname: "my-kube-host"
+
+    NetworkUnit:
+      type: object
+      description: Podman network unit configuration
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description: 
+            "Tri-state boolean indicating the active status of the unit. True when systemd reports the unit is active, false when systemd reports the unit is not active, null when unable to connect to systemd"
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file or a
+            drop-in file exists
+          example: true
+        NetworkSection:
+          type: object
+          description:
+            Network section. Will populate the [Network] section of the unit
+            file.
+          properties:
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: List of containers.conf modules to load
+              example: ["/etc/containers/containers.conf.d/override.conf"]
+            DisableDNS:
+              type: boolean
+              description: Whether to disable DNS for the network
+              default: false
+              example: false
+            DNS:
+              type: array
+              items:
+                type: string
+              description:
+                Set network-scoped DNS resolver/nameserver for containers in
+                this network. This key can be listed multiple times.
+              example: ["8.8.8.8", "8.8.4.4"]
+            Driver:
+              type: string
+              enum: ["bridge", "macvlan", "ipvlan"]
+              description: Network driver to use
+              example: "bridge"
+            Gateway:
+              oneOf:
+                - type: string
+                  format: ipv4
+                - type: string
+                  format: ipv6
+              description: Gateway IP address for the network (IPv4 or IPv6)
+              example: "192.168.1.1"
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of global arguments for the network
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            InterfaceName:
+              type: string
+              description:
+                Specifies a name for the created network interface inside the
+                container
+              example: "eth0"
+            Internal:
+              type: boolean
+              description: Whether the network is internal (no external access)
+              example: false
+            IPAMDriver:
+              type: string
+              enum: ["host-local", "dhcp", "none"]
+              description: IP Address Management (IPAM) driver for the network
+              example: "host-local"
+            IPRange:
+              type: array
+              items:
+                type: string
+              description: IP ranges for the network in CIDR format
+              example: ["192.168.1.0/24", "192.168.2.0/24", "2001:db8::/32"]
+            IPv6:
+              type: boolean
+              description: Whether to enable IPv6 for the network
+              example: true
+            Label:
+              type: array
+              items:
+                type: string
+              description: List of labels for the network
+              example: ["org.test.Key=value", "project=myapp"]
+            NetworkDeleteOnStop:
+              type: boolean
+              description: Whether to delete the network when the unit stops
+              default: false
+              example: false
+            NetworkName:
+              type: string
+              description: Name of the network to create or use
+              example: "my-custom-network"
+            Options:
+              type: array
+              items:
+                type: string
+              description: Additional network driver options
+              example:
+                [
+                  "com.docker.network.bridge.name=br0",
+                  "com.docker.network.driver.mtu=1500",
+                ]
+            PodmanArgs:
+              type: array
+              items:
+                type: string
+              description: List of additional arguments for Podman
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Subnet:
+              type: array
+              items:
+                type: string
+              description: Subnets for the network in CIDR format
+              example: ["192.168.1.0/24", "10.0.0.0/16"]
+      example:
+        Active: true
+        Enabled: true
+        NetworkSection:
+          Subnet: ["172.16.0.0/24"]
+          Gateway: "172.16.0.1"
+          IPRange: "172.16.0.0/28"
+          IPv6: false
+          Internal: false
+          Driver: "bridge"
+          DNS: true
+          Label:
+            - "org.test.Key=value"
+
+    PodUnit:
+      type: object
+      description: Podman pod unit configuration
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description: 
+            Tri-state boolean indicating the active status of the unit.
+            True when systemd reports the unit is active, false when systemd
+            reports the unit is not active, null when unable to connect to systemd.
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file or a
+            drop-in file exists
+          example: true
+        PodSection:
+          type: object
+          description: Pod section. Will populate the [Pod] section of the unit file.
+          properties:
+            AddHost:
+              type: array
+              description:
+                List of host-to-IP mappings to be added to the Pod's /etc/hosts
+                file in the format hostname:ip
+              items:
+                type: object
+                properties:
+                  hosts:
+                    type: array
+                    description: hostname associated with and IP address
+                    items:
+                      type: string
+                required:
+                  - hosts
+              example:
+                - hosts:
+                    [
+                      "example.com:192.168.1.100",
+                      "www.example.com:192.168.1.101",
+                    ]
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: List of containers.conf modules to load
+              example: ["/etc/containers/containers.conf.d/override.conf"]
+            DNS:
+              type: array
+              items:
+                type: string
+              description: List of DNS servers for the pod
+              example: ["8.8.8.8", "8.8.4.4"]
+            DNSOption:
+              type: array
+              items:
+                type: string
+              description: List of DNS options for the pod
+              example: ["ndots:2", "timeout:3"]
+            DNSSearch:
+              type: array
+              items:
+                type: string
+              description: List of DNS search domains for the pod
+              example: ["example.com", "local"]
+            ExitPolicy:
+              type: string
+              description: Policy for what happens when a container in the pod exits
+              enum:
+                - "continue"
+                - "stop"
+              example: "continue"
+            GIDMap:
+              type: array
+              items:
+                type: string
+              description: List of GID mappings for the pod
+              example: ["0:1000:1000", "1000:2000:1000"]
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of global arguments for the pod
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Hostname:
+              type: string
+              description: Hostname for the pod
+              example: "my-pod-host"
+            IP:
+              type: string
+              format: ipv4
+              description: IPv4 address for the pod
+              example: "192.168.1.10"
+            IP6:
+              type: string
+              format: ipv6
+              description: IPv6 address for the pod
+              example: "2001:db8::1"
+            Label:
+              type: array
+              items:
+                type: string
+              description: List of labels for the pod
+              example: ["org.test.Key=value", "project=myapp"]
+            Network:
+              type: string
+              description: Network mode for the pod
+              example: "bridge"
+            NetworkAlias:
+              type: array
+              items:
+                type: string
+              description: List of network aliases for the pod
+              example: ["web", "api"]
+            PodmanArgs:
+              type: array
+              items:
+                type: string
+              description: List of additional arguments for Podman
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            PodName:
+              type: string
+              description: Name of the pod
+              example: "my-pod"
+            PublishPort:
+              type: array
+              items:
+                type: string
+              description: List of ports to publish from the pod to the host
+              example: ["8080:80", "8443:443"]
+            ServiceName:
+              type: string
+              description: Name of the service associated with the pod
+              example: "my-service"
+            ShmSize:
+              type: integer
+              description: Size of the shared memory segment in bytes
+              example: 67108864
+            SubGIDMap:
+              type: string
+              description: Sub GID map for the pod
+              example: "0:1000:1000"
+            SubUIDMap:
+              type: string
+              description: Sub UID map for the pod
+              example: "0:1000:1000"
+            UIDMap:
+              type: array
+              items:
+                type: string
+              description: List of UID mappings for the pod
+              example: ["0:1000:1000", "1000:2000:1000"]
+            UserNS:
+              type: string
+              description: User namespace mode for the pod
+              example: "host"
+            Volume:
+              type: array
+              items:
+                type: string
+              description: List of volumes to mount in the pod
+              example: ["/host/path:/container/path:ro", "myvolume:/app/data"]
+          required:
+            - PodName
+      example:
+        Active: true
+        Enabled: true
+        PodSection:
+          PodName: "my-pod"
+          ExitPolicy: "continue"
+          PublishPort:
+            - "8080:80"
+          Network: "bridge"
+          Hostname: "my-pod-host"
+
+    Quadlet:
+      type: object
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description:
+            "Tri-state boolean indicating the active status of subordinate
+            units. True when all subordinate units are active, false when all
+            subordinate units are inactive, null when subordinate units are in
+            an inconsistent state"
+          example: true
+        Enabled:
+          type:
+            - boolean
+            - "null"
+          description:
+            "Tri-state boolean indicating the enabled status of subordinate
+            units. True when all subordinate units are enabled, false when all
+            subordinate units are disabled, null when subordinate units are in
+            an inconsistent state"
+          example: true
+        Name:
+          type: string
+          description: The name of the quadlet
+        DefaultDependencies:
+          type: boolean
+          description: Disable implicit network dependencies to the unit
+          example: true
+        units:
+          type: object
+          description:
+            Unit files for the quadlet, missing properties will denote that the
+            unit is not present.
+          properties:
+            BuildUnit:
+              $ref: "#/components/schemas/BuildUnit"
+            ContainerUnit:
+              $ref: "#/components/schemas/ContainerUnit"
+            ImageUnit:
+              $ref: "#/components/schemas/ImageUnit"
+            KubeUnit:
+              $ref: "#/components/schemas/KubeUnit"
+            NetworkUnit:
+              $ref: "#/components/schemas/NetworkUnit"
+            PodUnit:
+              $ref: "#/components/schemas/PodUnit"
+            VolumeUnit:
+              $ref: "#/components/schemas/VolumeUnit"
+      required:
+        - Name
+        - units
+      example:
+        Name: "my-quadlet"
+        Active: true
+        Enabled: true
+        units:
+          BuildUnit:
+            Active: true
+            Enabled: true
+            BuildSection:
+              Environment:
+                - "BUILD_ENV=production"
+              DNS:
+                - "8.8.8.8"
+                - "1.1.1.1"
+              DNSOption:
+                - "ndots:2"
+                - "timeout:3"
+              DNSSearch:
+                - "example.com"
+                - "local"
+              File: "Containerfile"
+              ImageTag: "localhost/myapp:latest"
+              Label:
+                - "org.example.app=myapp"
+                - "version=1.0"
+              Network: "bridge"
+              Platform:
+                - "linux/amd64"
+              Pull: "missing"
+              SetWorkingDirectory: "unit"
+              Target: "production"
+              Variant: "variant"
+              Volume:
+                - "/host/path:/container/path:ro"
+                - "myvolume:/app/data"
+          ContainerUnit:
+            Active: true
+            Enabled: true
+            ContainerSection:
+              AddCapability:
+                - "NET_ADMIN"
+                - "SYS_ADMIN"
+              AddDevice:
+                - "/dev/snd"
+                - "/dev/dri"
+              Annotation:
+                - "io.containers.autoupdate=registry"
+                - "org.example.description=My Container"
+              Architecture: "amd64"
+              AuthFile: "/etc/containers/auth.json"
+              CgroupManager: "systemd"
+              CgroupsMode: "split"
+              Cmd:
+                - "nginx"
+                - "-g"
+                - "daemon off;"
+              ContainerName: "my-nginx"
+              ContainerUser: "1000:1000"
+              Copy: "/etc/nginx/nginx.conf"
+              Detach: true
+              DetachKeys: "ctrl-p,ctrl-q"
+              Device: "/dev/snd"
+              DeviceCgroupRule:
+                - "c 4:* rmw"
+                - "c 116:* rmw"
+              DNS:
+                - "8.8.8.8"
+                - "1.1.1.1"
+              DNSOption:
+                - "ndots:2"
+                - "timeout:3"
+              DNSSearch:
+                - "example.com"
+                - "local"
+              Entrypoint:
+                - "/bin/sh"
+                - "-c"
+              Environment:
+                - "NGINX_HOST=localhost"
+                - "NGINX_PORT=80"
+              EnvFile: "/etc/container.env"
+              Expose:
+                - "80"
+                - "443"
+              GIDMap: "0:100000:1000"
+              GlobalArgs:
+                - "--log-level=info"
+              HealthCmd: "curl -f http://localhost/ || exit 1"
+              HealthInterval: "30s"
+              HealthRetries: 3
+              HealthStartupTimeout: "60s"
+              HealthTimeout: "10s"
+              Hostname: "my-container"
+              Image: "nginx:latest"
+              Init: true
+              InitPath: "/usr/libexec/podman/catatonit"
+              InitType: "systemd"
+              IP: "192.168.1.100"
+              IP6: "2001:db8::1"
+              Label:
+                - "org.example.app=myapp"
+                - "version=1.0"
+              LogDriver: "journald"
+              LogOpt:
+                - "tag=myapp"
+                - "labels=org.example.app"
+              Mount: "type=bind,source=/host,target=/container"
+              Network: ["bridge"]
+              NetworkAlias:
+                - "web"
+                - "app"
+              NoNewPrivileges: true
+              OOMScoreAdj: 100
+              Pid: "host"
+              Pod: "my-pod"
+              PodmanArgs:
+                - "--log-level=info"
+                - "--storage-driver=overlay"
+              PublishPort:
+                - "8080:80"
+                - "8443:443"
+              ReadOnly: true
+              ReadOnlyTmpfs: true
+              Restart: "always"
+              RestartSec: "10s"
+              Rootfs: "/var/lib/containers/storage/overlay"
+              RunInit: true
+              SeccompProfile: "/usr/share/containers/seccomp.json"
+              SecurityOpt:
+                - "no-new-privileges:true"
+                - "seccomp=unconfined"
+              ShmSize: 67108864
+              StopSignal: "SIGTERM"
+              StopTimeout: 30
+              Sysctl:
+                - "net.core.somaxconn=65535"
+                - "net.ipv4.tcp_keepalive_time=600"
+              Timezone: "America/New_York"
+              Tmpfs:
+                - "/tmp:rw,size=1G"
+                - "/var/cache:rw,size=100M"
+              UIDMap: "0:100000:1000"
+              User: "1000:1000"
+              UserNS: "host"
+              Volume:
+                - "/var/www:/usr/share/nginx/html:ro"
+                - "nginx-cache:/var/cache/nginx:rw"
+              WorkingDir: "/app"
+          ImageUnit:
+            Active: true
+            Enabled: true
+            ImageSection:
+              AllTags: false
+              Arch: "amd64"
+              AuthFile: "/etc/containers/auth.json"
+              Image: "quay.io/podman/stable:latest"
+              Policy: "missing"
+              Retry: 3
+              RetryDelay: "10s"
+              TLSVerify: true
+          KubeUnit:
+            Active: true
+            Enabled: true
+            KubeSection:
+              AutoUpdate: "registry"
+              ContainersConfModule:
+                - "/etc/containers/containers.conf.d/override.conf"
+              ConfigMap:
+                - "my-config:/etc/config"
+                - "app-config:/app/config"
+              DNS:
+                - "8.8.8.8"
+                - "1.1.1.1"
+              DNSOption:
+                - "ndots:2"
+                - "timeout:3"
+              DNSSearch:
+                - "example.com"
+                - "local"
+              GlobalArgs:
+                - "--log-level=info"
+              Hostname: "my-kube-host"
+              IP6: "2001:db8::1"
+              IP: "192.168.1.100"
+              KubeDown: true
+              Label:
+                - "org.example.app=myapp"
+                - "version=1.0"
+              Network: "bridge"
+              NetworkAlias:
+                - "web"
+                - "app"
+              PodmanArgs:
+                - "--log-level=info"
+                - "--storage-driver=overlay"
+              PublishPort:
+                - "8080:80"
+                - "8443:443"
+              Replicas: 3
+              Service: "my-service"
+              Yaml: "/opt/k8s/deployment.yml"
+          NetworkUnit:
+            Active: true
+            Enabled: true
+            NetworkSection:
+              ContainersConfModule:
+                - "/etc/containers/containers.conf.d/override.conf"
+              DNS:
+                - "8.8.8.8"
+                - "8.8.4.4"
+              DisableDNS: false
+              Driver: "bridge"
+              Gateway: "172.16.0.1"
+              GlobalArgs:
+                - "--log-level=info"
+              Internal: false
+              InterfaceName: "eth0"
+              IPAMDriver: "host-local"
+              IPRange:
+                - "192.168.1.0/24"
+                - "192.168.2.0/24"
+              IPv6: false
+              Label:
+                - "org.example.network=my-network"
+                - "environment=production"
+              Options:
+                - "com.docker.network.bridge.name=my-bridge"
+                - "com.docker.network.driver.mtu=1500"
+              PodmanArgs:
+                - "--log-level=info"
+              Subnet: ["172.16.0.0/24"]
+          PodUnit:
+            Active: true
+            Enabled: true
+            PodSection:
+              AddHost:
+                - hosts:
+                    ["example.com:192.168.1.100", "app.local:192.168.1.101"]
+              ContainersConfModule:
+                - "/etc/containers/containers.conf.d/override.conf"
+              DNS:
+                - "8.8.8.8"
+                - "1.1.1.1"
+              DNSOption:
+                - "ndots:2"
+                - "timeout:3"
+              DNSSearch:
+                - "example.com"
+                - "local"
+              ExitPolicy: "continue"
+              GIDMap: "0:100000:1000"
+              GlobalArgs:
+                - "--log-level=info"
+              Hostname: "my-pod-host"
+              IP: "192.168.1.100"
+              IP6: "2001:db8::1"
+              Label:
+                - "org.example.pod=my-pod"
+                - "environment=production"
+              Network: "bridge"
+              NetworkAlias:
+                - "web"
+                - "app"
+              PodmanArgs:
+                - "--log-level=info"
+                - "--storage-driver=overlay"
+              PodName: "my-pod"
+              PublishPort:
+                - "8080:80"
+                - "8443:443"
+              ServiceName: "my-service"
+              ShmSize: 67108864
+              SubGIDMap: "0:100000:1000"
+              SubUIDMap: "0:100000:1000"
+              UIDMap: "0:100000:1000"
+              UserNS: "host"
+              Volume:
+                - "/var/www:/usr/share/nginx/html:ro"
+                - "nginx-cache:/var/cache/nginx:rw"
+          VolumeUnit:
+            Active: true
+            Enabled: true
+            VolumeSection:
+              ContainersConfModule:
+                - "/etc/containers/containers.conf.d/override.conf"
+              Copy: true
+              Device: "${S3_BUCKET}:/${PATH}"
+              Driver: "local"
+              GlobalArgs:
+                - "--log-level=info"
+              Group: 1000
+              Label:
+                - "org.example.volume=my-volume"
+                - "environment=production"
+              Options:
+                - "iam_role"
+                - "endpoint=${AWS_REGION}"
+                - "use_xattr"
+                - "listobjectsv2"
+                - "del_cache"
+                - "use_cache=${CACHE_DIRECTORY}"
+              PodmanArgs:
+                - "--log-level=info"
+              Type: "fuse.s3fs"
+              User: 1000
+              VolumeName: "s3fs-volume"
+
+    VolumeUnit:
+      type: object
+      description: Podman volume unit configuration
+      properties:
+        Active:
+          type:
+            - boolean
+            - "null"
+          description: 
+            Tri-state boolean indicating the active status of the unit.
+            True when systemd reports the unit is active, false when systemd
+            reports the unit is not active, null when unable to connect to systemd.
+          example: true
+        Enabled:
+          type: boolean
+          description:
+            True when either an install section exists in the unit file or a
+            drop-in file exists
+          example: true
+        VolumeSection:
+          type: object
+          description: Volume section. Will populate the [Volume] section of the unit file.
+          properties:
+            ContainersConfModule:
+              type: array
+              items:
+                type: string
+              description: List of containers.conf modules to load
+              example: ["/etc/containers/containers.conf.d/override.conf"]
+            Copy:
+              type: boolean
+              description: Whether to copy data from the container to the volume
+              example: true
+            Device:
+              type: string
+              description: Device for the volume (e.g., for FUSE volumes)
+              example: "${S3_BUCKET}:/${PATH}"
+            Driver:
+              type: string
+              description: Driver for the volume
+              example: "local"
+            GlobalArgs:
+              type: array
+              items:
+                type: string
+              description: List of global arguments for the volume
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Group:
+              type: integer
+              description: Group for the volume
+              example: 1000
+            Image:
+              type: string
+              description: Container image to use for the volume
+              example: "quay.io/containers/podman:latest"
+            Label:
+              type: array
+              items:
+                type: string
+              description: List of labels for the volume
+              example: ["org.test.Key=value", "project=myapp"]
+            Options:
+              type: array
+              items:
+                type: string
+              description: Additional options for the volume
+              example: ["iam_role", "endpoint=${AWS_REGION}", "use_xattr"]
+            PodmanArgs:
+              type: array
+              items:
+                type: string
+              description: List of additional arguments for Podman
+              example: ["--log-level=debug", "--storage-driver=overlay2"]
+            Type:
+              type: string
+              description: Type of the volume (e.g., fuse.s3fs, tmpfs)
+              example: "fuse.s3fs"
+            User:
+              type: integer
+              description: User for the volume
+              example: 1000
+            VolumeName:
+              type: string
+              description: Name of the volume
+              example: "my-volume"
+      example:
+        Active: true
+        Enabled: true
+        VolumeSection:
+          User: 1000
+          Group: 1000
+          Label:
+            - "org.test.Key=value"
+          Device: "${S3_BUCKET}:/${PATH}"
+          Type: "fuse.s3fs"
+          VolumeName: "s3fs-volume"
+          Options:
+            - "iam_role"
+            - "endpoint=${AWS_REGION}"
+            - "use_xattr"
+            - "listobjectsv2"
+            - "del_cache"
+            - "use_cache=${CACHE_DIRECTORY}"
