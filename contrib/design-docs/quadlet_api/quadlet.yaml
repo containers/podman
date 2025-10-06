@@ -227,7 +227,7 @@ paths:
             schema:
               type: string
               format: binary
-        description: 
+        description:
           Build unit configuration (JSON) or BuildUnit file that is passed opaquely
           between the client to the server.
         required: true
@@ -405,7 +405,7 @@ paths:
             schema:
               type: string
               format: binary
-        description: 
+        description:
           Container unit configuration (JSON) or ContainerUnit file that is passed opaquely
           between the client to the server.
         required: true
@@ -583,7 +583,7 @@ paths:
             schema:
               type: string
               format: binary
-        description: 
+        description:
           Image unit configuration (JSON) or ImageUnit file that is passed opaquely
           between the client to the server.
         required: true
@@ -761,7 +761,7 @@ paths:
             schema:
               type: string
               format: binary
-        description: 
+        description:
           Kube unit configuration (JSON) or KubeUnit file that is passed opaquely
           between the client to the server.
         required: true
@@ -939,7 +939,7 @@ paths:
             schema:
               type: string
               format: binary
-        description: 
+        description:
           Network unit configuration (JSON) or NetworkUnit file that is passed opaquely
           between the client to the server.
         required: true
@@ -1117,7 +1117,7 @@ paths:
             schema:
               type: string
               format: binary
-        description: 
+        description:
           Volume unit configuration (JSON) or VolumeUnit file that is passed opaquely
           between the client to the server.
         required: true
@@ -1397,7 +1397,7 @@ components:
           type:
             - boolean
             - "null"
-          description: 
+          description:
             Tri-state boolean indicating the active status of the unit.
             True when systemd reports the unit is active, false when systemd
             reports the unit is not active, null when unable to connect to systemd.
@@ -1955,7 +1955,7 @@ components:
           type:
             - boolean
             - "null"
-          description: 
+          description:
             Tri-state boolean indicating the active status of the unit.
             True when systemd reports the unit is active, false when systemd
             reports the unit is not active, null when unable to connect to systemd.
@@ -2081,7 +2081,7 @@ components:
           type:
             - boolean
             - "null"
-          description: 
+          description:
             Tri-state boolean indicating the active status of the unit.
             True when systemd reports the unit is active, false when systemd
             reports the unit is not active, null when unable to connect to systemd.
@@ -2183,7 +2183,7 @@ components:
           type:
             - boolean
             - "null"
-          description: 
+          description:
             "Tri-state boolean indicating the active status of the unit. True when systemd reports the unit is active, false when systemd reports the unit is not active, null when unable to connect to systemd"
           example: true
         Enabled:
@@ -2320,7 +2320,7 @@ components:
           type:
             - boolean
             - "null"
-          description: 
+          description:
             Tri-state boolean indicating the active status of the unit.
             True when systemd reports the unit is active, false when systemd
             reports the unit is not active, null when unable to connect to systemd.
@@ -2858,7 +2858,7 @@ components:
           type:
             - boolean
             - "null"
-          description: 
+          description:
             Tri-state boolean indicating the active status of the unit.
             True when systemd reports the unit is active, false when systemd
             reports the unit is not active, null when unable to connect to systemd.
