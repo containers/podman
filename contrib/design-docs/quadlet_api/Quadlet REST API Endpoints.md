@@ -26,7 +26,7 @@ The design outlines a robust and complete RESTful API interface for the existing
 4. Should these API operations publish podman events?
    1. The handler should publish events to the podman event system, stating what unit operations are being performed on which Unit files.
 5. When reading an application/octet-stream from a POST method, should the contents be staged on the server or streamed directly to the destination file?
-   1. The intended use of \`enabled\` in post was to flag the need to create or delete a drop-in file for the unit with an \`\[Install\]\` stanza. If we allow clients to post an opaque file they could include an \`\[Install\]\` stanza themselves. This would lead to the situation where the API could be asked to disable a quadlet and it does not.  
+   1. The intended use of \`enabled\` in post was to flag the need to create or delete a drop-in file for the unit with an \`\[Install\]\` stanza. If we allow clients to post an opaque file they could include an \`\[Install\]\` stanza themselves. This would lead to the situation where the API could be asked to disable a quadlet and it does not.
       This is not reported as an error as operations should be idempotent.
 
 ## **Target Podman Release**
@@ -36,12 +36,12 @@ The design outlines a robust and complete RESTful API interface for the existing
 ## **Jira/Github Link**
 
 TBD
-[\[containers/podman\] Provide a remote API for inactive quadlets](https://issues.redhat.com/browse/RUN-3585)  
+[\[containers/podman\] Provide a remote API for inactive quadlets](https://issues.redhat.com/browse/RUN-3585)
 [Remote API for all Quadlet operations](https://issues.redhat.com/browse/RUN-3574)
 
 ## **Stakeholder**
 
-TBD  
+TBD
 Podman Desktop
 
 ## **Impacts**
