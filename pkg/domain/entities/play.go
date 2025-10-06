@@ -85,6 +85,8 @@ type PlayKubeOptions struct {
 	NoPodPrefix bool
 	// MultiplePods - allows creating of multiple Pods
 	MultiplePods bool
+	// Replicas allows multiple Pods creation
+	Replicas bool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube
