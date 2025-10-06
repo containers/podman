@@ -540,11 +540,11 @@ func process() bool {
 			service, warnings, err = quadlet.ConvertContainer(unit, isUserFlag, unitsInfoMap)
 		case strings.HasSuffix(unit.Filename, ".volume"):
 			warnIfAmbiguousName(unit, quadlet.VolumeGroup)
-			service, warnings, err = quadlet.ConvertVolume(unit, unit.Filename, unitsInfoMap, isUserFlag)
+			service, warnings, err = quadlet.ConvertVolume(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".kube"):
 			service, err = quadlet.ConvertKube(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".network"):
-			service, warnings, err = quadlet.ConvertNetwork(unit, unit.Filename, unitsInfoMap, isUserFlag)
+			service, warnings, err = quadlet.ConvertNetwork(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".image"):
 			warnIfAmbiguousName(unit, quadlet.ImageGroup)
 			service, err = quadlet.ConvertImage(unit, unitsInfoMap, isUserFlag)

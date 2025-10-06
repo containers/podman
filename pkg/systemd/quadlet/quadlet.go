@@ -958,7 +958,7 @@ func defaultOneshotServiceGroup(service *parser.UnitFile, remainAfterExit bool) 
 // The original Network group is kept around as X-Network.
 // Also returns the canonical network name, either auto-generated or user-defined via the
 // NetworkName key-value.
-func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
+func ConvertNetwork(network *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
 	var warn, warnings error
 
 	service, unitInfo, err := initServiceUnitFile(network, isUser, unitsInfoMap, NetworkGroup)
@@ -1047,7 +1047,7 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 // The original Volume group is kept around as X-Volume.
 // Also returns the canonical volume name, either auto-generated or user-defined via the VolumeName
 // key-value.
-func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
+func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
 	var warn, warnings error
 
 	service, unitInfo, err := initServiceUnitFile(volume, isUser, unitsInfoMap, VolumeGroup)
