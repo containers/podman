@@ -43,6 +43,65 @@ class ArtifactTestCase(APITestCase):
         # Assert blob media type fallback detection is working
         self.assertEqual(artifact_layer["mediaType"], "application/octet-stream")
 
+    def test_add_with_replace(self):
+        ARTIFACT_NAME = "quay.io/myimage/newartifact:latest"
+
+        # Create first artifact
+        file1 = ArtifactFile()
+        parameters1: dict[str, str | list[str]] = {
+            "name": ARTIFACT_NAME,
+            "fileName": file1.name,
+        }
+
+        artifact1 = Artifact(self.uri(""), ARTIFACT_NAME, parameters1, file1)
+        add_response1 = artifact1.add()
+        self.assertEqual(add_response1.status_code, 201, add_response1.text)
+
+        original_digest = add_response1.json()["ArtifactDigest"]
+
+        # Create replacement artifact with replace=true
+        file2 = ArtifactFile()
+        parameters2: dict[str, str | list[str]] = {
+            "name": ARTIFACT_NAME,
+            "fileName": file2.name,
+            "replace": "true",
+        }
+
+        artifact2 = Artifact(self.uri(""), ARTIFACT_NAME, parameters2, file2)
+        add_response2 = artifact2.add()
+        self.assertEqual(add_response2.status_code, 201, add_response2.text)
+
+        new_digest = add_response2.json()["ArtifactDigest"]
+
+        # Verify artifacts were replaced (different digests)
+        self.assertNotEqual(original_digest, new_digest)
+
+        # Verify artifact exists and has the new content
+        inspect_response = artifact2.do_artifact_inspect_request()
+        self.assertEqual(inspect_response.status_code, 200)
+
+        inspect_json = inspect_response.json()
+        artifact_layer = inspect_json["Manifest"]["layers"][0]
+
+        # Should have only one layer (replaced, not appended)
+        self.assertEqual(len(inspect_json["Manifest"]["layers"]), 1)
+
+        # Verify it's the second file's content
+        self.assertEqual(artifact_layer["size"], file2.size)
+        self.assertEqual(
+            artifact_layer["annotations"]["org.opencontainers.image.title"], file2.name
+        )
+
+        url = self.uri("/artifacts/" + ARTIFACT_NAME)
+        r = requests.delete(url)
+        rjson = r.json()
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 200, r.text)
+
+        # Assert return response is json and contains digest
+        self.assertIn("sha256:", rjson["ArtifactDigests"][0])
+
     def test_add_with_append(self):
         ARTIFACT_NAME = "quay.io/myimage/myartifact:latest"
         file = ArtifactFile(name="test_file_2")

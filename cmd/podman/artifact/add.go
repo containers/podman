@@ -53,6 +53,9 @@ func init() {
 	appendFlagName := "append"
 	flags.BoolVarP(&addOpts.Append, appendFlagName, "a", false, "Append files to an existing artifact")
 
+	replaceFlagName := "replace"
+	flags.BoolVar(&addOpts.Replace, replaceFlagName, false, "Replace an existing artifact")
+
 	fileMIMETypeFlagName := "file-type"
 	flags.StringVarP(&addOpts.FileMIMEType, fileMIMETypeFlagName, "", "", "Set file type to use for the artifact (layer)")
 	_ = addCmd.RegisterFlagCompletionFunc(fileMIMETypeFlagName, completion.AutocompleteNone)
@@ -61,6 +64,10 @@ func init() {
 func add(_ *cobra.Command, args []string) error {
 	artifactName := args[0]
 	blobs := args[1:]
+
+	if addOpts.Append && addOpts.Replace {
+		return fmt.Errorf("--append and --replace options cannot be used together")
+	}
 
 	annots, err := utils.ParseAnnotations(addOpts.AnnotationsCLI)
 	if err != nil {
@@ -72,6 +79,7 @@ func add(_ *cobra.Command, args []string) error {
 		ArtifactMIMEType: addOpts.ArtifactMIMEType,
 		Append:           addOpts.Append,
 		FileMIMEType:     addOpts.FileMIMEType,
+		Replace:          addOpts.Replace,
 	}
 
 	artifactBlobs := make([]entities.ArtifactBlob, 0, len(blobs))

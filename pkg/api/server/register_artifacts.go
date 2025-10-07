@@ -191,6 +191,11 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//     description: Append files to an existing artifact
 	//     type: boolean
 	//     default: false
+	//   - name: replace
+	//     in: query
+	//     description: Replace an existing artifact with the same name
+	//     type: boolean
+	//     default: false
 	//   - name: inputStream
 	//     in: body
 	//     description: Binary stream of the file to add to an artifact

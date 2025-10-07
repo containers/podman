@@ -223,6 +223,7 @@ func AddArtifact(w http.ResponseWriter, r *http.Request) {
 		Annotations      []string `schema:"annotations"`
 		ArtifactMIMEType string   `schema:"artifactMIMEType"`
 		Append           bool     `schema:"append"`
+		Replace          bool     `schema:"replace"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -246,6 +247,7 @@ func AddArtifact(w http.ResponseWriter, r *http.Request) {
 		Annotations:      annotations,
 		ArtifactMIMEType: query.ArtifactMIMEType,
 		FileMIMEType:     query.FileMIMEType,
+		Replace:          query.Replace,
 	}
 
 	artifactBlobs := []entities.ArtifactBlob{{

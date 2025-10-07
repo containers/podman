@@ -89,6 +89,7 @@ func (ir *ImageEngine) ArtifactAdd(_ context.Context, name string, artifactBlob 
 		Append:           &opts.Append,
 		ArtifactMIMEType: &opts.ArtifactMIMEType,
 		FileMIMEType:     &opts.FileMIMEType,
+		Replace:          &opts.Replace,
 	}
 
 	for k, v := range opts.Annotations {
