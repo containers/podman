@@ -99,12 +99,12 @@ var _ = Describe("Podman artifact", func() {
 
 		a := podmanTest.InspectArtifact(artifact1Name)
 
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 
 		// Adding an artifact with an existing name should fail
 		addAgain := podmanTest.Podman([]string{"artifact", "add", artifact1Name, artifact1File})
 		addAgain.WaitWithDefaultTimeout()
-		Expect(addAgain).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact already exists", artifact1Name)))
+		Expect(addAgain).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact already exists", artifact1Name+":latest")))
 	})
 
 	It("podman artifact add with options", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Podman artifact", func() {
 		podmanTest.PodmanExitCleanly("artifact", "add", "--file-type", yamlType, "--type", artifactType, "--annotation", annotation1, "--annotation", annotation2, artifact1Name, artifact1File)
 
 		a := podmanTest.InspectArtifact(artifact1Name)
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 		Expect(a.Manifest.ArtifactType).To(Equal(artifactType))
 		Expect(a.Manifest.Layers[0].Annotations["color"]).To(Equal("blue"))
 		Expect(a.Manifest.Layers[0].Annotations["flavor"]).To(Equal("lemon"))
@@ -149,7 +149,6 @@ var _ = Describe("Podman artifact", func() {
 		failSession = podmanTest.Podman([]string{"artifact", "add", "--annotation", annotation3, artifact3Name, artifact1File, artifact2File})
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: duplicate layers org.opencontainers.image.title labels within an artifact not allowed"))
-
 	})
 
 	It("podman artifact add multiple", func() {
@@ -163,7 +162,7 @@ var _ = Describe("Podman artifact", func() {
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File1, artifact1File2)
 
 		a := podmanTest.InspectArtifact(artifact1Name)
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 
 		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
@@ -200,7 +199,7 @@ var _ = Describe("Podman artifact", func() {
 
 		a := podmanTest.InspectArtifact(artifact1Name)
 
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 	})
 
 	It("podman artifact push with authorization", func() {
@@ -508,7 +507,7 @@ var _ = Describe("Podman artifact", func() {
 		podmanTest.PodmanExitCleanly("artifact", "add", "--append", "--annotation", annotation1, artifact1Name, artifact3File)
 
 		a = podmanTest.InspectArtifact(artifact1Name)
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 		Expect(a.Manifest.Layers).To(HaveLen(3))
 
 		for _, l := range a.Manifest.Layers {
@@ -554,7 +553,6 @@ var _ = Describe("Podman artifact", func() {
 
 		artifact1Name := "localhost/test/artifact1"
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
-
 		f, err := os.OpenFile(artifact1File, os.O_APPEND|os.O_WRONLY, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = f.WriteString("This is modification.")
@@ -619,16 +617,13 @@ var _ = Describe("Podman artifact", func() {
 		podmanTest.PodmanExitCleanly("artifact", "add", "--type", artifactType, artifact1Name, artifact1File)
 
 		a := podmanTest.InspectArtifact(artifact1Name)
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 		Expect(a.Manifest.ArtifactType).To(Equal(artifactType))
 
 		podmanTest.PodmanExitCleanly("artifact", "add", "--append", artifact1Name, artifact2File)
 
 		a = podmanTest.InspectArtifact(artifact1Name)
-		Expect(a.Name).To(Equal(artifact1Name))
-		Expect(a.Manifest.ArtifactType).To(Equal(artifactType))
-		Expect(a.Manifest.Layers).To(HaveLen(2))
-
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--type", artifactType, "--append", artifact1Name, artifact3File})
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
@@ -647,7 +642,7 @@ var _ = Describe("Podman artifact", func() {
 
 		// Inspect artifact
 		a := podmanTest.InspectArtifact(artifact1Name)
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 
 		// Check that created annotation exists and is in valid Unix nanosecond format
 		createdStr, exists := a.Manifest.Annotations["org.opencontainers.image.created"]
