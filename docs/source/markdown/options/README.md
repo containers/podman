@@ -17,6 +17,8 @@ mechanism:
 
 ```
 @@option foo           ! includes options/foo.md
+@@option quadlet:foo   ! includes options/foo.md with `is_quadlet=True`
+                       ! See "Jinja2 Templating" below.
 ```
 
 The tool that does this is `hack/markdown-preprocess`. It is a python
@@ -24,6 +26,41 @@ script because it needs to run on `readthedocs.io`. From a given `.md.in`
 file, this script creates a `.md` file that can then be read by
 `go-md2man`, `sphinx`, anything that groks markdown. This runs as
 part of `make docs`.
+
+Conditionals
+============
+
+Some options are used as both Podman command line options and Quadlet
+options. To reduce the duplication, the very limited conditionals are
+supported in the Markdown files.
+
+The basic condition:
+
+```
+<< if variable >>
+...
+<< endif >>
+```
+
+It is possible to use the `not` keyword and `else` keyword:
+
+```
+<< if not variable >>
+...
+<< else >>
+...
+<< endif >>
+```
+
+It is also possible to do inline conditions like this:
+
+```
+<< "foo" if variable else "bar" >>
+```
+
+The following variables are available for Jinja2 Templates:
+
+- `is_quadlet`: True if file is imported using `@@option quadlet:foo`.
 
 Special Substitutions
 =====================
