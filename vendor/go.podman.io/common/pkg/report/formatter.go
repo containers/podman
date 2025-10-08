@@ -17,7 +17,9 @@ type Flusher interface {
 type NopFlusher struct{}
 
 // Flush is a nop operation.
-func (f *NopFlusher) Flush() (err error) { return }
+func (f *NopFlusher) Flush() error {
+	return nil
+}
 
 type Origin int
 

@@ -501,7 +501,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if val == "" {
 				continue
 			}
-			for _, store := range strings.Split(val, ",") {
+			for store := range strings.SplitSeq(val, ",") {
 				store = filepath.Clean(store)
 				if !filepath.IsAbs(store) {
 					return nil, fmt.Errorf("overlay: image path %q is not absolute.  Can not be relative", store)
@@ -521,7 +521,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if val == "" {
 				continue
 			}
-			for _, lstore := range strings.Split(val, ",") {
+			for lstore := range strings.SplitSeq(val, ",") {
 				elems := strings.Split(lstore, ":")
 				lstore = filepath.Clean(elems[0])
 				if !filepath.IsAbs(lstore) {
@@ -1196,8 +1196,8 @@ func (d *Driver) getLower(parent string) (string, error) {
 
 	parentLower, err := os.ReadFile(path.Join(parentDir, lowerFile))
 	if err == nil {
-		parentLowers := strings.Split(string(parentLower), ":")
-		lowers = append(lowers, parentLowers...)
+		parentLowers := strings.SplitSeq(string(parentLower), ":")
+		lowers = slices.AppendSeq(lowers, parentLowers)
 	}
 	return strings.Join(lowers, ":"), nil
 }
@@ -1247,7 +1247,7 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 	var lowersArray []string
 	lowers, err := os.ReadFile(path.Join(d.dir(id), lowerFile))
 	if err == nil {
-		for _, s := range strings.Split(string(lowers), ":") {
+		for s := range strings.SplitSeq(string(lowers), ":") {
 			lower := d.dir(s)
 			lp, err := os.Readlink(lower)
 			// if the link does not exist, we lost the symlinks during a sudden reboot.
@@ -2371,16 +2371,6 @@ func (d *Driver) DifferTarget(id string) (string, error) {
 
 // ApplyDiff applies the new layer into a root
 func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
-	if !d.isParent(id, parent) {
-		if d.options.ignoreChownErrors {
-			options.IgnoreChownErrors = d.options.ignoreChownErrors
-		}
-		if d.options.forceMask != nil {
-			options.ForceMask = d.options.forceMask
-		}
-		return d.naiveDiff.ApplyDiff(id, parent, options)
-	}
-
 	idMappings := options.Mappings
 	if idMappings == nil {
 		idMappings = &idtools.IDMappings{}

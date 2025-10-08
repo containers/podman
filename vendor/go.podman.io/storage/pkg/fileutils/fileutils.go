@@ -51,7 +51,6 @@ func NewPatternMatcher(patterns []string) (*PatternMatcher, error) {
 			return nil, err
 		}
 		newp.cleanedPattern = p
-		newp.dirs = strings.Split(p, string(os.PathSeparator))
 		pm.patterns = append(pm.patterns, newp)
 	}
 	return pm, nil
@@ -168,7 +167,6 @@ func (pm *PatternMatcher) Patterns() []*Pattern {
 // Pattern defines a single regexp used to filter file paths.
 type Pattern struct {
 	cleanedPattern string
-	dirs           []string
 	regexp         *regexp.Regexp
 	exclusion      bool
 }

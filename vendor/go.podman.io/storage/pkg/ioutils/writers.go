@@ -59,8 +59,8 @@ func NewWriteCounter(w io.Writer) *WriteCounter {
 	}
 }
 
-func (wc *WriteCounter) Write(p []byte) (count int, err error) {
-	count, err = wc.Writer.Write(p)
+func (wc *WriteCounter) Write(p []byte) (int, error) {
+	count, err := wc.Writer.Write(p)
 	wc.Count += int64(count)
-	return
+	return count, err
 }

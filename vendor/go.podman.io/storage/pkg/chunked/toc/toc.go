@@ -7,6 +7,20 @@ import (
 	"go.podman.io/storage/pkg/chunked/internal/minimal"
 )
 
+// ChunkedAnnotations contains various annotations that might be set or used by the pkg/chunked-supported
+// compression formats.
+//
+// This set does not define their semantics in detail as a public API.
+// The _only_ intended use of this set is: code that _changes_ layer compression to a format
+// which is not chunked can/should remove these annotations.
+var ChunkedAnnotations = map[string]struct{}{
+	minimal.ManifestChecksumKey: {},
+	minimal.ManifestInfoKey:     {},
+	minimal.TarSplitInfoKey:     {},
+	minimal.TarSplitChecksumKey: {}, //nolint:staticcheck // The field is deprecated, so removing it when changing compressionn is all the more desirable.
+	tocJSONDigestAnnotation:     {},
+}
+
 // tocJSONDigestAnnotation is the annotation key for the digest of the estargz
 // TOC JSON.
 // It is defined in github.com/containerd/stargz-snapshotter/estargz as TOCJSONDigestAnnotation

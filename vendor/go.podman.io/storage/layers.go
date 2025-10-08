@@ -339,7 +339,7 @@ type rwLayerStore interface {
 	CleanupStagingDirectory(stagingDirectory string) error
 
 	// applyDiffFromStagingDirectory uses diffOutput.Target to create the diff.
-	applyDiffFromStagingDirectory(id string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error
+	applyDiffFromStagingDirectory(layer *Layer, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error
 
 	// DifferTarget gets the location where files are stored for the layer.
 	DifferTarget(id string) (string, error)
@@ -1569,12 +1569,12 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 
 	size = -1
 	if diff != nil {
-		if size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff); err != nil {
+		if size, err = r.applyDiffWithOptions(layer, moreOptions, diff); err != nil {
 			cleanupFailureContext = "applying layer diff"
 			return nil, -1, err
 		}
 	} else if slo != nil {
-		if err := r.applyDiffFromStagingDirectory(layer.ID, slo.DiffOutput, slo.DiffOptions); err != nil {
+		if err := r.applyDiffFromStagingDirectory(layer, slo.DiffOutput, slo.DiffOptions); err != nil {
 			cleanupFailureContext = "applying staged directory diff"
 			return nil, -1, err
 		}
@@ -2395,18 +2395,17 @@ func updateDigestMap(m *map[digest.Digest][]string, oldvalue, newvalue digest.Di
 
 // Requires startWriting.
 func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error) {
-	return r.applyDiffWithOptions(to, nil, diff)
-}
-
-// Requires startWriting.
-func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions, diff io.Reader) (size int64, err error) {
-	if !r.lockfile.IsReadWrite() {
-		return -1, fmt.Errorf("not allowed to modify layer contents at %q: %w", r.layerdir, ErrStoreIsReadOnly)
-	}
-
 	layer, ok := r.lookup(to)
 	if !ok {
 		return -1, ErrLayerUnknown
+	}
+	return r.applyDiffWithOptions(layer, nil, diff)
+}
+
+// Requires startWriting.
+func (r *layerStore) applyDiffWithOptions(layer *Layer, layerOptions *LayerOptions, diff io.Reader) (size int64, err error) {
+	if !r.lockfile.IsReadWrite() {
+		return -1, fmt.Errorf("not allowed to modify layer contents at %q: %w", r.layerdir, ErrStoreIsReadOnly)
 	}
 
 	header := make([]byte, 10240)
@@ -2553,14 +2552,10 @@ func (r *layerStore) DifferTarget(id string) (string, error) {
 }
 
 // Requires startWriting.
-func (r *layerStore) applyDiffFromStagingDirectory(id string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error {
+func (r *layerStore) applyDiffFromStagingDirectory(layer *Layer, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffWithDifferOpts) error {
 	ddriver, ok := r.driver.(drivers.DriverWithDiffer)
 	if !ok {
 		return ErrNotSupported
-	}
-	layer, ok := r.lookup(id)
-	if !ok {
-		return ErrLayerUnknown
 	}
 	if options == nil {
 		options = &drivers.ApplyDiffWithDifferOpts{
@@ -2622,9 +2617,9 @@ func (r *layerStore) applyDiffFromStagingDirectory(id string, diffOutput *driver
 		}
 	}
 	for k, v := range diffOutput.BigData {
-		if err := r.SetBigData(id, k, bytes.NewReader(v)); err != nil {
-			if err2 := r.deleteWhileHoldingLock(id); err2 != nil {
-				logrus.Errorf("While recovering from a failure to set big data, error deleting layer %#v: %v", id, err2)
+		if err := r.SetBigData(layer.ID, k, bytes.NewReader(v)); err != nil {
+			if err2 := r.deleteWhileHoldingLock(layer.ID); err2 != nil {
+				logrus.Errorf("While recovering from a failure to set big data, error deleting layer %#v: %v", layer.ID, err2)
 			}
 			return err
 		}
@@ -2694,5 +2689,5 @@ func closeAll(closes ...func() error) (rErr error) {
 			rErr = fmt.Errorf("%v: %w", err, rErr)
 		}
 	}
-	return
+	return rErr
 }

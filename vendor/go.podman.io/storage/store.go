@@ -3177,7 +3177,7 @@ func (s *store) ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error) {
 		// This code path exists only for cmd/containers/storage.applyDiffUsingStagingDirectory; we have tests that
 		// assume layer creation and applying a staged layer are separate steps. Production pull code always uses the
 		// other path, where layer creation is atomic.
-		return layer, rlstore.applyDiffFromStagingDirectory(args.ID, args.DiffOutput, args.DiffOptions)
+		return layer, rlstore.applyDiffFromStagingDirectory(layer, args.DiffOutput, args.DiffOptions)
 	}
 
 	// if the layer doesn't exist yet, try to create it.
@@ -3496,7 +3496,6 @@ func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
 			return struct{}{}, true, err
 		}
 		for _, image := range imageList {
-			image := image
 			if image.TopLayer == layer.ID || stringutils.InSlice(image.MappedTopLayers, layer.ID) {
 				images = append(images, &image)
 			}
