@@ -507,6 +507,28 @@ spec:
           periodSeconds: 1
 `
 
+var replicasPodYaml = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: replicas-pods-test
+  labels:
+    app: testimage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: testimage
+  template:
+    metadata:
+      labels:
+        app: testimage
+    spec:
+      containers:
+      - name: testimage
+        image: ` + NGINX_IMAGE + `
+`
+
 var selinuxLabelPodYaml = `
 apiVersion: v1
 kind: Pod
@@ -6480,5 +6502,17 @@ spec:
 		podmanTest.PodmanExitCleanly("kube", "play", "--no-pod-prefix", kubeYaml)
 		inspect := podmanTest.PodmanExitCleanly("inspect", "simpleWithoutPodPrefix")
 		Expect(inspect.InspectContainerToJSON()[0].Name).Should(Equal("simpleWithoutPodPrefix"))
+	})
+
+	It("multiple Pod replicas", func() {
+		err := writeYaml(replicasPodYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", "--replicas", "--publish", "8080:80,8081:80", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+
+		podsCount := podmanTest.PodmanExitCleanly("pod", "ps", "-n")
+		podsCount.WaitWithDefaultTimeout()
+		Expect(podsCount.OutputToStringArray()).To(HaveLen(2))
 	})
 })
