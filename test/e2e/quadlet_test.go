@@ -1093,6 +1093,7 @@ BOGUS=foo
 		Entry("Pod - Remap keep-id", "remap-keep-id.pod"),
 		Entry("Pod - Remap manual", "remap-manual.pod"),
 		Entry("Pod - Shm Size", "shmsize.pod"),
+		Entry("Pod - StopTimeout", "stoptimeout.pod"),
 		Entry("Pod - Service Environment", "service-environment.pod"),
 	)
 

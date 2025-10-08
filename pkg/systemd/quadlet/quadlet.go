@@ -485,6 +485,7 @@ var (
 				KeyRemapUsers:           true,
 				KeyServiceName:          true,
 				KeyShmSize:              true,
+				KeyStopTimeout:          true,
 				KeySubGIDMap:            true,
 				KeySubUIDMap:            true,
 				KeyUIDMap:               true,
@@ -1552,9 +1553,13 @@ func ConvertPod(podUnit *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	execStop := createBasePodmanCommand(podUnit, PodGroup)
 	execStop.add("pod", "stop")
+	stopTimeout := "10"
+	if value, ok := podUnit.Lookup(PodGroup, KeyStopTimeout); ok {
+		stopTimeout = value
+	}
 	execStop.add(
 		"--ignore",
-		"--time=10",
+		fmt.Sprintf("--time=%s", stopTimeout),
 		podName,
 	)
 	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
