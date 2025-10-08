@@ -1059,6 +1059,7 @@ BOGUS=foo
 		Entry("Build - Multiple Tags", "multiple-tags.build"),
 		Entry("Build - Network Key host", "network.build"),
 		Entry("Build - PodmanArgs", "podmanargs.build"),
+		Entry("Build - BuildArg Key", "buildarg.build"),
 		Entry("Build - Pull Key", "pull.build"),
 		Entry("Build - Secrets", "secrets.build"),
 		Entry("Build - SetWorkingDirectory is absolute path", "setworkingdirectory-is-abs.build"),

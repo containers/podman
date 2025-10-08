@@ -63,6 +63,7 @@ const (
 	KeyArch                  = "Arch"
 	KeyAuthFile              = "AuthFile"
 	KeyAutoUpdate            = "AutoUpdate"
+	KeyBuildArg              = "BuildArg"
 	KeyCertDir               = "CertDir"
 	KeyCgroupsMode           = "CgroupsMode"
 	KeyConfigMap             = "ConfigMap"
@@ -433,6 +434,7 @@ var (
 				KeyAnnotation:           true,
 				KeyArch:                 true,
 				KeyAuthFile:             true,
+				KeyBuildArg:             true,
 				KeyContainersConfModule: true,
 				KeyDNS:                  true,
 				KeyDNSOption:            true,
@@ -1391,6 +1393,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	lookupAndAddAllStrings(build, BuildGroup, allStringKeys, podman)
 
 	keyValKeys := map[string]string{
+		KeyBuildArg:    "--build-arg",
 		KeyEnvironment: "--env",
 		KeyLabel:       "--label",
 		KeyAnnotation:  "--annotation",

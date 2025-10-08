@@ -1,0 +1,8 @@
+## assert-podman-args "--build-arg" "FOO=BAR"
+## assert-podman-args "--build-arg" "BIZ=BAZ"
+
+[Build]
+ImageTag=image:latest
+SetWorkingDirectory=unit
+BuildArg=FOO=BAR
+BuildArg=BIZ=BAZ
