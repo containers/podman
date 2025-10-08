@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/libartifact/types"
+	"go.podman.io/image/v5/docker/reference"
 )
 
 func (ir *ImageEngine) ArtifactInspect(ctx context.Context, name string, _ entities.ArtifactInspectOptions) (*entities.ArtifactInspectReport, error) {
@@ -57,6 +58,16 @@ func (ir *ImageEngine) ArtifactList(ctx context.Context, _ entities.ArtifactList
 }
 
 func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entities.ArtifactPullOptions) (*entities.ArtifactPullReport, error) {
+	named, err := reference.Parse(name)
+	if err != nil {
+		return nil, fmt.Errorf("parsing reference %q: %w", name, err)
+	}
+	namedRef, ok := named.(reference.Named)
+	if !ok {
+		return nil, fmt.Errorf("reference %q is not a Named reference", name)
+	}
+	name = reference.TagNameOnly(namedRef).String()
+
 	pullOptions := &libimage.CopyOptions{}
 	pullOptions.AuthFilePath = opts.AuthFilePath
 	pullOptions.CertDirPath = opts.CertDirPath

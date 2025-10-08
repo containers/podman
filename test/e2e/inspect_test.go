@@ -626,7 +626,7 @@ var _ = Describe("Podman inspect", func() {
 		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.Name}}", artifactName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
-		Expect(inspect.OutputToString()).To(Equal(artifactName))
+		Expect(inspect.OutputToString()).To(Equal(artifactName + ":latest"))
 
 		inspect2 := podmanTest.Podman([]string{"inspect", "--format", "{{.Digest}}", artifactName})
 		inspect2.WaitWithDefaultTimeout()
