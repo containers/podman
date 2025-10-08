@@ -3651,7 +3651,7 @@ spec:
 		if IsRemote() {
 			Expect(kube.ErrorToString()).To(BeEmpty())
 		} else {
-			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, use `--replicas` to enable more than one replica"))
 		}
 
 		podName := getPodNameInDeployment(deployment)
@@ -3709,7 +3709,7 @@ spec:
 		if IsRemote() {
 			Expect(kube.ErrorToString()).To(BeEmpty())
 		} else {
-			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, use `--replicas` to enable more than one replica"))
 		}
 
 		podName := getPodNameInDeployment(deployment)
@@ -4192,7 +4192,7 @@ spec:
 		if IsRemote() {
 			Expect(kube.ErrorToString()).To(BeEmpty())
 		} else {
-			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, use `--replicas` to enable more than one replica"))
 		}
 
 		correctLabels := expectedLabelKey + ":" + expectedLabelValue
@@ -4233,7 +4233,7 @@ spec:
 		if IsRemote() {
 			Expect(kube.ErrorToString()).To(BeEmpty())
 		} else {
-			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+			Expect(kube.ErrorToString()).To(ContainSubstring("Limiting replica count to 1, use `--replicas` to enable more than one replica"))
 		}
 
 		pod := getPodNameInDeployment(deployment)
@@ -5833,7 +5833,7 @@ spec:
 
 		// warnings are only propagated to local clients
 		if !IsRemote() {
-			Expect(kube.ErrorToString()).Should(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+			Expect(kube.ErrorToString()).Should(ContainSubstring("Limiting replica count to 1, use `--replicas` to enable more than one replica"))
 		}
 
 		Expect(strings.Count(kube.OutputToString(), "Pod:")).To(Equal(1))
