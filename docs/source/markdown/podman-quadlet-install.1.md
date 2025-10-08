@@ -28,6 +28,12 @@ Reload systemd after installing Quadlets (default true).
 In order to disable it users need to manually set the value
 of this flag to `false`.
 
+#### **--replace**, **-r**
+
+Replace the Quadlet installation even if the generated unit file already exists (default false).
+In order to enable it, users need to manually set the value
+of this flag to `true`. This flag is used primarily to update an existing unit.
+
 ## EXAMPLES
 
 Install quadlet from a file.
