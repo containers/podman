@@ -461,4 +461,43 @@ EOF
     assert $status -eq 0 "quadlet rm --ignore should succeed even for non-existent quadlets"
 }
 
+@test "quadlet install --replace" {
+    local install_dir=$(get_quadlet_install_dir)
+    # Create a test quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/alpine-quadlet.container
+    local initial_exec='Exec=sh -c "echo STARTED CONTAINER; trap '\''exit'\'' SIGTERM; while :; do sleep 0.1; done"'
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+$initial_exec
+EOF
+    # Test quadlet install
+    run_podman quadlet install $quadlet_file
+    # Verify install output contains the quadlet name on a single line
+    assert "$output" =~ "alpine-quadlet.container" "install output should contain quadlet name"
+
+    # Without replace should fail
+    run_podman 125 quadlet install $quadlet_file
+    assert "$output" =~ "refusing to overwrite" "reinstall without --replace must fail with the overwrite error message"
+
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER UPDATED; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+    # With replace should pass and update quadlet
+    run_podman quadlet install --replace $quadlet_file
+
+    # Verify install output contains the quadlet name on a single line
+    assert "$output" =~ "alpine-quadlet.container" "install output should contain quadlet name"
+
+    run_podman quadlet print alpine-quadlet.container
+
+    assert "$output" !~ "$initial_exec" "Printed content must not show the initial version"
+    assert "$output" == "$(<$quadlet_file)" "Printed content must match the updated file content"
+
+    # Clean up
+    run_podman quadlet rm alpine-quadlet.container
+}
+
 # vim: filetype=sh

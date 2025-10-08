@@ -197,7 +197,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("populating temporary file: %w", err)
 				continue
 			}
-			installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), quadletFileName, installDir, assetFile, validateQuadletFile)
+			installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), quadletFileName, installDir, assetFile, validateQuadletFile, options.Replace)
 			if err != nil {
 				installReport.QuadletErrors[toInstall] = err
 				continue
@@ -210,7 +210,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				continue
 			}
 			// If toInstall is a single file, execute the original logic
-			installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir, assetFile, validateQuadletFile)
+			installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir, assetFile, validateQuadletFile, options.Replace)
 			if err != nil {
 				installReport.QuadletErrors[toInstall] = err
 				continue
@@ -254,7 +254,7 @@ func getFileName(resp *http.Response, fileURL string) (string, error) {
 // Perform some minimal validation, but not much.
 // We can't know about a lot of problems without running the Quadlet binary, which we
 // only want to do once.
-func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile bool) (string, error) {
+func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile, replace bool) (string, error) {
 	// First, validate that the source path exists and is a file
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -274,9 +274,15 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
 	}
 
-	file, err := os.OpenFile(finalPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	var osFlags = os.O_CREATE | os.O_WRONLY
+
+	if !replace {
+		osFlags |= os.O_EXCL
+	}
+
+	file, err := os.OpenFile(finalPath, osFlags, 0644)
 	if err != nil {
-		if errors.Is(err, fs.ErrExist) {
+		if errors.Is(err, fs.ErrExist) && !replace {
 			return "", fmt.Errorf("a Quadlet with name %s already exists, refusing to overwrite", filepath.Base(finalPath))
 		}
 		return "", fmt.Errorf("unable to open file %s: %w", filepath.Base(finalPath), err)
