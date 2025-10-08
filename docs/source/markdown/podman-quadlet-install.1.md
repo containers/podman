@@ -25,7 +25,7 @@ Note: In case user wants to install Quadlet application then first path should b
 #### **--force**, **-f**
 
 Force the Quadlet installation even if the generated unit file already exists (default false).
-In order to enable it users need to manually set the value
+In order to enable it, users need to manually set the value
 of this flag to `true`. This flag is used primarily to update an existing unit.
 
 #### **--reload-systemd**
