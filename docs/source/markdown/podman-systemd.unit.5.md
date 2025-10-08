@@ -1708,6 +1708,7 @@ Valid options for `[Build]` are listed below:
 | Annotation=annotation=value         | --annotation=annotation=value               |
 | Arch=aarch64                        | --arch=aarch64                              |
 | AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json         |
+| BuildArg=foo=bar                    | --build-arg foo=bar                         |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                     |
 | DNS=192.168.55.1                    | --dns=192.168.55.1                          |
 | DNSOption=ndots:1                   | --dns-option=ndots:1                        |
@@ -1749,6 +1750,14 @@ This is equivalent to the `--arch` option of `podman build`.
 Path of the authentication file.
 
 This is equivalent to the `--authfile` option of `podman build`.
+
+### `BuildArg=`
+
+Specifies a build argument and its value in the same way environment variables are 
+(e.g. env=*value*), but which is not added to environment variable list in the 
+resulting image's configuration. Can be listed multiple times.
+
+This is equivalent to the `--build-arg` option of `podman build`.
 
 ### `ContainersConfModule=`
 
