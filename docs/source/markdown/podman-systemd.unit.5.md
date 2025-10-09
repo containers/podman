@@ -1753,8 +1753,8 @@ This is equivalent to the `--authfile` option of `podman build`.
 
 ### `BuildArg=`
 
-Specifies a build argument and its value in the same way environment variables are 
-(e.g., env=*value*), but it is not added to the environment variable list in the 
+Specifies a build argument and its value in the same way environment variables are
+(e.g., env=*value*), but it is not added to the environment variable list in the
 resulting image's configuration. Can be listed multiple times.
 
 This is equivalent to the `--build-arg` option of `podman build`.
