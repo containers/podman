@@ -1021,7 +1021,7 @@ a `$name.pod` file creates a `$name-pod.service` unit and a `systemd-$name` Podm
 
 Valid options for `[Pod]` are listed below:
 
-| **[Pod] options**                   | **podman pod create equivalent** |
+| **[Pod] options**                   | **podman pod create equivalent**       |
 |-------------------------------------|----------------------------------------|
 | AddHost=example\.com:192.168.10.11  | --add-host example.com:192.168.10.11   |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
@@ -1042,6 +1042,7 @@ Valid options for `[Pod]` are listed below:
 | PublishPort=8080:80                 | --publish 8080:80                      |
 | ServiceName=name                    | Name the systemd unit `name.service`   |
 | ShmSize=100m                        | --shm-size=100m                        |
+| StopTimeout=20                      | --time=20                              |
 | SubGIDMap=gtest                     | --subgidname=gtest                     |
 | SubUIDMap=utest                     | --subuidname=utest                     |
 | UIDMap=0:10000:10                   | --uidmap=0:10000:10                    |
@@ -1209,6 +1210,12 @@ Note, the name should not include the `.service` file extension
 Size of /dev/shm.
 
 This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
+
+### `StopTimeout=`
+
+Sets the time in seconds to wait for the pod to gracefully stop.
+This value is equivalent to the `--time` argument in the podman `pod stop` command when the service is stopped.
+After this period expires, any running containers in the pod are forcibly killed.
 
 ### `SubGIDMap=`
 
