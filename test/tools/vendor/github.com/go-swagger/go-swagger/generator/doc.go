@@ -17,7 +17,7 @@ Package generator provides the code generation library for go-swagger.
 
 # Generating data types
 
-The general idea is that you should rarely see interface{} in the generated code.
+The general idea is that you should rarely see any in the generated code.
 You get a complete representation of a swagger document in somewhat idiomatic go.
 
 To do so, there is a set of mapping patterns that are applied,

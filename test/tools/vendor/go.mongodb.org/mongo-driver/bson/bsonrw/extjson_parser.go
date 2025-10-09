@@ -305,7 +305,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 				}
 
 				// remove hyphens
-				uuidNoHyphens := strings.Replace(uuid, "-", "", -1)
+				uuidNoHyphens := strings.ReplaceAll(uuid, "-", "")
 				if len(uuidNoHyphens) != 32 {
 					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding length and hyphens")
 				}

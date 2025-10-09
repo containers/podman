@@ -71,7 +71,7 @@ type {{ pascalize .Name }} struct {
   Max Items: {{ .MaxItems }}{{ end }}{{ if .MinItems }}
   Min Items: {{ .MinItems }}{{ end }}{{ if .UniqueItems }}
   Unique: true{{ end }}{{ if .HasDefault }}
-  Default: {{ printf "%#v" .Default }}{{ end }}
+  Default: {{ printGoLiteral .Default }}{{ end }}
   */
   {{ pascalize .Name }} {{ .GoType }} `json:"{{.Name}}{{ if not .Required }},omitempty{{ end }}{{ if .IsJSONString }},string{{ end }}"`
   {{ end }}
@@ -105,15 +105,15 @@ if code <= 0 {
       {{ if .HasDefault -}}
           {{ varname .ID}}Default =
               {{- if and .IsPrimitive .IsCustomFormatter (not (stringContains .Zero "(\"" )) }}{{ .Zero }}{{/* strfmt type initializer requires UnmarshalText(), e.g. Date, Datetime, Duration */}}
-              {{- else if and .IsPrimitive .IsCustomFormatter (stringContains .Zero "(\"" ) }}{{.GoType}}({{- printf "%#v" .Default }}){{/* strfmt type initializer takes string */}}
-              {{- else if and .IsPrimitive (not .IsCustomFormatter) -}}{{.GoType}}({{- printf "%#v" .Default }}){{/* regular go primitive type initializer */}}
+              {{- else if and .IsPrimitive .IsCustomFormatter (stringContains .Zero "(\"" ) }}{{.GoType}}({{- printGoLiteral .Default }}){{/* strfmt type initializer takes string */}}
+              {{- else if and .IsPrimitive (not .IsCustomFormatter) -}}{{.GoType}}({{- printGoLiteral .Default }}){{/* regular go primitive type initializer */}}
               {{- else if .IsArray -}}{{- /* Do not initialize from possible defaults in nested arrays */ -}}
                   {{- if and .Child.IsPrimitive .Child.IsCustomFormatter }}{{ .Zero }}{{/* initialization strategy with UnmarshalText() */}}
                   {{- else if .Child.IsArray -}}{{ .Zero }}{{/* initialization strategy with json.Unmarshal() */}}
                   {{- else if and .Child.IsPrimitive (not .Child.IsCustomFormatter) -}}{{.GoType}}{{- arrayInitializer .Default }}{{/* regular go primitive type initializer: simple slice initializer */}}
-                  {{- else }}{{ printf "%#v" .Default }}{{/* all other cases (e.g. schema) [should not occur] */}}
+                  {{- else }}{{ printGoLiteral .Default }}{{/* all other cases (e.g. schema) [should not occur] */}}
                   {{- end }}
-              {{- else }}{{ printf "%#v" .Default }}{{/* case .Schema */}}
+              {{- else }}{{ printGoLiteral .Default }}{{/* case .Schema */}}
               {{- end }}
       {{- end }}
   {{- end }}
@@ -184,7 +184,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}) WriteResponse(rw http.Response
     {{ template "serverheaderbuilder" . -}}
   {{ end }}
   {{ if not .Schema }}
-  rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+  rw.Header().Del(runtime.HeaderContentType) // Remove Content-Type on empty responses
   {{ end }}
   rw.WriteHeader({{ if eq .Code -1 }}{{ .ReceiverName }}._statusCode{{ else }}{{ .Code }}{{ end }})
   {{- if .Schema }}

@@ -30,7 +30,7 @@ import (
 type symbol struct {
 	pkg  string // name of the symbols's package
 	name string // declared name
-	kind string // T, C, V, or F, follwed by D if deprecated
+	kind string // T, C, V, or F, followed by D if deprecated
 	sig  string // signature information, for F
 }
 
@@ -110,7 +110,7 @@ func getFileExports(f *ast.File) []symbol {
 				// The only place a $ can occur seems to be in a struct tag, which
 				// can be an arbitrary string literal, and ExprString does not presently
 				// print struct tags. So for this to happen the type of a formal parameter
-				// has to be a explict struct, e.g. foo(x struct{a int "$"}) and ExprString
+				// has to be a explicit struct, e.g. foo(x struct{a int "$"}) and ExprString
 				// would have to show the struct tag. Even testing for this case seems
 				// a waste of effort, but let's remember the possibility
 				if strings.Contains(tp, "$") {

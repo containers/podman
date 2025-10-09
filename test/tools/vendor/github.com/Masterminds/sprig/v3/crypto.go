@@ -14,6 +14,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -35,6 +36,11 @@ import (
 	bcrypt_lib "golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
 )
+
+func sha512sum(input string) string {
+	hash := sha512.Sum512([]byte(input))
+	return hex.EncodeToString(hash[:])
+}
 
 func sha256sum(input string) string {
 	hash := sha256.Sum256([]byte(input))

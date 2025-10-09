@@ -19,6 +19,7 @@ test-cover:
 .PHONY: fuzz
 fuzz:
 	@echo "==> Running Fuzz Tests"
+	go env GOCACHE
 	go test -fuzz=FuzzNewVersion -fuzztime=15s .
 	go test -fuzz=FuzzStrictNewVersion -fuzztime=15s .
 	go test -fuzz=FuzzNewConstraint -fuzztime=15s .
@@ -27,4 +28,4 @@ $(GOLANGCI_LINT):
 	# Install golangci-lint. The configuration for it is in the .golangci.yml
 	# file in the root of the repository
 	echo ${GOPATH}
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.17.1
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.56.2

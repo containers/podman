@@ -36,7 +36,7 @@ func debugOptions() {
 }
 
 // debugLog wraps log.Printf with a debug-specific logger
-func debugLog(frmt string, args ...interface{}) {
+func debugLog(frmt string, args ...any) {
 	if Debug {
 		_, file, pos, _ := runtime.Caller(1)
 		generatorLogger.Printf("%s:%d: %s", filepath.Base(file), pos,
@@ -45,11 +45,11 @@ func debugLog(frmt string, args ...interface{}) {
 }
 
 // debugLogAsJSON unmarshals its last arg as pretty JSON
-func debugLogAsJSON(frmt string, args ...interface{}) {
+func debugLogAsJSON(frmt string, args ...any) {
 	if Debug {
 		var dfrmt string
 		_, file, pos, _ := runtime.Caller(1)
-		dargs := make([]interface{}, 0, len(args)+2)
+		dargs := make([]any, 0, len(args)+2)
 		dargs = append(dargs, filepath.Base(file), pos)
 		if len(args) > 0 {
 			dfrmt = "%s:%d: " + frmt + "\n%s"

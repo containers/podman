@@ -90,7 +90,7 @@ func findExternalDriver(cfg *Config) driver {
 	const toolPrefix = "GOPACKAGESDRIVER="
 	tool := ""
 	for _, env := range cfg.Env {
-		if val := strings.TrimPrefix(env, toolPrefix); val != env {
+		if val, ok := strings.CutPrefix(env, toolPrefix); ok {
 			tool = val
 		}
 	}

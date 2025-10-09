@@ -166,7 +166,7 @@ func findSwaggerSpec(nm string) (string, error) {
 // WithAutoXOrder amends the spec to specify property order as they appear
 // in the spec (supports yaml documents only).
 func WithAutoXOrder(specPath string) string {
-	lookFor := func(ele interface{}, key string) (yamlv2.MapSlice, bool) {
+	lookFor := func(ele any, key string) (yamlv2.MapSlice, bool) {
 		if slice, ok := ele.(yamlv2.MapSlice); ok {
 			for _, v := range slice {
 				if v.Key == key {
@@ -179,8 +179,8 @@ func WithAutoXOrder(specPath string) string {
 		return nil, false
 	}
 
-	var addXOrder func(interface{})
-	addXOrder = func(element interface{}) {
+	var addXOrder func(any)
+	addXOrder = func(element any) {
 		if props, ok := lookFor(element, "properties"); ok {
 			for i, prop := range props {
 				if pSlice, ok := prop.Value.(yamlv2.MapSlice); ok {
@@ -249,8 +249,8 @@ func WithAutoXOrder(specPath string) string {
 }
 
 // BytesToYAMLDoc converts a byte slice into a YAML document
-func BytesToYAMLv2Doc(data []byte) (interface{}, error) {
-	var canary map[interface{}]interface{} // validate this is an object and not a different type
+func BytesToYAMLv2Doc(data []byte) (any, error) {
+	var canary map[any]any // validate this is an object and not a different type
 	if err := yamlv2.Unmarshal(data, &canary); err != nil {
 		return nil, err
 	}

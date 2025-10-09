@@ -141,7 +141,7 @@ func (runner *Runner) runPiped(ctx context.Context, inv Invocation, stdout, stde
 
 	// Wait for all in-progress go commands to return before proceeding,
 	// to avoid load concurrency errors.
-	for i := 0; i < maxInFlight; i++ {
+	for range maxInFlight {
 		select {
 		case <-ctx.Done():
 			return ctx.Err(), ctx.Err()
