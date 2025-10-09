@@ -121,7 +121,8 @@ func (bp *BytesPipe) Close() error {
 
 // Read reads bytes from BytesPipe.
 // Data could be read only once.
-func (bp *BytesPipe) Read(p []byte) (n int, err error) {
+func (bp *BytesPipe) Read(p []byte) (int, error) {
+	var n int
 	bp.mu.Lock()
 	if bp.bufLen == 0 {
 		if bp.closeErr != nil {
@@ -158,7 +159,7 @@ func (bp *BytesPipe) Read(p []byte) (n int, err error) {
 
 	bp.wait.Broadcast()
 	bp.mu.Unlock()
-	return
+	return n, nil
 }
 
 func returnBuffer(b *fixedBuffer) {

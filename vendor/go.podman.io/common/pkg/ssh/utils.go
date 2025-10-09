@@ -67,7 +67,7 @@ func ReadPassword(prompt string) (pw []byte, err error) {
 		fmt.Fprint(os.Stderr, prompt)
 		pw, err = term.ReadPassword(fd)
 		fmt.Fprintln(os.Stderr)
-		return
+		return pw, err
 	}
 
 	var b [1]byte

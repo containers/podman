@@ -19,10 +19,10 @@ func Size(dir string) (size int64, err error) {
 }
 
 // Usage walks a directory tree and returns its total size in bytes and the number of inodes.
-func Usage(dir string) (usage *DiskUsage, err error) {
-	usage = &DiskUsage{}
+func Usage(dir string) (*DiskUsage, error) {
+	usage := &DiskUsage{}
 	data := make(map[uint64]struct{})
-	err = filepath.WalkDir(dir, func(d string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(dir, func(d string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			// if dir does not exist, Usage() returns the error.
 			// if dir/x disappeared while walking, Usage() ignores dir/x.
@@ -58,5 +58,5 @@ func Usage(dir string) (usage *DiskUsage, err error) {
 	})
 	// inode count is the number of unique inode numbers we saw
 	usage.InodeCount = int64(len(data))
-	return
+	return usage, err
 }

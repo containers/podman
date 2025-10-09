@@ -10,7 +10,7 @@ func timeToTimespec(time time.Time) (ts syscall.Timespec) {
 		// Return UTIME_OMIT special value
 		ts.Sec = 0
 		ts.Nsec = ((1 << 30) - 2)
-		return
+		return ts
 	}
 	return syscall.NsecToTimespec(time.UnixNano())
 }
