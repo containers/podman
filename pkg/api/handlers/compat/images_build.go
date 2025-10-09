@@ -22,6 +22,7 @@ import (
 	"github.com/containers/buildah"
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/podman/v5/internal/localapi"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
@@ -143,6 +144,29 @@ type BuildContext struct {
 	IgnoreFile              string
 }
 
+func (b *BuildContext) validateLocalAPIPaths() error {
+	if err := localapi.ValidatePathForLocalAPI(b.ContextDirectory); err != nil {
+		return err
+	}
+
+	for _, containerfile := range b.ContainerFiles {
+		if err := localapi.ValidatePathForLocalAPI(containerfile); err != nil {
+			return err
+		}
+	}
+
+	for _, ctx := range b.AdditionalBuildContexts {
+		if ctx.IsURL || ctx.IsImage {
+			continue
+		}
+		if err := localapi.ValidatePathForLocalAPI(ctx.Value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // genSpaceErr wraps filesystem errors to provide more context for disk space issues.
 func genSpaceErr(err error) error {
 	if errors.Is(err, syscall.ENOSPC) {
@@ -196,7 +220,7 @@ func validateContentType(r *http.Request) (bool, error) {
 			logrus.Infof("Received %s", hdr[0])
 			multipart = true
 		default:
-			if utils.IsLibpodRequest(r) {
+			if utils.IsLibpodRequest(r) && !utils.IsLibpodLocalRequest(r) {
 				return false, utils.GetBadRequestError("Content-Type", hdr[0],
 					fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
 			}
@@ -264,10 +288,14 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 			}
 
 			for _, containerfile := range m {
-				// Add path to containerfile iff it is not URL
+				// Add path to containerfile if it is not URL
 				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
-					containerfile = filepath.Join(buildContext.ContextDirectory,
-						filepath.Clean(filepath.FromSlash(containerfile)))
+					if filepath.IsAbs(containerfile) {
+						containerfile = filepath.Clean(filepath.FromSlash(containerfile))
+					} else {
+						containerfile = filepath.Join(buildContext.ContextDirectory,
+							filepath.Clean(filepath.FromSlash(containerfile)))
+					}
 				}
 				buildContext.ContainerFiles = append(buildContext.ContainerFiles, containerfile)
 			}
@@ -587,7 +615,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		// Credential value(s) not returned as their value is not human readable
 		return nil, nil, utils.GetGenericBadRequestError(err)
 	}
-	// this smells
+
 	cleanup := func() {
 		auth.RemoveAuthfile(authfile)
 	}
@@ -866,7 +894,128 @@ func executeBuild(runtime *libpod.Runtime, w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// handleLocalBuildContexts processes build contexts for local API builds and validates local paths.
+//
+// This function handles the main build context and any additional build contexts specified in the request:
+// - Validates that the main context directory (localcontextdir) exists and is accessible for local API usage
+// - Processes additional build contexts which can be:
+//   - URLs (url:) - downloads content to temporary directories under anchorDir
+//   - Container images (image:) - records image references for later resolution during build
+//   - Local paths (localpath:) - validates and cleans local filesystem paths
+//
+// Returns a BuildContext struct with the main context directory and a map of additional build contexts,
+// or an error if validation fails or required parameters are missing.
+func handleLocalBuildContexts(query url.Values, anchorDir string) (*BuildContext, error) {
+	localContextDir := query.Get("localcontextdir")
+	if localContextDir == "" {
+		return nil, utils.GetBadRequestError("localcontextdir", localContextDir, fmt.Errorf("localcontextdir cannot be empty"))
+	}
+	localContextDir = filepath.Clean(localContextDir)
+	if err := localapi.ValidatePathForLocalAPI(localContextDir); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, utils.GetFileNotFoundError(err)
+		}
+		return nil, utils.GetGenericBadRequestError(err)
+	}
+
+	out := &BuildContext{
+		ContextDirectory:        localContextDir,
+		AdditionalBuildContexts: make(map[string]*buildahDefine.AdditionalBuildContext),
+	}
+
+	for _, url := range query["additionalbuildcontexts"] {
+		name, value, found := strings.Cut(url, "=")
+		if !found {
+			return nil, utils.GetInternalServerError(fmt.Errorf("additionalbuildcontexts must be in name=value format: %q", url))
+		}
+
+		logrus.Debugf("Processing additional build context: name=%q, value=%q", name, value)
+
+		switch {
+		case strings.HasPrefix(value, "url:"):
+			value = strings.TrimPrefix(value, "url:")
+			tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", value)
+			if err != nil {
+				return nil, utils.GetInternalServerError(genSpaceErr(err))
+			}
+
+			contextPath := filepath.Join(tempDir, subdir)
+			out.AdditionalBuildContexts[name] = &buildahDefine.AdditionalBuildContext{
+				IsURL:           true,
+				IsImage:         false,
+				Value:           contextPath,
+				DownloadedCache: contextPath,
+			}
+		case strings.HasPrefix(value, "image:"):
+			value = strings.TrimPrefix(value, "image:")
+			out.AdditionalBuildContexts[name] = &buildahDefine.AdditionalBuildContext{
+				IsURL:   false,
+				IsImage: true,
+				Value:   value,
+			}
+		case strings.HasPrefix(value, "localpath:"):
+			value = strings.TrimPrefix(value, "localpath:")
+			out.AdditionalBuildContexts[name] = &buildahDefine.AdditionalBuildContext{
+				IsURL:   false,
+				IsImage: false,
+				Value:   filepath.Clean(value),
+			}
+		}
+	}
+	return out, nil
+}
+
+// getLocalBuildContext processes build contexts from Local API HTTP request to a BuildContext struct.
+func getLocalBuildContext(r *http.Request, query url.Values, anchorDir string, _ bool) (*BuildContext, error) {
+	// Handle build contexts
+	buildContext, err := handleLocalBuildContexts(query, anchorDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process build context and container files
+	buildContext, err = processBuildContext(query, r, buildContext, anchorDir)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := buildContext.validateLocalAPIPaths(); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, utils.GetFileNotFoundError(err)
+		}
+		return nil, utils.GetGenericBadRequestError(err)
+	}
+
+	// Process dockerignore
+	_, ignoreFile, err := util.ParseDockerignore(buildContext.ContainerFiles, buildContext.ContextDirectory)
+	if err != nil {
+		return nil, utils.GetInternalServerError(fmt.Errorf("processing ignore file: %w", err))
+	}
+	buildContext.IgnoreFile = ignoreFile
+
+	return buildContext, nil
+}
+
+// LocalBuildImage handles HTTP requests for building container images using the Local API.
+//
+// Uses localcontextdir and additionalbuildcontexts query parameters to specify build contexts
+// from the server's local filesystem. All paths must be absolute and exist on the server.
+// Processes build parameters, executes the build using buildah, and streams output to the client.
+func LocalBuildImage(w http.ResponseWriter, r *http.Request) {
+	buildImage(w, r, getLocalBuildContext)
+}
+
+// BuildImage handles HTTP requests for building container images using the Docker-compatible API.
+//
+// Extracts build contexts from the request body (tar/multipart), processes build parameters,
+// executes the build using buildah, and streams output back to the client.
 func BuildImage(w http.ResponseWriter, r *http.Request) {
+	buildImage(w, r, getBuildContext)
+}
+
+type getBuildContextFunc func(r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error)
+
+func buildImage(w http.ResponseWriter, r *http.Request, getBuildContextFunc getBuildContextFunc) {
 	// Create temporary directory for build context
 	anchorDir, err := os.MkdirTemp(parse.GetTempDir(), "libpod_builder")
 	if err != nil {
@@ -897,7 +1046,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 	queryValues := r.URL.Query()
 
-	buildContext, err := getBuildContext(r, queryValues, anchorDir, multipart)
+	buildContext, err := getBuildContextFunc(r, queryValues, anchorDir, multipart)
 	if err != nil {
 		utils.ProcessBuildError(w, err)
 		return

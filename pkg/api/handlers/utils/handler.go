@@ -30,6 +30,12 @@ func IsLibpodRequest(r *http.Request) bool {
 	return apiutil.IsLibpodRequest(r)
 }
 
+// IsLibpodLocalRequest returns true if the request related to a libpod local endpoint
+// (e.g., /v2/libpod/local...).
+func IsLibpodLocalRequest(r *http.Request) bool {
+	return apiutil.IsLibpodLocalRequest(r)
+}
+
 // SupportedVersion validates that the version provided by client is included in the given condition
 // https://github.com/blang/semver#ranges provides the details for writing conditions
 // If a version is not given in URL path, ErrVersionNotGiven is returned

@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/utils"
 	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage/filter"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker/reference"
@@ -409,6 +410,35 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+	isHyperV, err := localapi.IsHyperVProvider(ir.ClientCtx)
+	if err != nil {
+		logrus.Debugf("IsHyperVProvider check failed: %v", err)
+	}
+	// Local api is not supported on Windows Hyper-V, because 9p mounts don't translate all file attributes correctly.
+	// So we skip trying to use localapi in that case.
+	if !isHyperV {
+		if translatedContainerFiles, translatedOptions, ok := localapi.CheckIfImageBuildPathsOnRunningMachine(ir.ClientCtx, containerFiles, opts); ok {
+			report, err := images.BuildFromServerContext(ir.ClientCtx, translatedContainerFiles, translatedOptions)
+			if err == nil {
+				return report, nil
+			}
+			if err != nil {
+				logrus.Debugf("BuildLocal failed: %v", err)
+			}
+
+			var errModel *errorhandling.ErrorModel
+			if errors.As(err, &errModel) {
+				switch errModel.ResponseCode {
+				case http.StatusNotFound, http.StatusMethodNotAllowed:
+				default:
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
+		}
+	}
+
 	report, err := images.Build(ir.ClientCtx, containerFiles, opts)
 	if err != nil {
 		return nil, err
