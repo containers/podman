@@ -1979,12 +1979,16 @@ func AutocompleteSysctl(_ *cobra.Command, _ []string, toComplete string) ([]stri
 	var completions []string
 	sysPath := "/proc/sys"
 
-	err := filepath.Walk(sysPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(sysPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			// /proc/sys is a volatile virtual filesystem whose contents change dynamically.
+			// Skip directories on any error (race conditions, permission denied, etc.) to
+			// provide partial completion results rather than failing completely.
+			// See: https://github.com/containers/podman/issues/27252
+			return filepath.SkipDir
 		}
 
-		if !info.IsDir() {
+		if !d.IsDir() {
 			rel, err := filepath.Rel(sysPath, path)
 			if err != nil {
 				return err
