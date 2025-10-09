@@ -32,24 +32,39 @@ func bindPorts(ports []types.PortMapping) ([]*os.File, error) {
 	var files []*os.File
 	sctpWarning := true
 	for _, port := range ports {
-		isV6 := net.ParseIP(port.HostIP).To4() == nil
-		if port.HostIP == "" {
-			isV6 = false
-		}
 		protocols := strings.SplitSeq(port.Protocol, ",")
 		for protocol := range protocols {
 			for i := uint16(0); i < port.Range; i++ {
-				f, err := bindPort(protocol, port.HostIP, port.HostPort+i, isV6, &sctpWarning)
-				if err != nil {
-					// close all open ports in case of early error so we do not
-					// rely garbage  collector to close them
-					for _, f := range files {
-						f.Close()
+				if port.HostIP == "" {
+					f4, err := bindPort(protocol, "", port.HostPort+i, false, &sctpWarning)
+					if err != nil {
+						for _, f := range files {
+							f.Close()
+						}
+						return nil, fmt.Errorf("failed to bind IPv4 port: %w", err)
 					}
-					return nil, err
-				}
-				if f != nil {
-					files = append(files, f)
+					if f4 != nil {
+						files = append(files, f4)
+					}
+
+					f6, err := bindPort(protocol, "", port.HostPort+i, true, &sctpWarning)
+					if err != nil {
+						logrus.Warnf("Failed to bind IPv6 for port %d, continuing with IPv4 only: %v", port.HostPort+i, err)
+					} else if f6 != nil {
+						files = append(files, f6)
+					}
+				} else {
+					isV6 := net.ParseIP(port.HostIP).To4() == nil
+					f, err := bindPort(protocol, port.HostIP, port.HostPort+i, isV6, &sctpWarning)
+					if err != nil {
+						for _, f := range files {
+							f.Close()
+						}
+						return nil, err
+					}
+					if f != nil {
+						files = append(files, f)
+					}
 				}
 			}
 		}
