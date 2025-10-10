@@ -1452,7 +1452,7 @@ func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
 // On entry:
 // - rlstore must be locked for writing
 // - rlstores MUST NOT be locked
-func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader, slo *stagedLayerOptions) (*Layer, int64, error) {
+func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, slo *stagedLayerOptions) (*Layer, int64, error) {
 	var parentLayer *Layer
 	var options LayerOptions
 	if lOptions != nil {
@@ -1533,7 +1533,7 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 			GIDMap:         copySlicePreferringNil(gidMap),
 		}
 	}
-	return rlstore.create(id, parentLayer, names, mountLabel, nil, &options, writeable, diff, slo)
+	return rlstore.create(id, parentLayer, names, mountLabel, nil, &options, writeable, slo)
 }
 
 func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader) (*Layer, int64, error) {
@@ -1541,11 +1541,31 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 	if err != nil {
 		return nil, -1, err
 	}
+
+	var slo *stagedLayerOptions
+
+	if diff != nil {
+		m := newMaybeStagedLayerExtraction(diff, s.graphDriver)
+		defer func() {
+			if err := m.cleanup(); err != nil {
+				logrus.Errorf("Error cleaning up temporary directories: %v", err)
+			}
+		}()
+		// FIXME: type case should be safe for now but really there should be a better way to do this
+		err = m.stageWithUnlockedStore(rlstore.(*layerStore), lOptions)
+		if err != nil {
+			return nil, -1, err
+		}
+		slo = &stagedLayerOptions{
+			stagedLayerExtraction: m,
+		}
+	}
+
 	if err := rlstore.startWriting(); err != nil {
 		return nil, -1, err
 	}
 	defer rlstore.stopWriting()
-	return s.putLayer(rlstore, rlstores, id, parent, names, mountLabel, writeable, lOptions, diff, nil)
+	return s.putLayer(rlstore, rlstores, id, parent, names, mountLabel, writeable, lOptions, slo)
 }
 
 func (s *store) CreateLayer(id, parent string, names []string, mountLabel string, writeable bool, options *LayerOptions) (*Layer, error) {
@@ -1753,7 +1773,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 		}
 	}
 	layerOptions.TemplateLayer = layer.ID
-	mappedLayer, _, err := rlstore.create("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil, nil)
+	mappedLayer, _, err := rlstore.create("", parentLayer, nil, layer.MountLabel, nil, &layerOptions, false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating an ID-mapped copy of layer %q: %w", layer.ID, err)
 	}
@@ -1924,7 +1944,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		options.Flags[mountLabelFlag] = mountLabel
 	}
 
-	clayer, _, err := rlstore.create(layer, imageTopLayer, nil, mlabel, options.StorageOpt, layerOptions, true, nil, nil)
+	clayer, _, err := rlstore.create(layer, imageTopLayer, nil, mlabel, options.StorageOpt, layerOptions, true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3186,7 +3206,7 @@ func (s *store) ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error) {
 		DiffOutput:  args.DiffOutput,
 		DiffOptions: args.DiffOptions,
 	}
-	layer, _, err = s.putLayer(rlstore, rlstores, args.ID, args.ParentLayer, args.Names, args.MountLabel, args.Writeable, args.LayerOptions, nil, &slo)
+	layer, _, err = s.putLayer(rlstore, rlstores, args.ID, args.ParentLayer, args.Names, args.MountLabel, args.Writeable, args.LayerOptions, &slo)
 	return layer, err
 }
 

@@ -56,8 +56,8 @@ github.com/containerd/log
 # github.com/containerd/platforms v1.0.0-rc.1
 ## explicit; go 1.20
 github.com/containerd/platforms
-# github.com/containerd/stargz-snapshotter/estargz v0.17.0
-## explicit; go 1.23.0
+# github.com/containerd/stargz-snapshotter/estargz v0.18.0
+## explicit; go 1.24.0
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
 # github.com/containerd/typeurl/v2 v2.2.3
@@ -371,8 +371,8 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.4.0
 ## explicit; go 1.18
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.18.0
-## explicit; go 1.22
+# github.com/klauspost/compress v1.18.1
+## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -425,9 +425,9 @@ github.com/mdlayher/vsock
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs/v3 v3.1.0
+# github.com/mistifyio/go-zfs/v4 v4.0.0
 ## explicit; go 1.14
-github.com/mistifyio/go-zfs/v3
+github.com/mistifyio/go-zfs/v4
 # github.com/moby/buildkit v0.23.2
 ## explicit; go 1.23.0
 github.com/moby/buildkit/frontend/dockerfile/command
@@ -682,7 +682,7 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/vbatts/tar-split v0.12.1
+# github.com/vbatts/tar-split v0.12.2
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
@@ -742,7 +742,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.65.1-0.20251016162239-c4c5e00ad22d
+# go.podman.io/common v0.65.1-0.20251016162239-c4c5e00ad22d => github.com/Luap99/container-libs/common v0.0.0-20251023121409-e60d33903cfe
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -812,7 +812,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.37.1-0.20251016133615-aa970d2c7532
+# go.podman.io/image/v5 v5.38.0 => github.com/Luap99/container-libs/image/v5 v5.0.0-20251023121409-e60d33903cfe
 ## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -886,7 +886,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.60.1-0.20251016133615-aa970d2c7532
+# go.podman.io/storage v1.61.0 => github.com/Luap99/container-libs/storage v0.0.0-20251023121409-e60d33903cfe
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1191,3 +1191,6 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/storage => github.com/Luap99/container-libs/storage v0.0.0-20251023121409-e60d33903cfe
+# go.podman.io/image/v5 => github.com/Luap99/container-libs/image/v5 v5.0.0-20251023121409-e60d33903cfe
+# go.podman.io/common => github.com/Luap99/container-libs/common v0.0.0-20251023121409-e60d33903cfe

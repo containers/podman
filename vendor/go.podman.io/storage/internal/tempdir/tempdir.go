@@ -91,6 +91,30 @@ type TempDir struct {
 	counter uint64
 }
 
+// StageAddition is a temporary object which holds the information of where to
+// put the data into and then use Commit() to move the data into the final location.
+type StageAddition struct {
+	// Path is the temporary path. The path is not created so caller must create
+	// a file or directory on it in order to use Commit(). The path is only valid
+	// until Commit() is called or until the TempDir instance Cleanup() method is used.
+	Path string
+}
+
+// CommitFunc is a function type that can be returned by operations
+// which need to perform the commit operation later.
+type CommitFunc func(destination string) error
+
+// Commit the staged content into its final destination by using os.Rename().
+// That means the dest must be on the same on the same fs as the root directory
+// that was given to NewTempDir() and the dest must not exist yet.
+// Commit must only be called once per instance returned from the
+// StageAddition() call.
+func (s *StageAddition) Commit(destination string) error {
+	err := os.Rename(s.Path, destination)
+	s.Path = "" // invalidate Path to avoid reuse
+	return err
+}
+
 // CleanupTempDirFunc is a function type that can be returned by operations
 // which need to perform cleanup actions later.
 type CleanupTempDirFunc func() error
@@ -188,6 +212,23 @@ func NewTempDir(rootDir string) (*TempDir, error) {
 	td.tempDirPath = actualTempDirPath
 	td.counter = 0
 	return td, nil
+}
+
+// StageAddition creates a new temporary path that is returned as field in the StageAddition
+// struct. The returned type has a type a the Commit() function to move the content from
+// the temporary location to the final one.
+//
+// The caller MUST ensure .Cleanup() is called after Commit() otherwise the staged content
+// will be deleted and the move will fail.
+// If the TempDir has been cleaned up already, this method will return an error.
+func (td *TempDir) StageAddition() (*StageAddition, error) {
+	if td.tempDirLock == nil {
+		return nil, fmt.Errorf("temp dir instance not initialized or already cleaned up")
+	}
+	fileName := fmt.Sprintf("%d-", td.counter) + "addition"
+	tmpAddPath := filepath.Join(td.tempDirPath, fileName)
+	td.counter++
+	return &StageAddition{Path: tmpAddPath}, nil
 }
 
 // StageDeletion moves the specified file into the instance's temporary directory.
