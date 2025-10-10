@@ -152,10 +152,6 @@ function check_label() {
 @test "podman selinux: shared context in (some) namespaces" {
     skip_if_no_selinux
 
-    # rootless users have no usable cgroups with cgroupsv1, so containers
-    # must use a pid namespace and not join an existing one.
-    skip_if_rootless_cgroupsv1
-
     if [[ $(podman_runtime) == "runc" ]]; then
         skip "some sort of runc bug, not worth fixing (issue 11784, wontfix)"
     fi

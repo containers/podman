@@ -50,7 +50,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network disconnect", func() {
-		SkipIfRootlessCgroupsV1("stats not supported under rootless CgroupsV1")
 		netName := "aliasTest" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
@@ -175,7 +174,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 	})
 
 	It("podman network connect", func() {
-		SkipIfRootlessCgroupsV1("stats not supported under rootless CgroupsV1")
 		netName := "aliasTest" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()

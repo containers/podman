@@ -8,7 +8,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman generate spec", func() {
@@ -24,7 +23,6 @@ var _ = Describe("Podman generate spec", func() {
 	})
 
 	It("podman generate spec basic usage", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"create", "--cpus", "5", "--name", "specgen", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -35,7 +33,6 @@ var _ = Describe("Podman generate spec", func() {
 	})
 
 	It("podman generate spec file", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"create", "--cpus", "5", "--name", "specgen", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -61,11 +58,6 @@ var _ = Describe("Podman generate spec", func() {
 		session = podmanTest.Podman([]string{"generate", "spec", "--compact", "podspecgen"})
 		session.WaitWithDefaultTimeout()
 
-		if isRootless() && !CGROUPSV2 {
-			Expect(session).Should(Exit(0))
-			Expect(session.ErrorToString()).Should(ContainSubstring("Resource limits are not supported and ignored on cgroups V1 rootless"))
-		} else {
-			Expect(session).Should(ExitCleanly())
-		}
+		Expect(session).Should(ExitCleanly())
 	})
 })
