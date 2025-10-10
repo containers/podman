@@ -2166,7 +2166,7 @@ Yaml=/opt/k8s/deployment.yml
 WantedBy=multi-user.target default.target
 ```
 
-Example for locally built image to be used in a container:
+Example for locally built image to be used in a container with build-specific arguments:
 
 `test.build`
 ```
@@ -2178,6 +2178,9 @@ ImageTag=localhost/imagename
 # expecting to find a Containerfile/Dockerfile
 # + other files needed to build the image
 SetWorkingDirectory=unit
+# Set build arguments VERSION and DEBUG
+BuildArg=VERSION=1.0 \
+          DEBUG=false
 ```
 
 `test.container`
