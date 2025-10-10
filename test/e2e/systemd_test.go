@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman systemd", func() {
-
 	It("podman run container with systemd PID1", func() {
 		ctrName := "testSystemd"
 		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", SYSTEMD_IMAGE, "/sbin/init"})
@@ -42,10 +41,6 @@ var _ = Describe("Podman systemd", func() {
 		Expect(conData).To(HaveLen(1))
 		Expect(conData[0].Config).To(HaveField("SystemdMode", true))
 
-		// stats not supported w/ CGv1 rootless or containerized
-		if isCgroupsV1() && (isRootless() || isContainerized()) {
-			return
-		}
 		stats := podmanTest.Podman([]string{"stats", "--no-stream", ctrName})
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(ExitCleanly())
