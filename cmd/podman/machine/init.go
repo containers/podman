@@ -166,6 +166,9 @@ func init() {
 	providerFlagName := "provider"
 	flags.StringVar(&providerOverride, providerFlagName, "", "Override the default machine provider")
 	_ = initCmd.RegisterFlagCompletionFunc(providerFlagName, autocompleteMachineProvider)
+
+	setDefaultConnectionFlagName := "update-connection"
+	flags.BoolVarP(&setDefaultSystemConn, setDefaultConnectionFlagName, "u", false, "Set default system connection for this machine")
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
@@ -296,6 +299,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	if now {
 		return start(cmd, args)
 	}
+
 	extra := ""
 	if initOpts.Name != defaultMachineName {
 		extra = " " + initOpts.Name

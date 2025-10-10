@@ -28,6 +28,7 @@ podman-logs.1.md
 podman-machine-init.1.md
 podman-machine-list.1.md
 podman-machine-set.1.md
+podman-machine-start.1.md
 podman-manifest-add.1.md
 podman-manifest-annotate.1.md
 podman-manifest-create.1.md

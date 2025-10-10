@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/pkg/machine"
 	"github.com/containers/podman/v6/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v6/pkg/machine/define"
@@ -27,6 +28,7 @@ import (
 	"github.com/containers/podman/v6/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
 )
 
 // List is done at the host level to allow for a *possible* future where
@@ -171,7 +173,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 
 	callbackFuncs.Add(mc.ImagePath.Delete)
 
-	logrus.Debugf("--> imagePath is %q", imagePath.GetPath())
+	logrus.Debugf("imagePath is %q", imagePath.GetPath())
 
 	ignitionFile, err := mc.IgnitionFile()
 	if err != nil {
@@ -446,7 +448,9 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 	return mc.Write()
 }
 
-func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.StartOptions) error {
+func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.StartOptions, updateSystemConn *bool) error {
+	var updateDefaultConnection bool
+
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
 	signalChanClosed := false
@@ -459,6 +463,15 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 	defer mc.Unlock()
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
+	}
+
+	connName := mc.Name
+	if mc.HostUser.Rootful {
+		connName += "-root"
+	}
+	conn, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection(connName, false)
+	if err != nil {
+		return err
 	}
 
 	// Don't check if provider supports parallel running machines
@@ -482,6 +495,30 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 
 		if state == machineDefine.Running || state == machineDefine.Starting {
 			return fmt.Errorf("unable to start %q: already running", mc.Name)
+		}
+	}
+
+	// Do not do anything with the system connection if its already
+	// the default system connection.
+	if !conn.Default {
+		// Prompt for system connection update
+		if updateSystemConn == nil {
+			response, err := promptUpdateSystemConn()
+			if err != nil {
+				return err
+			}
+			// This might be kind of lame but when using the command, but if you don't
+			// provide some sort of visual cue back to the user, it's unclear what is
+			// going on because the machine startup is going and it looks like things
+			// are frozen
+			if response {
+				fmt.Printf("\nDefault system connection will be changed to %q\n ", connName)
+			} else {
+				fmt.Println("Default system connection will remain unchanged")
+			}
+			updateDefaultConnection = response
+		} else {
+			updateDefaultConnection = *updateSystemConn
 		}
 	}
 
@@ -643,7 +680,16 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		mc.HostUser.Rootful,
 	)
 
-	return nil
+	// return if we dont need to set the machine to the default connection
+	// or it was determined to already be the default earlier
+	if !updateDefaultConnection {
+		return nil
+	}
+	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		logrus.Infof("Setting default Podman connection to %s", connName)
+		cfg.Connection.Default = connName
+		return nil
+	})
 }
 
 func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefine.SetOptions) error {
@@ -848,4 +894,16 @@ func validateDestinationPaths(dest string) error {
 		return fmt.Errorf("machine mount destination cannot be %q: consider another location or a subdirectory of an existing location", mountTarget)
 	}
 	return nil
+}
+
+func promptUpdateSystemConn() (bool, error) {
+	fmt.Println("Warning: The machine being started is not set as your default Podman connection.")
+	fmt.Println("As such, Podman commands may not work correctly.")
+	fmt.Print(`Set the default Podman connection to this machine? [y/N] `)
+	reader := bufio.NewReader(os.Stdin)
+	answer, err := reader.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+	return strings.ToLower(answer)[0] == 'y', nil
 }

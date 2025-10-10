@@ -127,6 +127,8 @@ as the host Windows operating system.
 
 @@option tls-verify
 
+@@option update-connection
+
 #### **--usb**=*bus=number,devnum=number* or *vendor=hexadecimal,product=hexadecimal*
 
 Assign a USB device from the host to the VM via USB passthrough.
