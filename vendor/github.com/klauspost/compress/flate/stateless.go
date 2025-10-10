@@ -56,7 +56,7 @@ func NewStatelessWriter(dst io.Writer) io.WriteCloser {
 
 // bitWriterPool contains bit writers that can be reused.
 var bitWriterPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return newHuffmanBitWriter(nil)
 	},
 }
@@ -184,7 +184,7 @@ func statelessEnc(dst *tokens, src []byte, startAt int16) {
 	// Index until startAt
 	if startAt > 0 {
 		cv := load3232(src, 0)
-		for i := int16(0); i < startAt; i++ {
+		for i := range startAt {
 			table[hashSL(cv)] = tableEntry{offset: i}
 			cv = (cv >> 8) | (uint32(src[i+4]) << 24)
 		}

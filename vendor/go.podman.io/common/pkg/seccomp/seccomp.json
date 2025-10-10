@@ -693,6 +693,7 @@
 			"names": [
 				"bpf",
 				"lookup_dcookie",
+				"perf_event_open",
 				"quotactl",
 				"quotactl_fd",
 				"setdomainname",
@@ -712,7 +713,6 @@
 		{
 			"names": [
 				"lookup_dcookie",
-				"perf_event_open",
 				"quotactl",
 				"quotactl_fd",
 				"setdomainname",
@@ -1105,7 +1105,7 @@
 			"excludes": {
 				"caps": [
 					"CAP_SYS_ADMIN",
-					"CAP_BPF"
+					"CAP_PERFMON"
 				]
 			},
 			"errnoRet": 1,
