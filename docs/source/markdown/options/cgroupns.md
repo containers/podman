@@ -11,4 +11,4 @@ Set the cgroup namespace mode for the container.
 - **private**: create a new cgroup namespace.
 - **ns:**_path_: join the namespace at the specified path.
 
-If the host uses cgroups v1, the default is set to **host**. On cgroups v2, the default is **private**.
+The default is **private**.

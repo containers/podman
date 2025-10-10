@@ -8458,8 +8458,7 @@ msgstr ""
 #: ../../source/markdown/podman-create.1.md:185
 #: ../../source/markdown/podman-run.1.md:204
 msgid ""
-"If the host uses cgroups v1, the default is set to **host**. On cgroups "
-"v2, the default is **private**."
+The default is **private**."
 msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:191
@@ -23003,7 +23002,7 @@ msgstr ""
 #: ../../source/markdown/podman-pod-stats.1.md:11
 msgid ""
 "Display a live stream of containers in one or more pods resource usage "
-"statistics.  Running rootless is only supported on cgroups v2."
+"statistics."
 msgstr ""
 
 #: ../../source/markdown/podman-pod-stats.1.md:17
@@ -30162,11 +30161,7 @@ msgid "update a container with a new cpu quota and period"
 msgstr ""
 
 #: ../../source/markdown/podman-update.1.md:331
-msgid "update a container with all available options for cgroups v2"
-msgstr ""
-
-#: ../../source/markdown/podman-update.1.md:336
-msgid "update a container with all available options for cgroups v1"
+msgid "update a container with all available options"
 msgstr ""
 
 #: ../../source/markdown/podman-update.1.md:342
