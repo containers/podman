@@ -939,15 +939,6 @@ function skip_if_no_selinux() {
 }
 
 #######################
-#  skip_if_cgroupsv1  #  ...with an optional message
-#######################
-function skip_if_cgroupsv1() {
-    if ! is_cgroupsv2; then
-        skip "${1:-test requires cgroupsv2}"
-    fi
-}
-
-#######################
 #  skip_if_cgroupsv2  #  ...with an optional message
 #######################
 function skip_if_cgroupsv2() {
