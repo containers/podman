@@ -464,6 +464,7 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		RestartRetries:                  restartRetries,
 		Env:                             options.Env,
 		UnsetEnv:                        options.UnsetEnv,
+		Rlimits:                         options.Rlimits,
 	}
 
 	err = ctr.Update(updateOptions)
