@@ -9,6 +9,7 @@ type ServiceOptions = types.ServiceOptions
 type SystemPruneOptions = types.SystemPruneOptions
 type SystemPruneReport = types.SystemPruneReport
 type SystemMigrateOptions = types.SystemMigrateOptions
+type SystemResetOptions = types.SystemResetOptions
 type SystemCheckOptions = types.SystemCheckOptions
 type SystemCheckReport = types.SystemCheckReport
 type SystemDfOptions = types.SystemDfOptions
