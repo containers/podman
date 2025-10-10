@@ -26,6 +26,7 @@ import (
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
+	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
@@ -101,14 +102,14 @@ func (as ArtifactStore) Remove(ctx context.Context, name string) (*digest.Digest
 		return nil, err
 	}
 
-	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(name)
+	arty, _, err := artifacts.GetByNameOrDigest(name)
 	if err != nil {
 		return nil, err
 	}
-	if nameIsDigest {
-		name = arty.Name
-	}
-	ir, err := layout.NewReference(as.storePath, name)
+
+	// Use the canonical name from the found artifact, which will include the tag
+	// if one was resolved by GetByNameOrDigest.
+	ir, err := layout.NewReference(as.storePath, arty.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +190,17 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 	as.lock.Lock()
 	defer as.lock.Unlock()
 
-	srcRef, err := layout.NewReference(as.storePath, src)
+	artifacts, err := as.getArtifacts(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+
+	arty, _, err := artifacts.GetByNameOrDigest(src)
+	if err != nil {
+		return "", err
+	}
+
+	srcRef, err := layout.NewReference(as.storePath, arty.Name)
 	if err != nil {
 		return "", err
 	}
@@ -216,6 +227,18 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 	if len(dest) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
+
+	named, err := reference.Parse(dest)
+	if err != nil {
+		return nil, fmt.Errorf("parsing reference %q: %w", dest, err)
+	}
+
+	namedRef, ok := named.(reference.Named)
+	if !ok {
+		return nil, fmt.Errorf("reference %q is not a Named reference", dest)
+	}
+
+	dest = reference.TagNameOnly(namedRef).String()
 
 	if options.Append && len(options.ArtifactMIMEType) > 0 {
 		return nil, errors.New("append option is not compatible with type option")
@@ -416,20 +439,16 @@ func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, nameOrDige
 		return nil, nil, err
 	}
 
-	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(nameOrDigest)
+	arty, _, err := artifacts.GetByNameOrDigest(nameOrDigest)
 	if err != nil {
 		return nil, nil, err
-	}
-	name := nameOrDigest
-	if nameIsDigest {
-		name = arty.Name
 	}
 
 	if len(arty.Manifest.Layers) == 0 {
 		return nil, nil, fmt.Errorf("the artifact has no blobs, nothing to extract")
 	}
 
-	ir, err := layout.NewReference(as.storePath, name)
+	ir, err := layout.NewReference(as.storePath, arty.Name)
 	if err != nil {
 		return nil, nil, err
 	}
