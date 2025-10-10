@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -23,6 +24,7 @@ type initMachine struct {
 	timezone           string
 	rootful            bool
 	volumes            []string
+	updateConnection   *bool
 	userModeNetworking bool
 	tlsVerify          *bool
 
@@ -78,6 +80,10 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 	if i.tlsVerify != nil {
 		cmd = append(cmd, "--tls-verify="+strconv.FormatBool(*i.tlsVerify))
 	}
+	if i.updateConnection != nil {
+		cmd = append(cmd, fmt.Sprintf("--update-connection=%s", strconv.FormatBool(*i.updateConnection)))
+	}
+
 	name := m.name
 	cmd = append(cmd, name)
 
@@ -172,6 +178,11 @@ func (i *initMachine) withProvider(p string) *initMachine {
 
 func (i *initMachine) withTlsVerify(tlsVerify *bool) *initMachine {
 	i.tlsVerify = tlsVerify
+	return i
+}
+
+func (i *initMachine) withUpdateConnection(value *bool) *initMachine {
+	i.updateConnection = value
 	return i
 }
 
