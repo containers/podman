@@ -13,4 +13,4 @@ ExecStart=@@PODMAN@@ $LOGGING start --all --filter restart-policy=always
 ExecStop=@@PODMAN@@  $LOGGING stop  --all --filter restart-policy=always
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target
