@@ -27,6 +27,7 @@ const (
 	UnitDirDistro = "/usr/share/containers/systemd"
 
 	// Names of commonly used systemd/quadlet group names
+	ArtifactGroup   = "Artifact"
 	ContainerGroup  = "Container"
 	InstallGroup    = "Install"
 	KubeGroup       = "Kube"
@@ -38,6 +39,7 @@ const (
 	ImageGroup      = "Image"
 	BuildGroup      = "Build"
 	QuadletGroup    = "Quadlet"
+	XArtifactGroup  = "X-Artifact"
 	XContainerGroup = "X-Container"
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
@@ -61,6 +63,7 @@ const (
 	KeyAllTags               = "AllTags"
 	KeyAnnotation            = "Annotation"
 	KeyArch                  = "Arch"
+	KeyArtifact              = "Artifact"
 	KeyAuthFile              = "AuthFile"
 	KeyAutoUpdate            = "AutoUpdate"
 	KeyCertDir               = "CertDir"
@@ -141,6 +144,7 @@ const (
 	KeyPolicy                = "Policy"
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
+	KeyQuiet                 = "Quiet"
 	KeyReadOnly              = "ReadOnly"
 	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
 	KeyReloadCmd             = "ReloadCmd"
@@ -456,6 +460,25 @@ var (
 				KeyTLSVerify:            true,
 				KeyVariant:              true,
 				KeyVolume:               true,
+			},
+		},
+		ArtifactGroup: {
+			GroupName:  ArtifactGroup,
+			XGroupName: XArtifactGroup,
+			SupportedKeys: map[string]bool{
+				KeyArtifact:             true,
+				KeyAuthFile:             true,
+				KeyCertDir:              true,
+				KeyContainersConfModule: true,
+				KeyCreds:                true,
+				KeyDecryptionKey:        true,
+				KeyGlobalArgs:           true,
+				KeyPodmanArgs:           true,
+				KeyQuiet:                true,
+				KeyRetry:                true,
+				KeyRetryDelay:           true,
+				KeyServiceName:          true,
+				KeyTLSVerify:            true,
 			},
 		},
 		PodGroup: {
@@ -1472,6 +1495,8 @@ func GetUnitServiceName(unit *parser.UnitFile) (string, error) {
 		return GetImageServiceName(unit), nil
 	case strings.HasSuffix(unit.Filename, ".build"):
 		return GetBuildServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".artifact"):
+		return GetArtifactServiceName(unit), nil
 	case strings.HasSuffix(unit.Filename, ".pod"):
 		return GetPodServiceName(unit), nil
 	default:
@@ -1501,6 +1526,10 @@ func GetImageServiceName(podUnit *parser.UnitFile) string {
 
 func GetBuildServiceName(podUnit *parser.UnitFile) string {
 	return getServiceName(podUnit, BuildGroup, "-build")
+}
+
+func GetArtifactServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, ArtifactGroup, "-artifact")
 }
 
 func GetPodServiceName(podUnit *parser.UnitFile) string {
@@ -1888,7 +1917,7 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	if source[0] == '/' {
 		// Absolute path
 		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
-	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) {
+	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) || strings.HasSuffix(source, ".artifact") {
 		sourceUnitInfo, ok := unitsInfoMap[source]
 		if !ok {
 			return "", fmt.Errorf("requested Quadlet source %s was not found", source)
@@ -2057,10 +2086,11 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 
 	// Source resolution is required only for these types of mounts
 	sourceResultionRequired := map[string]struct{}{
-		"volume": {},
-		"bind":   {},
-		"glob":   {},
-		"image":  {},
+		"volume":   {},
+		"bind":     {},
+		"glob":     {},
+		"image":    {},
+		"artifact": {},
 	}
 	if _, ok := sourceResultionRequired[mountType]; !ok {
 		return mount, nil
@@ -2313,4 +2343,48 @@ func initServiceUnitFile(quadletUnitFile *parser.UnitFile, isUser bool, unitsInf
 	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	return service, unitInfo, nil
+}
+
+func ConvertArtifact(artifact *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
+	service, unitInfo, err := initServiceUnitFile(artifact, isUser, unitsInfoMap, ArtifactGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	artifactName, ok := artifact.Lookup(ArtifactGroup, KeyArtifact)
+	if !ok || len(artifactName) == 0 {
+		return nil, fmt.Errorf("no Artifact key specified")
+	}
+
+	podman := createBasePodmanCommand(artifact, ArtifactGroup)
+
+	podman.add("artifact", "pull")
+
+	stringKeys := map[string]string{
+		KeyAuthFile:      "--authfile",
+		KeyCertDir:       "--cert-dir",
+		KeyCreds:         "--creds",
+		KeyDecryptionKey: "--decryption-key",
+		KeyRetry:         "--retry",
+		KeyRetryDelay:    "--retry-delay",
+	}
+	lookupAndAddString(artifact, ArtifactGroup, stringKeys, podman)
+
+	boolKeys := map[string]string{
+		KeyQuiet:     "--quiet",
+		KeyTLSVerify: "--tls-verify",
+	}
+	lookupAndAddBoolean(artifact, ArtifactGroup, boolKeys, podman)
+
+	handlePodmanArgs(artifact, ArtifactGroup, podman)
+
+	podman.add(artifactName)
+
+	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
+
+	defaultOneshotServiceGroup(service, true)
+
+	unitInfo.ResourceName = artifactName
+
+	return service, nil
 }
