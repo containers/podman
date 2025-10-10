@@ -2,6 +2,7 @@ package compression
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -132,7 +133,11 @@ func Test_Decompress(t *testing.T) {
 			require.NoError(t, err)
 			data, err := os.ReadFile(dstFilePath)
 			require.NoError(t, err)
-			assert.Equal(t, string(tt.want), string(data))
+
+			// Normalize line endings for comparison so that it works on both Windows and Unix-like systems
+			normalizedData := strings.ReplaceAll(string(data), "\r\n", "\n")
+
+			assert.Equal(t, string(tt.want), normalizedData)
 		})
 	}
 }
