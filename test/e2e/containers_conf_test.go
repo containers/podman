@@ -20,7 +20,6 @@ import (
 )
 
 var _ = Describe("Verify podman containers.conf usage", func() {
-
 	BeforeEach(func() {
 		confPath, err := filepath.Abs("config/containers.conf")
 		Expect(err).ToNot(HaveOccurred())
@@ -28,7 +27,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-
 	})
 
 	It("limits test", func() {
@@ -55,7 +53,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		} else {
 			Expect(session.OutputToString()).To(Not(Equal("500")))
 		}
-
 	})
 
 	It("oom-score-adj", func() {
@@ -85,15 +82,10 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			} else {
 				Expect(session.OutputToString()).To(ContainSubstring("0"))
 			}
-
 		}
-
 	})
 
 	It("cgroup_conf in containers.conf", func() {
-		if isCgroupsV1() {
-			Skip("Setting cgroup_confs not supported on cgroupv1")
-		}
 		// FIXME: Needs crun-1.8.2-2 to allow this with --cgroup-manager=cgroupfs, once this is available remove the skip below.
 		SkipIfRootless("--cgroup-manager=cgoupfs and --cgroup-conf not supported in rootless mode with crun")
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
@@ -812,7 +804,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	}
 
 	It("podman containers.conf container_name_as_hostname", func() {
-
 		// With default containers.conf
 
 		// Start container with no options
