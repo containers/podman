@@ -21,7 +21,7 @@
 {{ end }}
 
 {{ define "flagdefaultvar" }}
-    var {{ flagDefaultVar .Name }} {{ .GoType }} {{ if .Default }}= {{ printf "%#v" .Default }}{{ end }}
+    var {{ flagDefaultVar .Name }} {{ .GoType }} {{ if .Default }}= {{ printGoLiteral .Default }}{{ end }}
 {{ end }}
 
 {{/* Not used. CLI does not mark flag as required, and required will be checked by validation in future */}}

@@ -5,15 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/types"
 	"log"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/go-openapi/loads/fmts"
 	"github.com/go-openapi/spec"
-	"gopkg.in/yaml.v3"
 )
 
 func shouldAcceptTag(tags []string, includeTags map[string]bool, excludeTags map[string]bool) bool {
@@ -204,6 +206,7 @@ type swaggerTypable interface {
 	AddExtension(key string, value interface{})
 	WithEnum(...interface{})
 	WithEnumDescription(desc string)
+	In() string
 }
 
 // Map all Go builtin types that have Json representation to Swagger/Json types.
@@ -695,11 +698,11 @@ func (sm *setMaximum) Parse(lines []string) error {
 	}
 	matches := sm.rx.FindStringSubmatch(lines[0])
 	if len(matches) > 2 && len(matches[2]) > 0 {
-		max, err := strconv.ParseFloat(matches[2], 64)
+		maximum, err := strconv.ParseFloat(matches[2], 64)
 		if err != nil {
 			return err
 		}
-		sm.builder.SetMaximum(max, matches[1] == "<")
+		sm.builder.SetMaximum(maximum, matches[1] == "<")
 	}
 	return nil
 }
@@ -723,11 +726,11 @@ func (sm *setMinimum) Parse(lines []string) error {
 	}
 	matches := sm.rx.FindStringSubmatch(lines[0])
 	if len(matches) > 2 && len(matches[2]) > 0 {
-		min, err := strconv.ParseFloat(matches[2], 64)
+		minimum, err := strconv.ParseFloat(matches[2], 64)
 		if err != nil {
 			return err
 		}
-		sm.builder.SetMinimum(min, matches[1] == ">")
+		sm.builder.SetMinimum(minimum, matches[1] == ">")
 	}
 	return nil
 }
@@ -1685,8 +1688,8 @@ func (ss *setOpExtensions) Parse(lines []string) error {
 			exts.AddExtension(ext.Extension, ext.Root.(map[string]string)[ext.Extension])
 		} else if _, ok := ext.Root.(map[string]*[]string); ok {
 			exts.AddExtension(ext.Extension, *(ext.Root.(map[string]*[]string)[ext.Extension]))
-		} else if _, ok := ext.Root.(map[string]interface{}); ok {
-			exts.AddExtension(ext.Extension, ext.Root.(map[string]interface{})[ext.Extension])
+		} else if _, ok := ext.Root.(map[string]any); ok {
+			exts.AddExtension(ext.Extension, ext.Root.(map[string]any)[ext.Extension])
 		} else {
 			debugLog("Unknown Extension type: %s", fmt.Sprint(reflect.TypeOf(ext.Root)))
 		}
@@ -1694,4 +1697,61 @@ func (ss *setOpExtensions) Parse(lines []string) error {
 
 	ss.set(&exts.Extensions)
 	return nil
+}
+
+var unsupportedTypes = map[string]struct{}{
+	"complex64":  {},
+	"complex128": {},
+}
+
+type objecter interface {
+	Obj() *types.TypeName
+}
+
+func unsupportedBuiltinType(tpe types.Type) bool {
+	unaliased := types.Unalias(tpe)
+
+	switch ftpe := unaliased.(type) {
+	case *types.Basic:
+		return unsupportedBasic(ftpe)
+	case *types.TypeParam:
+		return true
+	case *types.Chan:
+		return true
+	case *types.Signature:
+		return true
+	case objecter:
+		return unsupportedBuiltin(ftpe)
+	default:
+		return false
+	}
+}
+
+func unsupportedBuiltin(tpe objecter) bool {
+	o := tpe.Obj()
+	if o == nil {
+		return false
+	}
+
+	if o.Pkg() != nil {
+		if o.Pkg().Path() == "unsafe" {
+			return true
+		}
+
+		return false // not a builtin type
+	}
+
+	_, found := unsupportedTypes[o.Name()]
+
+	return found
+}
+
+func unsupportedBasic(tpe *types.Basic) bool {
+	if tpe.Kind() == types.UnsafePointer {
+		return true
+	}
+
+	_, found := unsupportedTypes[tpe.Name()]
+
+	return found
 }

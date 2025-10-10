@@ -2,7 +2,11 @@
 
 A FileSystem Abstraction System for Go
 
-[![Test](https://github.com/spf13/afero/actions/workflows/test.yml/badge.svg)](https://github.com/spf13/afero/actions/workflows/test.yml) [![GoDoc](https://godoc.org/github.com/spf13/afero?status.svg)](https://godoc.org/github.com/spf13/afero) [![Join the chat at https://gitter.im/spf13/afero](https://badges.gitter.im/Dev%20Chat.svg)](https://gitter.im/spf13/afero?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/spf13/afero/ci.yaml?branch=master&style=flat-square)](https://github.com/spf13/afero/actions?query=workflow%3ACI)
+[![Join the chat at https://gitter.im/spf13/afero](https://badges.gitter.im/Dev%20Chat.svg)](https://gitter.im/spf13/afero?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/spf13/afero?style=flat-square)](https://goreportcard.com/report/github.com/spf13/afero)
+![Go Version](https://img.shields.io/badge/go%20version-%3E=1.23-61CFDD.svg?style=flat-square)
+[![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/spf13/afero)](https://pkg.go.dev/mod/github.com/spf13/afero)
 
 # Overview
 
@@ -12,7 +16,7 @@ types and methods. Afero has an exceptionally clean interface and simple design
 without needless constructors or initialization methods.
 
 Afero is also a library providing a base set of interoperable backend
-filesystems that make it easy to work with afero while retaining all the power
+filesystems that make it easy to work with, while retaining all the power
 and benefit of the os and ioutil packages.
 
 Afero provides significant improvements over using the os package alone, most
@@ -426,6 +430,39 @@ See the [Releases Page](https://github.com/spf13/afero/releases).
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
+
+## Releasing
+
+As of version 1.14.0, Afero moved implementations with third-party libraries to
+their own submodules.
+
+Releasing a new version now requires a few steps:
+
+```
+VERSION=X.Y.Z
+git tag -a v$VERSION -m "Release $VERSION"
+git push origin v$VERSION
+
+cd gcsfs
+go get github.com/spf13/afero@v$VERSION
+go mod tidy
+git commit -am "Update afero to v$VERSION"
+git tag -a gcsfs/v$VERSION -m "Release gcsfs $VERSION"
+git push origin gcsfs/v$VERSION
+cd ..
+
+cd sftpfs
+go get github.com/spf13/afero@v$VERSION
+go mod tidy
+git commit -am "Update afero to v$VERSION"
+git tag -a sftpfs/v$VERSION -m "Release sftpfs $VERSION"
+git push origin sftpfs/v$VERSION
+cd ..
+
+git push
+```
+
+TODO: move these instructions to a Makefile or something
 
 ## Contributors
 
