@@ -205,6 +205,9 @@ func playFlags(cmd *cobra.Command) {
 		exitFlagName := "service-exit-code-propagation"
 		flags.StringVar(&playOptions.ExitCodePropagation, exitFlagName, "", "Exit-code propagation of the service container")
 		_ = flags.MarkHidden(exitFlagName)
+
+		replicas := "replicas"
+		flags.BoolVar(&playOptions.Replicas, replicas, false, "Replicas allows multiple Pods creation")
 	}
 }
 
