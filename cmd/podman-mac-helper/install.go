@@ -53,7 +53,7 @@ const launchConfig = `<?xml version="1.0" encoding="UTF-8"?>
 			<key>SockPathOwner</key>
 			<integer>{{.UID}}</integer>
 			<key>SockPathMode</key>
-			<!-- SockPathMode takes base 10 (384 = 0600) -->
+			<!-- SockPathMode takes base 10 (384 = 0o600) -->
 			<integer>384</integer>
 			<key>SockType</key>
 			<string>stream</string>

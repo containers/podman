@@ -20,7 +20,6 @@ import (
 )
 
 var _ = Describe("Verify podman containers.conf usage", func() {
-
 	BeforeEach(func() {
 		confPath, err := filepath.Abs("config/containers.conf")
 		Expect(err).ToNot(HaveOccurred())
@@ -28,7 +27,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-
 	})
 
 	It("limits test", func() {
@@ -55,7 +53,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		} else {
 			Expect(session.OutputToString()).To(Not(Equal("500")))
 		}
-
 	})
 
 	It("oom-score-adj", func() {
@@ -85,20 +82,15 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			} else {
 				Expect(session.OutputToString()).To(ContainSubstring("0"))
 			}
-
 		}
-
 	})
 
 	It("cgroup_conf in containers.conf", func() {
-		if isCgroupsV1() {
-			Skip("Setting cgroup_confs not supported on cgroupv1")
-		}
 		// FIXME: Needs crun-1.8.2-2 to allow this with --cgroup-manager=cgroupfs, once this is available remove the skip below.
 		SkipIfRootless("--cgroup-manager=cgoupfs and --cgroup-conf not supported in rootless mode with crun")
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
-		err := os.WriteFile(conffile, []byte("[containers]\ncgroup_conf = [\"pids.max=1234\",]\n"), 0755)
+		err := os.WriteFile(conffile, []byte("[containers]\ncgroup_conf = [\"pids.max=1234\",]\n"), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
@@ -297,7 +289,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		volume := filepath.Join(podmanTest.TempDir, "vol")
 		err = os.MkdirAll(volume, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		err := os.WriteFile(conffile, fmt.Appendf(nil, "[containers]\nvolumes=[\"%s:%s:Z\",]\n", volume, volume), 0755)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[containers]\nvolumes=[\"%s:%s:Z\",]\n", volume, volume), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -495,7 +487,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 		JustBeforeEach(func() {
 			conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(conffile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\nno_hosts=false\n", baseHostsFile), 0755)
+			err = os.WriteFile(conffile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\nno_hosts=false\n", baseHostsFile), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
 			if IsRemote() {
@@ -516,7 +508,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Describe("base_hosts_file=path", func() {
 			BeforeEach(func() {
 				hostsPath := filepath.Join(podmanTest.TempDir, "hosts")
-				err := os.WriteFile(hostsPath, []byte("12.34.56.78 file.example.com"), 0755)
+				err := os.WriteFile(hostsPath, []byte("12.34.56.78 file.example.com"), 0o755)
 				Expect(err).ToNot(HaveOccurred())
 				baseHostsFile = hostsPath
 			})
@@ -716,7 +708,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		}
 
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
-		err := os.WriteFile(conffile, []byte("[containers]\ncgroups=\"disabled\"\n"), 0755)
+		err := os.WriteFile(conffile, []byte("[containers]\ncgroups=\"disabled\"\n"), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		result := podmanTest.Podman([]string{"create", ALPINE, "true"})
@@ -748,7 +740,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	It("podman containers.conf runtime", func() {
 		SkipIfRemote("--runtime option is not available for remote commands")
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
-		err := os.WriteFile(conffile, []byte("[engine]\nruntime=\"testruntime\"\n"), 0755)
+		err := os.WriteFile(conffile, []byte("[engine]\nruntime=\"testruntime\"\n"), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -764,7 +756,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		for _, mode := range []string{"pasta", "slirp4netns", "invalid"} {
 			conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 			content := "[network]\ndefault_rootless_network_cmd=\"" + mode + "\"\n"
-			err := os.WriteFile(conffile, []byte(content), 0755)
+			err := os.WriteFile(conffile, []byte(content), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
@@ -812,7 +804,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	}
 
 	It("podman containers.conf container_name_as_hostname", func() {
-
 		// With default containers.conf
 
 		// Start container with no options
@@ -841,7 +832,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 		// Create containers.conf override with container_name_as_hostname=true
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
-		err := os.WriteFile(conffile, []byte("[containers]\ncontainer_name_as_hostname=true\n"), 0755)
+		err := os.WriteFile(conffile, []byte("[containers]\ncontainer_name_as_hostname=true\n"), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
 		if IsRemote() {

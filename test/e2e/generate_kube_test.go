@@ -813,7 +813,7 @@ var _ = Describe("Podman kube generate", func() {
 
 	It("with volume", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// we need a container name because IDs don't persist after rm/play
@@ -1171,7 +1171,7 @@ var _ = Describe("Podman kube generate", func() {
 ENTRYPOINT ["sleep"]`
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		image := "generatekube:test"
@@ -1223,7 +1223,7 @@ ENTRYPOINT ["sleep"]`
 USER 1000`
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		image := "generatekube:test"
@@ -1292,7 +1292,7 @@ RUN adduser -u 10001 -S test1
 USER test1`
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		image := "generatekube:test"
@@ -1668,7 +1668,7 @@ USER test1`
 		ctr2 := "ctr2"
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, CITEST_IMAGE})
@@ -1699,10 +1699,10 @@ USER test1`
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
 
-		err1 := os.MkdirAll(vol1, 0755)
+		err1 := os.MkdirAll(vol1, 0o755)
 		Expect(err1).ToNot(HaveOccurred())
 
-		err2 := os.MkdirAll(vol2, 0755)
+		err2 := os.MkdirAll(vol2, 0o755)
 		Expect(err2).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"create", "--name", srcctr1, "-v", vol1, CITEST_IMAGE})

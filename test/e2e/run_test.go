@@ -25,7 +25,6 @@ import (
 )
 
 var _ = Describe("Podman run", func() {
-
 	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -228,7 +227,6 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + BB_GLIBC))
 		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
-
 	})
 
 	It("podman run --tls-verify", func() {
@@ -270,12 +268,14 @@ var _ = Describe("Podman run", func() {
 		testFilePath := filepath.Join(uls, uniqueString)
 		tarball := filepath.Join(tempdir, "rootfs.tar")
 
-		err := os.Mkdir(rootfs, 0770)
+		err := os.Mkdir(rootfs, 0o770)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Change image in predictable way to validate export
-		csession := podmanTest.Podman([]string{"run", "--name", uniqueString, ALPINE,
-			"/bin/sh", "-c", fmt.Sprintf("echo %s > %s", uniqueString, testFilePath)})
+		csession := podmanTest.Podman([]string{
+			"run", "--name", uniqueString, ALPINE,
+			"/bin/sh", "-c", fmt.Sprintf("echo %s > %s", uniqueString, testFilePath),
+		})
 		csession.WaitWithDefaultTimeout()
 		Expect(csession).Should(ExitCleanly())
 
@@ -292,8 +292,10 @@ var _ = Describe("Podman run", func() {
 		Expect(filepath.Join(rootfs, uls)).Should(BeADirectory())
 
 		// Other tests confirm SELinux types, just confirm --rootfs is working.
-		session := podmanTest.Podman([]string{"run", "-i", "--security-opt", "label=disable",
-			"--rootfs", rootfs, "cat", testFilePath})
+		session := podmanTest.Podman([]string{
+			"run", "-i", "--security-opt", "label=disable",
+			"--rootfs", rootfs, "cat", testFilePath,
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -309,15 +311,19 @@ var _ = Describe("Podman run", func() {
 		}
 		// Test --rootfs with an external overlay
 		// use --rm to remove container and confirm if we did not leak anything
-		osession := podmanTest.Podman([]string{"run", "-i", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "cat", testFilePath})
+		osession := podmanTest.Podman([]string{
+			"run", "-i", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", testFilePath,
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal(uniqueString))
 
 		// Test podman start stop with overlay
-		osession = podmanTest.Podman([]string{"run", "--name", "overlay-foo", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "echo", "hello"})
+		osession = podmanTest.Podman([]string{
+			"run", "--name", "overlay-foo", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "echo", "hello",
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal("hello"))
@@ -335,15 +341,19 @@ var _ = Describe("Podman run", func() {
 		Expect(osession).Should(ExitCleanly())
 
 		// Test --rootfs with an external overlay with --uidmap
-		osession = podmanTest.Podman([]string{"run", "--uidmap", "0:1234:5678", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map"})
+		osession = podmanTest.Podman([]string{
+			"run", "--uidmap", "0:1234:5678", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map",
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal("0 1234 5678"))
 
 		// Test --rootfs with an external overlay with --userns=auto
-		osession = podmanTest.Podman([]string{"run", "--userns=auto", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map"})
+		osession = podmanTest.Podman([]string{
+			"run", "--userns=auto", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map",
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(ContainSubstring("1024"))
@@ -513,8 +523,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run security-opt unmask on /sys/fs/cgroup", func() {
-
-		SkipIfCgroupV1("podman umask on /sys/fs/cgroup will fail with cgroups V1")
 		SkipIfRootless("/sys/fs/cgroup rw access is needed")
 		rwOnCgroups := "/sys/fs/cgroup cgroup2 rw"
 		session := podmanTest.Podman([]string{"run", "--security-opt", "unmask=ALL", "--security-opt", "mask=/sys/fs/cgroup", ALPINE, "cat", "/proc/mounts"})
@@ -976,7 +984,7 @@ USER bin`, BB)
 	It("podman test hooks", func() {
 		SkipIfRemote("--hooks-dir does not work with remote")
 		hooksDir := filepath.Join(tempdir, "hooks,withcomma")
-		err := os.Mkdir(hooksDir, 0755)
+		err := os.Mkdir(hooksDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		hookJSONPath := filepath.Join(hooksDir, "checkhooks.json")
 		hookScriptPath := filepath.Join(hooksDir, "checkhooks.sh")
@@ -988,7 +996,7 @@ USER bin`, BB)
 	"stage" : [ "prestart" ]
 }
 `, hookScriptPath)
-		err = os.WriteFile(hookJSONPath, []byte(hookJSON), 0644)
+		err = os.WriteFile(hookJSONPath, []byte(hookJSON), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		random := stringid.GenerateRandomID()
@@ -1018,7 +1026,7 @@ rm -f $tmpfile.json
 # caller will confirm.
 echo -n madeit-$teststring >$tmpfile
 `, random, targetFile)
-		err = os.WriteFile(hookScriptPath, []byte(hookScript), 0755)
+		err = os.WriteFile(hookScriptPath, []byte(hookScript), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"--hooks-dir", hooksDir, "run", ALPINE, "ls"})
@@ -1033,28 +1041,28 @@ echo -n madeit-$teststring >$tmpfile
 	It("podman run with subscription secrets", func() {
 		SkipIfRemote("--default-mount-file option is not supported in podman-remote")
 		containersDir := filepath.Join(podmanTest.TempDir, "containers")
-		err := os.MkdirAll(containersDir, 0755)
+		err := os.MkdirAll(containersDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		secretsDir := filepath.Join(podmanTest.TempDir, "rhel", "secrets")
-		err = os.MkdirAll(secretsDir, 0755)
+		err = os.MkdirAll(secretsDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		mountsFile := filepath.Join(containersDir, "mounts.conf")
 		mountString := secretsDir + ":/run/secrets"
-		err = os.WriteFile(mountsFile, []byte(mountString), 0755)
+		err = os.WriteFile(mountsFile, []byte(mountString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		secretsFile := filepath.Join(secretsDir, "test.txt")
 		secretsString := "Testing secrets mount. I am mounted!"
-		err = os.WriteFile(secretsFile, []byte(secretsString), 0755)
+		err = os.WriteFile(secretsFile, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		targetDir := filepath.Join(tempdir, "symlink/target")
-		err = os.MkdirAll(targetDir, 0755)
+		err = os.MkdirAll(targetDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		keyFile := filepath.Join(targetDir, "key.pem")
-		err = os.WriteFile(keyFile, []byte(mountString), 0755)
+		err = os.WriteFile(keyFile, []byte(mountString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		execSession := SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
 		Expect(execSession).Should(ExitCleanly())
@@ -1208,13 +1216,13 @@ USER mail`, BB)
 
 	It("podman run --volumes-from flag", func() {
 		vol := filepath.Join(podmanTest.TempDir, "vol-test")
-		err := os.MkdirAll(vol, 0755)
+		err := os.MkdirAll(vol, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		filename := "test.txt"
 		volFile := filepath.Join(vol, filename)
 		data := "Testing --volumes-from!!!"
-		err = os.WriteFile(volFile, []byte(data), 0755)
+		err = os.WriteFile(volFile, []byte(data), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		mountpoint := "/myvol/"
 
@@ -1240,13 +1248,13 @@ USER mail`, BB)
 
 	It("podman run --volumes-from flag options", func() {
 		vol := filepath.Join(podmanTest.TempDir, "vol-test")
-		err := os.MkdirAll(vol, 0755)
+		err := os.MkdirAll(vol, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		filename := "test.txt"
 		volFile := filepath.Join(vol, filename)
 		data := "Testing --volumes-from!!!"
-		err = os.WriteFile(volFile, []byte(data), 0755)
+		err = os.WriteFile(volFile, []byte(data), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		mountpoint := "/myvol/"
 
@@ -1302,7 +1310,7 @@ USER mail`, BB)
 
 	It("podman run --volumes-from flag mount conflicts with image volume", func() {
 		volPathOnHost := filepath.Join(podmanTest.TempDir, "myvol")
-		err := os.MkdirAll(volPathOnHost, 0755)
+		err := os.MkdirAll(volPathOnHost, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		imgName := "testimg"
@@ -1330,10 +1338,10 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --volumes flag with multiple volumes", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
-		err = os.MkdirAll(vol2, 0755)
+		err = os.MkdirAll(vol2, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", ALPINE, "touch", "/myvol2/foo.txt"})
@@ -1343,7 +1351,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --volumes flag with empty host dir", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--volume", ":/myvol1:z", ALPINE, "touch", "/myvol2/foo.txt"})
@@ -1356,10 +1364,10 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --mount flag with multiple mounts", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
-		err = os.MkdirAll(vol2, 0755)
+		err = os.MkdirAll(vol2, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,src=" + vol1 + ",target=/myvol1,z", "--mount", "type=bind,src=" + vol2 + ",target=/myvol2,z", ALPINE, "touch", "/myvol2/foo.txt"})
@@ -1369,10 +1377,10 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run findmnt nothing shared", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
-		err = os.MkdirAll(vol2, 0755)
+		err = os.MkdirAll(vol2, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
@@ -1383,7 +1391,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run findmnt shared", func() {
 		vol := filepath.Join(podmanTest.TempDir, "vol-test")
-		err := os.MkdirAll(vol, 0755)
+		err := os.MkdirAll(vol, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:z", fedoraMinimal, "findmnt", "-no", "PROPAGATION", "/myvol"})
@@ -1565,11 +1573,11 @@ VOLUME %s`, ALPINE, volPath, volPath)
 	Describe("podman run with --hosts-file", func() {
 		BeforeEach(func() {
 			configHosts := filepath.Join(podmanTest.TempDir, "hosts")
-			err := os.WriteFile(configHosts, []byte("12.34.56.78 config.example.com"), 0755)
+			err := os.WriteFile(configHosts, []byte("12.34.56.78 config.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0755)
+			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", confFile)
 			if IsRemote() {
@@ -1585,7 +1593,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		It("--hosts-file=path", func() {
 			hostsPath := filepath.Join(podmanTest.TempDir, "hosts")
-			err := os.WriteFile(hostsPath, []byte("23.45.67.89 file.example.com"), 0755)
+			err := os.WriteFile(hostsPath, []byte("23.45.67.89 file.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			session := podmanTest.Podman([]string{"run", "--hostname", "hosts_test.dev", "--hosts-file=" + hostsPath, "--add-host=add.example.com:34.56.78.90", "--name", "hosts_test", "--rm", "foobar.com/hosts_test:latest", "cat", "/etc/hosts"})
@@ -1658,19 +1666,18 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		It("should fail with --no-hosts", func() {
 			hostsPath := filepath.Join(podmanTest.TempDir, "hosts")
-			err := os.WriteFile(hostsPath, []byte("23.45.67.89 file2.example.com"), 0755)
+			err := os.WriteFile(hostsPath, []byte("23.45.67.89 file2.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			session := podmanTest.Podman([]string{"run", "--no-hosts", "--hosts-file=" + hostsPath, "--name", "hosts_test", "--rm", "foobar.com/hosts_test:latest", "cat", "/etc/hosts"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).To(ExitWithError(125, "--no-hosts and --hosts-file cannot be set together"))
 		})
-
 	})
 
 	It("podman run with restart-policy always restarts containers", func() {
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
-		err := os.MkdirAll(testDir, 0755)
+		err := os.MkdirAll(testDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		aliveFile := filepath.Join(testDir, "running")
@@ -1822,7 +1829,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ToNot(HaveOccurred())
-		var curCgroups = string(curCgroupsBytes)
+		curCgroups := string(curCgroupsBytes)
 		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).To(Not(Equal("")))
 
@@ -1839,7 +1846,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		ctrCgroupsBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 		Expect(err).ToNot(HaveOccurred())
-		var ctrCgroups = string(ctrCgroupsBytes)
+		ctrCgroups := string(ctrCgroupsBytes)
 		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 		Expect(curCgroups).To(Not(Equal(ctrCgroups)))
 	})
@@ -1929,7 +1936,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --tz", func() {
 		testDir := filepath.Join(podmanTest.RunRoot, "tz-test")
-		err := os.MkdirAll(testDir, 0755)
+		err := os.MkdirAll(testDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		tzFile := filepath.Join(testDir, "tzfile.txt")
@@ -1959,11 +1966,9 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		h := strconv.Itoa(t.Hour())
 		Expect(session.OutputToString()).To(ContainSubstring(z))
 		Expect(session.OutputToString()).To(ContainSubstring(h))
-
 	})
 
 	It("podman run verify pids-limit", func() {
-		SkipIfCgroupV1("pids-limit not supported on cgroup V1")
 		limit := "4321"
 		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--net=none", "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
 		session.WaitWithDefaultTimeout()
@@ -2075,7 +2080,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2091,13 +2096,12 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=mount", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2113,13 +2117,12 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=mount with target", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret_target", secretFilePath})
@@ -2135,13 +2138,12 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret_target"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=mount with target at /tmp", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret_target2", secretFilePath})
@@ -2157,13 +2159,12 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret_target2"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=env", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2179,7 +2180,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret target option", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2195,7 +2196,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret mount with uid, gid, mode options", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2222,7 +2223,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret with --user", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2238,7 +2239,7 @@ WORKDIR /madethis`, BB)
 	It("podman run invalid secret option", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -2441,10 +2442,10 @@ log_driver = "k8s-file"
 log_path = "%s"
 `, confLogPath)
 
-		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		err := os.WriteFile(conffile, []byte(configContent), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = os.MkdirAll(confLogPath, 0755)
+		err = os.MkdirAll(confLogPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
@@ -2479,10 +2480,10 @@ log_driver = "k8s-file"
 log_path = "%s"
 `, confLogPath)
 
-		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		err := os.WriteFile(conffile, []byte(configContent), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = os.MkdirAll(confLogPath, 0755)
+		err = os.MkdirAll(confLogPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)

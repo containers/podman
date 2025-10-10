@@ -27,7 +27,7 @@ func CreateFileLock(path string) (*FileLocks, error) {
 	if err == nil {
 		return nil, fmt.Errorf("directory %s exists: %w", path, syscall.EEXIST)
 	}
-	if err := os.MkdirAll(path, 0711); err != nil {
+	if err := os.MkdirAll(path, 0o711); err != nil {
 		return nil, err
 	}
 
@@ -81,7 +81,7 @@ func (locks *FileLocks) AllocateLock() (uint32, error) {
 	id := uint32(0)
 	for ; ; id++ {
 		path := locks.getLockPath(id)
-		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o666)
 		if err != nil {
 			if os.IsExist(err) {
 				continue
@@ -103,7 +103,7 @@ func (locks *FileLocks) AllocateGivenLock(lck uint32) error {
 		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 
-	f, err := os.OpenFile(locks.getLockPath(lck), os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := os.OpenFile(locks.getLockPath(lck), os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o666)
 	if err != nil {
 		return fmt.Errorf("creating lock %d: %w", lck, err)
 	}

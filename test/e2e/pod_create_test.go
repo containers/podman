@@ -176,15 +176,15 @@ var _ = Describe("Podman pod create", func() {
 	Describe("podman create pod with --hosts-file", func() {
 		BeforeEach(func() {
 			imageHosts := filepath.Join(podmanTest.TempDir, "pause_hosts")
-			err := os.WriteFile(imageHosts, []byte("56.78.12.34 image.example.com"), 0755)
+			err := os.WriteFile(imageHosts, []byte("56.78.12.34 image.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			configHosts := filepath.Join(podmanTest.TempDir, "hosts")
-			err = os.WriteFile(configHosts, []byte("12.34.56.78 config.example.com"), 0755)
+			err = os.WriteFile(configHosts, []byte("12.34.56.78 config.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0755)
+			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", confFile)
 			if IsRemote() {
@@ -200,7 +200,7 @@ var _ = Describe("Podman pod create", func() {
 
 		It("--hosts-file=path", func() {
 			hostsPath := filepath.Join(podmanTest.TempDir, "hosts")
-			err := os.WriteFile(hostsPath, []byte("23.45.67.89 file.example.com"), 0755)
+			err := os.WriteFile(hostsPath, []byte("23.45.67.89 file.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			podCreate := podmanTest.Podman([]string{"pod", "create", "--hostname", "hosts_test.dev", "--hosts-file=" + hostsPath, "--add-host=add.example.com:34.56.78.90", "--infra-image=foobar.com/hosts_test_pause:latest", "--infra-name=hosts_test_infra", "--name", "hosts_test_pod"})
@@ -768,7 +768,6 @@ ENTRYPOINT ["sleep","99999"]
 		// Too complicated to differentiate in test context, so we ignore the first part
 		// and just check for the "no container" substring, which is common to both.
 		Expect(podCreate).Should(ExitWithError(125, `no container with name or ID "randomfakeid" found: no such container`))
-
 	})
 
 	It("podman pod create with --userns=keep-id", func() {
@@ -1045,7 +1044,6 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("1:3"))
-
 	})
 
 	It("podman pod create --volumes-from", func() {
@@ -1154,7 +1152,6 @@ ENTRYPOINT ["sleep","99999"]
 
 		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
 		Expect(inspect[0]).To(HaveField("AppArmorProfile", apparmor.Profile))
-
 	})
 
 	It("podman pod create --sysctl test", func() {
@@ -1192,12 +1189,10 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).NotTo(ContainSubstring("kernel.msgmax = 65535"))
-
 	})
 
 	It("podman pod create --share-parent test", func() {
 		SkipIfRootlessCgroupsV1("rootless cannot use cgroups with cgroupsv1")
-		SkipIfCgroupV1("CgroupMode shows 'host' on CGv1, not CID (issue 15013, wontfix")
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--share-parent=false"})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(ExitCleanly())
@@ -1236,7 +1231,6 @@ ENTRYPOINT ["sleep","99999"]
 		podCreate3 := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup"})
 		podCreate3.WaitWithDefaultTimeout()
 		Expect(podCreate3).ShouldNot(ExitCleanly())
-
 	})
 
 	It("podman pod create infra inheritance test", func() {

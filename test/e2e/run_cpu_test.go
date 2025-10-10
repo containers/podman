@@ -12,12 +12,11 @@ import (
 )
 
 var _ = Describe("Podman run cpu", func() {
-
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Setting CPU not supported on cgroupv1 for rootless users")
 
 		if CGROUPSV2 {
-			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0644); err != nil {
+			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0o644); err != nil {
 				Skip("cpuset controller not available on the current kernel")
 			}
 		}
@@ -121,7 +120,6 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run invalid cpu-rt-period with cgroupsv2", func() {
-		SkipIfCgroupV1("testing options that only work in cgroup v2")
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-rt-period=5000", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
@@ -129,7 +127,6 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run invalid cpu-rt-runtime with cgroupsv2", func() {
-		SkipIfCgroupV1("testing options that only work in cgroup v2")
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-rt-runtime=5000", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))

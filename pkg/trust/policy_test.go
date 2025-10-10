@@ -22,7 +22,7 @@ func TestAddPolicyEntries(t *testing.T) {
 	}
 	minimalPolicyJSON, err := json.Marshal(minimalPolicy)
 	require.NoError(t, err)
-	err = os.WriteFile(policyPath, minimalPolicyJSON, 0600)
+	err = os.WriteFile(policyPath, minimalPolicyJSON, 0o600)
 	require.NoError(t, err)
 
 	// Invalid input:
@@ -128,7 +128,7 @@ func TestAddPolicyEntries(t *testing.T) {
                 }
         }
 }`
-	err = os.WriteFile(policyPath, []byte(jsonWithUnknownData), 0600)
+	err = os.WriteFile(policyPath, []byte(jsonWithUnknownData), 0o600)
 	require.NoError(t, err)
 	err = AddPolicyEntries(policyPath, AddPolicyEntriesInput{
 		Scope:       "quay.io/innocuous",

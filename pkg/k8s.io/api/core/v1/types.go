@@ -430,12 +430,12 @@ const (
 	// For backwards compatible, leave it empty if unset
 	HostPathUnset HostPathType = ""
 	// If nothing exists at the given path, an empty directory will be created there
-	// as needed with file mode 0755, having the same group and ownership with Kubelet.
+	// as needed with file mode 0o755, having the same group and ownership with Kubelet.
 	HostPathDirectoryOrCreate HostPathType = "DirectoryOrCreate"
 	// A directory must exist at the given path
 	HostPathDirectory HostPathType = "Directory"
 	// If nothing exists at the given path, an empty file will be created there
-	// as needed with file mode 0644, having the same group and ownership with Kubelet.
+	// as needed with file mode 0o644, having the same group and ownership with Kubelet.
 	HostPathFileOrCreate HostPathType = "FileOrCreate"
 	// A file must exist at the given path
 	HostPathFile HostPathType = "File"
