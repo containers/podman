@@ -219,7 +219,11 @@ func (td *TempDir) Cleanup() error {
 		return nil
 	}
 
+<<<<<<< HEAD
 	if err := system.EnsureRemoveAll(td.tempDirPath); err != nil {
+=======
+	if err := os.RemoveAll(td.tempDirPath); err != nil {
+>>>>>>> 0523fef003 (update)
 		return fmt.Errorf("removing temp dir failed: %w", err)
 	}
 
