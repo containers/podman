@@ -20,8 +20,8 @@ func (info *FileInfo) isDir() bool {
 	return info.parent == nil || info.stat.Mode().IsDir()
 }
 
-func getIno(fi os.FileInfo) (inode uint64) {
-	return
+func getIno(fi os.FileInfo) uint64 {
+	return 0
 }
 
 func hasHardlinks(fi os.FileInfo) bool {

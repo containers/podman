@@ -43,8 +43,8 @@ type TruncIndex struct {
 
 // NewTruncIndex creates a new TruncIndex and initializes with a list of IDs.
 // Invalid IDs are _silently_ ignored.
-func NewTruncIndex(ids []string) (idx *TruncIndex) {
-	idx = &TruncIndex{
+func NewTruncIndex(ids []string) *TruncIndex {
+	idx := &TruncIndex{
 		ids: make(map[string]struct{}),
 
 		// Change patricia max prefix per node length,
@@ -54,7 +54,7 @@ func NewTruncIndex(ids []string) (idx *TruncIndex) {
 	for _, id := range ids {
 		_ = idx.addID(id) // Ignore invalid IDs. Duplicate IDs are not a problem.
 	}
-	return
+	return idx
 }
 
 func (idx *TruncIndex) addID(id string) error {

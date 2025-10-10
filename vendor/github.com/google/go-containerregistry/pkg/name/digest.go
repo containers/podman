@@ -17,6 +17,7 @@ package name
 import (
 	// nolint: depguard
 	_ "crypto/sha256" // Recommended by go-digest.
+	"encoding"
 	"encoding/json"
 	"strings"
 
@@ -32,8 +33,11 @@ type Digest struct {
 	original string
 }
 
-// Ensure Digest implements Reference
 var _ Reference = (*Digest)(nil)
+var _ encoding.TextMarshaler = (*Digest)(nil)
+var _ encoding.TextUnmarshaler = (*Digest)(nil)
+var _ json.Marshaler = (*Digest)(nil)
+var _ json.Unmarshaler = (*Digest)(nil)
 
 // Context implements Reference.
 func (d Digest) Context() Repository {
@@ -72,6 +76,21 @@ func (d *Digest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	n, err := NewDigest(s)
+	if err != nil {
+		return err
+	}
+	*d = n
+	return nil
+}
+
+// MarshalText formats the digest into a string for text serialization.
+func (d Digest) MarshalText() ([]byte, error) {
+	return []byte(d.String()), nil
+}
+
+// UnmarshalText parses a text string into a Digest.
+func (d *Digest) UnmarshalText(data []byte) error {
+	n, err := NewDigest(string(data))
 	if err != nil {
 		return err
 	}

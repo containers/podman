@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -52,7 +53,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		key = strings.ToLower(key)
 		switch key {
 		case "vfs.imagestore", ".imagestore":
-			d.additionalHomes = append(d.additionalHomes, strings.Split(val, ",")...)
+			d.additionalHomes = slices.AppendSeq(d.additionalHomes, strings.SplitSeq(val, ","))
 			continue
 		case "vfs.mountopt":
 			return nil, fmt.Errorf("vfs driver does not support mount options")

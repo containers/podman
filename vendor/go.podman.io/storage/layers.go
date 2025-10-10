@@ -31,6 +31,7 @@ import (
 	"go.podman.io/storage/pkg/ioutils"
 	"go.podman.io/storage/pkg/lockfile"
 	"go.podman.io/storage/pkg/mount"
+	"go.podman.io/storage/pkg/pools"
 	"go.podman.io/storage/pkg/stringid"
 	"go.podman.io/storage/pkg/system"
 	"go.podman.io/storage/pkg/tarlog"
@@ -1378,6 +1379,19 @@ func (r *layerStore) pickStoreLocation(volatile, writeable bool) layerLocations 
 	}
 }
 
+func checkIdAndNameConflict(r *layerStore, id string, names []string) error {
+	if _, idInUse := r.byid[id]; idInUse {
+		return ErrDuplicateID
+	}
+	names = dedupeStrings(names)
+	for _, name := range names {
+		if _, nameInUse := r.byname[name]; nameInUse {
+			return ErrDuplicateName
+		}
+	}
+	return nil
+}
+
 // Requires startWriting.
 func (r *layerStore) create(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader, slo *stagedLayerOptions) (layer *Layer, size int64, err error) {
 	if moreOptions == nil {
@@ -1400,14 +1414,9 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 			_, idInUse = r.byid[id]
 		}
 	}
-	if duplicateLayer, idInUse := r.byid[id]; idInUse {
-		return duplicateLayer, -1, ErrDuplicateID
-	}
 	names = dedupeStrings(names)
-	for _, name := range names {
-		if _, nameInUse := r.byname[name]; nameInUse {
-			return nil, -1, ErrDuplicateName
-		}
+	if err := checkIdAndNameConflict(r, id, names); err != nil {
+		return nil, -1, err
 	}
 	parent := ""
 	if parentLayer != nil {
@@ -1448,9 +1457,6 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 		selinux.ReserveLabel(mountLabel)
 	}
 
-	// Before actually creating the layer, make a persistent record of it
-	// with the incomplete flag set, so that future processes have a chance
-	// to clean up after it.
 	layer = &Layer{
 		ID:                 id,
 		Parent:             parent,
@@ -1473,6 +1479,45 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 		location:           r.pickStoreLocation(moreOptions.Volatile, writeable),
 	}
 	layer.Flags[incompleteFlag] = true
+
+	var (
+		cleanupFunctions []tempdir.CleanupTempDirFunc
+		applyDiffFunc    func() error
+		applyDiffSize    int64
+	)
+
+	applyDiffTemporaryDriver, ok := r.driver.(drivers.ApplyDiffStaging)
+	if ok && diff != nil {
+		// CRITICAL, this releases the lock so we can extract this unlocked
+		r.stopWriting()
+
+		var applyDiffError error
+		cleanupFunctions, applyDiffFunc, applyDiffSize, applyDiffError = r.applyDiffUnlocked(applyDiffTemporaryDriver, layer, moreOptions, diff)
+		// We must try to cleanup regardless of if an error was returned or not.
+		defer func() {
+			if err := tempdir.CleanupTemporaryDirectories(cleanupFunctions...); err != nil {
+				logrus.Errorf("Error cleaning up temporary directories: %v", err)
+			}
+		}()
+		// Acquire the lock again, this releases the lock so we can extract this unlocked.
+		// This must be done before checking for the error from applyDiffUnlocked() so the caller doesn't try to unlock again.
+		// FIXME: if startWriting() fails we return unlocked and then the parent unlocks again causing a panic. We should try to avoid that case somehow.
+		if err := r.startWriting(); err != nil {
+			return nil, -1, fmt.Errorf("re-acquire lock after applying layer diff: %w", err)
+		}
+		if applyDiffError != nil {
+			return nil, -1, applyDiffError
+		}
+
+		if err := checkIdAndNameConflict(r, id, names); err != nil {
+			logrus.Debugf("Layer id %s or name from %v was created while staging the layer content unlocked, aborting layer creation", id, names)
+			return nil, -1, err
+		}
+	}
+
+	// Before actually creating the layer, make a persistent record of it
+	// with the incomplete flag set, so that future processes have a chance
+	// to clean up after it.
 
 	r.layers = append(r.layers, layer)
 	// This can only fail if the ID is already missing, which shouldn’t
@@ -1568,8 +1613,14 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 	}
 
 	size = -1
-	if diff != nil {
-		if size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff); err != nil {
+	if applyDiffFunc != nil {
+		size = applyDiffSize
+		if err := applyDiffFunc(); err != nil {
+			cleanupFailureContext = "applying staged diff"
+			return nil, -1, err
+		}
+	} else if diff != nil {
+		if size, err = r.applyDiffWithOptions(layer, moreOptions, diff); err != nil {
 			cleanupFailureContext = "applying layer diff"
 			return nil, -1, err
 		}
@@ -2395,24 +2446,105 @@ func updateDigestMap(m *map[digest.Digest][]string, oldvalue, newvalue digest.Di
 
 // Requires startWriting.
 func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error) {
-	return r.applyDiffWithOptions(to, nil, diff)
-}
-
-// Requires startWriting.
-func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions, diff io.Reader) (size int64, err error) {
-	if !r.lockfile.IsReadWrite() {
-		return -1, fmt.Errorf("not allowed to modify layer contents at %q: %w", r.layerdir, ErrStoreIsReadOnly)
-	}
-
 	layer, ok := r.lookup(to)
 	if !ok {
 		return -1, ErrLayerUnknown
+	}
+	return r.applyDiffWithOptions(layer, nil, diff)
+}
+
+type diffApplyFunc func(id string, parent string, options drivers.ApplyDiffOpts) error
+
+func (r *layerStore) applyDiffUnlocked(dd drivers.ApplyDiffStaging, layer *Layer, layerOptions *LayerOptions, diff io.Reader) ([]tempdir.CleanupTempDirFunc, func() error, int64, error) {
+	var (
+		size           int64
+		cleanFunctions []tempdir.CleanupTempDirFunc
+		commit         tempdir.CommitFunc
+	)
+
+	f := func(id string, parent string, options drivers.ApplyDiffOpts) error {
+		var (
+			err     error
+			cleanup tempdir.CleanupTempDirFunc
+		)
+		cleanup, commit, size, err = dd.StartStagingDiffToApply(layer.ID, layer.Parent, options)
+		cleanFunctions = append(cleanFunctions, cleanup)
+		return err
+	}
+
+	td, err := tempdir.NewTempDir(filepath.Join(r.layerdir, tempDirPath))
+	cleanFunctions = append(cleanFunctions, td.Cleanup)
+	if err != nil {
+		return cleanFunctions, nil, 0, err
+	}
+
+	sa, err := td.StageFileAddition(func(path string) error {
+		tsFile, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o600)
+		if err != nil {
+			return err
+		}
+		defer tsFile.Close()
+		return r.applyDiffWithOptionsInner(layer, layerOptions, diff, f, tsFile)
+	})
+	if err != nil {
+		return cleanFunctions, nil, 0, err
+	}
+
+	applyDiff := func() error {
+		err := dd.CommitStagedLayer(layer.ID, commit)
+		if err != nil {
+			return fmt.Errorf("commit temporary layer: %w", err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
+			return err
+		}
+
+		err = sa.Commit(r.tspath(layer.ID))
+		if err != nil {
+			return fmt.Errorf("commit tar split file: %w", err)
+		}
+		return nil
+	}
+
+	return cleanFunctions, applyDiff, size, nil
+}
+
+// Requires startWriting.
+func (r *layerStore) applyDiffWithOptions(layer *Layer, layerOptions *LayerOptions, diff io.Reader) (int64, error) {
+	var size int64
+	f := func(id string, parent string, options drivers.ApplyDiffOpts) error {
+		var err error
+		size, err = r.driver.ApplyDiff(layer.ID, layer.Parent, options)
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
+		return -1, err
+	}
+	tsFile, err := os.OpenFile(r.tspath(layer.ID), os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return -1, err
+	}
+	defer tsFile.Close()
+
+	err = r.applyDiffWithOptionsInner(layer, layerOptions, diff, f, tsFile)
+	if err != nil {
+		return 0, err
+	}
+
+	return size, r.saveFor(layer)
+}
+
+func (r *layerStore) applyDiffWithOptionsInner(layer *Layer, layerOptions *LayerOptions, diff io.Reader, applyFunc diffApplyFunc, tsFile *os.File) (err error) {
+	if !r.lockfile.IsReadWrite() {
+		return fmt.Errorf("not allowed to modify layer contents at %q: %w", r.layerdir, ErrStoreIsReadOnly)
 	}
 
 	header := make([]byte, 10240)
 	n, err := diff.Read(header)
 	if err != nil && err != io.EOF {
-		return -1, err
+		return err
 	}
 	compression := archive.DetectCompression(header[:n])
 	defragmented := io.MultiReader(bytes.NewReader(header[:n]), diff)
@@ -2442,15 +2574,16 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	compressedCounter := ioutils.NewWriteCounter(compressedWriter)
 	defragmented = io.TeeReader(defragmented, compressedCounter)
 
-	tsdata := bytes.Buffer{}
+	tsdata := pools.BufioWriter32KPool.Get(tsFile)
+	defer tsdata.Flush()
 	uidLog := make(map[uint32]struct{})
 	gidLog := make(map[uint32]struct{})
 	var uncompressedCounter *ioutils.WriteCounter
 
-	size, err = func() (int64, error) { // A scope for defer
-		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
+	err = func() error { // A scope for defer
+		compressor, err := pgzip.NewWriterLevel(tsdata, pgzip.BestSpeed)
 		if err != nil {
-			return -1, err
+			return err
 		}
 		defer compressor.Close()                                        // This must happen before tsdata is consumed.
 		if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
@@ -2459,7 +2592,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 		metadata := storage.NewJSONPacker(compressor)
 		uncompressed, err := archive.DecompressStream(defragmented)
 		if err != nil {
-			return -1, err
+			return err
 		}
 		defer uncompressed.Close()
 		idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
@@ -2469,7 +2602,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 			}
 		})
 		if err != nil {
-			return -1, err
+			return err
 		}
 		defer idLogger.Close() // This must happen before uidLog and gidLog is consumed.
 		uncompressedCounter = ioutils.NewWriteCounter(idLogger)
@@ -2479,29 +2612,19 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 		}
 		payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
 		if err != nil {
-			return -1, err
+			return err
 		}
 		options := drivers.ApplyDiffOpts{
 			Diff:       payload,
 			Mappings:   r.layerMappings(layer),
 			MountLabel: layer.MountLabel,
 		}
-		size, err := r.driver.ApplyDiff(layer.ID, layer.Parent, options)
-		if err != nil {
-			return -1, err
-		}
-		return size, err
+		return applyFunc(layer.ID, layer.Parent, options)
 	}()
 	if err != nil {
-		return -1, err
+		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
-		return -1, err
-	}
-	if err := ioutils.AtomicWriteFile(r.tspath(layer.ID), tsdata.Bytes(), 0o600); err != nil {
-		return -1, err
-	}
 	if compressedDigester != nil {
 		compressedDigest = compressedDigester.Digest()
 	}
@@ -2534,9 +2657,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	}
 	slices.Sort(layer.GIDs)
 
-	err = r.saveFor(layer)
-
-	return size, err
+	return nil
 }
 
 // Requires (startReading or?) startWriting.
@@ -2694,5 +2815,5 @@ func closeAll(closes ...func() error) (rErr error) {
 			rErr = fmt.Errorf("%v: %w", err, rErr)
 		}
 	}
-	return
+	return rErr
 }

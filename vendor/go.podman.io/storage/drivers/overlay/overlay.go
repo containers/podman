@@ -501,7 +501,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if val == "" {
 				continue
 			}
-			for _, store := range strings.Split(val, ",") {
+			for store := range strings.SplitSeq(val, ",") {
 				store = filepath.Clean(store)
 				if !filepath.IsAbs(store) {
 					return nil, fmt.Errorf("overlay: image path %q is not absolute.  Can not be relative", store)
@@ -521,7 +521,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if val == "" {
 				continue
 			}
-			for _, lstore := range strings.Split(val, ",") {
+			for lstore := range strings.SplitSeq(val, ",") {
 				elems := strings.Split(lstore, ":")
 				lstore = filepath.Clean(elems[0])
 				if !filepath.IsAbs(lstore) {
@@ -1196,8 +1196,8 @@ func (d *Driver) getLower(parent string) (string, error) {
 
 	parentLower, err := os.ReadFile(path.Join(parentDir, lowerFile))
 	if err == nil {
-		parentLowers := strings.Split(string(parentLower), ":")
-		lowers = append(lowers, parentLowers...)
+		parentLowers := strings.SplitSeq(string(parentLower), ":")
+		lowers = slices.AppendSeq(lowers, parentLowers)
 	}
 	return strings.Join(lowers, ":"), nil
 }
@@ -1247,7 +1247,7 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 	var lowersArray []string
 	lowers, err := os.ReadFile(path.Join(d.dir(id), lowerFile))
 	if err == nil {
-		for _, s := range strings.Split(string(lowers), ":") {
+		for s := range strings.SplitSeq(string(lowers), ":") {
 			lower := d.dir(s)
 			lp, err := os.Readlink(lower)
 			// if the link does not exist, we lost the symlinks during a sudden reboot.
@@ -2369,31 +2369,67 @@ func (d *Driver) DifferTarget(id string) (string, error) {
 	return d.getDiffPath(id)
 }
 
-// ApplyDiff applies the new layer into a root
-func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
-	if !d.isParent(id, parent) {
-		if d.options.ignoreChownErrors {
-			options.IgnoreChownErrors = d.options.ignoreChownErrors
-		}
-		if d.options.forceMask != nil {
-			options.ForceMask = d.options.forceMask
-		}
-		return d.naiveDiff.ApplyDiff(id, parent, options)
+// StartStagingDiffToApply applies the new layer into a temporary directory.
+// It returns a CleanupTempDirFunc which can nil or set regardless if the function return an error or not.
+// CommitFunc is only set when there is no error returned and the int64 value returns the size of the layer.
+//
+// This API is experimental and can be changed without bumping the major version number.
+func (d *Driver) StartStagingDiffToApply(id, parent string, options graphdriver.ApplyDiffOpts) (tempdir.CleanupTempDirFunc, tempdir.CommitFunc, int64, error) {
+	tempDirRoot := d.getTempDirRoot(id)
+	t, err := tempdir.NewTempDir(tempDirRoot)
+	if err != nil {
+		return nil, nil, -1, err
 	}
 
+	var size int64
+	sa, err := t.StageDirectoryAddition(func(path string) error {
+		size, err = d.applyDiff(id, path, options)
+		return err
+	})
+	if err != nil {
+		return t.Cleanup, nil, -1, err
+	}
+
+	return t.Cleanup, sa.Commit, size, nil
+}
+
+// CommitStagedLayer that was created with StartStagingDiffToApply().
+//
+// This API is experimental and can be changed without bumping the major version number.
+func (d *Driver) CommitStagedLayer(id string, commit tempdir.CommitFunc) error {
+	applyDir, err := d.getDiffPath(id)
+	if err != nil {
+		return err
+	}
+
+	// The os.Rename() function used by CommitFunc errors when the target directory already
+	// exists, as such delete the dir if it already exists.
+	if err := os.Remove(applyDir); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	return commit(applyDir)
+}
+
+// ApplyDiff applies the new layer into a root
+func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
+	applyDir, err := d.getDiffPath(id)
+	if err != nil {
+		return 0, err
+	}
+	return d.applyDiff(id, applyDir, options)
+}
+
+// ApplyDiff applies the new layer into a root
+func (d *Driver) applyDiff(id, target string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
 	idMappings := options.Mappings
 	if idMappings == nil {
 		idMappings = &idtools.IDMappings{}
 	}
 
-	applyDir, err := d.getDiffPath(id)
-	if err != nil {
-		return 0, err
-	}
-
-	logrus.Debugf("Applying tar in %s", applyDir)
+	logrus.Debugf("Applying tar in %s", target)
 	// Overlay doesn't need the parent id to apply the diff
-	if err := untar(options.Diff, applyDir, &archive.TarOptions{
+	if err := untar(options.Diff, target, &archive.TarOptions{
 		UIDMaps:           idMappings.UIDs(),
 		GIDMaps:           idMappings.GIDs(),
 		IgnoreChownErrors: d.options.ignoreChownErrors,
@@ -2404,7 +2440,7 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 		return 0, err
 	}
 
-	return directory.Size(applyDir)
+	return directory.Size(target)
 }
 
 func (d *Driver) getComposefsData(id string) string {
