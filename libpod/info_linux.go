@@ -55,10 +55,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	}
 	info.Slirp4NetNS = define.SlirpInfo{}
 
-	cgroupVersion := "v1"
-	if unified {
-		cgroupVersion = "v2"
-	}
+	cgroupVersion := "v2"
 	info.CgroupsVersion = cgroupVersion
 
 	slirp4netnsPath := r.config.Engine.NetworkCmdPath
