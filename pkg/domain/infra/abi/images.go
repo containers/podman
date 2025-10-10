@@ -999,7 +999,7 @@ func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStore
 		return err
 	}
 	signatureDir := fmt.Sprintf("%s@%s=%s", sigStoreDir, instanceDigest.Algorithm(), instanceDigest.Hex())
-	if err := os.MkdirAll(signatureDir, 0751); err != nil {
+	if err := os.MkdirAll(signatureDir, 0o751); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, fs.ErrExist) {
 			return err
@@ -1009,5 +1009,5 @@ func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStore
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
+	return os.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0o644)
 }

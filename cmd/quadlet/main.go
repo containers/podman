@@ -51,7 +51,7 @@ func logToKmsg(s string) bool {
 	}
 
 	if kmsgFile == nil {
-		f, err := os.OpenFile("/dev/kmsg", os.O_WRONLY, 0644)
+		f, err := os.OpenFile("/dev/kmsg", os.O_WRONLY, 0o644)
 		if err != nil {
 			noKmsg = true
 			return false

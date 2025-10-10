@@ -75,7 +75,7 @@ func (ign *DynamicIgnition) Write() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(ign.WritePath, b, 0644)
+	return os.WriteFile(ign.WritePath, b, 0o644)
 }
 
 func (ign *DynamicIgnition) getUsers() []PasswdUser {
@@ -242,7 +242,7 @@ func getDirs(usrName string) []Directory {
 				Path:  d,
 				User:  GetNodeUsr(usrName),
 			},
-			DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0755)},
+			DirectoryEmbedded1: DirectoryEmbedded1{Mode: IntToPtr(0o755)},
 		}
 		dirs[i] = newDir
 	}
@@ -266,7 +266,7 @@ func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ boo
 			Contents: Resource{
 				Source: EncodeDataURLPtr(""),
 			},
-			Mode: IntToPtr(0644),
+			Mode: IntToPtr(0o644),
 		},
 	})
 
@@ -301,7 +301,7 @@ pids_limit=0
 			Contents: Resource{
 				Source: EncodeDataURLPtr(containers),
 			},
-			Mode: IntToPtr(0744),
+			Mode: IntToPtr(0o744),
 		},
 	})
 
@@ -319,7 +319,7 @@ pids_limit=0
 				Contents: Resource{
 					Source: EncodeDataURLPtr(etcSubUID),
 				},
-				Mode: IntToPtr(0744),
+				Mode: IntToPtr(0o744),
 			},
 		})
 	}
@@ -337,7 +337,7 @@ pids_limit=0
 			Contents: Resource{
 				Source: EncodeDataURLPtr(fmt.Sprintf("%s\n", vmtype.String())),
 			},
-			Mode: IntToPtr(0644),
+			Mode: IntToPtr(0o644),
 		},
 	})
 
@@ -351,7 +351,7 @@ pids_limit=0
 			Contents: Resource{
 				Source: EncodeDataURLPtr(GetPodmanDockerTmpConfig(uid, rootful, true)),
 			},
-			Mode: IntToPtr(0644),
+			Mode: IntToPtr(0o644),
 		},
 	})
 
@@ -365,7 +365,7 @@ pids_limit=0
 				Contents: Resource{
 					Source: EncodeDataURLPtr(fmt.Sprintf("[zram0]\nzram-size=%d\n", swap)),
 				},
-				Mode: IntToPtr(0644),
+				Mode: IntToPtr(0o644),
 			},
 		})
 	}
@@ -472,7 +472,7 @@ func prepareCertFile(fpath string, name string) (File, error) {
 			Contents: Resource{
 				Source: EncodeDataURLPtr(string(b)),
 			},
-			Mode: IntToPtr(0644),
+			Mode: IntToPtr(0o644),
 		},
 	}
 	return file, nil
@@ -524,7 +524,7 @@ func getSSLFile(path, content string) File {
 			Contents: Resource{
 				Source: EncodeDataURLPtr(content),
 			},
-			Mode: IntToPtr(0644),
+			Mode: IntToPtr(0o644),
 		},
 	}
 }
@@ -610,7 +610,7 @@ func (i *IgnitionBuilder) BuildWithIgnitionFile(ignPath string) error {
 		return err
 	}
 
-	return os.WriteFile(i.dynamicIgnition.WritePath, inputIgnition, 0644)
+	return os.WriteFile(i.dynamicIgnition.WritePath, inputIgnition, 0o644)
 }
 
 // Build writes the internal `DynamicIgnition` config to its write path
@@ -632,7 +632,7 @@ func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username
 			Contents: Resource{
 				Source: EncodeDataURLPtr(contents),
 			},
-			Mode: IntToPtr(0744),
+			Mode: IntToPtr(0o744),
 		},
 	}
 

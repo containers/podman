@@ -29,10 +29,10 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		signal := syscall.SIGFPE
 		// Set up a socket for communication
 		udsDir := filepath.Join(tempdir, "socket")
-		err := os.Mkdir(udsDir, 0700)
+		err := os.Mkdir(udsDir, 0o700)
 		Expect(err).ToNot(HaveOccurred())
 		udsPath := filepath.Join(udsDir, "fifo")
-		err = syscall.Mkfifo(udsPath, 0600)
+		err = syscall.Mkfifo(udsPath, 0o600)
 		Expect(err).ToNot(HaveOccurred())
 		if isRootless() {
 			err = podmanTest.RestoreArtifact(fedoraMinimal)
@@ -40,7 +40,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		}
 		_, pid := podmanTest.PodmanPID([]string{"run", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
 
-		uds, _ := os.OpenFile(udsPath, os.O_RDONLY|syscall.O_NONBLOCK, 0600)
+		uds, _ := os.OpenFile(udsPath, os.O_RDONLY|syscall.O_NONBLOCK, 0o600)
 		defer uds.Close()
 
 		// Wait for the script in the container to alert us that it is READY

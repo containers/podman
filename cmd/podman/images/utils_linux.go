@@ -20,7 +20,7 @@ func setupPipe() (string, func() <-chan error, error) {
 		return "", nil, err
 	}
 	pipePath := filepath.Join(pipeDir, "saveio")
-	err = unix.Mkfifo(pipePath, 0600)
+	err = unix.Mkfifo(pipePath, 0o600)
 	if err != nil {
 		if e := os.RemoveAll(pipeDir); e != nil {
 			logrus.Errorf("Removing named pipe: %q", e)

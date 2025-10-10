@@ -34,7 +34,7 @@ func checkCgroups2UnifiedMode(runtime *Runtime) {
 			msg := fmt.Sprintf("RunRoot is pointing to a path (%s) which is not writable. Most likely podman will fail.", runtime.storageConfig.RunRoot)
 			if errors.Is(err, os.ErrNotExist) {
 				// if dir does not exist, try to create it
-				if err := os.MkdirAll(runtime.storageConfig.RunRoot, 0700); err != nil {
+				if err := os.MkdirAll(runtime.storageConfig.RunRoot, 0o700); err != nil {
 					logrus.Warn(msg)
 				}
 			} else {
@@ -58,7 +58,7 @@ func (r *Runtime) checkBootID(runtimeAliveFile string) error {
 			}
 		} else {
 			// Write the current boot ID to the alive file.
-			if err := os.WriteFile(runtimeAliveFile, systemBootID, 0644); err != nil {
+			if err := os.WriteFile(runtimeAliveFile, systemBootID, 0o644); err != nil {
 				return fmt.Errorf("writing boot ID to runtime alive file: %w", err)
 			}
 		}

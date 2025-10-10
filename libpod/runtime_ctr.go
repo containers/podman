@@ -472,7 +472,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}()
 
 	ctr.config.SecretsPath = filepath.Join(ctr.config.StaticDir, "secrets")
-	err = os.MkdirAll(ctr.config.SecretsPath, 0755)
+	err = os.MkdirAll(ctr.config.SecretsPath, 0o755)
 	if err != nil {
 		return nil, err
 	}
@@ -579,7 +579,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	if useDevShm && !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" && !ctr.config.NoShm {
 		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
-		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
+		if err := os.MkdirAll(ctr.config.ShmDir, 0o700); err != nil {
 			if !os.IsExist(err) {
 				return nil, fmt.Errorf("unable to create shm dir: %w", err)
 			}

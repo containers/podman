@@ -41,7 +41,7 @@ func systemContextForAuthFile(t *testing.T, fileContents string) *types.SystemCo
 	f, err := os.CreateTemp(t.TempDir(), "auth.json")
 	require.NoError(t, err)
 	path := f.Name()
-	err = os.WriteFile(path, []byte(fileContents), 0700)
+	err = os.WriteFile(path, []byte(fileContents), 0o700)
 	require.NoError(t, err)
 	return &types.SystemContext{AuthFilePath: path}
 }

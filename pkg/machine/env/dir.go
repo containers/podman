@@ -22,7 +22,7 @@ func GetDataDir(vmType define.VMType) (string, error) {
 	if err := fileutils.Exists(dataDir); !errors.Is(err, os.ErrNotExist) {
 		return dataDir, nil
 	}
-	mkdirErr := os.MkdirAll(dataDir, 0755)
+	mkdirErr := os.MkdirAll(dataDir, 0o755)
 	return dataDir, mkdirErr
 }
 
@@ -34,7 +34,7 @@ func GetGlobalDataDir() (string, error) {
 		return "", err
 	}
 
-	return dataDir, os.MkdirAll(dataDir, 0755)
+	return dataDir, os.MkdirAll(dataDir, 0o755)
 }
 
 func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
@@ -81,16 +81,16 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 	}
 
 	// make sure all machine dirs are present
-	if err := os.MkdirAll(rtDir, 0755); err != nil {
+	if err := os.MkdirAll(rtDir, 0o755); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return nil, err
 	}
 
 	// Because this is a mkdirall, we make the image cache dir
 	// which is a subdir of datadir (so the datadir is made anyway)
-	err = os.MkdirAll(imageCacheDir.GetPath(), 0755)
+	err = os.MkdirAll(imageCacheDir.GetPath(), 0o755)
 
 	return &dirs, err
 }
@@ -116,7 +116,7 @@ func GetConfDir(vmType define.VMType) (string, error) {
 	if err := fileutils.Exists(confDir); !errors.Is(err, os.ErrNotExist) {
 		return confDir, nil
 	}
-	mkdirErr := os.MkdirAll(confDir, 0755)
+	mkdirErr := os.MkdirAll(confDir, 0o755)
 	return confDir, mkdirErr
 }
 

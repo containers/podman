@@ -116,7 +116,7 @@ func commit(_ *cobra.Command, args []string) error {
 		return err
 	}
 	if len(iidFile) > 0 {
-		if err = os.WriteFile(iidFile, []byte(response.Id), 0644); err != nil {
+		if err = os.WriteFile(iidFile, []byte(response.Id), 0o644); err != nil {
 			return fmt.Errorf("failed to write image ID: %w", err)
 		}
 	}

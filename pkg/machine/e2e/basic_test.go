@@ -229,7 +229,7 @@ var _ = Describe("run basic podman commands", func() {
 
 		testString := "abcdefg1234567"
 		testFile := "testfile"
-		err = os.WriteFile(filepath.Join(dir, testFile), []byte(testString), 0644)
+		err = os.WriteFile(filepath.Join(dir, testFile), []byte(testString), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		name := randomString()

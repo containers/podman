@@ -279,7 +279,7 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 	// https://www.sqlite.org/src/artifact/c230a7a24?ln=994-1081
 	s.dbLock.Lock()
 
-	db, err := bolt.Open(s.dbPath, 0600, nil)
+	db, err := bolt.Open(s.dbPath, 0o600, nil)
 	if err != nil {
 		return nil, fmt.Errorf("opening database %s: %w", s.dbPath, err)
 	}

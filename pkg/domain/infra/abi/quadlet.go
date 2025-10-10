@@ -126,7 +126,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 	installDir := systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless())
 	logrus.Debugf("Going to install Quadlet to directory %s", installDir)
 
-	if err := os.MkdirAll(installDir, 0755); err != nil {
+	if err := os.MkdirAll(installDir, 0o755); err != nil {
 		return nil, fmt.Errorf("unable to create Quadlet install path %s: %w", installDir, err)
 	}
 
@@ -274,7 +274,7 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
 	}
 
-	file, err := os.OpenFile(finalPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(finalPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			return "", fmt.Errorf("a Quadlet with name %s already exists, refusing to overwrite", filepath.Base(finalPath))
@@ -309,7 +309,7 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 // appendStringToFile appends the given text to the specified file.
 // If the file does not exist, it will be created with 0644 permissions.
 func appendStringToFile(filePath, text string) error {
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}

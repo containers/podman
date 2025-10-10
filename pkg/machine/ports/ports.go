@@ -198,7 +198,7 @@ func storePortAllocations(ports map[int]struct{}) error {
 	}
 
 	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(filepath.Join(portDir, portAllocFileName), 0644, opts)
+	w, err := ioutils.NewAtomicFileWriterWithOpts(filepath.Join(portDir, portAllocFileName), 0o644, opts)
 	if err != nil {
 		return err
 	}

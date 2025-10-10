@@ -598,7 +598,7 @@ var _ = Describe("Podman prune", func() {
 		Expect(create).Should(ExitCleanly())
 
 		containerFilePath := filepath.Join(podmanTest.TempDir, "ContainerFile-podman-leaker")
-		err := os.WriteFile(containerFilePath, []byte(longBuildImage), 0755)
+		err := os.WriteFile(containerFilePath, []byte(longBuildImage), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		build := podmanTest.Podman([]string{"build", "-f", containerFilePath, "-t", "podmanleaker"})

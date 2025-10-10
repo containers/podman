@@ -186,7 +186,7 @@ func (c *Container) createInitRootfs() error {
 		return fmt.Errorf("getting runtime temporary directory: %w", err)
 	}
 	tmpDir = filepath.Join(tmpDir, "infra-container")
-	err = os.MkdirAll(tmpDir, 0755)
+	err = os.MkdirAll(tmpDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("creating infra container temporary directory: %w", err)
 	}
@@ -932,7 +932,7 @@ func (c *Container) resolveWorkDir() error {
 		// we need to return the full error.
 		return fmt.Errorf("detecting workdir %q on container %s: %w", workdir, c.ID(), err)
 	}
-	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
+	if err := os.MkdirAll(resolvedWorkdir, 0o755); err != nil {
 		return fmt.Errorf("creating container %s workdir: %w", c.ID(), err)
 	}
 
@@ -1010,7 +1010,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 
 	notifyDir := filepath.Join(c.bundlePath(), "notify")
 	logrus.Debugf("Checking notify %q dir", notifyDir)
-	if err := os.MkdirAll(notifyDir, 0755); err != nil {
+	if err := os.MkdirAll(notifyDir, 0o755); err != nil {
 		if !os.IsExist(err) {
 			return fmt.Errorf("unable to create notify %q dir: %w", notifyDir, err)
 		}
@@ -1218,7 +1218,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 	// Create an archive for each volume associated with the container
 	if !options.IgnoreVolumes {
-		if err := os.MkdirAll(expVolDir, 0700); err != nil {
+		if err := os.MkdirAll(expVolDir, 0o700); err != nil {
 			return fmt.Errorf("creating volumes export directory %q: %w", expVolDir, err)
 		}
 
@@ -1278,7 +1278,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	}
 	defer outFile.Close()
 
-	if err := os.Chmod(options.TargetFile, 0600); err != nil {
+	if err := os.Chmod(options.TargetFile, 0o600); err != nil {
 		return err
 	}
 
@@ -2892,7 +2892,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			if err != nil {
 				return "", "", fmt.Errorf("failed to create temporary passwd file: %w", err)
 			}
-			if err := os.Chmod(passwdFile, 0644); err != nil {
+			if err := os.Chmod(passwdFile, 0o644); err != nil {
 				return "", "", err
 			}
 			passwdPath = passwdFile
@@ -2903,7 +2903,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 				return "", "", fmt.Errorf("looking up location of container %s /etc/passwd: %w", c.ID(), err)
 			}
 
-			f, err := os.OpenFile(containerPasswd, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+			f, err := os.OpenFile(containerPasswd, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 			if err != nil {
 				return "", "", fmt.Errorf("container %s: %w", c.ID(), err)
 			}
@@ -2938,7 +2938,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			if err != nil {
 				return "", "", fmt.Errorf("failed to create temporary group file: %w", err)
 			}
-			if err := os.Chmod(groupFile, 0644); err != nil {
+			if err := os.Chmod(groupFile, 0o644); err != nil {
 				return "", "", err
 			}
 			groupPath = groupFile
@@ -2949,7 +2949,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 				return "", "", fmt.Errorf("looking up location of container %s /etc/group: %w", c.ID(), err)
 			}
 
-			f, err := os.OpenFile(containerGroup, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+			f, err := os.OpenFile(containerGroup, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 			if err != nil {
 				return "", "", fmt.Errorf("container %s: %w", c.ID(), err)
 			}
