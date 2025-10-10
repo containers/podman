@@ -237,6 +237,8 @@ github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422 h1:XvRuyDDRvi+UD
 github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422/go.mod h1:JLgfq4XMVbvfNlAXla/41lZnp21O72a/wWHGJefAvgQ=
 github.com/lsm5/container-libs/common v0.0.0-20251023145256-2c7c0ea9cefe h1:8qD/aUDCGvHUUVa5iEQmuuQ3Ldl4j3N52iXOSx2mfzc=
 github.com/lsm5/container-libs/common v0.0.0-20251023145256-2c7c0ea9cefe/go.mod h1:SYowhhZOMlSbIdVmx+qEwBRRcFMUr9EAgqRLWBZDb8s=
+github.com/lsm5/buildah v0.0.0-20251017145416-1c35ea0ae809 h1:Xl7p6J9gfYA7TX0Z7VTNygqpEq7MZdrLX+EhsUdUOPc=
+github.com/lsm5/buildah v0.0.0-20251017145416-1c35ea0ae809/go.mod h1:DOj6mclvkxcijXOmZTybYPZpuDv5ZyqoyjZSwfs/ikk=
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 h1:7UMa6KCCMjZEMDtTVdcGu0B1GmmC7QJKiCCjyTAWQy0=
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683/go.mod h1:ilwx/Dta8jXAgpFYFvSWEMwxmbWXyiUHkd5FwyKhb5k=
 github.com/manifoldco/promptui v0.9.0 h1:3V4HzJk1TtXW1MTZMP7mdlwbBpIinw3HztaIlYthEiA=

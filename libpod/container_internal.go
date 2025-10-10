@@ -1361,7 +1361,7 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 }
 
 // Whether a container should use `all` when stopping
-func (c *Container) stopWithAll() (bool, error) {
+func (c *Container) stopWithAll() bool {
 	// If the container is running in a PID Namespace, then killing the
 	// primary pid is enough to kill the container.  If it is not running in
 	// a pid namespace then the OCI Runtime needs to kill ALL processes in
@@ -1373,29 +1373,17 @@ func (c *Container) stopWithAll() (bool, error) {
 	if all {
 		if c.config.NoCgroups {
 			all = false
-		} else if rootless.IsRootless() {
-			// Only do this check if we need to
-			unified, err := cgroups.IsCgroup2UnifiedMode()
-			if err != nil {
-				return false, err
-			}
-			if !unified {
-				all = false
-			}
 		}
 	}
 
-	return all, nil
+	return all
 }
 
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
-	all, err := c.stopWithAll()
-	if err != nil {
-		return err
-	}
+	all := c.stopWithAll()
 
 	// OK, the following code looks a bit weird but we have to make sure we can stop
 	// containers with the restart policy always, to do this we have to set
@@ -1502,7 +1490,7 @@ func (c *Container) waitForConmonToExitAndSave() error {
 				// could open a pidfd on container PID1 before
 				// this to get the real exit code... But I'm not
 				// that dedicated.
-				all, _ := c.stopWithAll()
+				all := c.stopWithAll()
 				if err := c.ociRuntime.StopContainer(c, 0, all); err != nil {
 					logrus.Errorf("Error stopping container %s after Conmon exited prematurely: %v", c.ID(), err)
 				}

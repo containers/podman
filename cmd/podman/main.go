@@ -53,6 +53,8 @@ func main() {
 	}
 	logiface.SetLogger(logrusLogger{})
 
+	checkSupportedCgroups()
+
 	if filepath.Base(os.Args[0]) == registry.PodmanSh ||
 		(len(os.Args[0]) > 0 && filepath.Base(os.Args[0][1:]) == registry.PodmanSh) {
 		shell := strings.TrimPrefix(os.Args[0], "-")

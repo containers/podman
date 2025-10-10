@@ -192,6 +192,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
 replace go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20251023145256-2c7c0ea9cefe
 
 replace go.podman.io/buildah => github.com/lsm5/buildah v0.0.0-20251023152205-884c02fbd526
