@@ -21,7 +21,8 @@ the `--append` option, the original creation timestamp is preserved.
 
 @@option annotation.manifest
 
-Note: Set annotations for each file being added.
+Note: Set annotations for each file being added. The annotation "org.opencontainers.image.title" is used
+to name the layer when mounted into a container, this title must be unigue for each artifact layer.
 
 #### **--append**, **-a**
 
@@ -78,6 +79,13 @@ Add files to an existing OCI artifact
 $ podman artifact add --append quay.io/myimage/myartifact:latest /home/user/config.yaml
 ```
 
+Create artifact with the layer title name being replaced, and then mount into a container.
+
+```
+podman artifact add --annotation org.opencontainers.image.title=smollm2 quay.io/myreg/smollm2:latest blobs/sha256-4d2396b16114669389d7555c15a1592aad584750310f648edad5ca8c4eccda17
+podman run --mount type=artifact,source=quay.io/myreg/smollm2:latest,destination=/mnt fedora ls -l /mnt
+smollm2
+```
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-artifact(1)](podman-artifact.1.md)**
