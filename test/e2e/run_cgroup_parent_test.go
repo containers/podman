@@ -71,13 +71,13 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		content, err := os.ReadFile(filepath.Join(cgroupRoot, containerCgroup, "cgroup.procs"))
 		Expect(err).ToNot(HaveOccurred())
 		oldSubCgroupPath := filepath.Join(cgroupRoot, containerCgroup, "old-container")
-		err = os.MkdirAll(oldSubCgroupPath, 0755)
+		err = os.MkdirAll(oldSubCgroupPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
-		err = os.WriteFile(filepath.Join(oldSubCgroupPath, "cgroup.procs"), content, 0644)
+		err = os.WriteFile(filepath.Join(oldSubCgroupPath, "cgroup.procs"), content, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		newCgroup := fmt.Sprintf("%s/new-container", containerCgroup)
-		err = os.MkdirAll(filepath.Join(cgroupRoot, newCgroup), 0755)
+		err = os.MkdirAll(filepath.Join(cgroupRoot, newCgroup), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		run = podmanTest.Podman([]string{"--cgroup-manager=cgroupfs", "run", "--rm", "--cgroupns=host", fmt.Sprintf("--cgroup-parent=%s", newCgroup), fedoraMinimal, "cat", "/proc/self/cgroup"})

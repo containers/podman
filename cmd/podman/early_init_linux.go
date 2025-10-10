@@ -21,7 +21,7 @@ func setRLimits() error {
 
 func setUMask() {
 	// Be sure we can create directories with 0755 mode.
-	syscall.Umask(0022)
+	syscall.Umask(0o022)
 }
 
 func earlyInitHook() {

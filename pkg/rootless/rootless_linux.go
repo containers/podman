@@ -209,7 +209,7 @@ func copyMappings(from, to string) error {
 	if bytes.Contains(content, []byte("4294967295")) {
 		content = []byte("0 0 1\n1 1 4294967294\n")
 	}
-	return os.WriteFile(to, content, 0600)
+	return os.WriteFile(to, content, 0o600)
 }
 
 func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
@@ -310,13 +310,13 @@ func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 	if !uidsMapped {
 		logrus.Warnf("Using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding sub*ids if not using a network user")
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
-		err = os.WriteFile(setgroups, []byte("deny\n"), 0666)
+		err = os.WriteFile(setgroups, []byte("deny\n"), 0o666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write setgroups file: %w", err)
 		}
 		logrus.Debugf("write setgroups file exited with 0")
 
-		err = os.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
+		err = os.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0o666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write uid_map: %w", err)
 		}
@@ -336,7 +336,7 @@ func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
-		err = os.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
+		err = os.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0o666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write gid_map: %w", err)
 		}

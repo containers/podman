@@ -283,7 +283,7 @@ func GetWinProxyStateDir(name string, vmtype define.VMType) (string, error) {
 		return "", err
 	}
 	stateDir := filepath.Join(dir, name)
-	if err = os.MkdirAll(stateDir, 0755); err != nil {
+	if err = os.MkdirAll(stateDir, 0o755); err != nil {
 		return "", err
 	}
 

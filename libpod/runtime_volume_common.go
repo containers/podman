@@ -162,7 +162,7 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 	} else {
 		// Create the mountpoint of this volume
 		volPathRoot := filepath.Join(r.config.Engine.VolumePath, volume.config.Name)
-		if err := os.MkdirAll(volPathRoot, 0700); err != nil {
+		if err := os.MkdirAll(volPathRoot, 0o700); err != nil {
 			return nil, fmt.Errorf("creating volume directory %q: %w", volPathRoot, err)
 		}
 		if err := idtools.SafeChown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
@@ -206,7 +206,7 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		}
 
 		fullVolPath := filepath.Join(volPathRoot, "_data")
-		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
+		if err := os.MkdirAll(fullVolPath, 0o755); err != nil {
 			return nil, fmt.Errorf("creating volume directory %q: %w", fullVolPath, err)
 		}
 		if err := idtools.SafeChown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {

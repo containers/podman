@@ -170,7 +170,7 @@ func push(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if manifestPushOpts.DigestFile != "" {
-		if err := os.WriteFile(manifestPushOpts.DigestFile, []byte(digest), 0644); err != nil {
+		if err := os.WriteFile(manifestPushOpts.DigestFile, []byte(digest), 0o644); err != nil {
 			return err
 		}
 	}

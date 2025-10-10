@@ -66,7 +66,7 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	// c/storage is set up *after* the DB - so even though we use the c/s
 	// root (or, for transient, runroot) dir, we need to make the dir
 	// ourselves.
-	if err := os.MkdirAll(basePath, 0700); err != nil {
+	if err := os.MkdirAll(basePath, 0o700); err != nil {
 		return nil, fmt.Errorf("creating root directory: %w", err)
 	}
 

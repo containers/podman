@@ -682,7 +682,7 @@ var _ = Describe("quadlet system generator", func() {
 			testcase := loadQuadletTestcaseWithServiceName(filepath.Join("quadlet", fileName), serviceName)
 
 			// Write the tested file to the quadlet dir
-			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
+			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Also copy any extra snippets
@@ -763,7 +763,7 @@ var _ = Describe("quadlet system generator", func() {
 			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
 
 			// Write the tested file to the quadlet dir
-			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
+			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 
 			session := podmanTest.Quadlet([]string{"-dryrun"}, "/something")
@@ -790,7 +790,7 @@ BOGUS=foo
 `, ALPINE)
 
 			quadletfilePath := filepath.Join(podmanTest.TempDir, "bogus.container")
-			err = os.WriteFile(quadletfilePath, []byte(quadletfile), 0644)
+			err = os.WriteFile(quadletfilePath, []byte(quadletfile), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			defer os.Remove(quadletfilePath)
 			session := podmanTest.Quadlet([]string{"-dryrun"}, podmanTest.TempDir)
@@ -831,7 +831,7 @@ BOGUS=foo
 			}
 
 			// Write the tested file to the quadlet dir
-			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
+			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0o644)
 			Expect(err).ToNot(HaveOccurred())
 
 			session := podmanTest.Quadlet([]string{"-dryrun"}, quadletDir)
@@ -1166,7 +1166,7 @@ BOGUS=foo
 			// Write additional files this test depends on to the quadlet dir
 			for _, dependencyFileName := range dependencyFiles {
 				dependencyTestCase := loadQuadletTestcase(filepath.Join("quadlet", dependencyFileName))
-				err = os.WriteFile(filepath.Join(quadletDir, dependencyFileName), dependencyTestCase.data, 0644)
+				err = os.WriteFile(filepath.Join(quadletDir, dependencyFileName), dependencyTestCase.data, 0o644)
 				Expect(err).ToNot(HaveOccurred())
 			}
 

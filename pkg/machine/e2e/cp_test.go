@@ -39,7 +39,7 @@ var _ = Describe("run cp commands", func() {
 		sourceFileStat, err := os.Stat(filepath.Join(sourceDir, file))
 		Expect(err).ToNot(HaveOccurred())
 
-		err = os.MkdirAll(filepath.Join(sourceDir, directory), 0755)
+		err = os.MkdirAll(filepath.Join(sourceDir, directory), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Get the directory stat to check permissions later
@@ -181,7 +181,7 @@ var _ = Describe("run cp commands", func() {
 		// Write a file header to the tar
 		err = tw.WriteHeader(&tar.Header{
 			Name:       path.Join(stdinDirectory, stdinFile),
-			Mode:       0755,
+			Mode:       0o755,
 			Uid:        1000,
 			ModTime:    now,
 			ChangeTime: now,
@@ -262,7 +262,7 @@ var _ = Describe("run cp commands", func() {
 		err = f.Close()
 		Expect(err).ToNot(HaveOccurred())
 
-		err = os.MkdirAll(directoryPath, 0755)
+		err = os.MkdirAll(directoryPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		f, err = os.Create(fileInDirectoryPath)
@@ -324,7 +324,7 @@ var _ = Describe("run cp commands", func() {
 		if runtime.GOOS != "windows" {
 			// try to copy the file to a location on the host where permission will get denied
 			hostDirPath := filepath.Join(GinkgoT().TempDir(), "test-guest-copy-dir")
-			err = os.MkdirAll(hostDirPath, 0444)
+			err = os.MkdirAll(hostDirPath, 0o444)
 			Expect(err).ToNot(HaveOccurred())
 			hostFileInDirPath := filepath.Join(hostDirPath, file)
 			session, err = mb.setCmd(cp.withQuiet().withSrc(name + ":~/" + file).withDest(hostFileInDirPath)).run()

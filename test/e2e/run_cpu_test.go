@@ -17,7 +17,7 @@ var _ = Describe("Podman run cpu", func() {
 		SkipIfRootlessCgroupsV1("Setting CPU not supported on cgroupv1 for rootless users")
 
 		if CGROUPSV2 {
-			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0644); err != nil {
+			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0o644); err != nil {
 				Skip("cpuset controller not available on the current kernel")
 			}
 		}

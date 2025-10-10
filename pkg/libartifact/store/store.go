@@ -67,7 +67,7 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 
 	// if the storage dir does not exist, we need to create it.
 	baseDir := filepath.Dir(artifactStore.indexPath())
-	if err := os.MkdirAll(baseDir, 0700); err != nil {
+	if err := os.MkdirAll(baseDir, 0o700); err != nil {
 		return nil, err
 	}
 	// Open the lockfile, creating if necessary
@@ -734,7 +734,7 @@ func copyTrustedImageBlobToTarStream(ctx context.Context, imgSrc types.ImageSour
 	now := time.Now()
 	header := tar.Header{
 		Name:       filename,
-		Mode:       0600,
+		Mode:       0o600,
 		Size:       srcSize,
 		ModTime:    now,
 		ChangeTime: now,
@@ -829,7 +829,7 @@ func createEmptyStanza(path string) error {
 	if err := fileutils.Exists(path); err == nil {
 		return nil
 	}
-	return os.WriteFile(path, specV1.DescriptorEmptyJSON.Data, 0644)
+	return os.WriteFile(path, specV1.DescriptorEmptyJSON.Data, 0o644)
 }
 
 // determineBlobMIMEType reads up to 512 bytes into a buffer

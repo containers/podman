@@ -172,7 +172,7 @@ default-docker:
   sigstore: file:///var/lib/containers/sigstore
   sigstore-staging: file:///var/lib/containers/sigstore
 `
-		Expect(os.WriteFile("/etc/containers/registries.d/default.yaml", []byte(sigstore), 0755)).To(Succeed())
+		Expect(os.WriteFile("/etc/containers/registries.d/default.yaml", []byte(sigstore), 0o755)).To(Succeed())
 
 		pushedImage := fmt.Sprintf("localhost:%d/alpine", port)
 		session = podmanTest.Podman([]string{"tag", ALPINE, pushedImage})
