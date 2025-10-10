@@ -9,7 +9,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package pathrs
+package gopathrs
 
 import (
 	"errors"
@@ -166,11 +166,11 @@ func (s *symlinkStack) PopTopSymlink() (*os.File, string, bool) {
 	return tailEntry.dir, tailEntry.remainingPath, true
 }
 
-// partialLookupInRoot tries to lookup as much of the request path as possible
+// PartialLookupInRoot tries to lookup as much of the request path as possible
 // within the provided root (a-la RESOLVE_IN_ROOT) and opens the final existing
 // component of the requested path, returning a file handle to the final
 // existing component and a string containing the remaining path components.
-func partialLookupInRoot(root fd.Fd, unsafePath string) (*os.File, string, error) {
+func PartialLookupInRoot(root fd.Fd, unsafePath string) (*os.File, string, error) {
 	return lookupInRoot(root, unsafePath, true)
 }
 

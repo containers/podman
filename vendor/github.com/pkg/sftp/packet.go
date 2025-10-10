@@ -304,16 +304,22 @@ func sendPacket(w io.Writer, m encoding.BinaryMarshaler) error {
 	return nil
 }
 
-func recvPacket(r io.Reader, alloc *allocator, orderID uint32) (uint8, []byte, error) {
+func recvPacket(r io.Reader, alloc *allocator, orderID uint32) (fxp, []byte, error) {
 	var b []byte
 	if alloc != nil {
 		b = alloc.GetPage(orderID)
 	} else {
 		b = make([]byte, 4)
 	}
-	if _, err := io.ReadFull(r, b[:4]); err != nil {
-		return 0, nil, err
+
+	if n, err := io.ReadFull(r, b[:4]); err != nil {
+		if err == io.EOF {
+			return 0, nil, err
+		}
+
+		return 0, nil, fmt.Errorf("error reading packet length: %d of 4: %w", n, err)
 	}
+
 	length, _ := unmarshalUint32(b)
 	if length > maxMsgLength {
 		debug("recv packet %d bytes too long", length)
@@ -323,24 +329,39 @@ func recvPacket(r io.Reader, alloc *allocator, orderID uint32) (uint8, []byte, e
 		debug("recv packet of 0 bytes too short")
 		return 0, nil, errShortPacket
 	}
+
 	if alloc == nil {
 		b = make([]byte, length)
 	}
-	if _, err := io.ReadFull(r, b[:length]); err != nil {
+
+	n, err := io.ReadFull(r, b[:length])
+	b = b[:n]
+
+	if err != nil {
+		debug("recv packet error: %d of %d bytes: %x", n, length, b)
+
 		// ReadFull only returns EOF if it has read no bytes.
 		// In this case, that means a partial packet, and thus unexpected.
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
 		}
-		debug("recv packet %d bytes: err %v", length, err)
-		return 0, nil, err
+
+		if n == 0 {
+			return 0, nil, fmt.Errorf("error reading packet body: %d of %d: %w", n, length, err)
+		}
+
+		return 0, nil, fmt.Errorf("error reading packet body: %d of %d: (%s) %w", n, length, fxp(b[0]), err)
 	}
+
+	typ, payload := fxp(b[0]), b[1:n]
+
 	if debugDumpRxPacketBytes {
-		debug("recv packet: %s %d bytes %x", fxp(b[0]), length, b[1:length])
+		debug("recv packet: %s %d bytes %x", typ, length, payload)
 	} else if debugDumpRxPacket {
-		debug("recv packet: %s %d bytes", fxp(b[0]), length)
+		debug("recv packet: %s %d bytes", typ, length)
 	}
-	return b[0], b[1:length], nil
+
+	return typ, payload, nil
 }
 
 type extensionPair struct {

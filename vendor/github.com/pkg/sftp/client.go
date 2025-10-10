@@ -158,6 +158,17 @@ func UseFstat(value bool) ClientOption {
 	}
 }
 
+// CopyStderrTo specifies a writer to which the standard error of the remote sftp-server command should be written.
+//
+// The writer passed in will not be automatically closed.
+// It is the responsibility of the caller to coordinate closure of any writers.
+func CopyStderrTo(wr io.Writer) ClientOption {
+	return func(c *Client) error {
+		c.stderrTo = wr
+		return nil
+	}
+}
+
 // Client represents an SFTP session on a *ssh.ClientConn SSH connection.
 // Multiple Clients can be active on a single SSH connection, and a Client
 // may be called concurrently from multiple Goroutines.
@@ -165,6 +176,8 @@ func UseFstat(value bool) ClientOption {
 // Client implements the github.com/kr/fs.FileSystem interface.
 type Client struct {
 	clientConn
+
+	stderrTo io.Writer
 
 	ext map[string]string // Extensions (name -> data).
 
@@ -186,9 +199,7 @@ func NewClient(conn *ssh.Client, opts ...ClientOption) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.RequestSubsystem("sftp"); err != nil {
-		return nil, err
-	}
+
 	pw, err := s.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -197,15 +208,27 @@ func NewClient(conn *ssh.Client, opts ...ClientOption) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	perr, err := s.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
 
-	return NewClientPipe(pr, pw, opts...)
+	if err := s.RequestSubsystem("sftp"); err != nil {
+		return nil, err
+	}
+
+	return newClientPipe(pr, perr, pw, s.Wait, opts...)
 }
 
 // NewClientPipe creates a new SFTP client given a Reader and a WriteCloser.
 // This can be used for connecting to an SFTP server over TCP/TLS or by using
 // the system's ssh client program (e.g. via exec.Command).
 func NewClientPipe(rd io.Reader, wr io.WriteCloser, opts ...ClientOption) (*Client, error) {
-	sftp := &Client{
+	return newClientPipe(rd, nil, wr, nil, opts...)
+}
+
+func newClientPipe(rd, stderr io.Reader, wr io.WriteCloser, wait func() error, opts ...ClientOption) (*Client, error) {
+	c := &Client{
 		clientConn: clientConn{
 			conn: conn{
 				Reader:      rd,
@@ -213,6 +236,7 @@ func NewClientPipe(rd io.Reader, wr io.WriteCloser, opts ...ClientOption) (*Clie
 			},
 			inflight: make(map[uint32]chan<- result),
 			closed:   make(chan struct{}),
+			wait:     wait,
 		},
 
 		ext: make(map[string]string),
@@ -222,32 +246,50 @@ func NewClientPipe(rd io.Reader, wr io.WriteCloser, opts ...ClientOption) (*Clie
 	}
 
 	for _, opt := range opts {
-		if err := opt(sftp); err != nil {
+		if err := opt(c); err != nil {
 			wr.Close()
 			return nil, err
 		}
 	}
 
-	if err := sftp.sendInit(); err != nil {
+	if stderr != nil {
+		wr := io.Discard
+		if c.stderrTo != nil {
+			wr = c.stderrTo
+		}
+
+		go func() {
+			// DO NOT close the writer!
+			// Programs may pass in `os.Stderr` to write the remote stderr to,
+			// and the program may continue after disconnect by reconnecting.
+			// But if we've closed their stderr, then we just messed everything up.
+
+			if _, err := io.Copy(wr, stderr); err != nil {
+				debug("error copying stderr: %v", err)
+			}
+		}()
+	}
+
+	if err := c.sendInit(); err != nil {
 		wr.Close()
 		return nil, fmt.Errorf("error sending init packet to server: %w", err)
 	}
 
-	if err := sftp.recvVersion(); err != nil {
+	if err := c.recvVersion(); err != nil {
 		wr.Close()
 		return nil, fmt.Errorf("error receiving version packet from server: %w", err)
 	}
 
-	sftp.clientConn.wg.Add(1)
+	c.clientConn.wg.Add(1)
 	go func() {
-		defer sftp.clientConn.wg.Done()
+		defer c.clientConn.wg.Done()
 
-		if err := sftp.clientConn.recv(); err != nil {
-			sftp.clientConn.broadcastErr(err)
+		if err := c.clientConn.recv(); err != nil {
+			c.clientConn.broadcastErr(err)
 		}
 	}()
 
-	return sftp, nil
+	return c, nil
 }
 
 // Create creates the named file mode 0666 (before umask), truncating it if it
