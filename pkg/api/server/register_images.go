@@ -492,7 +492,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - images (compat)
-	// summary: Create image
+	// summary: Build image
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
 	//  - in: header
@@ -1494,7 +1494,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - images
-	// summary: Create image
+	// summary: Build image
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
 	//  - in: header
@@ -1818,6 +1818,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: array
 	//    items:
 	//      type: string
+	//  - in: query
+	//    name: manifest
+	//    type: string
+	//    default:
+	//    description: |
+	//      Add the image to the specified manifest list. Creates a manifest list if it does not exist.
 	// produces:
 	// - application/json
 	// responses:
@@ -2166,6 +2172,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: array
 	//    items:
 	//      type: string
+	//  - in: query
+	//    name: manifest
+	//    type: string
+	//    default:
+	//    description: |
+	//      Add the image to the specified manifest list. Creates a manifest list if it does not exist.
 	// produces:
 	// - application/json
 	// responses:
