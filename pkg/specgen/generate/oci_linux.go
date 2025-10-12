@@ -334,57 +334,6 @@ func SpecGenToOCI(_ context.Context, s *specgen.SpecGenerator, rt *libpod.Runtim
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
 	}
 
-	// Add healthcheck configuration as JSON annotation (for conmon)
-	if s.ContainerHealthCheckConfig.HealthConfig != nil {
-		logrus.Debugf("HEALTHCHECK: Adding regular healthcheck annotation to OCI spec")
-		// Convert durations to seconds for easier parsing in conmon
-		healthCheckForConmon := struct {
-			Test        []string `json:"test"`
-			Interval    int      `json:"interval"` // seconds
-			Timeout     int      `json:"timeout"`  // seconds
-			Retries     int      `json:"retries"`
-			StartPeriod int      `json:"start_period"` // seconds
-		}{
-			Test:        s.ContainerHealthCheckConfig.HealthConfig.Test,
-			Interval:    int(s.ContainerHealthCheckConfig.HealthConfig.Interval.Seconds()),
-			Timeout:     int(s.ContainerHealthCheckConfig.HealthConfig.Timeout.Seconds()),
-			Retries:     s.ContainerHealthCheckConfig.HealthConfig.Retries,
-			StartPeriod: int(s.ContainerHealthCheckConfig.HealthConfig.StartPeriod.Seconds()),
-		}
-		healthCheckJSON, err := json.Marshal(healthCheckForConmon)
-		if err == nil {
-			configSpec.Annotations["io.podman.healthcheck"] = string(healthCheckJSON)
-			logrus.Debugf("HEALTHCHECK: Added healthcheck annotation: %s", string(healthCheckJSON))
-		} else {
-			logrus.Errorf("HEALTHCHECK: Failed to marshal healthcheck config: %v", err)
-		}
-	}
-
-	if s.ContainerHealthCheckConfig.StartupHealthConfig != nil {
-		logrus.Debugf("HEALTHCHECK: Adding startup healthcheck annotation to OCI spec")
-		// Convert durations to seconds for easier parsing in conmon
-		startupHealthCheckForConmon := struct {
-			Test        []string `json:"test"`
-			Interval    int      `json:"interval"` // seconds
-			Timeout     int      `json:"timeout"`  // seconds
-			Retries     int      `json:"retries"`
-			StartPeriod int      `json:"start_period"` // seconds
-		}{
-			Test:        s.ContainerHealthCheckConfig.StartupHealthConfig.Test,
-			Interval:    int(s.ContainerHealthCheckConfig.StartupHealthConfig.Interval.Seconds()),
-			Timeout:     int(s.ContainerHealthCheckConfig.StartupHealthConfig.Timeout.Seconds()),
-			Retries:     s.ContainerHealthCheckConfig.StartupHealthConfig.Retries,
-			StartPeriod: int(s.ContainerHealthCheckConfig.StartupHealthConfig.StartPeriod.Seconds()),
-		}
-		startupHealthCheckJSON, err := json.Marshal(startupHealthCheckForConmon)
-		if err == nil {
-			configSpec.Annotations["io.podman.startup-healthcheck"] = string(startupHealthCheckJSON)
-			logrus.Debugf("HEALTHCHECK: Added startup healthcheck annotation: %s", string(startupHealthCheckJSON))
-		} else {
-			logrus.Errorf("HEALTHCHECK: Failed to marshal startup healthcheck config: %v", err)
-		}
-	}
-
 	if s.OOMScoreAdj != nil {
 		g.SetProcessOOMScoreAdj(*s.OOMScoreAdj)
 	}

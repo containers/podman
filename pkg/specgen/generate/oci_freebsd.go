@@ -4,7 +4,6 @@ package generate
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -161,49 +160,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if s.Init != nil && *s.Init {
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
-	}
-
-	// Add healthcheck configuration as JSON annotation (for conmon)
-	if s.ContainerHealthCheckConfig.HealthConfig != nil {
-		// Convert durations to seconds for easier parsing in conmon
-		healthCheckForConmon := struct {
-			Test        []string `json:"test"`
-			Interval    int      `json:"interval"` // seconds
-			Timeout     int      `json:"timeout"`  // seconds
-			Retries     int      `json:"retries"`
-			StartPeriod int      `json:"start_period"` // seconds
-		}{
-			Test:        s.ContainerHealthCheckConfig.HealthConfig.Test,
-			Interval:    int(s.ContainerHealthCheckConfig.HealthConfig.Interval.Seconds()),
-			Timeout:     int(s.ContainerHealthCheckConfig.HealthConfig.Timeout.Seconds()),
-			Retries:     s.ContainerHealthCheckConfig.HealthConfig.Retries,
-			StartPeriod: int(s.ContainerHealthCheckConfig.HealthConfig.StartPeriod.Seconds()),
-		}
-		healthCheckJSON, err := json.Marshal(healthCheckForConmon)
-		if err == nil {
-			configSpec.Annotations["io.podman.healthcheck"] = string(healthCheckJSON)
-		}
-	}
-
-	if s.ContainerHealthCheckConfig.StartupHealthConfig != nil {
-		// Convert durations to seconds for easier parsing in conmon
-		startupHealthCheckForConmon := struct {
-			Test        []string `json:"test"`
-			Interval    int      `json:"interval"` // seconds
-			Timeout     int      `json:"timeout"`  // seconds
-			Retries     int      `json:"retries"`
-			StartPeriod int      `json:"start_period"` // seconds
-		}{
-			Test:        s.ContainerHealthCheckConfig.StartupHealthConfig.Test,
-			Interval:    int(s.ContainerHealthCheckConfig.StartupHealthConfig.Interval.Seconds()),
-			Timeout:     int(s.ContainerHealthCheckConfig.StartupHealthConfig.Timeout.Seconds()),
-			Retries:     s.ContainerHealthCheckConfig.StartupHealthConfig.Retries,
-			StartPeriod: int(s.ContainerHealthCheckConfig.StartupHealthConfig.StartPeriod.Seconds()),
-		}
-		startupHealthCheckJSON, err := json.Marshal(startupHealthCheckForConmon)
-		if err == nil {
-			configSpec.Annotations["io.podman.startup-healthcheck"] = string(startupHealthCheckJSON)
-		}
 	}
 
 	if s.OOMScoreAdj != nil {
