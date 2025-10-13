@@ -6,7 +6,7 @@ podman\-systemd.unit - systemd units using Podman Quadlet
 
 ## SYNOPSIS
 
-*name*.container, *name*.volume, *name*.network, *name*.kube *name*.image, *name*.build *name*.pod
+*name*.container, *name*.volume, *name*.network, *name*.kube *name*.image, *name*.build *name*.pod, *name*.artifact
 
 ### Podman rootful unit search path
 
@@ -48,7 +48,7 @@ the [Service] table and [Install] tables pass directly to systemd and are handle
 See systemd.unit(5) man page for more information.
 
 The Podman generator reads the search paths above and reads files with the extensions `.container`
-`.volume`, `.network`, `.build`, `.pod` and `.kube`, and for each file generates a similarly named `.service` file. Be aware that
+`.volume`, `.network`, `.build`, `.pod`, `.kube`, and `.artifact`, and for each file generates a similarly named `.service` file. Be aware that
 existing vendor services (i.e., in `/usr/`) are replaced if they have the same name. The generated unit files can
 be started and managed with `systemctl` like any other systemd service. `systemctl {--user} list-unit-files`
 lists existing unit files on the system.
@@ -104,7 +104,7 @@ Quadlet requires the use of cgroup v2, use `podman info --format {{.Host.Cgroups
 
 By default, the `Type` field of the `Service` section of the Quadlet file does not need to be set.
 Quadlet will set it to `notify` for `.container` and `.kube` files,
-`forking` for `.pod` files, and `oneshot` for `.volume`, `.network`, `.build`, and `.image` files.
+`forking` for `.pod` files, and `oneshot` for `.volume`, `.network`, `.build`, `.image`, and `.artifact` files.
 
 However, `Type` may be explicitly set to `oneshot` for `.container` and `.kube` files when no containers are expected
 to run once `podman` exits.
@@ -2098,6 +2098,123 @@ Override the default architecture variant of the container image.
 
 This is equivalent to the Podman `--variant` option.
 
+## Artifact units [Artifact]
+
+### WARNING: Experimental Unit
+
+This unit is considered experimental and still in development. Inputs, options, and outputs are all subject to change.
+
+Artifact units are named with a `.artifact` extension and contain a `[Artifact]` section describing
+the container artifact pull command. The generated service is a one-time command that ensures that the artifact
+exists on the host, pulling it if needed.
+
+Using artifact units allows containers to depend on artifacts being automatically pulled. This is
+particularly useful for managing artifacts that containers need to mount or access, the **Artifact** key is mandatory inside of the [Artifact] unit.
+
+Valid options for `[Artifact]` are listed below:
+
+| **[Artifact] options**                      | **podman artifact pull equivalent**                    |
+|---------------------------------------------|--------------------------------------------------------|
+| Artifact=quay\.io/foobar/artifact:special   | podman artifact pull quay\.io/foobar/artifact:special  |
+| AuthFile=/etc/registry/auth\.json           | --authfile=/etc/registry/auth\.json                    |
+| CertDir=/etc/registry/certs                 | --cert-dir=/etc/registry/certs                         |
+| ContainersConfModule=/etc/nvd\.conf         | --module=/etc/nvd\.conf                                |
+| Creds=username:password                     | --creds=username:password                              |
+| DecryptionKey=/etc/registry\.key            | --decryption-key=/etc/registry\.key                    |
+| GlobalArgs=--log-level=debug                | --log-level=debug                                      |
+| PodmanArgs=--pull never                     | --pull never                                           |
+| Quiet=true                                  | --quiet                                                |
+| Retry=5                                     | --retry=5                                              |
+| RetryDelay=10s                              | --retry-delay=10s                                      |
+| ServiceName=my-artifact                     | Set the systemd service name to my-artifact.service   |
+| TLSVerify=false                             | --tls-verify=false                                     |
+
+### `Artifact=`
+
+The artifact to pull from a registry onto the local machine. This is the only required key for artifact units.
+
+It is required to use a fully qualified artifact name rather than a short name, both for
+performance and robustness reasons.
+
+### `AuthFile=`
+
+Path of the authentication file.
+
+This is equivalent to the Podman `--authfile` option.
+
+### `CertDir=`
+
+Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+
+This is equivalent to the Podman `--cert-dir` option.
+
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
+### `Creds=`
+
+The credentials to use when contacting the registry in the format `[username[:password]]`.
+
+This is equivalent to the Podman `--creds` option.
+
+### `DecryptionKey=`
+
+The `[key[:passphrase]]` to be used for decryption of artifacts.
+
+This is equivalent to the Podman `--decryption-key` option.
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `artifact`
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman artifact pull` command
+in the generated file (right before the artifact name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `Quiet=`
+
+Suppress output information when pulling artifacts.
+
+This is equivalent to the Podman `--quiet` option.
+
+### `Retry=`
+
+Number of times to retry the artifact pull when a HTTP error occurs. Equivalent to the Podman `--retry` option.
+
+### `RetryDelay=`
+
+Delay between retries. Equivalent to the Podman `--retry-delay` option.
+
+### `ServiceName=`
+
+The (optional) name of the systemd service. If this is not specified, the default value is the same name as the unit, but with a `-artifact` suffix, i.e. a `$name.artifact` file creates a `$name-artifact.service` systemd service.
+
+### `TLSVerify=`
+
+Require HTTPS and verification of certificates when contacting registries.
+
+This is equivalent to the Podman `--tls-verify` option.
+
 ## Quadlet section [Quadlet]
 Some quadlet specific configuration is shared between different unit types. Those settings
 can be configured in the `[Quadlet]` section.
@@ -2200,6 +2317,29 @@ Subnet=172.16.0.0/24
 Gateway=172.16.0.1
 IPRange=172.16.0.0/28
 Label=org.test.Key=value
+```
+
+Example `test.artifact` to only pull the artifact using one auth file:
+```
+[Artifact]
+Artifact=quay.io/example/my-artifact:latest
+AuthFile=/etc/registry/auth.json
+TLSVerify=false
+```
+
+Example usage where a container depends on an artifact:
+
+`my-artifact.artifact`:
+```
+[Artifact]
+Artifact=quay.io/example/my-config:latest
+```
+
+`my-app.container`:
+```
+[Container]
+Image=quay.io/example/my-app:latest
+Mount=type=artifact,source=my-artifact.artifact,destination=/etc/config
 ```
 
 Example for Container in a Pod:
