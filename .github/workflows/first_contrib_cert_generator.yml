@@ -77,7 +77,7 @@ jobs:
       # Step 4: Setup Node.js environment
       - name: Setup Node.js
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: latest
 
