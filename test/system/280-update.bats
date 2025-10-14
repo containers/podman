@@ -352,7 +352,8 @@ function nrand() {
 # bats test_tags=ci:parallel
 @test "podman update - set ulimits" {
     local ctrname="c-h-$(safename)"
-    run_podman run -d --name $ctrname $IMAGE sleep 600
+
+    run_podman run -d --name $ctrname $IMAGE sh -c "echo 'nofile:' \$(ulimit -n); echo 'nproc:' \$(ulimit -u); top"
 
     # Update with single ulimit
     run_podman update --ulimit nofile=1024:1024 $ctrname
@@ -360,42 +361,34 @@ function nrand() {
     # Restart container to apply ulimit changes
     run_podman restart $ctrname
 
-    # Verify the nofile ulimit was updated after restart
-    run_podman exec $ctrname sh -c "ulimit -n"
-    assert "$output" == "1024" "nofile ulimit updated to 1024"
+    # Verify the nofile ulimit was updated in the main process
+    run_podman logs $ctrname
+    assert "$output" =~ "nofile: 1024" "nofile ulimit updated to 1024 in main process"
 
     # Update with multiple ulimits
     run_podman update --ulimit nofile=2048:2048 --ulimit nproc=512:512 $ctrname
-
-    # Restart container to apply ulimit changes
     run_podman restart $ctrname
-
-    # Verify the nofile ulimit was updated again
-    run_podman exec $ctrname sh -c "ulimit -n"
-    assert "$output" == "2048" "nofile ulimit updated to 2048"
-
-    # Verify the nproc ulimit was updated
-    run_podman exec $ctrname sh -c "ulimit -u"
-    assert "$output" == "512" "nproc ulimit updated to 512"
-
-    # Verify the ulimits for the main process by checking container logs
-    run_podman rm -f -t0 $ctrname
-    run_podman run -d --name $ctrname --ulimit nofile=2048:2048 --ulimit nproc=512:512 $IMAGE sh -c "ulimit -n; ulimit -u; sleep 100"
-    cid="$output"
-
-    # Give the container a moment to start and write logs
-    sleep 1
-
     run_podman logs $ctrname
-    first_line=$(echo "$output" | head -n1)
-    second_line=$(echo "$output" | tail -n1)
-    assert "$first_line" == "2048" "nofile ulimit for main process is 2048"
-    assert "$second_line" == "512" "nproc ulimit for main process is 512"
+    assert "$output" =~ "nofile: 2048" "nofile ulimit updated to 2048 in main process"
+    assert "$output" =~ "nproc: 512" "nproc ulimit updated to 512 in main process"
 
-    # Error cases
+    # Update with --ulimit host option
+    # First, capture the actual host values that will be applied by running a temporary container
+    run_podman run --rm --ulimit host $IMAGE sh -c "echo 'nofile:' \$(ulimit -n); echo 'nproc:' \$(ulimit -u)"
+    local host_nofile=$(echo "$output" | awk '/^nofile:/ {print $2}')
+    local host_nproc=$(echo "$output" | awk '/^nproc:/ {print $2}')
+
+    run_podman update --ulimit host $ctrname
+    run_podman restart $ctrname
+    run_podman logs $ctrname
+    assert "$output" =~ "nofile: $host_nofile" "nofile ulimit should match host value ($host_nofile)"
+    assert "$output" =~ "nproc: $host_nproc" "nproc ulimit should match host value ($host_nproc)"
+
+    # Error case - update with invalid ulimit syntax
     run_podman 125 update --ulimit nofile:1024:1024 $ctrname
     assert "$output" =~ "invalid ulimit argument" "Invalid ulimit syntax should fail"
 
+    # Error case - update with invalid ulimit values (soft > hard)
     run_podman 125 update --ulimit nofile=2048:1024 $ctrname
     assert "$output" =~ "ulimit soft limit must be less than or equal to hard limit" "Invalid ulimit values should fail"
 
