@@ -283,8 +283,7 @@ func GenRlimits(ulimits []string) ([]specs.POSIXRlimit, error) {
 	// Rlimits/Ulimits
 	for _, ulimit := range ulimits {
 		if ulimit == "host" {
-			rlimits = nil
-			break
+			return []specs.POSIXRlimit{}, nil
 		}
 		// `ulimitNameMapping` from go-units uses lowercase and names
 		// without prefixes, e.g. `RLIMIT_NOFILE` should be converted to `nofile`.
