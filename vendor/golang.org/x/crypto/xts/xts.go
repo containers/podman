@@ -21,6 +21,10 @@
 //
 // Note that XTS is usually not appropriate for any use besides disk encryption.
 // Most users should use an AEAD mode like GCM (from crypto/cipher.NewGCM) instead.
+//
+// The xts package is [frozen] and is not accepting new features.
+//
+// [frozen]: https://go.dev/wiki/Frozen
 package xts
 
 import (
