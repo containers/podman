@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/ps"
 	"github.com/containers/podman/v5/pkg/signal"
+	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	dockerBackend "github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/container"
@@ -825,13 +826,14 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 	// Rlimits
 	var rlimits []spec.POSIXRlimit
 	if len(options.Ulimits) > 0 {
-		for _, ulimit := range options.Ulimits {
-			rlimit := spec.POSIXRlimit{
-				Type: ulimit.Name,
-				Hard: uint64(ulimit.Hard),
-				Soft: uint64(ulimit.Soft),
-			}
-			rlimits = append(rlimits, rlimit)
+		ulimits := make([]string, len(options.Ulimits))
+		for i, u := range options.Ulimits {
+			ulimits[i] = u.String()
+		}
+		rlimits, err = specgenutil.GenRlimits(ulimits)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating rlimits: %w", err))
+			return
 		}
 	}
 
