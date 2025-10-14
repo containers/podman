@@ -3,11 +3,58 @@
 package libpod
 
 import (
+	"bufio"
+	jsonlib "encoding/json"
+	"io"
+	"os"
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/sirupsen/logrus"
 )
+
+const (
+	// Healthcheck message type from conmon (using negative to avoid PID conflicts)
+	HealthCheckMsgStatusUpdate = -100
+
+	// Healthcheck status values sent by conmon (added to base message type -100)
+	HealthCheckStatusNone      = 0
+	HealthCheckStatusStarting  = 1
+	HealthCheckStatusHealthy   = 2
+	HealthCheckStatusUnhealthy = 3
+)
+
+// createOCIContainer generates this container's main conmon instance with healthcheck support
+func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
+	// Call the base implementation from common file
+	result, err := r.createOCIContainerBase(ctr, restoreOptions)
+	if err != nil {
+		return result, err
+	}
+
+	// Add healthcheck-specific logic for non-systemd builds
+	logrus.Debugf("HEALTHCHECK: Container %s created with healthcheck support", ctr.ID())
+
+	return result, nil
+}
+
+// readConmonPipeData reads container creation response and starts healthcheck monitoring
+func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string, ctr ...*Container) (int, error) {
+	// Call the base implementation from common file
+	data, err := readConmonPipeDataBase(runtimeName, pipe, ociLog, ctr...)
+	if err != nil {
+		return data, err
+	}
+
+	// Add healthcheck monitoring for non-systemd builds
+	if len(ctr) > 0 && ctr[0] != nil && data > 0 {
+		logrus.Debugf("HEALTHCHECK: Starting pipe monitoring for container %s (PID: %d)", ctr[0].ID(), data)
+		startContinuousPipeMonitoring(ctr[0], pipe, data)
+	}
+
+	return data, nil
+}
 
 // addHealthCheckArgs adds healthcheck-related arguments to conmon for non-systemd builds
 func (r *ConmonOCIRuntime) addHealthCheckArgs(ctr *Container, args []string) []string {
@@ -48,6 +95,85 @@ func (r *ConmonOCIRuntime) addHealthCheckArgs(ctr *Container, args []string) []s
 		logrus.Debugf("HEALTHCHECK: Container %s does not have healthcheck config, skipping healthcheck args", ctr.ID())
 	}
 	return args
+}
+
+// startContinuousPipeMonitoring starts continuous pipe monitoring for non-systemd builds
+func startContinuousPipeMonitoring(ctr *Container, pipe *os.File, pid int) {
+	logrus.Debugf("Starting continuous pipe monitoring for container %s (PID: %d)", ctr.ID())
+	go readConmonHealthCheckPipeData(ctr, pipe)
+}
+
+// readConmonHealthCheckPipeData continuously reads healthcheck status updates from conmon
+func readConmonHealthCheckPipeData(ctr *Container, pipe *os.File) {
+	logrus.Debugf("HEALTHCHECK: Starting continuous healthcheck monitoring for container %s", ctr.ID())
+
+	rdr := bufio.NewReader(pipe)
+	for {
+		// Read one line from the pipe
+		b, err := rdr.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				logrus.Debugf("HEALTHCHECK: Pipe closed for container %s, stopping monitoring", ctr.ID())
+				return
+			}
+			logrus.Errorf("HEALTHCHECK: Error reading from pipe for container %s: %v", ctr.ID(), err)
+			return
+		}
+
+		// Log the raw JSON string received from conmon
+		logrus.Debugf("HEALTHCHECK: Raw JSON received from conmon for container %s: %q", ctr.ID(), string(b))
+		logrus.Debugf("HEALTHCHECK: JSON length: %d bytes", len(b))
+
+		// Parse the JSON
+		var si syncInfo
+		if err := jsonlib.Unmarshal(b, &si); err != nil {
+			logrus.Errorf("HEALTHCHECK: Failed to parse JSON from conmon for container %s: %v", ctr.ID(), err)
+			continue
+		}
+
+		logrus.Debugf("HEALTHCHECK: Parsed sync info for container %s: Data=%d, Message=%q", ctr.ID(), si.Data, si.Message)
+
+		// Handle healthcheck status updates based on your new encoding scheme
+		// Base message type is -100, status values are added to it:
+		// -100 + 0 (none) = -100
+		// -100 + 1 (starting) = -99
+		// -100 + 2 (healthy) = -98
+		// -100 + 3 (unhealthy) = -97
+		if si.Data >= HealthCheckMsgStatusUpdate && si.Data <= HealthCheckMsgStatusUpdate+HealthCheckStatusUnhealthy {
+			statusValue := si.Data - HealthCheckMsgStatusUpdate // Convert back to status value
+			var status string
+
+			switch statusValue {
+			case HealthCheckStatusNone:
+				status = define.HealthCheckReset // "reset" or "none"
+			case HealthCheckStatusStarting:
+				status = define.HealthCheckStarting // "starting"
+			case HealthCheckStatusHealthy:
+				status = define.HealthCheckHealthy // "healthy"
+			case HealthCheckStatusUnhealthy:
+				status = define.HealthCheckUnhealthy // "unhealthy"
+			default:
+				logrus.Errorf("HEALTHCHECK: Unknown status value %d for container %s", statusValue, ctr.ID())
+				continue
+			}
+
+			logrus.Infof("HEALTHCHECK: Received healthcheck status update for container %s: %s (message type: %d, status value: %d)",
+				ctr.ID(), status, si.Data, statusValue)
+
+			// Update the container's healthcheck status
+			if err := ctr.updateHealthStatus(status); err != nil {
+				logrus.Errorf("HEALTHCHECK: Failed to update healthcheck status for container %s: %v", ctr.ID(), err)
+			} else {
+				logrus.Infof("HEALTHCHECK: Successfully updated healthcheck status for container %s to %s", ctr.ID(), status)
+			}
+		} else if si.Data < 0 {
+			// Other negative message types - might be healthcheck related but not recognized
+			logrus.Debugf("HEALTHCHECK: Received unrecognized negative message type %d for container %s - might be healthcheck related", si.Data, ctr.ID())
+		} else if si.Data > 0 {
+			// Positive message types - not healthcheck related
+			logrus.Debugf("HEALTHCHECK: Received positive message type %d for container %s - not healthcheck related", si.Data, ctr.ID())
+		}
+	}
 }
 
 // buildHealthcheckCmdAndArgs converts Podman's healthcheck test array to command and arguments
