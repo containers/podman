@@ -81,12 +81,14 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 
 	logrus.Debugf("Initializing boltdb state at %s", path)
 
+	ciDesiredDB := os.Getenv("CI_DESIRED_DATABASE")
+
 	// BoltDB is deprecated and, as of Podman 5.0, we no longer allow the
 	// creation of new Bolt states.
 	// If the DB does not already exist, error out.
 	// To continue testing in CI, allow creation iff an undocumented env
 	// var is set.
-	if os.Getenv("CI_DESIRED_DATABASE") != "boltdb" {
+	if ciDesiredDB != "boltdb" {
 		if err := fileutils.Exists(path); err != nil && errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("the BoltDB backend has been deprecated, no new BoltDB databases can be created: %w", define.ErrInvalidArg)
 		}
@@ -94,9 +96,9 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		logrus.Debugf("Allowing deprecated database backend due to CI_DESIRED_DATABASE.")
 	}
 
-	// TODO: Up this to WARN level in 5.7, ERROR level in 5.8
-	if os.Getenv("SUPPRESS_BOLTDB_WARNING") == "" {
-		logrus.Infof("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
+	// TODO: Up this to ERROR level in 5.8
+	if os.Getenv("SUPPRESS_BOLTDB_WARNING") == "" && ciDesiredDB != "boltdb" {
+		logrus.Warnf("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
 	}
 
 	db, err := bolt.Open(path, 0o600, nil)

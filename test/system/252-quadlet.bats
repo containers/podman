@@ -207,6 +207,8 @@ function wait_for_journal() {
     # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
     cat > $quadlet_file <<EOF
+[Service]
+Environment=SUPPRESS_BOLTDB_WARNING=true
 [Container]
 Image=$IMAGE
 # Note it is important that the trap is before the ready message,
