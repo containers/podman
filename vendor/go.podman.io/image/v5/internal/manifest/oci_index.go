@@ -79,7 +79,8 @@ func (index *OCI1IndexPublic) UpdateInstances(updates []ListUpdate) error {
 			UpdateDigest:    instance.Digest,
 			UpdateSize:      instance.Size,
 			UpdateMediaType: instance.MediaType,
-			ListOperation:   ListOpUpdate})
+			ListOperation:   ListOpUpdate,
+		})
 	}
 	return index.editInstances(editInstances)
 }

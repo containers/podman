@@ -90,12 +90,12 @@ func newImageDestination(sys *types.SystemContext, ref dirReference) (private.Im
 		}
 	} else {
 		// create directory if it doesn't exist
-		if err := os.MkdirAll(ref.resolvedPath, 0755); err != nil {
+		if err := os.MkdirAll(ref.resolvedPath, 0o755); err != nil {
 			return nil, fmt.Errorf("unable to create directory %q: %w", ref.resolvedPath, err)
 		}
 	}
 	// create version file
-	err = os.WriteFile(ref.versionPath(), []byte(version), 0644)
+	err = os.WriteFile(ref.versionPath(), []byte(version), 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("creating version file %q: %w", ref.versionPath(), err)
 	}
@@ -170,7 +170,7 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	// ignored and the file is already readable; besides, blobFile.Chmod, i.e. syscall.Fchmod,
 	// always fails on Windows.
 	if runtime.GOOS != "windows" {
-		if err := blobFile.Chmod(0644); err != nil {
+		if err := blobFile.Chmod(0o644); err != nil {
 			return private.UploadedBlob{}, err
 		}
 	}
@@ -228,7 +228,7 @@ func (d *dirImageDestination) PutManifest(ctx context.Context, manifest []byte, 
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, manifest, 0644)
+	return os.WriteFile(path, manifest, 0o644)
 }
 
 // PutSignaturesWithFormat writes a set of signatures to the destination.
@@ -245,7 +245,7 @@ func (d *dirImageDestination) PutSignaturesWithFormat(ctx context.Context, signa
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, blob, 0644); err != nil {
+		if err := os.WriteFile(path, blob, 0o644); err != nil {
 			return err
 		}
 	}

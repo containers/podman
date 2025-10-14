@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	zfs "github.com/mistifyio/go-zfs/v3"
+	zfs "github.com/mistifyio/go-zfs/v4"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	graphdriver "go.podman.io/storage/drivers"

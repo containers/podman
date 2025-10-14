@@ -25,7 +25,7 @@ func pullOCITestDisk(finalDir string, vmType define.VMType) error {
 	dirs := define.MachineDirs{ImageCacheDir: imageCacheDir}
 
 	var skipTlsVerify types.OptionalBool
-	ociArtPull, err := ocipull.NewOCIArtifactPull(context.Background(), &dirs, "", "e2emachine", vmType, unusedFinalPath, skipTlsVerify)
+	ociArtPull, err := ocipull.NewOCIArtifactPull(context.Background(), &dirs, "docker://quay.io/podman/machine-os", "e2emachine", vmType, unusedFinalPath, skipTlsVerify)
 	if err != nil {
 		return err
 	}

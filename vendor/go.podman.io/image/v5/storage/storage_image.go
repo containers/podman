@@ -11,11 +11,9 @@ import (
 	"go.podman.io/storage"
 )
 
-var (
-	// ErrNoSuchImage is returned when we attempt to access an image which
-	// doesn't exist in the storage area.
-	ErrNoSuchImage = storage.ErrNotAnImage
-)
+// ErrNoSuchImage is returned when we attempt to access an image which
+// doesn't exist in the storage area.
+var ErrNoSuchImage = storage.ErrNotAnImage
 
 // manifestBigDataKey returns a key suitable for recording a manifest with the specified digest using storage.Store.ImageBigData and related functions.
 // If a specific manifest digest is explicitly requested by the user, the key returned by this function should be used preferably;

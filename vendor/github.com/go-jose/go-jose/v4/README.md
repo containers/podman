@@ -37,7 +37,7 @@ Version 4 is the current stable version:
     import "github.com/go-jose/go-jose/v4"
 
 It supports at least the current and previous Golang release. Currently it
-requires Golang 1.23.
+requires Golang 1.24.
 
 Version 3 is only receiving critical security updates. Migration to Version 4 is recommended.
 

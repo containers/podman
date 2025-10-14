@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/versions"
+	"github.com/moby/moby/client/pkg/versions"
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/internal/manifest"

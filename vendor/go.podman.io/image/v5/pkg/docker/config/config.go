@@ -640,7 +640,7 @@ func modifyJSON(sys *types.SystemContext, editor func(fileContents *dockerConfig
 	}
 
 	dir := filepath.Dir(path.path)
-	if err = os.MkdirAll(dir, 0700); err != nil {
+	if err = os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
 
@@ -659,7 +659,7 @@ func modifyJSON(sys *types.SystemContext, editor func(fileContents *dockerConfig
 			return "", fmt.Errorf("marshaling JSON %q: %w", path.path, err)
 		}
 
-		if err = ioutils.AtomicWriteFile(path.path, newData, 0600); err != nil {
+		if err = ioutils.AtomicWriteFile(path.path, newData, 0o600); err != nil {
 			return "", fmt.Errorf("writing to file %q: %w", path.path, err)
 		}
 	}
@@ -683,7 +683,7 @@ func modifyDockerConfigJSON(sys *types.SystemContext, editor func(fileContents *
 	path := sys.DockerCompatAuthFilePath
 
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
 
@@ -719,7 +719,6 @@ func modifyDockerConfigJSON(sys *types.SystemContext, editor func(fileContents *
 	if rawCH, ok := rawContents["credHelpers"]; ok {
 		if err := json.Unmarshal(rawCH, &syntheticContents.CredHelpers); err != nil {
 			return "", fmt.Errorf(`unmarshaling "credHelpers" in JSON at %q: %w`, path, err)
-
 		}
 	}
 
@@ -739,7 +738,7 @@ func modifyDockerConfigJSON(sys *types.SystemContext, editor func(fileContents *
 			return "", fmt.Errorf("marshaling JSON %q: %w", path, err)
 		}
 
-		if err = ioutils.AtomicWriteFile(path, newData, 0600); err != nil {
+		if err = ioutils.AtomicWriteFile(path, newData, 0o600); err != nil {
 			return "", fmt.Errorf("writing to file %q: %w", path, err)
 		}
 	}

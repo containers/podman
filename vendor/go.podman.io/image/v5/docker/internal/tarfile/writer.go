@@ -338,21 +338,26 @@ type tarFI struct {
 func (t *tarFI) Name() string {
 	return t.path
 }
+
 func (t *tarFI) Size() int64 {
 	return t.size
 }
+
 func (t *tarFI) Mode() os.FileMode {
 	if t.isSymlink {
 		return os.ModeSymlink
 	}
-	return 0444
+	return 0o444
 }
+
 func (t *tarFI) ModTime() time.Time {
 	return time.Unix(0, 0)
 }
+
 func (t *tarFI) IsDir() bool {
 	return false
 }
+
 func (t *tarFI) Sys() any {
 	return nil
 }

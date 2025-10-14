@@ -84,7 +84,8 @@ type bpEncryptionStepData struct {
 // srcInfo is primarily used for error messages.
 // Returns data for other steps; the caller should eventually call updateCryptoOperationAndAnnotations.
 func (ic *imageCopier) blobPipelineEncryptionStep(stream *sourceStream, toEncrypt bool, srcInfo types.BlobInfo,
-	decryptionStep *bpDecryptionStepData) (*bpEncryptionStepData, error) {
+	decryptionStep *bpDecryptionStepData,
+) (*bpEncryptionStepData, error) {
 	if !toEncrypt || isOciEncrypted(srcInfo.MediaType) || ic.c.options.OciEncryptConfig == nil {
 		return &bpEncryptionStepData{
 			encrypting: false,
