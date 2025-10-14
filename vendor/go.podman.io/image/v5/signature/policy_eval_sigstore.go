@@ -210,7 +210,6 @@ func (pr *prSigstoreSigned) prepareTrustRoot() (*sigstoreSignedTrustRoot, error)
 			pkECDSA, ok := pk.(*ecdsa.PublicKey)
 			if !ok {
 				return nil, fmt.Errorf("Rekor public key %d is not using ECDSA", index+1)
-
 			}
 			res.rekorPublicKeys = append(res.rekorPublicKeys, pkECDSA)
 		}

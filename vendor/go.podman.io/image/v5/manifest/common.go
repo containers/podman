@@ -24,8 +24,10 @@ func layerInfosToStrings(infos []LayerInfo) []string {
 // the map value is a MIME type, or mtsUnsupportedMIMEType to mean "recognized but unsupported".
 type compressionMIMETypeSet map[string]string
 
-const mtsUncompressed = ""        // A key in compressionMIMETypeSet for the uncompressed variant
-const mtsUnsupportedMIMEType = "" // A value in compressionMIMETypeSet that means “recognized but unsupported”
+const (
+	mtsUncompressed        = "" // A key in compressionMIMETypeSet for the uncompressed variant
+	mtsUnsupportedMIMEType = "" // A value in compressionMIMETypeSet that means “recognized but unsupported”
+)
 
 // findCompressionMIMETypeSet returns a pointer to a compressionMIMETypeSet in variantTable that contains a value of mimeType, or nil if not found
 func findCompressionMIMETypeSet(variantTable []compressionMIMETypeSet, mimeType string) compressionMIMETypeSet {

@@ -109,7 +109,8 @@ const (
 // Returns data for other steps; the caller should eventually call updateCompressionEdits and perhaps recordValidatedBlobData,
 // and must eventually call close.
 func (ic *imageCopier) blobPipelineCompressionStep(stream *sourceStream, canModifyBlob bool, srcInfo types.BlobInfo,
-	detected bpDetectCompressionStepData) (*bpCompressionStepData, error) {
+	detected bpDetectCompressionStepData,
+) (*bpCompressionStepData, error) {
 	// WARNING: If you are adding new reasons to change the blob, update also the OptimizeDestinationImageAlreadyExists
 	// short-circuit conditions
 	layerCompressionChangeSupported := ic.src.CanChangeLayerCompression(stream.info.MediaType)
@@ -265,7 +266,8 @@ func (ic *imageCopier) bpcDecompressCompressed(stream *sourceStream, detected bp
 // This does not change the sourceStream parameter; we include it for symmetry with other
 // pipeline steps.
 func (ic *imageCopier) bpcPreserveOriginal(_ *sourceStream, detected bpDetectCompressionStepData,
-	layerCompressionChangeSupported bool) *bpCompressionStepData {
+	layerCompressionChangeSupported bool,
+) *bpCompressionStepData {
 	logrus.Debugf("Using original blob without modification")
 	// Remember if the original blob was compressed, and if so how, so that if
 	// LayerInfosForCopy() returned something that differs from what was in the
@@ -320,7 +322,8 @@ func (d *bpCompressionStepData) updateCompressionEdits(operation *types.LayerCom
 // and the original srcInfo (which the caller guarantees has been validated).
 // This must ONLY be called if all data has been validated by OUR code, and is not coming from third parties.
 func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInfo types.BlobInfo, srcInfo types.BlobInfo,
-	encryptionStep *bpEncryptionStepData, decryptionStep *bpDecryptionStepData) error {
+	encryptionStep *bpEncryptionStepData, decryptionStep *bpDecryptionStepData,
+) error {
 	// Don’t record any associations that involve encrypted data. This is a bit crude,
 	// some blob substitutions (replacing pulls of encrypted data with local reuse of known decryption outcomes)
 	// might be safe, but it’s not trivially obvious, so let’s be conservative for now.

@@ -32,7 +32,7 @@ func NewWriter(sys *types.SystemContext, path string) (*Writer, error) {
 	// in the case of a regular file, we don't want to overwrite any pre-existing file
 	// so we check for Size() == 0 below (This is racy, but using O_EXCL would also be racy,
 	// only in a different way. Either way, it’s up to the user to not have two writers to the same path.)
-	fh, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0644)
+	fh, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("opening file %q: %w", path, err)
 	}

@@ -26,7 +26,8 @@ const (
 // identification/version, or other “magic numbers”) before calling this, to cleanly reject unambiguous
 // data that just isn’t what was expected, as opposed to actually ambiguous data.
 func ValidateUnambiguousManifestFormat(manifest []byte, expectedMIMEType string,
-	allowed AllowedManifestFields) error {
+	allowed AllowedManifestFields,
+) error {
 	if allowed >= AllowedFieldFirstUnusedBit {
 		return fmt.Errorf("internal error: invalid allowedManifestFields value %#v", allowed)
 	}

@@ -186,7 +186,8 @@ func (mem *cache) RecordDigestCompressorData(anyDigest digest.Digest, data blobi
 // v2Options is not nil if the caller is CandidateLocations2: this allows including candidates with unknown location, and filters out candidates
 // with unknown compression.
 func (mem *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest,
-	v2Options *blobinfocache.CandidateLocations2Options) []prioritize.CandidateWithTime {
+	v2Options *blobinfocache.CandidateLocations2Options,
+) []prioritize.CandidateWithTime {
 	compressionData := blobinfocache.DigestCompressorData{
 		BaseVariantCompressor:      blobinfocache.UnknownCompression,
 		SpecificVariantCompressor:  blobinfocache.UnknownCompression,
@@ -230,7 +231,8 @@ func (mem *cache) CandidateLocations2(transport types.ImageTransport, scope type
 // candidateLocations implements CandidateLocations / CandidateLocations2.
 // v2Options is not nil if the caller is CandidateLocations2.
 func (mem *cache) candidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute bool,
-	v2Options *blobinfocache.CandidateLocations2Options) []blobinfocache.BICReplacementCandidate2 {
+	v2Options *blobinfocache.CandidateLocations2Options,
+) []blobinfocache.BICReplacementCandidate2 {
 	mem.mutex.Lock()
 	defer mem.mutex.Unlock()
 	res := []prioritize.CandidateWithTime{}

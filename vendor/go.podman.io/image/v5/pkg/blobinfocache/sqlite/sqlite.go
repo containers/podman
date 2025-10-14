@@ -542,7 +542,8 @@ func (sqc *cache) RecordDigestCompressorData(anyDigest digest.Digest, data blobi
 // v2Options is not nil if the caller is CandidateLocations2: this allows including candidates with unknown location, and filters out candidates
 // with unknown compression.
 func (sqc *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, tx *sql.Tx, transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest,
-	v2Options *blobinfocache.CandidateLocations2Options) ([]prioritize.CandidateWithTime, error) {
+	v2Options *blobinfocache.CandidateLocations2Options,
+) ([]prioritize.CandidateWithTime, error) {
 	compressionData := blobinfocache.DigestCompressorData{
 		BaseVariantCompressor:      blobinfocache.UnknownCompression,
 		SpecificVariantCompressor:  blobinfocache.UnknownCompression,
@@ -611,7 +612,8 @@ func (sqc *cache) CandidateLocations2(transport types.ImageTransport, scope type
 // candidateLocations implements CandidateLocations / CandidateLocations2.
 // v2Options is not nil if the caller is CandidateLocations2.
 func (sqc *cache) candidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute bool,
-	v2Options *blobinfocache.CandidateLocations2Options) []blobinfocache.BICReplacementCandidate2 {
+	v2Options *blobinfocache.CandidateLocations2Options,
+) []blobinfocache.BICReplacementCandidate2 {
 	var uncompressedDigest digest.Digest // = ""
 	res, err := transaction(sqc, func(tx *sql.Tx) ([]prioritize.CandidateWithTime, error) {
 		res := []prioritize.CandidateWithTime{}
@@ -668,7 +670,6 @@ func (sqc *cache) candidateLocations(transport types.ImageTransport, scope types
 		return []blobinfocache.BICReplacementCandidate2{} // FIXME? Log err (but throttle the log volume on repeated accesses)?
 	}
 	return prioritize.DestructivelyPrioritizeReplacementCandidates(res, primaryDigest, uncompressedDigest)
-
 }
 
 // CandidateLocations returns a prioritized, limited, number of blobs and their locations that could possibly be reused

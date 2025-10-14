@@ -77,6 +77,7 @@ func (s Sigstore) blobChunk() ([]byte, error) {
 func (s Sigstore) UntrustedMIMEType() string {
 	return s.untrustedMIMEType
 }
+
 func (s Sigstore) UntrustedPayload() []byte {
 	return bytes.Clone(s.untrustedPayload)
 }

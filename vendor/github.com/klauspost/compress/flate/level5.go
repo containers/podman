@@ -677,10 +677,7 @@ func (e *fastEncL5Window) matchlen(s, t int32, src []byte) int32 {
 			panic(fmt.Sprint(s, "-", t, "(", s-t, ") > maxMatchLength (", maxMatchOffset, ")"))
 		}
 	}
-	s1 := int(s) + maxMatchLength - 4
-	if s1 > len(src) {
-		s1 = len(src)
-	}
+	s1 := min(int(s)+maxMatchLength-4, len(src))
 
 	// Extend the match to be as long as possible.
 	return int32(matchLen(src[s:s1], src[t:]))

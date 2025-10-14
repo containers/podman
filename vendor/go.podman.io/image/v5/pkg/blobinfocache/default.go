@@ -56,7 +56,7 @@ func DefaultCache(sys *types.SystemContext) types.BlobInfoCache {
 		return memory.New()
 	}
 	path := filepath.Join(dir, blobInfoCacheFilename)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		logrus.Debugf("Error creating parent directories for %s, using a memory-only cache: %v", path, err)
 		return memory.New()
 	}

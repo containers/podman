@@ -454,13 +454,9 @@ func (obj JSONWebEncryption) Decrypt(decryptionKey interface{}) ([]byte, error) 
 		return nil, errors.New("go-jose/go-jose: too many recipients in payload; expecting only one")
 	}
 
-	critical, err := headers.getCritical()
+	err := headers.checkNoCritical()
 	if err != nil {
-		return nil, fmt.Errorf("go-jose/go-jose: invalid crit header")
-	}
-
-	if len(critical) > 0 {
-		return nil, fmt.Errorf("go-jose/go-jose: unsupported crit header")
+		return nil, err
 	}
 
 	key, err := tryJWKS(decryptionKey, obj.Header)
@@ -527,13 +523,9 @@ func (obj JSONWebEncryption) Decrypt(decryptionKey interface{}) ([]byte, error) 
 func (obj JSONWebEncryption) DecryptMulti(decryptionKey interface{}) (int, Header, []byte, error) {
 	globalHeaders := obj.mergedHeaders(nil)
 
-	critical, err := globalHeaders.getCritical()
+	err := globalHeaders.checkNoCritical()
 	if err != nil {
-		return -1, Header{}, nil, fmt.Errorf("go-jose/go-jose: invalid crit header")
-	}
-
-	if len(critical) > 0 {
-		return -1, Header{}, nil, fmt.Errorf("go-jose/go-jose: unsupported crit header")
+		return -1, Header{}, nil, err
 	}
 
 	key, err := tryJWKS(decryptionKey, obj.Header)
