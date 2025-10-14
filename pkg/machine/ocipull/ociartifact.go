@@ -16,6 +16,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/image"
@@ -24,9 +25,6 @@ import (
 )
 
 const (
-	artifactRegistry     = "quay.io"
-	artifactRepo         = "podman"
-	artifactImageName    = "machine-os"
 	artifactOriginalName = specV1.AnnotationTitle
 	machineOS            = "linux"
 )
@@ -92,8 +90,15 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 
 	cache := false
 	if endpoint == "" {
-		imageName := artifactImageName
-		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, imageName, artifactVersion.majorMinor())
+		return nil, fmt.Errorf("no machine image endpoint provided")
+	}
+
+	cfg, err := config.Default()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configuration: %w", err)
+	}
+	if cfg.Machine.Image == endpoint {
+		endpoint = fmt.Sprintf("%s:%s", endpoint, artifactVersion.majorMinor())
 		cache = true
 	}
 
