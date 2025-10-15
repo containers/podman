@@ -2694,5 +2694,5 @@ func closeAll(closes ...func() error) (rErr error) {
 			rErr = fmt.Errorf("%v: %w", err, rErr)
 		}
 	}
-	return
+	return rErr
 }

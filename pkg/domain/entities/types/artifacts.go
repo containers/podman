@@ -1,21 +1,13 @@
 package types
 
 import (
-	"io"
-
-	"github.com/containers/podman/v5/pkg/libartifact"
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/common/pkg/libartifact"
 )
 
 type ArtifactInspectReport struct {
 	*libartifact.Artifact
 	Digest string
-}
-
-type ArtifactBlob struct {
-	BlobReader   io.Reader
-	BlobFilePath string
-	FileName     string
 }
 
 type ArtifactAddReport struct {

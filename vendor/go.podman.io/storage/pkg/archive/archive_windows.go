@@ -52,14 +52,13 @@ func chmodTarEntry(perm os.FileMode) os.FileMode {
 	return noPermPart | permPart
 }
 
-func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat interface{}) (err error) {
+func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat interface{}) {
 	// do nothing. no notion of Rdev, Nlink in stat on Windows
-	return
 }
 
-func getInodeFromStat(stat interface{}) (inode uint64) {
+func getInodeFromStat(stat interface{}) uint64 {
 	// do nothing. no notion of Inode in stat on Windows
-	return
+	return 0
 }
 
 // handleTarTypeBlockCharFifo is an OS-specific helper function used by

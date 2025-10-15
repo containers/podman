@@ -146,7 +146,9 @@ const (
 
 	// TarSplitChecksumKey is no longer used and is replaced by the TOC.TarSplitDigest field instead.
 	// The value is retained here as a constant as a historical reference for older zstd:chunked images.
-	// TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
+	//
+	// Deprecated: This field should never be relied on - use the digest in the TOC instead.
+	TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
 
 	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
 	ManifestTypeCRFS = 1

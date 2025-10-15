@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/manifest"
 )
 
@@ -17,7 +17,7 @@ type Artifact struct {
 	Name     string
 }
 
-// TotalSizeBytes returns the total bytes of the all the artifact layers
+// TotalSizeBytes returns the total bytes of the all the artifact layers.
 func (a *Artifact) TotalSizeBytes() int64 {
 	var s int64
 	for _, layer := range a.Manifest.Layers {
@@ -26,7 +26,7 @@ func (a *Artifact) TotalSizeBytes() int64 {
 	return s
 }
 
-// GetName returns the "name" or "image reference" of the artifact
+// GetName returns the "name" or "image reference" of the artifact.
 func (a *Artifact) GetName() (string, error) {
 	if a.Name != "" {
 		return a.Name, nil
@@ -39,7 +39,7 @@ func (a *Artifact) GetName() (string, error) {
 // SetName is a accessor for setting the artifact name
 // Note: long term this may not be needed, and we would
 // be comfortable with simply using the exported field
-// called Name
+// called Name.
 func (a *Artifact) SetName(name string) {
 	a.Name = name
 }
@@ -56,7 +56,7 @@ func (a *Artifact) GetDigest() (*digest.Digest, error) {
 type ArtifactList []*Artifact
 
 // GetByNameOrDigest returns an artifact, if present, by a given name
-// Returns an error if not found
+// Returns an error if not found.
 func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, error) {
 	// This is the hot route through
 	for _, artifact := range al {

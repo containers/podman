@@ -1277,7 +1277,7 @@ func ensureAllBlobsDone(streamsOrErrors chan streamOrErr) (retErr error) {
 			retErr = soe.err
 		}
 	}
-	return
+	return retErr
 }
 
 // getBlobAtConverterGoroutine reads from the streams and errs channels, then sends

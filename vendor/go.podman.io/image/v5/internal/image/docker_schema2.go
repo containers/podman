@@ -233,6 +233,8 @@ func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context, _ *types.Ma
 			layers[idx].MediaType = imgspecv1.MediaTypeImageLayer
 		case manifest.DockerV2Schema2LayerMediaType:
 			layers[idx].MediaType = imgspecv1.MediaTypeImageLayerGzip
+		case manifest.DockerV2SchemaLayerMediaTypeZstd:
+			layers[idx].MediaType = imgspecv1.MediaTypeImageLayerZstd
 		default:
 			return nil, fmt.Errorf("Unknown media type during manifest conversion: %q", m.m.LayersDescriptors[idx].MediaType)
 		}

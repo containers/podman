@@ -83,7 +83,7 @@ func (r *OnEOFReader) Read(p []byte) (n int, err error) {
 	if err == io.EOF {
 		r.runFunc()
 	}
-	return
+	return n, err
 }
 
 // Close closes the file and run the function.

@@ -5,11 +5,6 @@ import (
 	"os"
 )
 
-type AufsOptionsConfig struct {
-	// MountOpt specifies extra mount options used when mounting
-	MountOpt string `toml:"mountopt,omitempty"`
-}
-
 type BtrfsOptionsConfig struct {
 	// MinSpace is the minimal spaces allocated to the device
 	MinSpace string `toml:"min_space,omitempty"`
@@ -98,9 +93,6 @@ type OptionsConfig struct {
 	// created automatically.
 	AutoUsernsMaxSize uint32 `toml:"auto-userns-max-size,omitempty"`
 
-	// Aufs container options to be handed to aufs drivers
-	Aufs struct{ AufsOptionsConfig } `toml:"aufs,omitempty"`
-
 	// Btrfs container options to be handed to btrfs drivers
 	Btrfs struct{ BtrfsOptionsConfig } `toml:"btrfs,omitempty"`
 
@@ -137,13 +129,6 @@ type OptionsConfig struct {
 func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
 	var doptions []string
 	switch driverName {
-	case "aufs":
-		if options.Aufs.MountOpt != "" {
-			return append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Aufs.MountOpt))
-		} else if options.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
-		}
-
 	case "btrfs":
 		if options.Btrfs.MinSpace != "" {
 			return append(doptions, fmt.Sprintf("%s.min_space=%s", driverName, options.Btrfs.MinSpace))

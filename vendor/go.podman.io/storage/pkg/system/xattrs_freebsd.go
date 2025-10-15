@@ -17,12 +17,10 @@ const (
 	EOVERFLOW unix.Errno = unix.EOVERFLOW
 )
 
-var (
-	namespaceMap = map[string]int{
-		"user":   EXTATTR_NAMESPACE_USER,
-		"system": EXTATTR_NAMESPACE_SYSTEM,
-	}
-)
+var namespaceMap = map[string]int{
+	"user":   EXTATTR_NAMESPACE_USER,
+	"system": EXTATTR_NAMESPACE_SYSTEM,
+}
 
 func xattrToExtattr(xattr string) (namespace int, extattr string, err error) {
 	namespaceName, extattr, found := strings.Cut(xattr, ".")
