@@ -3,9 +3,11 @@
 package cloudinit
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -87,8 +89,38 @@ func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if mc.HyperVHypervisor != nil && !mc.HyperVHypervisor.UserModeNetworking {
+		return userUserData, nil
+	}
 
-	return userUserData, nil
+	// if user has provided a custom user-data and we are on Hyper-V/user-mode networking,
+	// we need to merge our generated user data with user's one
+	// To do it we create a MIME multi-part archive
+	// with both files
+	buf := new(bytes.Buffer)
+	writer := multipart.NewWriter(buf)
+
+	// add our configuration as the first part
+	if err := createCloudConfigPart(writer, internalUserDataBytes); err != nil {
+		return nil, fmt.Errorf("failed to create internal cloud-config part: %w", err)
+	}
+
+	// Add the user's config as a second part
+	if err := createCloudConfigPart(writer, userUserData); err != nil {
+		return nil, fmt.Errorf("failed to create user cloud-config part: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// finalize mime archive with top-level header
+	finalContent := new(bytes.Buffer)
+	topLevelHeader := fmt.Sprintf("Content-Type: multipart/mixed; boundary=%s\nMIME-Version: 1.0\n\n", writer.Boundary())
+	finalContent.WriteString(topLevelHeader)
+	finalContent.Write(buf.Bytes())
+
+	return finalContent.Bytes(), nil
 }
 
 func getGvForwarderBytes() ([]byte, error) {

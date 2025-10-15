@@ -3,6 +3,8 @@ package cloudinit
 import (
 	"bytes"
 	"fmt"
+	"mime/multipart"
+	"net/textproto"
 	"os"
 	"path/filepath"
 
@@ -147,6 +149,22 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	}
 
 	return vmFile, nil
+}
+
+func createCloudConfigPart(writer *multipart.Writer, content []byte) error {
+	header := textproto.MIMEHeader{}
+	// Set the specific Content-Type that cloud-init recognizes for configuration files
+	header.Set("Content-Type", "text/cloud-config")
+
+	partWriter, err := writer.CreatePart(header)
+	if err != nil {
+		return fmt.Errorf("failed to create new MIME part: %w", err)
+	}
+
+	if _, err := partWriter.Write(content); err != nil {
+		return fmt.Errorf("failed to write content to MIME part: %w", err)
+	}
+	return nil
 }
 
 func getDefaultUserData(mc *vmconfigs.MachineConfig) (*UserData, error) {
