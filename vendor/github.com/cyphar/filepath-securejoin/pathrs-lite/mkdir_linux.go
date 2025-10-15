@@ -1,10 +1,15 @@
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build linux
 
-// Copyright (C) 2024 SUSE LLC. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (C) 2024-2025 Aleksa Sarai <cyphar@cyphar.com>
+// Copyright (C) 2024-2025 SUSE LLC
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package securejoin
+package pathrs
 
 import (
 	"errors"
@@ -14,12 +19,13 @@ import (
 	"strings"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/fd"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gocompat"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/linux"
 )
 
-var (
-	errInvalidMode    = errors.New("invalid permission mode")
-	errPossibleAttack = errors.New("possible attack detected")
-)
+var errInvalidMode = errors.New("invalid permission mode")
 
 // modePermExt is like os.ModePerm except that it also includes the set[ug]id
 // and sticky bits.
@@ -66,6 +72,8 @@ func toUnixMode(mode os.FileMode) (uint32, error) {
 // a brand new lookup of unsafePath (such as with [SecureJoin] or openat2) after
 // doing [MkdirAll]. If you intend to open the directory after creating it, you
 // should use MkdirAllHandle.
+//
+// [SecureJoin]: https://pkg.go.dev/github.com/cyphar/filepath-securejoin#SecureJoin
 func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.File, Err error) {
 	unixMode, err := toUnixMode(mode)
 	if err != nil {
@@ -102,7 +110,7 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 	//
 	// This is mostly a quality-of-life check, because mkdir will simply fail
 	// later if the attacker deletes the tree after this check.
-	if err := isDeadInode(currentDir); err != nil {
+	if err := fd.IsDeadInode(currentDir); err != nil {
 		return nil, fmt.Errorf("finding existing subpath of %q: %w", unsafePath, err)
 	}
 
@@ -113,13 +121,13 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 		return nil, fmt.Errorf("cannot create subdirectories in %q: %w", currentDir.Name(), unix.ENOTDIR)
 	} else if err != nil {
 		return nil, fmt.Errorf("re-opening handle to %q: %w", currentDir.Name(), err)
-	} else {
+	} else { //nolint:revive // indent-error-flow lint doesn't make sense here
 		_ = currentDir.Close()
 		currentDir = reopenDir
 	}
 
 	remainingParts := strings.Split(remainingPath, string(filepath.Separator))
-	if slices_Contains(remainingParts, "..") {
+	if gocompat.SlicesContains(remainingParts, "..") {
 		// The path contained ".." components after the end of the "real"
 		// components. We could try to safely resolve ".." here but that would
 		// add a bunch of extra logic for something that it's not clear even
@@ -150,12 +158,12 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 		if err := unix.Mkdirat(int(currentDir.Fd()), part, unixMode); err != nil && !errors.Is(err, unix.EEXIST) {
 			err = &os.PathError{Op: "mkdirat", Path: currentDir.Name() + "/" + part, Err: err}
 			// Make the error a bit nicer if the directory is dead.
-			if deadErr := isDeadInode(currentDir); deadErr != nil {
+			if deadErr := fd.IsDeadInode(currentDir); deadErr != nil {
 				// TODO: Once we bump the minimum Go version to 1.20, we can use
 				// multiple %w verbs for this wrapping. For now we need to use a
 				// compatibility shim for older Go versions.
-				//err = fmt.Errorf("%w (%w)", err, deadErr)
-				err = wrapBaseError(err, deadErr)
+				// err = fmt.Errorf("%w (%w)", err, deadErr)
+				err = gocompat.WrapBaseError(err, deadErr)
 			}
 			return nil, err
 		}
@@ -163,13 +171,13 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 		// Get a handle to the next component. O_DIRECTORY means we don't need
 		// to use O_PATH.
 		var nextDir *os.File
-		if hasOpenat2() {
-			nextDir, err = openat2File(currentDir, part, &unix.OpenHow{
+		if linux.HasOpenat2() {
+			nextDir, err = openat2(currentDir, part, &unix.OpenHow{
 				Flags:   unix.O_NOFOLLOW | unix.O_DIRECTORY | unix.O_CLOEXEC,
 				Resolve: unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_XDEV,
 			})
 		} else {
-			nextDir, err = openatFile(currentDir, part, unix.O_NOFOLLOW|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
+			nextDir, err = fd.Openat(currentDir, part, unix.O_NOFOLLOW|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 		}
 		if err != nil {
 			return nil, err
@@ -220,12 +228,14 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 // If you plan to open the directory after you have created it or want to use
 // an open directory handle as the root, you should use [MkdirAllHandle] instead.
 // This function is a wrapper around [MkdirAllHandle].
+//
+// [SecureJoin]: https://pkg.go.dev/github.com/cyphar/filepath-securejoin#SecureJoin
 func MkdirAll(root, unsafePath string, mode os.FileMode) error {
 	rootDir, err := os.OpenFile(root, unix.O_PATH|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return err
 	}
-	defer rootDir.Close()
+	defer rootDir.Close() //nolint:errcheck // close failures aren't critical here
 
 	f, err := MkdirAllHandle(rootDir, unsafePath, mode)
 	if err != nil {
