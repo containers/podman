@@ -2848,15 +2848,7 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 	}
 
 	if updateOptions.Rlimits != nil {
-		formattedRlimits := make([]spec.POSIXRlimit, len(updateOptions.Rlimits))
-		for i, rlimit := range updateOptions.Rlimits {
-			formattedRlimits[i] = spec.POSIXRlimit{
-				Type: "RLIMIT_" + strings.ToUpper(rlimit.Type),
-				Hard: rlimit.Hard,
-				Soft: rlimit.Soft,
-			}
-		}
-		c.config.Spec.Process.Rlimits = formattedRlimits
+		c.config.Spec.Process.Rlimits = util.FormatRlimits(updateOptions.Rlimits)
 	}
 
 	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
@@ -2886,15 +2878,7 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 			onDiskSpec.Process.Env = c.config.Spec.Process.Env
 		}
 		if updateOptions.Rlimits != nil {
-			formattedRlimits := make([]spec.POSIXRlimit, len(updateOptions.Rlimits))
-			for i, rlimit := range updateOptions.Rlimits {
-				formattedRlimits[i] = spec.POSIXRlimit{
-					Type: "RLIMIT_" + strings.ToUpper(rlimit.Type),
-					Hard: rlimit.Hard,
-					Soft: rlimit.Soft,
-				}
-			}
-			onDiskSpec.Process.Rlimits = formattedRlimits
+			onDiskSpec.Process.Rlimits = util.FormatRlimits(updateOptions.Rlimits)
 		}
 		if err := c.saveSpec(onDiskSpec); err != nil {
 			logrus.Errorf("Unable to update container %s OCI spec - `podman inspect` may not be accurate until container is restarted: %v", c.ID(), err)
