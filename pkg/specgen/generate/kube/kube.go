@@ -185,6 +185,8 @@ type CtrSpecGenOptions struct {
 	PodSecurityContext *v1.PodSecurityContext
 	// TerminationGracePeriodSeconds is the grace period given to a container to stop before being forcefully killed
 	TerminationGracePeriodSeconds *int64
+	// Don't use pod name as prefix in resulting container name.
+	NoPodPrefix bool
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -217,7 +219,11 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		return nil, errors.New("got empty pod name on container creation when playing kube")
 	}
 
-	s.Name = fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
+	if opts.NoPodPrefix {
+		s.Name = opts.Container.Name
+	} else {
+		s.Name = fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
+	}
 
 	s.Terminal = &opts.Container.TTY
 

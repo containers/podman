@@ -81,6 +81,8 @@ type PlayKubeOptions struct {
 	Wait bool
 	// SystemContext - used when building the image
 	SystemContext *types.SystemContext
+	// Don't use pod name as prefix in resulting container name.
+	NoPodPrefix bool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

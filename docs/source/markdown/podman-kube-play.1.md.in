@@ -260,6 +260,10 @@ When no network option is specified and *host* network mode is not configured in
 
 This option conflicts with host added in the Kubernetes YAML.
 
+#### **--no-pod-prefix**
+
+Don't use pod name as prefix in resulting container name.
+
 #### **--publish**=*[[ip:][hostPort]:]containerPort[/protocol]*
 
 Define or override a port definition in the YAML file.

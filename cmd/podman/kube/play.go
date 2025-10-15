@@ -205,6 +205,9 @@ func playFlags(cmd *cobra.Command) {
 		exitFlagName := "service-exit-code-propagation"
 		flags.StringVar(&playOptions.ExitCodePropagation, exitFlagName, "", "Exit-code propagation of the service container")
 		_ = flags.MarkHidden(exitFlagName)
+
+		noPodPrefix := "no-pod-prefix"
+		flags.BoolVar(&playOptions.NoPodPrefix, noPodPrefix, false, "Don't use pod name as prefix in resulting container name.")
 	}
 }
 
