@@ -152,10 +152,10 @@ var _ = Describe("Podman create", func() {
 
 	It("podman create --mount flag with multiple mounts", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
-		err = os.MkdirAll(vol2, 0755)
+		err = os.MkdirAll(vol2, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--mount", "type=bind,src=" + vol1 + ",target=/myvol1,z", "--mount", "type=bind,src=" + vol2 + ",target=/myvol2,z", ALPINE, "touch", "/myvol2/foo.txt"})
@@ -174,7 +174,7 @@ var _ = Describe("Podman create", func() {
 		}
 
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
@@ -202,7 +202,7 @@ var _ = Describe("Podman create", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("shared"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		session = podmanTest.Podman([]string{"create", "--name", "test_tmpfs", "--mount", "type=tmpfs,target=/create/test", ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()

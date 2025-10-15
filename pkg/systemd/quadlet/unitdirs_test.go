@@ -69,10 +69,10 @@ func TestUnitDirs(t *testing.T) {
 		symLinkTestBaseDir := t.TempDir()
 
 		actualDir := filepath.Join(symLinkTestBaseDir, "actual")
-		err = os.Mkdir(actualDir, 0755)
+		err = os.Mkdir(actualDir, 0o755)
 		assert.NoError(t, err)
 		innerDir := filepath.Join(actualDir, "inner")
-		err = os.Mkdir(innerDir, 0755)
+		err = os.Mkdir(innerDir, 0o755)
 		assert.NoError(t, err)
 		symlink := filepath.Join(symLinkTestBaseDir, "symlink")
 		err = os.Symlink(actualDir, symlink)
@@ -96,7 +96,7 @@ func TestUnitDirs(t *testing.T) {
 		createDir := func(path, name string, dirs []string) (string, []string) {
 			dirName := filepath.Join(path, name)
 			assert.NotContains(t, dirs, dirName)
-			err = os.Mkdir(dirName, 0755)
+			err = os.Mkdir(dirName, 0o755)
 			assert.NoError(t, err)
 			dirs = append(dirs, dirName)
 			return dirName, dirs
@@ -180,14 +180,14 @@ func TestUnitDirs(t *testing.T) {
 		err = syscall.Chroot(symLinkTestBaseDir)
 		assert.NoError(t, err)
 
-		err = os.MkdirAll(UnitDirAdmin, 0755)
+		err = os.MkdirAll(UnitDirAdmin, 0o755)
 		assert.NoError(t, err)
 		err = os.RemoveAll(UnitDirAdmin)
 		assert.NoError(t, err)
 
 		createDir := func(path, name string) string {
 			dirName := filepath.Join(path, name)
-			err = os.Mkdir(dirName, 0755)
+			err = os.Mkdir(dirName, 0o755)
 			assert.NoError(t, err)
 			return dirName
 		}

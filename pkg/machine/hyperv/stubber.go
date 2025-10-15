@@ -99,7 +99,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 			Contents: ignition.Resource{
 				Source: ignition.EncodeDataURLPtr(hyperVVsockNMConnection),
 			},
-			Mode: ignition.IntToPtr(0600),
+			Mode: ignition.IntToPtr(0o600),
 		},
 	})
 

@@ -90,7 +90,7 @@ var _ = Describe("Podman container inspect", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		volsctr := ctr1 + ":z,ro"
 
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, CITEST_IMAGE})
@@ -111,7 +111,7 @@ var _ = Describe("Podman container inspect", func() {
 		secretName := "mysecret"
 
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := os.WriteFile(secretFilePath, []byte("mySecretValue"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mySecretValue"), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", secretName, secretFilePath})

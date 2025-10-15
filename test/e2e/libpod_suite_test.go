@@ -45,7 +45,7 @@ func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 	outfile := filepath.Join(p.TempDir, "registries.conf")
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", outfile)
-	err := os.WriteFile(outfile, b, 0644)
+	err := os.WriteFile(outfile, b, 0o644)
 	Expect(err).ToNot(HaveOccurred())
 }
 

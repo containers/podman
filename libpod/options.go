@@ -1040,7 +1040,7 @@ func WithLogPath(path string) CtrCreateOption {
 		}
 		if isDirectory(path) {
 			containerDir := filepath.Join(path, ctr.ID())
-			if err := os.Mkdir(containerDir, 0755); err != nil {
+			if err := os.Mkdir(containerDir, 0o755); err != nil {
 				return fmt.Errorf("failed to create container log directory %s: %w", containerDir, err)
 			}
 

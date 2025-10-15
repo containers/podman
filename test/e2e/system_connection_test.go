@@ -622,7 +622,7 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 						khFile, err := os.Create(khPath)
 						Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to create %s", khPath))
 						defer khFile.Close()
-						err = os.WriteFile(khPath, []byte(strings.Join(initialKhLines, "\n")), 0600)
+						err = os.WriteFile(khPath, []byte(strings.Join(initialKhLines, "\n")), 0o600)
 						Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to write to %s", khPath))
 					}
 					// Ensure that the remote end uses our built podman

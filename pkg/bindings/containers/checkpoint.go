@@ -43,7 +43,7 @@ func Checkpoint(ctx context.Context, nameOrID string, options *CheckpointOptions
 		return &report, response.Process(&report)
 	}
 
-	f, err := os.OpenFile(*options.Export, os.O_RDWR|os.O_CREATE, 0600)
+	f, err := os.OpenFile(*options.Export, os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, err
 	}

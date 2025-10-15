@@ -34,7 +34,7 @@ func TestTempFileManager(t *testing.T) {
 		secretPath := filepath.Join(tempdir, "secret.txt")
 
 		content := "test secret"
-		err := os.WriteFile(secretPath, []byte(content), 0600)
+		err := os.WriteFile(secretPath, []byte(content), 0o600)
 		assert.NoError(t, err)
 
 		filename, err := manager.CreateTempSecret(secretPath, tempdir)

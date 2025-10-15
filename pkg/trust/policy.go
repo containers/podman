@@ -258,5 +258,5 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	if err != nil {
 		return fmt.Errorf("setting trust policy: %w", err)
 	}
-	return os.WriteFile(policyPath, data, 0644)
+	return os.WriteFile(policyPath, data, 0o644)
 }

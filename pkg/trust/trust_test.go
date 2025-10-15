@@ -146,7 +146,7 @@ func TestPolicyDescription(t *testing.T) {
 	} {
 		policyJSON, err := json.Marshal(c.policy)
 		require.NoError(t, err)
-		err = os.WriteFile(policyPath, policyJSON, 0600)
+		err = os.WriteFile(policyPath, policyJSON, 0o600)
 		require.NoError(t, err)
 
 		res, err := policyDescriptionWithGPGIDReader(policyPath, "./testdata", idReader)

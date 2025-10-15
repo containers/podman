@@ -59,7 +59,7 @@ func TestNewMachineFile(t *testing.T) {
 
 	p := "/var/tmp/podman/my.sock"
 	longp := filepath.Join(longTemp, utils.RandomString(100), "my.sock")
-	err := os.MkdirAll(filepath.Dir(longp), 0755)
+	err := os.MkdirAll(filepath.Dir(longp), 0o755)
 	if err != nil {
 		panic(err)
 	}

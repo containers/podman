@@ -249,7 +249,7 @@ func (b *bindingTest) PodcreateAndExpose(name *string, port *string) {
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// make cache dir
-	err := os.MkdirAll(ImageCacheDir, 0777)
+	err := os.MkdirAll(ImageCacheDir, 0o777)
 	Expect(err).ToNot(HaveOccurred())
 
 	// If running localized tests, the cache dir is created and populated. if the

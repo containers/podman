@@ -29,7 +29,7 @@ var _ = Describe("Podman cp", func() {
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp file test")
-		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create a container. NOTE that container mustn't be running for copying.
@@ -80,7 +80,7 @@ var _ = Describe("Podman cp", func() {
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp file test")
-		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Create a container. NOTE that container mustn't be running for copying.
@@ -125,7 +125,7 @@ var _ = Describe("Podman cp", func() {
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp symlink test")
-		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
@@ -164,7 +164,7 @@ var _ = Describe("Podman cp", func() {
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp volume")
-		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"volume", "create", "data"})
 		session.WaitWithDefaultTimeout()
