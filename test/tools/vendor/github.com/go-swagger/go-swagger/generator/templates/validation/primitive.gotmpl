@@ -23,7 +23,7 @@ if err := validate.Pattern({{ path . }}, {{ printf "%q" .Location }}, {{ .ToStri
   {{ template "validationMultipleOf" . }}
 {{end}}
 {{if .Enum}}
-if err := validate.EnumCase({{ path . }}, {{ printf "%q" .Location }}, {{ if and (not .IsArray) (not .HasDiscriminator) (not .IsInterface) .IsNullable }}*{{ end }}{{.ValueExpression}}{{ if .IsCustomFormatter }}.String(){{ end }}, {{ printf "%#v" .Enum}}, {{ if .IsEnumCI }}false{{ else }}true{{ end }}); err != nil {
+if err := validate.EnumCase({{ path . }}, {{ printf "%q" .Location }}, {{ if and (not .IsArray) (not .HasDiscriminator) (not .IsInterface) .IsNullable }}*{{ end }}{{.ValueExpression}}{{ if .IsCustomFormatter }}.String(){{ end }}, {{ printGoLiteral .Enum}}, {{ if .IsEnumCI }}false{{ else }}true{{ end }}); err != nil {
   return err
 }
 {{end}}
