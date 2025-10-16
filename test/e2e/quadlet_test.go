@@ -1056,6 +1056,7 @@ BOGUS=foo
 		Entry("Build - ForceRM Key", "force-rm.build"),
 		Entry("Build - GlobalArgs", "globalargs.build"),
 		Entry("Build - GroupAdd Key", "group-add.build"),
+		Entry("Build - IgnoreFile Key", "ignorefile.build"),
 		Entry("Build - Containers Conf Modules", "containersconfmodule.build"),
 		Entry("Build - Label Key", "label.build"),
 		Entry("Build - Multiple Tags", "multiple-tags.build"),

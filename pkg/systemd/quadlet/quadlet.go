@@ -113,6 +113,7 @@ const (
 	KeyHealthTimeout         = "HealthTimeout"
 	KeyHostName              = "HostName"
 	KeyHttpProxy             = "HttpProxy"
+	KeyIgnoreFile            = "IgnoreFile"
 	KeyImage                 = "Image"
 	KeyImageTag              = "ImageTag"
 	KeyInterfaceName         = "InterfaceName"
@@ -446,6 +447,7 @@ var (
 				KeyForceRM:              true,
 				KeyGlobalArgs:           true,
 				KeyGroupAdd:             true,
+				KeyIgnoreFile:           true,
 				KeyImageTag:             true,
 				KeyLabel:                true,
 				KeyNetwork:              true,
@@ -1392,6 +1394,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	stringKeys := map[string]string{
 		KeyArch:       "--arch",
 		KeyAuthFile:   "--authfile",
+		KeyIgnoreFile: "--ignorefile",
 		KeyTarget:     "--target",
 		KeyVariant:    "--variant",
 		KeyRetry:      "--retry",
