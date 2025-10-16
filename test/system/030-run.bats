@@ -59,6 +59,25 @@ echo $rand        |   0 | $rand
 }
 
 # bats test_tags=ci:parallel
+@test "podman run - containers.conf runtime options" {
+    skip_if_remote "requires local containers.conf"
+
+    containersConf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersConf <<EOF
+[engine]
+runtime="$(podman_runtime)"
+
+[engine.runtimes_flags]
+$(podman_runtime) = [
+  "invalidflag",
+]
+EOF
+
+    CONTAINERS_CONF="$containersConf" run_podman 126 run --rm $IMAGE
+    is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
+}
+
+# bats test_tags=ci:parallel
 @test "podman run --memory=0 runtime option" {
     run_podman run --memory=0 --rm $IMAGE echo hello
     if is_rootless && ! is_cgroupsv2; then
