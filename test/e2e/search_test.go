@@ -44,7 +44,10 @@ registries = []`
 	registryFileBadTmpl := template.Must(template.New("registryFileBad").Parse(badRegFileContents))
 
 	It("podman search", func() {
-		search := podmanTest.Podman([]string{"search", "alpine"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
@@ -52,23 +55,32 @@ registries = []`
 	})
 
 	It("podman search single registry flag", func() {
-		search := podmanTest.Podman([]string{"search", "quay.io/skopeo/stable:latest"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--tls-verify=false", registryAddress + "/skopeo/stable:latest"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
-		Expect(search.OutputToString()).To(ContainSubstring("quay.io/skopeo/stable"))
+		Expect(search.OutputToString()).To(ContainSubstring(registryAddress + "/skopeo/stable"))
 	})
 
 	It("podman search image with description", func() {
-		search := podmanTest.Podman([]string{"search", "quay.io/podman/stable"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--tls-verify=false", registryAddress + "/podman/stable"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := string(search.Out.Contents())
 		Expect(output).To(MatchRegexp(`(?m)NAME\s+DESCRIPTION$`))
-		Expect(output).To(MatchRegexp(`(?m)quay.io/podman/stable\s+.*PODMAN logo`))
+		Expect(output).To(MatchRegexp(`(?m)/podman/stable\s+.*Podman Image`))
 	})
 
 	It("podman search image with --compatible", func() {
-		search := podmanTest.Podman([]string{"search", "--compatible", "quay.io/podman/stable"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--compatible", "--tls-verify=false", registryAddress + "/podman/stable"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := string(search.Out.Contents())
@@ -76,19 +88,25 @@ registries = []`
 	})
 
 	It("podman search format flag", func() {
-		search := podmanTest.Podman([]string{"search", "--format", "table {{.Index}} {{.Name}}", "testdigest_v2s2"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--format", "table {{.Index}} {{.Name}}", "--tls-verify=false", registryAddress + "/testdigest_v2s2"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.OutputToString()).To(ContainSubstring("quay.io/libpod/testdigest_v2s2"))
+		Expect(search.OutputToString()).To(ContainSubstring(registryAddress + "/libpod/testdigest_v2s2"))
 	})
 
 	It("podman search format json", func() {
-		search := podmanTest.Podman([]string{"search", "--format", "json", "testdigest_v2s1"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--format", "json", "--tls-verify=false", registryAddress + "/testdigest_v2s1"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(search.OutputToString()).To(BeValidJSON())
-		Expect(search.OutputToString()).To(ContainSubstring("quay.io/libpod/testdigest_v2s1"))
+		Expect(search.OutputToString()).To(ContainSubstring(registryAddress + "/libpod/testdigest_v2s1"))
 		Expect(search.OutputToString()).To(ContainSubstring("Test image used by buildah regression tests"))
 
 		// Test for https://github.com/containers/podman/issues/11894
@@ -102,18 +120,24 @@ registries = []`
 	})
 
 	It("podman search format json list tags", func() {
-		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "json", ALPINE})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "json", "--tls-verify=false", registryAddress + "/libpod/alpine:latest"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(search.OutputToString()).To(BeValidJSON())
-		Expect(search.OutputToString()).To(ContainSubstring("quay.io/libpod/alpine"))
+		Expect(search.OutputToString()).To(ContainSubstring(registryAddress + "/libpod/alpine"))
 		Expect(search.OutputToString()).To(ContainSubstring("3.10.2"))
 		Expect(search.OutputToString()).To(ContainSubstring("3.2"))
 	})
 
 	// Test for https://github.com/containers/podman/issues/11894
 	It("podman search no-trunc=false flag", func() {
-		search := podmanTest.Podman([]string{"search", "--no-trunc=false", "alpine", "--format={{.Description}}"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--no-trunc=false", "--tls-verify=false", registryAddress + "/alpine", "--format={{.Description}}"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 
@@ -125,24 +149,30 @@ registries = []`
 	})
 
 	It("podman search limit flag", func() {
-		search := podmanTest.Podman([]string{"search", "quay.io/alpine"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 10))
 
-		search = podmanTest.Podman([]string{"search", "--limit", "3", "quay.io/alpine"})
+		search = podmanTest.Podman([]string{"search", "--limit", "3", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(search.OutputToStringArray()).To(HaveLen(4))
 
-		search = podmanTest.Podman([]string{"search", "--limit", "30", "quay.io/alpine"})
+		search = podmanTest.Podman([]string{"search", "--limit", "10", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
-		Expect(search.OutputToStringArray()).To(HaveLen(31))
+		Expect(search.OutputToStringArray()).To(HaveLen(11))
 	})
 
 	It("podman search with filter stars", func() {
-		search := podmanTest.Podman([]string{"search", "--filter", "stars=10", "--format", "{{.Stars}}", "alpine"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--filter", "stars=10", "--format", "{{.Stars}}", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := search.OutputToStringArray()
@@ -152,7 +182,10 @@ registries = []`
 	})
 
 	It("podman search with filter is-official", func() {
-		search := podmanTest.Podman([]string{"search", "--filter", "is-official", "--format", "{{.Official}}", "alpine"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--filter", "is-official", "--format", "{{.Official}}", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := search.OutputToStringArray()
@@ -162,7 +195,10 @@ registries = []`
 	})
 
 	It("podman search with filter is-automated", func() {
-		search := podmanTest.Podman([]string{"search", "--filter", "is-automated=false", "--format", "{{.Automated}}", "alpine"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--filter", "is-automated=false", "--format", "{{.Automated}}", "--tls-verify=false", registryAddress + "/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := search.OutputToStringArray()
@@ -172,10 +208,13 @@ registries = []`
 	})
 
 	It("podman search format list tags with custom", func() {
-		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "{{.Name}}", "--limit", "1", ALPINE})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "{{.Name}}", "--limit", "1", "--tls-verify=false", registryAddress + "/libpod/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
-		Expect(search.OutputToString()).To(Equal("quay.io/libpod/alpine"))
+		Expect(search.OutputToString()).To(Equal(registryAddress + "/libpod/alpine"))
 	})
 
 	It("podman search attempts HTTP if tls-verify flag is set false", func() {
@@ -373,44 +412,53 @@ registries = []`
 		Expect(search).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 	})
 
-	// Registry is unreliable (#18484), this is another super-common flake
-	It("podman search with wildcards", FlakeAttempts(3), func() {
-		search := podmanTest.Podman([]string{"search", "registry.access.redhat.com/*openshift*"})
+	It("podman search with wildcards", func() {
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--tls-verify=false", registryAddress + "/*alpine*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
+		Expect(search.OutputToString()).To(ContainSubstring("alpine"))
 	})
 
 	It("podman search repository tags", func() {
-		search := podmanTest.Podman([]string{"search", "--list-tags", "--limit", "30", "quay.io/podman/stable"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--list-tags", "--limit", "30", "--tls-verify=false", registryAddress + "/podman/stable"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(search.OutputToStringArray()).To(HaveLen(31))
 
-		search = podmanTest.Podman([]string{"search", "--list-tags", "quay.io/podman/stable"})
+		search = podmanTest.Podman([]string{"search", "--list-tags", "--tls-verify=false", registryAddress + "/podman/stable"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 2))
 
-		search = podmanTest.Podman([]string{"search", "--filter=is-official", "--list-tags", "quay.io/podman/stable"})
+		search = podmanTest.Podman([]string{"search", "--filter=is-official", "--list-tags", "--tls-verify=false", registryAddress + "/podman/stable"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).To(ExitWithError(125, "filters are not applicable to list tags result"))
 
 		// With trailing slash
-		search = podmanTest.Podman([]string{"search", "--list-tags", "quay.io/podman/"})
+		search = podmanTest.Podman([]string{"search", "--list-tags", "--tls-verify=false", registryAddress + "/podman/"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).To(ExitWithError(125, `reference "podman/" must be a docker reference`))
 		Expect(search.OutputToStringArray()).To(BeEmpty())
 
 		// No trailing slash
-		search = podmanTest.Podman([]string{"search", "--list-tags", "quay.io/podman"})
+		search = podmanTest.Podman([]string{"search", "--list-tags", "--tls-verify=false", registryAddress + "/podman"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).To(ExitWithError(125, "getting repository tags: fetching tags list: StatusCode: 404"))
 		Expect(search.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman search with limit over 100", func() {
-		search := podmanTest.Podman([]string{"search", "--limit", "100", "quay.io/podman"})
+		registryAddress, srv, serverErr := CreateMockRegistryServer()
+		defer CloseMockRegistryServer(srv, serverErr)
+
+		search := podmanTest.Podman([]string{"search", "--limit", "100", "--tls-verify=false", registryAddress + "/podman"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		Expect(len(search.OutputToStringArray())).To(BeNumerically("<=", 101))
