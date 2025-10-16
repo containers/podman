@@ -16,6 +16,7 @@ import (
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/ssh"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 var (
@@ -168,6 +169,14 @@ func add(cmd *cobra.Command, args []string) error {
 	}
 	switch uri.Scheme {
 	case "ssh":
+		if cOpts.Identity != "" {
+			if err := fileutils.Exists(cOpts.Identity); err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("identity file does not exist: %w", err)
+				}
+				return err
+			}
+		}
 		return ssh.Create(entities, sshMode)
 	case "unix":
 		if cmd.Flags().Changed("identity") {
