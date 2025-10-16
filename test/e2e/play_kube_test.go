@@ -6420,4 +6420,13 @@ spec:
 
 		Expect(testfile).ToNot(BeAnExistingFile(), "file should never be created on the host")
 	})
+
+	It("test container name without Pod name prefix", func() {
+		err := writeYaml(podnameEqualsContainerNameYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", "--no-pod-prefix", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "podnameEqualsContainerNameYaml")
+		Expect(inspect.InspectContainerToJSON()[0].Name).Should(Equal("podnameEqualsContainerNameYaml"))
+	})
 })
