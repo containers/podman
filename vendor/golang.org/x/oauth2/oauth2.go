@@ -9,7 +9,6 @@
 package oauth2 // import "golang.org/x/oauth2"
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -158,7 +157,7 @@ func SetAuthURLParam(key, value string) AuthCodeOption {
 // PKCE), https://www.oauth.com/oauth2-servers/pkce/ and
 // https://www.ietf.org/archive/id/draft-ietf-oauth-v2-1-09.html#name-cross-site-request-forgery (describing both approaches)
 func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
-	var buf bytes.Buffer
+	var buf strings.Builder
 	buf.WriteString(c.Endpoint.AuthURL)
 	v := url.Values{
 		"response_type": {"code"},

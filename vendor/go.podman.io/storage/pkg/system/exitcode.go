@@ -29,5 +29,5 @@ func ProcessExitCode(err error) (exitCode int) {
 			exitCode = 127
 		}
 	}
-	return
+	return exitCode
 }

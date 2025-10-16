@@ -77,7 +77,7 @@ func Llistxattr(path string) ([]string, error) {
 	}
 
 	var attrs []string
-	for _, token := range bytes.Split(dest[:sz], []byte{0}) {
+	for token := range bytes.SplitSeq(dest[:sz], []byte{0}) {
 		if len(token) > 0 {
 			attrs = append(attrs, string(token))
 		}

@@ -119,7 +119,7 @@ func ParseOptions(options string) (int, string) {
 		data []string
 	)
 
-	for _, o := range strings.Split(options, ",") {
+	for o := range strings.SplitSeq(options, ",") {
 		// If the option does not exist in the flags table or the flag
 		// is not supported on the platform,
 		// then it is a data value for a specific fs type
@@ -139,7 +139,7 @@ func ParseOptions(options string) (int, string) {
 // ParseTmpfsOptions parse fstab type mount options into flags and data
 func ParseTmpfsOptions(options string) (int, string, error) {
 	flags, data := ParseOptions(options)
-	for _, o := range strings.Split(data, ",") {
+	for o := range strings.SplitSeq(data, ",") {
 		opt, _, _ := strings.Cut(o, "=")
 		if !validFlags[opt] {
 			return 0, "", fmt.Errorf("invalid tmpfs option %q", opt)

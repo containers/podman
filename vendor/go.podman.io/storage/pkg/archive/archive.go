@@ -417,9 +417,7 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 		return nil, fmt.Errorf("tar: cannot canonicalize path: %w", err)
 	}
 	hdr.Name = name
-	if err := setHeaderForSpecialDevice(hdr, name, fi.Sys()); err != nil {
-		return nil, err
-	}
+	setHeaderForSpecialDevice(hdr, name, fi.Sys())
 	return hdr, nil
 }
 
