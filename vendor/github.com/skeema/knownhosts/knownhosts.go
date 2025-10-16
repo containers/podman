@@ -194,11 +194,9 @@ func (hkdb *HostKeyDB) HostKeys(hostWithPort string) (keys []PublicKey) {
 // in the known_hosts file will properly be converted to the corresponding
 // ssh.CertAlgo* values.
 func (hkdb *HostKeyDB) HostKeyAlgorithms(hostWithPort string) (algos []string) {
-	// We ensure that algos never contains duplicates. This is done for robustness
-	// even though currently golang.org/x/crypto/ssh/knownhosts never exposes
-	// multiple keys of the same type. This way our behavior here is unaffected
-	// even if https://github.com/golang/go/issues/28870 is implemented, for
-	// example by https://github.com/golang/crypto/pull/254.
+	// We ensure that the return value never contains duplicates. This is needed
+	// since golang.org/x/crypto/ssh/knownhosts can now return multiple keys of
+	// the same type after https://github.com/golang/crypto/pull/254 was merged.
 	hostKeys := hkdb.HostKeys(hostWithPort)
 	seen := make(map[string]struct{}, len(hostKeys))
 	addAlgo := func(typ string, cert bool) {
@@ -367,26 +365,23 @@ func IsHostUnknown(err error) bool {
 }
 
 // Normalize normalizes an address into the form used in known_hosts. This
-// implementation includes a fix for https://github.com/golang/go/issues/53463
-// and will omit brackets around ipv6 addresses on standard port 22.
+// implementation fixes the buggy IPv6 edge-cases found in golang.org/x/crypto
+// below v0.42.0; see https://github.com/golang/go/issues/53463. In all other
+// cases, this simply delegates to the upstream Normalize implementation.
 func Normalize(address string) string {
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		host = address
-		port = "22"
+	// Although our go.mod specifies a new-enough golang.org/x/crypto to avoid
+	// the IPv6 bug, this logic will remain in-place for sake of robustness in
+	// non-go.mod use-cases (OS package managers, hacky forks like go-git's, etc)
+	result := xknownhosts.Normalize(address)
+	if strings.HasSuffix(result, "]") && strings.HasPrefix(result, "[") {
+		return result[1 : len(result)-1]
 	}
-	entry := host
-	if port != "22" {
-		entry = "[" + entry + "]:" + port
-	} else if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-		entry = entry[1 : len(entry)-1]
-	}
-	return entry
+	return result
 }
 
 // Line returns a line to append to the known_hosts files. This implementation
 // uses the local patched implementation of Normalize in order to solve
-// https://github.com/golang/go/issues/53463.
+// https://github.com/golang/go/issues/53463 when using x/crypto below v0.42.0.
 func Line(addresses []string, key ssh.PublicKey) string {
 	var trimmed []string
 	for _, a := range addresses {

@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/libartifact/types"
 )
 
 func (ir *ImageEngine) ArtifactInspect(ctx context.Context, name string, _ entities.ArtifactInspectOptions) (*entities.ArtifactInspectReport, error) {

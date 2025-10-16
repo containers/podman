@@ -5,6 +5,7 @@ import (
 
 	encconfig "github.com/containers/ocicrypt/config"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
+	libartifactTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/types"
 )
 
@@ -31,7 +32,7 @@ type ArtifactExtractOptions struct {
 	ExcludeTitle bool
 }
 
-type ArtifactBlob = entitiesTypes.ArtifactBlob
+type ArtifactBlob = libartifactTypes.ArtifactBlob
 
 type ArtifactInspectOptions struct {
 	// Note: Remote is not currently implemented but will be used for

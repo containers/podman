@@ -188,8 +188,8 @@ func (d *Driver) Cleanup() error {
 // Currently it return 'Zpool', 'Zpool Health', 'Parent Dataset', 'Space Used By Parent',
 // 'Space Available', 'Parent Quota' and 'Compression'.
 func (d *Driver) Status() [][2]string {
-	parts := strings.Split(d.dataset.Name, "/")
-	pool, err := zfs.GetZpool(parts[0])
+	fsName, _, _ := strings.Cut(d.dataset.Name, "/")
+	pool, err := zfs.GetZpool(fsName)
 
 	var poolName, poolHealth string
 	if err == nil {

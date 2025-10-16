@@ -18,14 +18,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/pkg/libartifact"
-	libartTypes "github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/libartifact"
+	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/image/v5/oci/layout"
@@ -36,9 +35,7 @@ import (
 	"go.podman.io/storage/pkg/lockfile"
 )
 
-var (
-	ErrEmptyArtifactName = errors.New("artifact name cannot be empty")
-)
+var ErrEmptyArtifactName = errors.New("artifact name cannot be empty")
 
 const ManifestSchemaVersion = 2
 
@@ -67,7 +64,7 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 
 	// if the storage dir does not exist, we need to create it.
 	baseDir := filepath.Dir(artifactStore.indexPath())
-	if err := os.MkdirAll(baseDir, 0700); err != nil {
+	if err := os.MkdirAll(baseDir, 0o700); err != nil {
 		return nil, err
 	}
 	// Open the lockfile, creating if necessary
@@ -86,7 +83,7 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 	return artifactStore, nil
 }
 
-// Remove an artifact from the local artifact store
+// Remove an artifact from the local artifact store.
 func (as ArtifactStore) Remove(ctx context.Context, name string) (*digest.Digest, error) {
 	if len(name) == 0 {
 		return nil, ErrEmptyArtifactName
@@ -119,7 +116,7 @@ func (as ArtifactStore) Remove(ctx context.Context, name string) (*digest.Digest
 	return artifactDigest, ir.DeleteImage(ctx, as.SystemContext)
 }
 
-// Inspect an artifact in a local store
+// Inspect an artifact in a local store.
 func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*libartifact.Artifact, error) {
 	if len(nameOrDigest) == 0 {
 		return nil, ErrEmptyArtifactName
@@ -136,7 +133,7 @@ func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*liba
 	return inspectData, err
 }
 
-// List artifacts in the local store
+// List artifacts in the local store.
 func (as ArtifactStore) List(ctx context.Context) (libartifact.ArtifactList, error) {
 	as.lock.RLock()
 	defer as.lock.Unlock()
@@ -144,12 +141,12 @@ func (as ArtifactStore) List(ctx context.Context) (libartifact.ArtifactList, err
 	return as.getArtifacts(ctx, nil)
 }
 
-// Pull an artifact from an image registry to a local store
+// Pull an artifact from an image registry to a local store.
 func (as ArtifactStore) Pull(ctx context.Context, name string, opts libimage.CopyOptions) (digest.Digest, error) {
 	if len(name) == 0 {
 		return "", ErrEmptyArtifactName
 	}
-	srcRef, err := alltransports.ParseImageName(fmt.Sprintf("docker://%s", name))
+	srcRef, err := alltransports.ParseImageName("docker://" + name)
 	if err != nil {
 		return "", err
 	}
@@ -176,12 +173,12 @@ func (as ArtifactStore) Pull(ctx context.Context, name string, opts libimage.Cop
 	return digest.FromBytes(artifactBytes), nil
 }
 
-// Push an artifact to an image registry
+// Push an artifact to an image registry.
 func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimage.CopyOptions) (digest.Digest, error) {
 	if len(dest) == 0 {
 		return "", ErrEmptyArtifactName
 	}
-	destRef, err := alltransports.ParseImageName(fmt.Sprintf("docker://%s", dest))
+	destRef, err := alltransports.ParseImageName("docker://" + dest)
 	if err != nil {
 		return "", err
 	}
@@ -212,7 +209,7 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 
 // Add takes one or more artifact blobs and add them to the local artifact store.  The empty
 // string input is for possible custom artifact types.
-func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []entities.ArtifactBlob, options *libartTypes.AddOptions) (*digest.Digest, error) {
+func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []libartTypes.ArtifactBlob, options *libartTypes.AddOptions) (*digest.Digest, error) {
 	if len(dest) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
@@ -316,7 +313,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 	// This works for the oci/layout transport we hard-code.
 	for _, artifactBlob := range artifactBlobs {
 		if artifactBlob.BlobFilePath == "" && artifactBlob.BlobReader == nil || artifactBlob.BlobFilePath != "" && artifactBlob.BlobReader != nil {
-			return nil, fmt.Errorf("Artifact.BlobFile or Artifact.BlobReader must be provided")
+			return nil, errors.New("Artifact.BlobFile or Artifact.BlobReader must be provided")
 		}
 
 		annotations := maps.Clone(options.Annotations)
@@ -426,7 +423,7 @@ func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, nameOrDige
 	}
 
 	if len(arty.Manifest.Layers) == 0 {
-		return nil, nil, fmt.Errorf("the artifact has no blobs, nothing to extract")
+		return nil, nil, errors.New("the artifact has no blobs, nothing to extract")
 	}
 
 	ir, err := layout.NewReference(as.storePath, name)
@@ -489,7 +486,7 @@ func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string,
 	return mountPaths, nil
 }
 
-// Extract an artifact to local file or directory
+// Extract an artifact to local file or directory.
 func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
 	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
 	if err != nil {
@@ -556,7 +553,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 	return nil
 }
 
-// Extract an artifact to tar stream
+// Extract an artifact to tar stream.
 func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameOrDigest string, options *libartTypes.ExtractOptions) error {
 	if options == nil {
 		options = &libartTypes.ExtractOptions{}
@@ -653,7 +650,7 @@ func generateArtifactBlobName(title string, digest digest.Digest) (string, error
 	// the user did not intend. As there is no use for directories in this path we
 	// disallow all of them and not try to "make it safe" via securejoin or others.
 	// We must use os.IsPathSeparator() as on Windows it checks both "\\" and "/".
-	for i := 0; i < len(filename); i++ {
+	for i := range len(filename) {
 		if os.IsPathSeparator(filename[i]) {
 			return "", fmt.Errorf("invalid name: %q cannot contain %c: %w", filename, filename[i], libartTypes.ErrArtifactBlobTitleInvalid)
 		}
@@ -727,14 +724,14 @@ func copyTrustedImageBlobToTarStream(ctx context.Context, imgSrc types.ImageSour
 	defer src.Close()
 
 	if srcSize == -1 {
-		return fmt.Errorf("internal error: oci layout image is missing blob size")
+		return errors.New("internal error: oci layout image is missing blob size")
 	}
 
 	// Note: We can't assume imgSrc will return an *os.File so we must generate the tar header
 	now := time.Now()
 	header := tar.Header{
 		Name:       filename,
-		Mode:       0600,
+		Mode:       600,
 		Size:       srcSize,
 		ModTime:    now,
 		ChangeTime: now,
@@ -829,7 +826,7 @@ func createEmptyStanza(path string) error {
 	if err := fileutils.Exists(path); err == nil {
 		return nil
 	}
-	return os.WriteFile(path, specV1.DescriptorEmptyJSON.Data, 0644)
+	return os.WriteFile(path, specV1.DescriptorEmptyJSON.Data, 0o644)
 }
 
 // determineBlobMIMEType reads up to 512 bytes into a buffer
@@ -840,9 +837,9 @@ func createEmptyStanza(path string) error {
 // Either an io.Reader or *os.File can be provided, if an io.Reader
 // is provided, a new io.Reader will be returned to be used for
 // subsequent reads.
-func determineBlobMIMEType(ab entities.ArtifactBlob) (io.Reader, string, error) {
+func determineBlobMIMEType(ab libartTypes.ArtifactBlob) (io.Reader, string, error) {
 	if ab.BlobFilePath == "" && ab.BlobReader == nil || ab.BlobFilePath != "" && ab.BlobReader != nil {
-		return nil, "", fmt.Errorf("Artifact.BlobFile or Artifact.BlobReader must be provided")
+		return nil, "", errors.New("Artifact.BlobFile or Artifact.BlobReader must be provided")
 	}
 
 	var (

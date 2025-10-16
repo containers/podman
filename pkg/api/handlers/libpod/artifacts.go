@@ -14,9 +14,9 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	domain_utils "github.com/containers/podman/v5/pkg/domain/utils"
-	libartifact_types "github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/gorilla/schema"
+	libartifact_types "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/types"
 )

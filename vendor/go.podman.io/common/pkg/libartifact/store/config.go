@@ -11,7 +11,7 @@ import (
 )
 
 // unparsedArtifactImage is an interface based on the UnParsedImage and
-// is used only for the commit of the manifest
+// is used only for the commit of the manifest.
 type unparsedArtifactImage struct {
 	ir        types.ImageReference
 	mannyfest specV1.Manifest

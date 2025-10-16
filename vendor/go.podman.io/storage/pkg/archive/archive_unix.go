@@ -32,8 +32,10 @@ func statUnix(fi os.FileInfo, hdr *tar.Header) error {
 
 	if s.Mode&unix.S_IFBLK != 0 ||
 		s.Mode&unix.S_IFCHR != 0 {
-		hdr.Devmajor = int64(unix.Major(uint64(s.Rdev))) //nolint: unconvert
-		hdr.Devminor = int64(unix.Minor(uint64(s.Rdev))) //nolint: unconvert
+		// _nolint_: Whether this conversion is required is hardware- and OS-dependent: the value might be uint64 on Linux, int32 on macOS.
+		// So, this might trigger either "uncovert" (if the conversion is unnecessary) or "nolintlint" (if it is required)
+		hdr.Devmajor = int64(unix.Major(uint64(s.Rdev))) //nolint:unconvert,nolintlint
+		hdr.Devminor = int64(unix.Minor(uint64(s.Rdev))) //nolint:unconvert,nolintlint
 	}
 
 	return nil
@@ -67,19 +69,19 @@ func chmodTarEntry(perm os.FileMode) os.FileMode {
 	return perm // noop for unix as golang APIs provide perm bits correctly
 }
 
-func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat any) (err error) {
+func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat any) {
 	s, ok := stat.(*syscall.Stat_t)
 
 	if ok {
 		// Currently go does not fill in the major/minors
 		if s.Mode&unix.S_IFBLK != 0 ||
 			s.Mode&unix.S_IFCHR != 0 {
-			hdr.Devmajor = int64(major(uint64(s.Rdev))) //nolint: unconvert
-			hdr.Devminor = int64(minor(uint64(s.Rdev))) //nolint: unconvert
+			// _nolint_: Whether this conversion is required is hardware- and OS-dependent: the value might be uint64 on Linux, int32 on macOS.
+			// So, this might trigger either "uncovert" (if the conversion is unnecessary) or "nolintlint" (if it is required)
+			hdr.Devmajor = int64(major(uint64(s.Rdev))) //nolint: unconvert,nolintlint
+			hdr.Devminor = int64(minor(uint64(s.Rdev))) //nolint: unconvert,nolintlint
 		}
 	}
-
-	return
 }
 
 func getInodeFromStat(stat any) (inode uint64) {
@@ -89,7 +91,7 @@ func getInodeFromStat(stat any) (inode uint64) {
 		inode = s.Ino
 	}
 
-	return
+	return inode
 }
 
 func getFileUIDGID(stat any) (idtools.IDPair, error) {

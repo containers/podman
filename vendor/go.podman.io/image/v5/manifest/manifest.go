@@ -26,6 +26,9 @@ const (
 	DockerV2Schema2LayerMediaType = manifest.DockerV2Schema2LayerMediaType
 	// DockerV2SchemaLayerMediaTypeUncompressed is the mediaType used for uncompressed layers.
 	DockerV2SchemaLayerMediaTypeUncompressed = manifest.DockerV2SchemaLayerMediaTypeUncompressed
+	// DockerV2SchemaLayerMediaTypeZstd is the mediaType used for zstd layers.
+	// Warning: This mediaType is not officially supported in https://github.com/distribution/distribution/blob/main/docs/content/spec/manifest-v2-2.md but some images may exhibit it. Support is partial.
+	DockerV2SchemaLayerMediaTypeZstd = manifest.DockerV2SchemaLayerMediaTypeZstd
 	// DockerV2ListMediaType MIME type represents Docker manifest schema 2 list
 	DockerV2ListMediaType = manifest.DockerV2ListMediaType
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
@@ -41,7 +44,7 @@ type NonImageArtifactError = manifest.NonImageArtifactError
 // SupportedSchema2MediaType checks if the specified string is a supported Docker v2s2 media type.
 func SupportedSchema2MediaType(m string) error {
 	switch m {
-	case DockerV2ListMediaType, DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType, DockerV2Schema2ConfigMediaType, DockerV2Schema2ForeignLayerMediaType, DockerV2Schema2ForeignLayerMediaTypeGzip, DockerV2Schema2LayerMediaType, DockerV2Schema2MediaType, DockerV2SchemaLayerMediaTypeUncompressed:
+	case DockerV2ListMediaType, DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType, DockerV2Schema2ConfigMediaType, DockerV2Schema2ForeignLayerMediaType, DockerV2Schema2ForeignLayerMediaTypeGzip, DockerV2Schema2LayerMediaType, DockerV2Schema2MediaType, DockerV2SchemaLayerMediaTypeUncompressed, DockerV2SchemaLayerMediaTypeZstd:
 		return nil
 	default:
 		return fmt.Errorf("unsupported docker v2s2 media type: %q", m)
