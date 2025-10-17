@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/env"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/report"
 )
@@ -48,33 +48,34 @@ func inspect(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	dirs, err := env.GetMachineDirs(provider.VMType())
-	if err != nil {
-		return err
-	}
 	if len(args) < 1 {
 		args = append(args, defaultMachineName)
 	}
 
 	vms := make([]machine.InspectInfo, 0, len(args))
 	for _, name := range args {
-		mc, err := vmconfigs.LoadMachineByName(name, dirs)
+		mc, vmProvider, err := shim.VMExists(name)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 
-		state, err := provider.State(mc, false)
+		dirs, err := env.GetMachineDirs(provider.VMType())
 		if err != nil {
 			return err
 		}
 
-		podmanSocket, podmanPipe, err := mc.ConnectionInfo(provider.VMType())
+		state, err := vmProvider.State(mc, false)
 		if err != nil {
 			return err
 		}
 
-		rosetta, err := provider.GetRosetta(mc)
+		podmanSocket, podmanPipe, err := mc.ConnectionInfo(vmProvider.VMType())
+		if err != nil {
+			return err
+		}
+
+		rosetta, err := vmProvider.GetRosetta(mc)
 		if err != nil {
 			return err
 		}
@@ -91,7 +92,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			Resources:          mc.Resources,
 			SSHConfig:          mc.SSH,
 			State:              state,
-			UserModeNetworking: provider.UserModeNetworkEnabled(mc),
+			UserModeNetworking: vmProvider.UserModeNetworkEnabled(mc),
 			Rootful:            mc.HostUser.Rootful,
 			Rosetta:            rosetta,
 		}

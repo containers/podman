@@ -6,9 +6,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
 
@@ -55,17 +53,12 @@ func rm(_ *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	dirs, err := env.GetMachineDirs(provider.VMType())
+	mc, vmProvider, err := shim.VMExists(vmName)
 	if err != nil {
 		return err
 	}
 
-	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
-	if err != nil {
-		return err
-	}
-
-	if err := shim.Remove(mc, provider, dirs, destroyOptions); err != nil {
+	if err := shim.Remove(mc, vmProvider, destroyOptions); err != nil {
 		return err
 	}
 	newMachineEvent(events.Remove, events.Event{Name: vmName})
