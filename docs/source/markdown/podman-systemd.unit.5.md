@@ -1725,6 +1725,7 @@ Valid options for `[Build]` are listed below:
 | ForceRM=false                       | --force-rm=false                            |
 | GlobalArgs=--log-level=debug        | --log-level=debug                           |
 | GroupAdd=keep-groups                | --group-add=keep-groups                     |
+| IgnoreFile=/path/to/.customignore   | --ignorefile=/path/to/.customignore         |
 | ImageTag=localhost/imagename        | --tag=localhost/imagename                   |
 | Label=label                         | --label=label                               |
 | Network=host                        | --network=host                              |
@@ -1839,6 +1840,13 @@ Assign additional groups to the primary user running within the container proces
 `keep-groups` special flag.
 
 This is equivalent to the `--group-add` option of `podman build`.
+
+### `IgnoreFile=`
+
+Path to an alternate .containerignore file to use when building the image.
+Note that when using a relative path you should also set `SetWorkingDirectory=`
+
+This is equivalent to the `--ignorefile` option of `podman build`.
 
 ### `ImageTag=`
 
