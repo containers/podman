@@ -1089,6 +1089,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			VolumesFrom:        volumesFrom,
 			ImageVolumes:       automountImages,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
+			NoPodPrefix:        options.NoPodPrefix,
 		}
 
 		if podYAML.Spec.TerminationGracePeriodSeconds != nil {
