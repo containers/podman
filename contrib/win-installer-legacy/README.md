@@ -49,15 +49,28 @@ contrib\win-installer\podman-9.9.9-dev-setup.exe /x /log contrib\win-installer\p
 ## retrieve installed podman msi package information
 
 ```pwsh
-$Installer = New-Object -ComObject WindowsInstaller.Installer;
-$InstallerProducts = $Installer.ProductsEx("", "", 7);
+$Installer = New-Object -ComObject WindowsInstaller.Installer
+$InstallerProducts = $Installer.ProductsEx("", "", 7)
 $InstalledProducts = ForEach($Product in $InstallerProducts){
-    [PSCustomObject]@{ProductCode = $Product.ProductCode();
-                      LocalPackage = $Product.InstallProperty("LocalPackage");
-                      VersionString = $Product.InstallProperty("VersionString");
-                      ProductName = $Product.InstallProperty("ProductName")
-                      }
-};
+    try {
+        $ProductCode = $Product.ProductCode()
+        $LocalPackage = try { $Product.InstallProperty("LocalPackage") } catch { "Unknown" }
+        $VersionString = try { $Product.InstallProperty("VersionString") } catch { "Unknown" }
+        $ProductName = $Product.InstallProperty("ProductName")
+
+        [PSCustomObject]@{
+            ProductCode = $ProductCode
+            LocalPackage = $LocalPackage
+            VersionString = $VersionString
+            ProductName = $ProductName
+        }
+    }
+    catch {
+        Write-Warning "Failed to process product: $($_.Exception.Message)"
+        # Skip this product and continue
+        continue
+    }
+}
 $InstalledProducts | Where-Object {$_.ProductName -match "podman"}
 ```
 

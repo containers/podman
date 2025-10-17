@@ -35,7 +35,7 @@ param (
     [switch]$skipConfigFileCreation=$false
 )
 
-. $PSScriptRoot\utils.ps1
+. $PSScriptRoot\..\win-installer\utils.ps1
 
 $MachineConfPath = "$env:ProgramData\containers\containers.conf.d\99-podman-machine-provider.conf"
 $PodmanFolderPath = "$env:ProgramFiles\RedHat\Podman"

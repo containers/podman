@@ -188,10 +188,18 @@ jobs:
     # functionality. We should avoid clobbering or re-building windows installers in most cases,
     # For build-only, the .exe is saved in the workflow artifacts for a human
     # to judge.
-    - name: Build
+    - name: Build the MSI
       id: build
       run: |
-        Push-Location contrib\win-installer
+        contrib\win-installer\build.ps1 `
+            -Version ${{steps.getversion.outputs.version}} `
+            -LocalReleaseDirPath ${{ github.workspace }}\release-artifacts `
+            -Architecture ${{ matrix.arch }}
+        Exit $LASTEXITCODE
+    - name: Build the bundle (legacy)
+      id: build-legacy
+      run: |
+        Push-Location contrib\win-installer-legacy
         .\build.ps1 ${{steps.getversion.outputs.version}} prod ${{ github.workspace }}\release-artifacts
         $code = $LASTEXITCODE
         if ($code -eq 2) {
@@ -208,26 +216,40 @@ jobs:
         Push-Location contrib\win-installer
         Get-ChildItem
         Pop-Location
-    - name: Rename the installer
+        Push-Location contrib\win-installer-legacy
+        Get-ChildItem
+        Pop-Location
+    - name: Rename the MSI
       run: |
         Push-Location contrib\win-installer
+        Copy-Item -Path podman-${{steps.getversion.outputs.version}}.msi -Destination podman-installer-windows-${{ matrix.arch }}.msi
+        Pop-Location
+    - name: Rename the bundle (legacy)
+      run: |
+        Push-Location contrib\win-installer-legacy
         Copy-Item -Path podman-${{steps.getversion.outputs.version}}-setup.exe -Destination podman-installer-windows-${{ matrix.arch }}.exe
         Pop-Location
-    - name: Upload the installer
+    - name: Upload the MSI
+      uses: actions/upload-artifact@v4
+      with:
+        name: win-msi-${{ matrix.arch }}
+        path: |
+          .\contrib\win-installer\podman-installer-windows-${{ matrix.arch }}.msi
+    - name: Upload the bundle (legacy)
       uses: actions/upload-artifact@v4
       with:
         name: win-installer-${{ matrix.arch }}
         path: |
-          .\contrib\win-installer\podman-installer-windows-${{ matrix.arch }}.exe
+          .\contrib\win-installer-legacy\podman-installer-windows-${{ matrix.arch }}.exe
       # For backwards compatibility, we also upload the amd64 windows
       # installer using the old name
-    - name: Upload the installer (legacy)
+    - name: Upload the bundle with the old name (legacy)
       uses: actions/upload-artifact@v4
       if: ${{ matrix.arch == 'amd64' }}
       with:
         name: win-installer
         path: |
-          .\contrib\win-installer\podman-${{steps.getversion.outputs.version}}-setup.exe
+          .\contrib\win-installer-legacy\podman-${{steps.getversion.outputs.version}}-setup.exe
 
   release:
     name: Create Release
@@ -266,6 +288,8 @@ jobs:
         mv mac-installers/* release-artifacts
         mv win-installer-amd64/* release-artifacts
         mv win-installer-arm64/* release-artifacts
+        mv win-msi-amd64/* release-artifacts
+        mv win-msi-arm64/* release-artifacts
         pushd release-artifacts
         sha256sum * > shasums
         popd

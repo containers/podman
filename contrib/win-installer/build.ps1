@@ -1,154 +1,226 @@
-function ExitOnError() {
-    if ($LASTEXITCODE -ne 0) {
-        Exit 1
-    }
+#!/usr/bin/env pwsh
+
+<#
+.SYNOPSIS
+    Build Podman Windows MSI installer
+
+.DESCRIPTION
+    This script builds a Podman MSI installer for Windows using WiX Toolset.
+    The release artifacts (podman.exe, gvproxy.exe, win-sshproxy.exe and
+    docs) are either downloaded from GitHub or copied from a local directory,
+    extracted, signed (if signing credentials are available), and packaged
+    into an MSI installer.
+
+.PARAMETER Version
+    Podman version to build (e.g., "5.6.2" or "v5.6.2"). This will be the
+    version of the MSI installer to be built.
+
+.PARAMETER Architecture
+    Target architecture for the installer. Valid values: 'amd64', 'arm64'.
+    Default: 'amd64'
+
+.PARAMETER LocalReleaseDirPath
+    Optional path to a local directory containing the release zip file
+    (podman-remote-release-windows_<arch>.zip). If not specified, the
+    release will be downloaded from GitHub.
+
+.PARAMETER RemoteReleaseRepoUrl
+    URL of the Podman release repository to download from. Default is the
+    official Podman GitHub repository. This parameter is primarily used by
+    the Podman release scripts.
+
+.EXAMPLE
+    .\build.ps1 -Version 5.6.2
+    Download and build amd64 MSI from the official GitHub release
+
+.EXAMPLE
+    .\build.ps1 -Version 5.6.2 -Architecture arm64
+    Download and build arm64 MSI from the official GitHub release
+
+.EXAMPLE
+    .\build.ps1 -Version 5.6.2 -LocalReleaseDirPath .\current
+    Build an MSI from a pre-downloaded release in the current directory
+
+.EXAMPLE
+    .\build.ps1 -Version 5.6.2 -Architecture arm64 `
+        -LocalReleaseDirPath .\current
+    Build an arm64 MSI from a local release directory
+
+.NOTES
+    Requirements:
+      - .NET SDK (https://dotnet.microsoft.com/download)
+      - WiX Toolset (install: dotnet tool install --global wix)
+
+    Environment Variables for signing (optional):
+      $ENV:VAULT_ID $ENV:APP_ID $ENV:TENANT_ID
+      $ENV:CLIENT_SECRET $ENV:CERT_NAME
+#>
+
+param(
+    [Parameter(
+        Mandatory = $true,
+        ParameterSetName = 'LocalReleaseDirPath',
+        Position = 0,
+        HelpMessage = 'Podman version to build (MSI installer version)'
+    )]
+    [ValidateNotNullOrEmpty()]
+    [ValidatePattern('^v?([0-9]+\.[0-9]+\.[0-9]+)(-.*)?$')]
+    [string]$Version,
+
+    [Parameter(
+        Mandatory = $false,
+        Position = 1,
+        HelpMessage = 'Target Architecture'
+    )]
+    [ValidateSet('amd64', 'arm64')]
+    [string]$Architecture = 'amd64',
+
+    [Parameter(
+        Mandatory = $false,
+        Position = 2,
+        HelpMessage = 'Path to pre-downloaded release zip file'
+    )]
+    [ValidateScript({ Test-Path $_ -PathType Container })]
+    [string]$LocalReleaseDirPath = '',
+
+    [Parameter(
+        Mandatory = $false,
+        Position = 3,
+        HelpMessage = 'URL of the Podman release repository'
+    )]
+    [string]$RemoteReleaseRepoUrl = 'https://github.com/containers/podman'
+)
+
+. $PSScriptRoot\utils.ps1
+
+# Strip leading 'v' from version if present
+$Version = $Version.TrimStart('v')
+
+################################################################################
+# REQUIREMENTS CHECK
+################################################################################
+Write-Host 'Checking requirements (dotnet and wix)'
+
+# Check if .NET SDK is installed
+if (! (Get-Command 'dotnet' -errorAction SilentlyContinue)) {
+    Write-Error "Required dep `".NET SDK`" is not installed. " `
+        + 'Please install it from https://dotnet.microsoft.com/download'
+    Exit 1
 }
 
-function SignItem() {
-    param(
-        [Parameter(Mandatory)]
-        [string[]]$fileNames
-    )
+# Check if WiX Toolset is installed
+Invoke-Expression 'dotnet tool list --global wix' `
+    -ErrorAction SilentlyContinue | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Required dep `"Wix Toolset`" is not installed. " `
+        + 'Please install it with the command ' `
+        + "`"dotnet tool install --global wix`""
+    Exit 1
+}
 
-    foreach ($val in $ENV:APP_ID, $ENV:TENANT_ID, $ENV:CLIENT_SECRET, $ENV:CERT_NAME) {
-        if (!$val) {
-            Write-Host "Skipping signing (no config)"
-            Return
-        }
-    }
+################################################################################
+# COPY OR DOWNLOAD RELEASE ARTIFACTS AND SIGN THEM
+################################################################################
+Write-Host 'Deleting old directories if they exist (''docs'', ''artifacts'' ' `
+    'and ''fetch'')'
+foreach ($dir in 'docs', 'artifacts', 'fetch') {
+    Remove-Item -Force -Recurse -Path $PSScriptRoot\$dir `
+        -ErrorAction SilentlyContinue | Out-Null
+}
 
-    CheckCommand AzureSignTool.exe "AzureSignTool"
+Write-Host 'Creating empty ''fetch'' and ''artifacts'' directories'
+foreach ($dir in 'fetch', 'artifacts') {
+    New-Item $PSScriptRoot\$dir -ItemType Directory | Out-Null
+}
 
-    AzureSignTool.exe sign -du "https://github.com/containers/podman" `
-        -kvu "https://$ENV:VAULT_ID.vault.azure.net" `
-        -kvi $ENV:APP_ID `
-        -kvt $ENV:TENANT_ID `
-        -kvs $ENV:CLIENT_SECRET `
-        -kvc $ENV:CERT_NAME `
-        -tr http://timestamp.digicert.com $fileNames
+$ProgressPreference = 'SilentlyContinue';
 
+if (!$LocalReleaseDirPath) {
+    $releaseZipUrl = "$RemoteReleaseRepoUrl/releases/download/" `
+        + "v$Version/podman-remote-release-windows_$Architecture.zip"
+    Write-Host "Downloading $releaseZipUrl"
+    DownloadReleaseFile -url $releaseZipUrl `
+        -outputFile "$PSScriptRoot\fetch\release.zip" `
+        -failOnError
+    DownloadReleaseFile `
+        -url "$RemoteReleaseRepoUrl/releases/download/v$Version/shasums" `
+        -outputFile "$PSScriptRoot\shasums"
+}
+else {
+    $sourceZip = "$LocalReleaseDirPath\" `
+        + "podman-remote-release-windows_$Architecture.zip"
+    Write-Host "Copying $sourceZip to $PSScriptRoot\fetch\release.zip"
+    Copy-Item -Path $sourceZip `
+        -Destination "$PSScriptRoot\fetch\release.zip" `
+        -ErrorAction Stop
+}
+
+Write-Host "Expanding the podman release zip file to $PSScriptRoot\fetch"
+Expand-Archive -Path $PSScriptRoot\fetch\release.zip `
+    -DestinationPath $PSScriptRoot\fetch `
+    -ErrorAction Stop
+ExitOnError
+
+Write-Host -NoNewline 'Copying artifacts: '
+Foreach ($fileName in 'podman.exe', 'win-sshproxy.exe', 'gvproxy.exe') {
+    Write-Host -NoNewline "$fileName, "
+    Get-ChildItem -Path "$PSScriptRoot\fetch\" `
+        -Filter "$fileName" `
+        -Recurse | `
+        Copy-Item -Container:$false `
+        -Destination "$PSScriptRoot\artifacts\" `
+        -ErrorAction Stop
     ExitOnError
 }
 
-function CheckCommand() {
-    param(
-        [Parameter(Mandatory)]
-        [string] $cmd,
-        [Parameter(Mandatory)]
-        [string] $description
-    )
+Write-Host 'docs'
+Get-ChildItem -Path $PSScriptRoot\fetch\ -Filter 'docs' -Recurse | `
+    Copy-Item -Recurse `
+    -Container:$false `
+    -Destination "$PSScriptRoot\docs" `
+    -ErrorAction Stop
+ExitOnError
 
-    if (! (Get-Command $cmd -errorAction SilentlyContinue)) {
-        Write-Host "Required dep `"$description`" is not installed"
-        Exit 1
-    }
+Write-Host 'Deleting the ''fetch'' folder'
+Remove-Item -Force -Recurse -Path $PSScriptRoot\fetch `
+    -ErrorAction SilentlyContinue | Out-Null
+
+SignItem @("$PSScriptRoot\artifacts\win-sshproxy.exe",
+    "$PSScriptRoot\artifacts\podman.exe",
+    "$PSScriptRoot\artifacts\gvproxy.exe")
+ExitOnError
+
+################################################################################
+# BUILD THE MSI
+################################################################################
+dotnet clean $PSScriptRoot\wix\podman.wixproj
+Remove-Item $PSScriptRoot\wix\obj -Recurse -Force -Confirm:$false `
+    -ErrorAction 'Ignore'
+
+$archMap = @{
+    'amd64' = 'x64'
+    'arm64' = 'arm64'
+}
+$installerPlatform = $archMap[$Architecture]
+
+Write-Host 'Building the MSI...'
+dotnet build $PSScriptRoot\wix\podman.wixproj `
+    /property:DefineConstants="VERSION=$Version" `
+    /property:InstallerPlatform="$installerPlatform" `
+    /property:OutputName="podman-$Version" `
+    -o $PSScriptRoot
+ExitOnError
+
+$msiName = "podman-$Version.msi"
+
+SignItem @("$PSScriptRoot\$msiName")
+
+if (Test-Path -Path $PSScriptRoot\shasums) {
+    $hash = (Get-FileHash -Algorithm SHA256 `
+            $PSScriptRoot\$msiName).Hash.ToLower()
+    Write-Output "$hash  $msiName" | `
+        Out-File -Append -FilePath $PSScriptRoot\shasums
 }
 
-function CheckRequirements() {
-    CheckCommand "wix" "WiX Toolset"
-    CheckCommand "go" "Golang"
-}
-
-if ($args.Count -lt 1 -or $args[0].Length -lt 1) {
-    Write-Host "Usage: " $MyInvocation.MyCommand.Name "<version> [dev|prod] [release_dir]"
-    Write-Host
-    Write-Host 'Uses Env Vars: '
-    Write-Host '   $ENV:FETCH_BASE_URL - GitHub Repo Address to locate release on'
-    Write-Host '   $ENV:V531_SETUP_EXE_PATH - Path to v5.3.1 setup.exe used to build the patch'
-    Write-Host '   $ENV:PODMAN_ARCH - Installer target platform (x64 or arm64)'
-    Write-Host 'Env Settings for signing (optional)'
-    Write-Host '   $ENV:VAULT_ID'
-    Write-Host '   $ENV:APP_ID'
-    Write-Host '   $ENV:TENANT_ID'
-    Write-Host '   $ENV:CLIENT_SECRET'
-    Write-Host '   $ENV:CERT_NAME'
-    Write-Host
-    Write-Host "Example: Download and build from the official Github release (dev output): "
-    Write-Host " .\build.ps1 4.2.0"
-    Write-Host
-    Write-Host "Example: Build a dev build from a pre-download release "
-    Write-Host " .\build.ps1 4.2.0 dev fetchdir"
-    Write-Host
-
-    Exit 1
-}
-
-# Pre-set to standard locations in-case build env does not refresh paths
-$Env:Path="$Env:Path;C:\Users\micro\mingw64\bin;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin;;C:\Program Files\Go\bin;C:\Program Files\dotnet"
-
-CheckRequirements
-
-$version = $args[0]
-
-if ($version[0] -eq "v") {
-    $version = $version.Substring(1)
-}
-
-$suffix = "-dev"
-if ($args.Count -gt 1 -and $args[1] -eq "prod") {
-    $suffix = ""
-}
-
-$releaseDir = ""
-if ($args.Count -gt 2) {
-    $releaseDir = $args[2]
-}
-
-.\process-release.ps1 $version $releaseDir
-if ($LASTEXITCODE -eq 2) {
-    Write-Host "Skip signaled, relaying skip"
-    Exit 2
-}
-if ($ENV:INSTVER -eq "") {
-    Write-Host "process-release did not define an install version!"
-    Exit 1
-}
-
-$installerPlatform = ""
-if ($null -eq $ENV:PODMAN_ARCH -or "" -eq $ENV:PODMAN_ARCH -or "amd64" -eq $ENV:PODMAN_ARCH) {
-    $installerPlatform = "x64"
-} elseif ($ENV:PODMAN_ARCH -eq "arm64") {
-    $installerPlatform = "arm64"
-} else {
-    Write-Host "Unknown architecture $ENV:PODMAN_ARCH. Valid options are amd64 or arm64."
-    Exit 1
-}
-
-SignItem @("artifacts/win-sshproxy.exe",
-          "artifacts/podman.exe")
-$gvExists = Test-Path "artifacts/gvproxy.exe"
-if ($gvExists) {
-    SignItem @("artifacts/gvproxy.exe")
-    Remove-Item Env:\UseGVProxy -ErrorAction SilentlyContinue
-} else {
-    $env:UseGVProxy = "Skip"
-}
-
-# Retaining for possible future additions
-# $pExists = Test-Path "artifacts/policy.json"
-# if ($pExists) {
-#     Remove-Item Env:\IncludePolicyJSON -ErrorAction SilentlyContinue
-# } else {
-#     $env:IncludePolicyJSON = "Skip"
-# }
-if (Test-Path ./obj) {
-    Remove-Item ./obj -Recurse -Force -Confirm:$false
-}
-dotnet build podman.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" /property:InstallerPlatform="$installerPlatform" -o .; ExitOnError
-SignItem @("en-US\podman.msi")
-
-dotnet build podman-setup.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" /property:InstallerPlatform="$installerPlatform" -o .; ExitOnError
-wix burn detach podman-setup.exe -engine engine.exe; ExitOnError
-SignItem @("engine.exe")
-
-$file = "podman-$version$suffix-setup.exe"
-wix burn reattach -engine engine.exe podman-setup.exe -o $file; ExitOnError
-SignItem @("$file")
-
-if (Test-Path -Path shasums) {
-    $hash = (Get-FileHash -Algorithm SHA256 $file).Hash.ToLower()
-    Write-Output "$hash  $file" | Out-File -Append -FilePath shasums
-}
-
-Write-Host "Complete"
-Get-ChildItem "podman-$version$suffix-setup.exe"
+Write-Host 'Complete'
+Get-ChildItem "$PSScriptRoot\$msiName"

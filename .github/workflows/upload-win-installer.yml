@@ -64,7 +64,7 @@ jobs:
     - name: Check
       id: check
       run: |
-        Push-Location contrib\win-installer
+        Push-Location contrib\win-installer-legacy
         .\check.ps1 ${{steps.getversion.outputs.version}}
         $code = $LASTEXITCODE
         if ($code -eq 2) {
@@ -108,7 +108,7 @@ jobs:
       id: build
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
-        Push-Location contrib\win-installer
+        Push-Location contrib\win-installer-legacy
         .\build.ps1 ${{steps.getversion.outputs.version}} prod
         $code = $LASTEXITCODE
         if ($code -eq 2) {
@@ -125,7 +125,7 @@ jobs:
         name: installer
         path: |
           ${{ steps.check.outputs.upload_asset_name }}
-          .\contrib\win-installer\shasums
+          .\contrib\win-installer-legacy\shasums
     - name: Upload
       if: >-
         steps.actual_dryrun.outputs.dryrun == 'false' &&
@@ -134,7 +134,7 @@ jobs:
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        Push-Location contrib\win-installer
+        Push-Location contrib\win-installer-legacy
         $version = "${{ steps.getversion.outputs.version }}"
         if ($version[0] -ne "v") {
           $version = "v$version"
