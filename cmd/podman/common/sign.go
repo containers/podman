@@ -12,13 +12,15 @@ import (
 	"go.podman.io/image/v5/pkg/cli"
 	"go.podman.io/image/v5/pkg/cli/sigstore"
 	"go.podman.io/image/v5/signature/signer"
+	"go.podman.io/image/v5/signature/simplesequoia"
 )
 
 // SigningCLIOnlyOptions contains signing-related CLI options.
 // Some other options are defined in entities.ImagePushOptions.
 type SigningCLIOnlyOptions struct {
-	signPassphraseFile      string
-	signBySigstoreParamFile string
+	signPassphraseFile       string
+	signBySequoiaFingerprint string
+	signBySigstoreParamFile  string
 }
 
 func DefineSigningFlags(cmd *cobra.Command, cliOpts *SigningCLIOnlyOptions, pushOpts *entities.ImagePushOptions) {
@@ -27,6 +29,10 @@ func DefineSigningFlags(cmd *cobra.Command, cliOpts *SigningCLIOnlyOptions, push
 	signByFlagName := "sign-by"
 	flags.StringVar(&pushOpts.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
 	_ = cmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
+
+	signBySequoiaFingerprintFlagName := "sign-by-sq-fingerprint"
+	flags.StringVar(&cliOpts.signBySequoiaFingerprint, signBySequoiaFingerprintFlagName, "", "Sign the image using a Sequoia-PGP key with the specified `FINGERPRINT`")
+	_ = cmd.RegisterFlagCompletionFunc(signBySequoiaFingerprintFlagName, completion.AutocompleteNone)
 
 	signBySigstoreFlagName := "sign-by-sigstore"
 	flags.StringVar(&cliOpts.signBySigstoreParamFile, signBySigstoreFlagName, "", "Sign the image using a sigstore parameter file at `PATH`")
@@ -42,6 +48,7 @@ func DefineSigningFlags(cmd *cobra.Command, cliOpts *SigningCLIOnlyOptions, push
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden(signByFlagName)
+		_ = flags.MarkHidden(signBySequoiaFingerprintFlagName)
 		_ = flags.MarkHidden(signBySigstoreFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
@@ -57,8 +64,20 @@ func PrepareSigning(pushOpts *entities.ImagePushOptions, cliOpts *SigningCLIOnly
 	// c/common/libimage.Image does allow creating both simple signing and sigstore signatures simultaneously,
 	// with independent passphrases, but that would make the CLI probably too confusing.
 	// For now, use the passphrase with either, but only one of them.
-	if cliOpts.signPassphraseFile != "" && pushOpts.SignBy != "" && pushOpts.SignBySigstorePrivateKeyFile != "" {
-		return nil, fmt.Errorf("only one of --sign-by and sign-by-sigstore-private-key can be used with --sign-passphrase-file")
+	if cliOpts.signPassphraseFile != "" {
+		count := 0
+		if pushOpts.SignBy != "" {
+			count++
+		}
+		if cliOpts.signBySequoiaFingerprint != "" {
+			count++
+		}
+		if pushOpts.SignBySigstorePrivateKeyFile != "" {
+			count++
+		}
+		if count > 1 {
+			return nil, fmt.Errorf("only one of --sign-by, --sign-by-sq-fingerprint and --sign-by-sigstore-private-key can be used with --sign-passphrase-file")
+		}
 	}
 
 	var passphrase string
@@ -72,9 +91,16 @@ func PrepareSigning(pushOpts *entities.ImagePushOptions, cliOpts *SigningCLIOnly
 		p := ssh.ReadPassphrase()
 		passphrase = string(p)
 	} // pushOpts.SignBy triggers a GPG-agent passphrase prompt, possibly using a more secure channel, so we usually shouldn’t prompt ourselves if no passphrase was explicitly provided.
+	// With signBySequoiaFingerprint, we don’t prompt for a passphrase (for now??): We don’t know whether the key requires a passphrase.
 	pushOpts.SignPassphrase = passphrase
 	pushOpts.SignSigstorePrivateKeyPassphrase = []byte(passphrase)
 	cleanup := signingCleanup{}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			cleanup.cleanup()
+		}
+	}()
 	if cliOpts.signBySigstoreParamFile != "" {
 		signer, err := sigstore.NewSignerFromParameterFile(cliOpts.signBySigstoreParamFile, &sigstore.Options{
 			PrivateKeyPassphrasePrompt: cli.ReadPassphraseFile,
@@ -87,6 +113,21 @@ func PrepareSigning(pushOpts *entities.ImagePushOptions, cliOpts *SigningCLIOnly
 		pushOpts.Signers = append(pushOpts.Signers, signer)
 		cleanup.signers = append(cleanup.signers, signer)
 	}
+	if cliOpts.signBySequoiaFingerprint != "" {
+		opts := []simplesequoia.Option{
+			simplesequoia.WithKeyFingerprint(cliOpts.signBySequoiaFingerprint),
+		}
+		if passphrase != "" {
+			opts = append(opts, simplesequoia.WithPassphrase(passphrase))
+		}
+		signer, err := simplesequoia.NewSigner(opts...)
+		if err != nil {
+			return nil, fmt.Errorf("error using --sign-by-sq-fingerprint: %w", err)
+		}
+		pushOpts.Signers = append(pushOpts.Signers, signer)
+		cleanup.signers = append(cleanup.signers, signer)
+	}
+	succeeded = true
 	return cleanup.cleanup, nil
 }
 
