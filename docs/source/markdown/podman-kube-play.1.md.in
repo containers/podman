@@ -262,7 +262,7 @@ This option conflicts with host added in the Kubernetes YAML.
 
 #### **--no-pod-prefix**
 
-Don't use pod name as prefix in resulting container name.
+Do not prefix container name with pod name.
 
 #### **--publish**=*[[ip:][hostPort]:]containerPort[/protocol]*
 

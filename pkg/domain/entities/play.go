@@ -81,7 +81,7 @@ type PlayKubeOptions struct {
 	Wait bool
 	// SystemContext - used when building the image
 	SystemContext *types.SystemContext
-	// Don't use pod name as prefix in resulting container name.
+	// Do not prefix container name with pod name
 	NoPodPrefix bool
 }
 
