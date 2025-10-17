@@ -288,7 +288,7 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		if err != nil {
 			return nil, nil, err
 		}
-		err = os.Chmod(kdFile.Path, 0744)
+		err = os.Chmod(kdFile.Path, 0o744)
 		if err != nil {
 			return nil, nil, err
 		}

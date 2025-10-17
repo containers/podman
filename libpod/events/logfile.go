@@ -29,12 +29,12 @@ type EventLogFile struct {
 // newLogFileEventer creates a new EventLogFile eventer
 func newLogFileEventer(options EventerOptions) (*EventLogFile, error) {
 	// Create events log dir
-	if err := os.MkdirAll(filepath.Dir(options.LogFilePath), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(options.LogFilePath), 0o700); err != nil {
 		return nil, fmt.Errorf("creating events dirs: %w", err)
 	}
 	// We have to make sure the file is created otherwise reading events will hang.
 	// https://github.com/containers/podman/issues/15688
-	fd, err := os.OpenFile(options.LogFilePath, os.O_RDONLY|os.O_CREATE, 0600)
+	fd, err := os.OpenFile(options.LogFilePath, os.O_RDONLY|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event log file: %w", err)
 	}
@@ -64,7 +64,7 @@ func (e EventLogFile) Write(ee Event) error {
 }
 
 func (e EventLogFile) writeString(s string) error {
-	f, err := os.OpenFile(e.options.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0700)
+	f, err := os.OpenFile(e.options.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o700)
 	if err != nil {
 		return err
 	}

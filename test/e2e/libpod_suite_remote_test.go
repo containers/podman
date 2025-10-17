@@ -48,7 +48,7 @@ func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 	outfile := filepath.Join(p.TempDir, "registries.conf")
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", outfile)
-	err := os.WriteFile(outfile, b, 0644)
+	err := os.WriteFile(outfile, b, 0o644)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -58,7 +58,7 @@ func resetRegistriesConfigEnv() {
 
 func (p *PodmanTestIntegration) StartRemoteService() {
 	if !isRootless() {
-		err := os.MkdirAll("/run/podman", 0755)
+		err := os.MkdirAll("/run/podman", 0o755)
 		Expect(err).ToNot(HaveOccurred())
 	}
 

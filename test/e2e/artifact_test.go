@@ -545,7 +545,7 @@ var _ = Describe("Podman artifact", func() {
 		artifact1Name := "localhost/test/artifact1"
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
 
-		f, err := os.OpenFile(artifact1File, os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(artifact1File, os.O_APPEND|os.O_WRONLY, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = f.WriteString("This is modification.")
 		Expect(err).ToNot(HaveOccurred())

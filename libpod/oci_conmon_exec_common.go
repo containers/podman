@@ -782,7 +782,7 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		return nil, err
 	}
 
-	if err := os.WriteFile(f.Name(), processJSON, 0644); err != nil {
+	if err := os.WriteFile(f.Name(), processJSON, 0o644); err != nil {
 		return nil, err
 	}
 	return f, nil

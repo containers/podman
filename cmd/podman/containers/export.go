@@ -81,7 +81,7 @@ func export(_ *cobra.Command, args []string) error {
 		}
 		// open file here with O_WRONLY since on MacOS it can fail to open /dev/stderr in read mode for example
 		// https://github.com/containers/podman/issues/16870
-		file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 		if err != nil {
 			return err
 		}

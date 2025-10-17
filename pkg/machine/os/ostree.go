@@ -54,7 +54,7 @@ func (dist *OSTree) Apply(image string, _ ApplyOptions) error {
 			if err != nil {
 				return err
 			}
-			if err := os.Chmod(dir, 0755); err != nil {
+			if err := os.Chmod(dir, 0o755); err != nil {
 				return err
 			}
 
@@ -81,7 +81,7 @@ func (dist *OSTree) Apply(image string, _ ApplyOptions) error {
 			return err
 		}
 
-		if err := os.Chmod(dir, 0755); err != nil {
+		if err := os.Chmod(dir, 0o755); err != nil {
 			return err
 		}
 

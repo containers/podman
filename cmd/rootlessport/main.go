@@ -84,7 +84,7 @@ func parent() error {
 	}
 
 	socketDir := filepath.Join(cfg.TmpDir, "rp")
-	err = os.MkdirAll(socketDir, 0700)
+	err = os.MkdirAll(socketDir, 0o700)
 	if err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ outer:
 
 	// https://github.com/containers/podman/issues/11248
 	// Copy /dev/null to stdout and stderr to prevent SIGPIPE errors
-	if f, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755); err == nil {
+	if f, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0o755); err == nil {
 		unix.Dup2(int(f.Fd()), 1) //nolint:errcheck
 		unix.Dup2(int(f.Fd()), 2) //nolint:errcheck
 		f.Close()

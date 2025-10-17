@@ -45,7 +45,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman run with volume flag", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		vol := mountPath + ":" + dest
 
@@ -73,7 +73,7 @@ var _ = Describe("Podman run with volumes", func() {
 			Skip("skip failing test on ppc64le")
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		mount := "type=bind,src=" + mountPath + ",target=" + dest
 
@@ -137,7 +137,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman run with conflicting volumes errors", func() {
 		mountPath := filepath.Join(podmanTest.TmpDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"run", "-v", mountPath + ":" + dest, "-v", "/tmp" + ":" + dest, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -165,7 +165,7 @@ var _ = Describe("Podman run with volumes", func() {
 		err = podmanTest.RestoreArtifact(REDIS_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
@@ -179,7 +179,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman run with mount flag and boolean options", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		mount := "type=bind,src=" + mountPath + ",target=" + dest
 
@@ -222,7 +222,7 @@ var _ = Describe("Podman run with volumes", func() {
 		}
 
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", mountPath + ":" + dest + ":suid,dev,exec", ALPINE, "grep", dest, "/proc/self/mountinfo"})
@@ -249,7 +249,7 @@ var _ = Describe("Podman run with volumes", func() {
 			Skip("Overlay mounts not supported when running in a container")
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Container should be able to start with custom overlay volume
@@ -294,12 +294,12 @@ var _ = Describe("Podman run with volumes", func() {
 
 		// create persistent upperdir on host
 		upperDir := filepath.Join(tempdir, "upper")
-		err := os.Mkdir(upperDir, 0755)
+		err := os.Mkdir(upperDir, 0o755)
 		Expect(err).ToNot(HaveOccurred(), "mkdir "+upperDir)
 
 		// create persistent workdir on host
 		workDir := filepath.Join(tempdir, "work")
-		err = os.Mkdir(workDir, 0755)
+		err = os.Mkdir(workDir, 0o755)
 		Expect(err).ToNot(HaveOccurred(), "mkdir "+workDir)
 
 		overlayOpts := fmt.Sprintf("upperdir=%s,workdir=%s", upperDir, workDir)
@@ -343,17 +343,17 @@ var _ = Describe("Podman run with volumes", func() {
 
 		// Use bindsource instead of named volume
 		bindSource := filepath.Join(tempdir, "bindsource")
-		err := os.Mkdir(bindSource, 0755)
+		err := os.Mkdir(bindSource, 0o755)
 		Expect(err).ToNot(HaveOccurred(), "mkdir "+bindSource)
 
 		// create persistent upperdir on host
 		upperDir := filepath.Join(tempdir, "upper")
-		err = os.Mkdir(upperDir, 0755)
+		err = os.Mkdir(upperDir, 0o755)
 		Expect(err).ToNot(HaveOccurred(), "mkdir "+upperDir)
 
 		// create persistent workdir on host
 		workDir := filepath.Join(tempdir, "work")
-		err = os.Mkdir(workDir, 0755)
+		err = os.Mkdir(workDir, 0o755)
 		Expect(err).ToNot(HaveOccurred(), "mkdir "+workDir)
 
 		overlayOpts := fmt.Sprintf("upperdir=%s,workdir=%s", upperDir, workDir)
@@ -672,7 +672,7 @@ VOLUME /test/`, ALPINE)
 			Skip("Overlay mounts not supported when running in a container")
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
@@ -724,14 +724,14 @@ VOLUME /test/`, ALPINE)
 
 	It("overlay volume conflicts with named volume and mounts", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err := os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
 		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 		mountSrc := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err = os.MkdirAll(mountSrc, 0755)
+		err = os.MkdirAll(mountSrc, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		mountDest := "/run/test"
 		volName := "myvol"
@@ -783,7 +783,7 @@ VOLUME /test/`, ALPINE)
 		}
 
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		vol := mountPath + ":" + dest + ":U"
 
@@ -828,7 +828,7 @@ VOLUME /test/`, ALPINE)
 		}
 
 		mountPath := filepath.Join(podmanTest.TempDir, "foo")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// false bind mount
@@ -933,7 +933,7 @@ USER testuser`, CITEST_IMAGE)
 
 	It("podman run with -v $SRC:/run does not create /run/.containerenv", func() {
 		mountSrc := filepath.Join(podmanTest.TempDir, "vol-test1")
-		err := os.MkdirAll(mountSrc, 0755)
+		err := os.MkdirAll(mountSrc, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "-v", mountSrc + ":/run", ALPINE, "true"})
@@ -979,7 +979,7 @@ USER testuser`, CITEST_IMAGE)
 
 	It("podman run -v with a relative dir", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "vol")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			err := os.RemoveAll(mountPath)
@@ -1135,7 +1135,7 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 		err := podmanTest.RestoreArtifact(REDIS_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		err = os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)

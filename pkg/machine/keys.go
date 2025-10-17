@@ -22,7 +22,7 @@ func CreateSSHKeys(writeLocation string) (string, error) {
 	if err := fileutils.Exists(writeLocation); err == nil {
 		return "", fmt.Errorf("SSH key already exists: %s", writeLocation)
 	}
-	if err := os.MkdirAll(filepath.Dir(writeLocation), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(writeLocation), 0o700); err != nil {
 		return "", err
 	}
 	if err := generatekeys(writeLocation); err != nil {

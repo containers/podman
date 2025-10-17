@@ -180,7 +180,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	// make cache dir
 	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
-	err = os.MkdirAll(ImageCacheDir, 0700)
+	err = os.MkdirAll(ImageCacheDir, 0o700)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Cache images
@@ -195,7 +195,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		podman.createArtifact(image)
 	}
 
-	if err := os.MkdirAll(filepath.Join(ImageCacheDir, podman.ImageCacheFS+"-images"), 0777); err != nil {
+	if err := os.MkdirAll(filepath.Join(ImageCacheDir, podman.ImageCacheFS+"-images"), 0o777); err != nil {
 		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
 	}
@@ -204,7 +204,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// tests are remote, this is a no-op
 	populateCache(podman)
 
-	if err := os.MkdirAll(filepath.Join(globalTmpDir, lockdir), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(globalTmpDir, lockdir), 0o700); err != nil {
 		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
 	}
@@ -350,11 +350,11 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		}
 	}
 
-	if err := os.MkdirAll(root, 0755); err != nil {
+	if err := os.MkdirAll(root, 0o755); err != nil {
 		panic(err)
 	}
 
-	if err := os.MkdirAll(networkConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(networkConfigDir, 0o755); err != nil {
 		panic(err)
 	}
 
@@ -421,7 +421,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		for {
 			uuid := stringid.GenerateRandomID()
 			lockPath := fmt.Sprintf("%s-%s.sock-lock", pathPrefix, uuid)
-			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
+			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o700)
 			if err == nil {
 				lockFile.Close()
 				p.RemoteSocketLock = lockPath
@@ -440,7 +440,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		for {
 			uuid := stringid.GenerateRandomID()
 			lockPath := fmt.Sprintf("%s-%s.sock-lock", pathPrefix, uuid)
-			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
+			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o700)
 			if err == nil {
 				lockFile.Close()
 				p.RemoteSocketLock = lockPath
@@ -1531,7 +1531,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string, extraOptions []string) string {
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile-"+stringid.GenerateRandomID())
-	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o755)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
 	if label != "" {
@@ -1705,7 +1705,7 @@ func CopyDirectory(srcDir, dest string) error {
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := os.MkdirAll(destPath, 0755); err != nil {
+			if err := os.MkdirAll(destPath, 0o755); err != nil {
 				return fmt.Errorf("failed to create directory: %q, error: %q", destPath, err.Error())
 			}
 			if err := CopyDirectory(sourcePath, destPath); err != nil {
@@ -1803,7 +1803,7 @@ func setupRegistry(portOverride *int) (*lockfile.LockFile, string, error) {
 func createArtifactFile(numBytes int64) (string, error) {
 	GinkgoHelper()
 	artifactDir := filepath.Join(podmanTest.TempDir, "artifacts")
-	if err := os.MkdirAll(artifactDir, 0755); err != nil {
+	if err := os.MkdirAll(artifactDir, 0o755); err != nil {
 		return "", err
 	}
 	filename := RandomString(8)

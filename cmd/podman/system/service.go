@@ -111,7 +111,7 @@ func service(cmd *cobra.Command, args []string) error {
 			if err := syscall.Unlink(uri.Path); err != nil && !os.IsNotExist(err) {
 				return err
 			}
-			mask := syscall.Umask(0177)
+			mask := syscall.Umask(0o177)
 			defer syscall.Umask(mask)
 		}
 	}
@@ -162,12 +162,12 @@ func resolveAPIURI(uri []string) (string, error) {
 
 		socketName := "podman.sock"
 		socketPath := filepath.Join(xdg, "podman", socketName)
-		if err := os.MkdirAll(filepath.Dir(socketPath), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(socketPath), 0o700); err != nil {
 			return "", err
 		}
 		return "unix://" + socketPath, nil
 	default:
-		if err := os.MkdirAll(filepath.Dir(registry.DefaultRootAPIPath), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(registry.DefaultRootAPIPath), 0o700); err != nil {
 			return "", err
 		}
 		return registry.DefaultRootAPIAddress, nil

@@ -126,7 +126,7 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 
 	// Write the manifest list's ID file if we're expected to
 	if l.options.iidFile != "" {
-		if err := os.WriteFile(l.options.iidFile, []byte("sha256:"+listID), 0644); err != nil {
+		if err := os.WriteFile(l.options.iidFile, []byte("sha256:"+listID), 0o644); err != nil {
 			return "", err
 		}
 	}

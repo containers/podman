@@ -158,7 +158,7 @@ func (d *DirDriver) Create(opts *volume.CreateRequest) error {
 	maps.Copy(newVol.options, opts.Options)
 
 	volPath := filepath.Join(d.volumesPath, opts.Name)
-	if err := os.Mkdir(volPath, 0755); err != nil {
+	if err := os.Mkdir(volPath, 0o755); err != nil {
 		return fmt.Errorf("making volume directory: %w", err)
 	}
 	newVol.path = volPath

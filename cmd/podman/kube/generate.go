@@ -109,7 +109,7 @@ func generateKube(cmd *cobra.Command, args []string) error {
 		if err := fileutils.Exists(generateFile); err == nil {
 			return fmt.Errorf("cannot write to %q; file exists", generateFile)
 		}
-		if err := os.WriteFile(generateFile, content, 0644); err != nil {
+		if err := os.WriteFile(generateFile, content, 0o644); err != nil {
 			return fmt.Errorf("cannot write to %q: %w", generateFile, err)
 		}
 		return nil

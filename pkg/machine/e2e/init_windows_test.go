@@ -92,7 +92,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		distName := fmt.Sprintf("podman-%s", name)
 		exportedPath := filepath.Join(testDir, "bogus.tar")
 		distrDir := filepath.Join(testDir, "testDistro")
-		err := os.Mkdir(distrDir, 0755)
+		err := os.Mkdir(distrDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// create a bogus machine

@@ -15,7 +15,7 @@ import (
 func buildDataVolumeImage(pTest *PodmanTestIntegration, image, data, dest string) {
 	// Create a dummy file for data volume
 	dummyFile := filepath.Join(pTest.TempDir, data)
-	err := os.WriteFile(dummyFile, []byte(data), 0644)
+	err := os.WriteFile(dummyFile, []byte(data), 0o644)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Create a data volume container image but no CMD binary in it

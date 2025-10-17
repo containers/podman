@@ -514,7 +514,7 @@ var _ = Describe("Podman login and logout", func() {
 		err := os.WriteFile(authFile, fmt.Appendf(nil, `{"auths": {
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
-		}}`, server, server), 0644)
+		}}`, server, server), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{
@@ -561,7 +561,7 @@ var _ = Describe("Podman login and logout", func() {
 			"%s/podmantest/test-alpine": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp0ZXN0" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
-		}}`, server, server, server), 0644)
+		}}`, server, server, server), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		session = podmanTest.Podman([]string{

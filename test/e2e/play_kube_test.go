@@ -1555,7 +1555,7 @@ func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
 
 func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) { //nolint:unparam
 	secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-	err := os.WriteFile(secretFilePath, value, 0755)
+	err := os.WriteFile(secretFilePath, value, 0o755)
 	Expect(err).ToNot(HaveOccurred())
 
 	secret := podmanTest.Podman([]string{"secret", "create", name, secretFilePath})
@@ -2481,7 +2481,7 @@ var _ = Describe("Podman kube play", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
 		infraImage := INFRA_IMAGE
-		err := os.WriteFile(conffile, fmt.Appendf(nil, "[engine]\ninfra_image=\"%s\"\n", infraImage), 0644)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[engine]\ninfra_image=\"%s\"\n", infraImage), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -3512,7 +3512,7 @@ spec:
 
 		conffile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
-		err := os.WriteFile(conffile, []byte(testyaml), 0755)
+		err := os.WriteFile(conffile, []byte(testyaml), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"kube", "play", conffile})
@@ -3868,7 +3868,7 @@ spec:
 		testfile := "testfile"
 
 		hostPathDir := filepath.Join(tempdir, testdir)
-		err := os.Mkdir(hostPathDir, 0755)
+		err := os.Mkdir(hostPathDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(hostPathDir)
 
@@ -4012,7 +4012,7 @@ VOLUME %s`, CITEST_IMAGE, hostPathDir+"/")
 		Expect(err).ToNot(HaveOccurred())
 
 		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
-		defaultMode := int32(0777)
+		defaultMode := int32(0o777)
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, false, &defaultMode)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -5371,7 +5371,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(err).ToNot(HaveOccurred())
 
 		ctr := getCtr(withVolumeMount("/test", "", false), withImage(CITEST_IMAGE))
-		defaultMode := int32(0777)
+		defaultMode := int32(0o777)
 		pod := getPod(withVolume(getSecretVolume(volumeName, []map[string]string{}, false, &defaultMode)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -5445,7 +5445,7 @@ spec:
 		err := os.WriteFile(conffile, []byte(`
 [containers]
 ipcns="host"
-cgroups="disabled"`), 0644)
+cgroups="disabled"`), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", conffile)
 		err = writeYaml(simplePodYaml, kubeYaml)
@@ -5566,7 +5566,7 @@ spec:
 		}
 
 		hostPathLocation := podmanTest.TempDir
-		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing", "onlythis"), 0755)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing", "onlythis"), 0o755)).To(Succeed())
 		file, err := os.Create(filepath.Join(hostPathLocation, "testing", "onlythis", "123.txt"))
 		Expect(err).ToNot(HaveOccurred())
 
@@ -5607,7 +5607,7 @@ spec:
 	It("with unsafe hostPath subpaths", func() {
 		hostPathLocation := filepath.Join(podmanTest.TempDir, "vol")
 
-		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing"), 0755)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing"), 0o755)).To(Succeed())
 		Expect(os.Symlink("/", filepath.Join(hostPathLocation, "testing", "symlink"))).To(Succeed())
 
 		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(CITEST_IMAGE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/foo", "testing/symlink", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
@@ -5865,7 +5865,7 @@ spec:
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 
-		err := os.MkdirAll(vol1, 0755)
+		err := os.MkdirAll(vol1, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		podmanTest.PodmanExitCleanly("create", "--name", ctr1, "-v", vol1, CITEST_IMAGE)
@@ -5896,10 +5896,10 @@ spec:
 		volsFromAnnotaton := define.VolumesFromAnnotation + "/" + tgtctr
 		volsFromValue := frmopt1 + ";" + frmopt2
 
-		err1 := os.MkdirAll(vol1, 0755)
+		err1 := os.MkdirAll(vol1, 0o755)
 		Expect(err1).ToNot(HaveOccurred())
 
-		err2 := os.MkdirAll(vol2, 0755)
+		err2 := os.MkdirAll(vol2, 0o755)
 		Expect(err2).ToNot(HaveOccurred())
 
 		podmanTest.PodmanExitCleanly("create", "--name", srcctr1, "-v", vol1, CITEST_IMAGE)
@@ -6321,10 +6321,10 @@ log_driver = "k8s-file"
 log_path = "%s"
 `, customLogPath)
 
-		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		err := os.WriteFile(conffile, []byte(configContent), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = os.MkdirAll(customLogPath, 0755)
+		err = os.MkdirAll(customLogPath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
@@ -6347,7 +6347,7 @@ spec:
     command: ["/bin/sh", "-c", "echo '%s'; sleep 2"]
 `, CITEST_IMAGE, expectedMessage)
 
-		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)

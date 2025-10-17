@@ -124,7 +124,7 @@ func setup() (string, *machineTestBuilder) {
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create home directory: %q", err))
 	}
-	if err := os.MkdirAll(filepath.Join(homeDir, ".ssh"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(homeDir, ".ssh"), 0o700); err != nil {
 		Fail(fmt.Sprintf("failed to create ssh dir: %q", err))
 	}
 	sshConfig, err := os.Create(filepath.Join(homeDir, ".ssh", "config"))

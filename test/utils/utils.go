@@ -506,7 +506,7 @@ func WriteJSONFile(data []byte, filePath string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filePath, formatJSON, 0644)
+	return os.WriteFile(filePath, formatJSON, 0o644)
 }
 
 // Containerized check the podman command run inside container
@@ -553,7 +553,7 @@ func savePublicKey(fileName string, publicKey *rsa.PublicKey) (string, error) {
 
 	// Write public key to file
 	publicKeyFileName := fileName + ".rsa.pub"
-	if err := os.WriteFile(publicKeyFileName, pubPEM, 0600); err != nil {
+	if err := os.WriteFile(publicKeyFileName, pubPEM, 0o600); err != nil {
 		return "", err
 	}
 
@@ -575,7 +575,7 @@ func savePrivateKey(fileName string, privateKey *rsa.PrivateKey) (string, error)
 
 	// Write private key to file
 	privateKeyFileName := fileName + ".rsa"
-	if err := os.WriteFile(privateKeyFileName, keyPEM, 0600); err != nil {
+	if err := os.WriteFile(privateKeyFileName, keyPEM, 0o600); err != nil {
 		return "", err
 	}
 

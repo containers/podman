@@ -21,7 +21,7 @@ func lockFile(path string) (*fileLock, error) {
 	// In the future we may want to switch this to an async open vs the win32 API
 	// to bring support for timeouts, so we don't export the current underlying
 	// File object.
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, &fs.PathError{
 			Op:   "lock",

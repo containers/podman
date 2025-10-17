@@ -334,7 +334,7 @@ func (ir *ImageEngine) Save(_ context.Context, nameOrID string, tags []string, o
 			// This code was added to allow for opening stdout replacing
 			// os.Create(opts.Output) which was attempting to open the file
 			// for read/write which fails on Darwin platforms
-			f, err = os.OpenFile(opts.Output, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+			f, err = os.OpenFile(opts.Output, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 		}
 	}
 	if err != nil {
@@ -364,7 +364,7 @@ func (ir *ImageEngine) Save(_ context.Context, nameOrID string, tags []string, o
 			return fmt.Errorf("%q already exists as a regular file", opts.Output)
 		}
 	case os.IsNotExist(err):
-		if err := os.Mkdir(opts.Output, 0755); err != nil {
+		if err := os.Mkdir(opts.Output, 0o755); err != nil {
 			return err
 		}
 	default:

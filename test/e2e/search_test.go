@@ -266,7 +266,7 @@ registries = []`
 		err = registryFileTmpl.Execute(&buffer, ep)
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		err = os.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0644)
+		err = os.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
@@ -309,7 +309,7 @@ registries = []`
 		err = registryFileTmpl.Execute(&buffer, ep)
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		err = os.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
+		err = os.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		search := podmanTest.Podman([]string{"search", image, "--tls-verify=true"})
@@ -348,7 +348,7 @@ registries = []`
 		err = registryFileBadTmpl.Execute(&buffer, ep)
 		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		err = os.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0644)
+		err = os.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		if IsRemote() {

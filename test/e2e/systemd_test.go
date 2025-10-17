@@ -76,7 +76,7 @@ RUN mkdir -p /usr/lib/systemd/; touch /usr/lib/systemd/systemd
 CMD /usr/lib/systemd/systemd`, ALPINE)
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"build", "-t", "systemd", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()

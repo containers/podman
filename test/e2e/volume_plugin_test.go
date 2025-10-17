@@ -18,7 +18,7 @@ var _ = Describe("Podman volume plugins", func() {
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		SkipIfRemote("Volume plugins only supported as local")
 		SkipIfRootless("Root is required for volume plugin testing")
-		err = os.MkdirAll("/run/docker/plugins", 0755)
+		err = os.MkdirAll("/run/docker/plugins", 0o755)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -42,7 +42,7 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		err := os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
@@ -88,7 +88,7 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		err := os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
@@ -116,7 +116,7 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		err := os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
@@ -160,7 +160,7 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		err := os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
@@ -201,7 +201,7 @@ testvol5 = "/run/docker/plugins/testvol5.sock"`), 0o644)
 		os.Setenv("CONTAINERS_CONF", confFile)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		err = os.Mkdir(pluginStatePath, 0755)
+		err = os.Mkdir(pluginStatePath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
@@ -265,7 +265,7 @@ Removed:
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		err := os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.

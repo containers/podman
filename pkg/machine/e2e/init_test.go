@@ -496,7 +496,7 @@ var _ = Describe("podman machine init", func() {
 	It("verify a podman 4 config does not break podman 5", func() {
 		vmName := "foobar-machine"
 		configDir := filepath.Join(testDir, ".config", "containers", "podman", "machine", testProvider.VMType().String())
-		if err := os.MkdirAll(configDir, 0755); err != nil {
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
 			Expect(err).ToNot(HaveOccurred())
 		}
 		f, err := os.Create(filepath.Join(configDir, fmt.Sprintf("%s.json", vmName)))
@@ -596,10 +596,10 @@ var _ = Describe("podman machine init", func() {
 			Skip("Test is only for AppleHv with arm64 architecture")
 		}
 		configDir := filepath.Join(testDir, ".config", "containers")
-		err := os.MkdirAll(configDir, 0755)
+		err := os.MkdirAll(configDir, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = os.WriteFile(filepath.Join(configDir, "containers.conf"), rosettaConfig, 0644)
+		err = os.WriteFile(filepath.Join(configDir, "containers.conf"), rosettaConfig, 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		i := initMachine{}

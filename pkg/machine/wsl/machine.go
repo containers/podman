@@ -86,7 +86,7 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 
 	distDir := filepath.Join(vmDataDir, "wsldist")
 	distTarget := filepath.Join(distDir, name)
-	if err := os.MkdirAll(distDir, 0755); err != nil {
+	if err := os.MkdirAll(distDir, 0o755); err != nil {
 		return "", fmt.Errorf("could not create wsldist directory: %w", err)
 	}
 
@@ -430,11 +430,11 @@ func getElevatedOutputFile(mode int) (*os.File, error) {
 		return nil, err
 	}
 
-	if err = os.MkdirAll(dir, 0755); err != nil {
+	if err = os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
 
-	return os.OpenFile(name, mode, 0644)
+	return os.OpenFile(name, mode, 0o644)
 }
 
 func isMsiError(err error) bool {
