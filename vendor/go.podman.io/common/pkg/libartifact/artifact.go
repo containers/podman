@@ -7,6 +7,7 @@ import (
 
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/common/pkg/libartifact/types"
+	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
 )
 
@@ -58,9 +59,23 @@ type ArtifactList []*Artifact
 // GetByNameOrDigest returns an artifact, if present, by a given name
 // Returns an error if not found.
 func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, error) {
+	named, err := reference.Parse(nameOrDigest)
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing reference %q: %w", nameOrDigest, err)
+	}
+
+	// Assert that named implements reference.Named interface
+	namedRef, ok := named.(reference.Named)
+	if !ok {
+		return nil, false, fmt.Errorf("reference %q is not a Named reference", nameOrDigest)
+	}
+
+	// Use TagNameOnly with the asserted Named reference
+	refStr := reference.TagNameOnly(namedRef).String()
+
 	// This is the hot route through
 	for _, artifact := range al {
-		if artifact.Name == nameOrDigest {
+		if artifact.Name == refStr {
 			return artifact, false, nil
 		}
 	}
