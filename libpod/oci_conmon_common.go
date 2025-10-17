@@ -93,6 +93,14 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 		supportsKVM[r] = true
 	}
 
+	configIndex := filepath.Base(name)
+
+	if len(runtimeFlags) == 0 {
+		for _, arg := range runtimeCfg.Engine.OCIRuntimesFlags[configIndex] {
+			runtimeFlags = append(runtimeFlags, "--"+arg)
+		}
+	}
+
 	runtime := new(ConmonOCIRuntime)
 	runtime.name = name
 	runtime.conmonPath = conmonPath
@@ -108,10 +116,9 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
 
-	base := filepath.Base(name)
-	runtime.supportsJSON = supportsJSON[base]
-	runtime.supportsNoCgroups = supportsNoCgroups[base]
-	runtime.supportsKVM = supportsKVM[base]
+	runtime.supportsJSON = supportsJSON[configIndex]
+	runtime.supportsNoCgroups = supportsNoCgroups[configIndex]
+	runtime.supportsKVM = supportsKVM[configIndex]
 
 	foundPath := false
 	for _, path := range paths {
