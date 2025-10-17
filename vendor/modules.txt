@@ -742,7 +742,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.65.1-0.20251016133615-aa970d2c7532
+# go.podman.io/common v0.65.1-0.20251016162239-c4c5e00ad22d
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
