@@ -531,6 +531,16 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if err != nil {
 		return imgID, nil, "", fmt.Errorf("computing digest of manifest of new image %q: %w", transports.ImageName(dest), err)
 	}
+	if imgID == "" {
+		parsedManifest, err := manifest.FromBlob(manifestBytes, manifest.GuessMIMEType(manifestBytes))
+		if err != nil {
+			return imgID, nil, "", fmt.Errorf("parsing written manifest to determine the image's ID: %w", err)
+		}
+		configInfo := parsedManifest.ConfigInfo()
+		if configInfo.Size > 2 && configInfo.Digest.Validate() == nil { // don't be returning a digest of "" or "{}"
+			imgID = configInfo.Digest.Encoded()
+		}
+	}
 
 	var ref reference.Canonical
 	if name := dest.DockerReference(); name != nil {

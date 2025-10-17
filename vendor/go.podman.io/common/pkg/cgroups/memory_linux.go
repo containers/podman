@@ -20,23 +20,16 @@ func getMemoryHandler() *linuxMemHandler {
 
 // Apply set the specified constraints.
 func (c *linuxMemHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
-	if ctr.cgroup2 {
-		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
-		if err != nil {
-			return err
-		}
-		return man.Set(res)
+	man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
+	if err != nil {
+		return err
 	}
-	path := filepath.Join(cgroupRoot, Memory, ctr.config.Path)
-	return c.Mem.Set(path, res)
+	return man.Set(res)
 }
 
 // Create the cgroup.
 func (c *linuxMemHandler) Create(ctr *CgroupControl) (bool, error) {
-	if ctr.cgroup2 {
-		return false, nil
-	}
-	return ctr.createCgroupDirectory(Memory)
+	return false, nil
 }
 
 // Destroy the cgroup.
@@ -52,48 +45,25 @@ func (c *linuxMemHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 	var memoryRoot string
 	var limitFilename string
 
-	if ctr.cgroup2 {
-		memoryRoot = filepath.Join(cgroupRoot, ctr.config.Path)
-		limitFilename = "memory.max"
+	memoryRoot = filepath.Join(cgroupRoot, ctr.config.Path)
+	limitFilename = "memory.max"
 
-		// Read memory.current
-		current, err := readFileAsUint64(filepath.Join(memoryRoot, "memory.current"))
-		if err != nil {
-			return err
-		}
+	// Read memory.current
+	current, err := readFileAsUint64(filepath.Join(memoryRoot, "memory.current"))
+	if err != nil {
+		return err
+	}
 
-		// Read inactive_file from memory.stat
-		inactiveFile, err := readFileByKeyAsUint64(filepath.Join(memoryRoot, "memory.stat"), "inactive_file")
-		if err != nil {
-			return err
-		}
+	// Read inactive_file from memory.stat
+	inactiveFile, err := readFileByKeyAsUint64(filepath.Join(memoryRoot, "memory.stat"), "inactive_file")
+	if err != nil {
+		return err
+	}
 
-		// Docker calculation: memory.current - memory.stat['inactive_file']
-		memUsage.Usage.Usage = 0
-		if inactiveFile < current {
-			memUsage.Usage.Usage = current - inactiveFile
-		}
-	} else {
-		memoryRoot = ctr.getCgroupv1Path(Memory)
-		limitFilename = "memory.limit_in_bytes"
-
-		// Read memory.usage_in_bytes
-		usageInBytes, err := readFileAsUint64(filepath.Join(memoryRoot, "memory.usage_in_bytes"))
-		if err != nil {
-			return err
-		}
-
-		// Read total_inactive_file from memory.stat
-		totalInactiveFile, err := readFileByKeyAsUint64(filepath.Join(memoryRoot, "memory.stat"), "total_inactive_file")
-		if err != nil {
-			return err
-		}
-
-		// Docker calculation: memory.usage_in_bytes - memory.stat['total_inactive_file']
-		memUsage.Usage.Usage = 0
-		if totalInactiveFile < usageInBytes {
-			memUsage.Usage.Usage = usageInBytes - totalInactiveFile
-		}
+	// Docker calculation: memory.current - memory.stat['inactive_file']
+	memUsage.Usage.Usage = 0
+	if inactiveFile < current {
+		memUsage.Usage.Usage = current - inactiveFile
 	}
 
 	memUsage.Usage.Limit, err = readFileAsUint64(filepath.Join(memoryRoot, limitFilename))

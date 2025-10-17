@@ -32,13 +32,7 @@ func systemdCreate(resources *cgroups.Resources, path string, c *systemdDbus.Con
 			systemdDbus.PropDescription("cgroup " + name),
 			systemdDbus.PropWants(slice),
 		}
-		var ioString string
-		v2, _ := IsCgroup2UnifiedMode()
-		if v2 {
-			ioString = "IOAccounting"
-		} else {
-			ioString = "BlockIOAccounting"
-		}
+		ioString := "IOAccounting"
 		pMap := map[string]bool{
 			"DefaultDependencies": false,
 			"MemoryAccounting":    true,
@@ -57,7 +51,7 @@ func systemdCreate(resources *cgroups.Resources, path string, c *systemdDbus.Con
 			properties = append(properties, p)
 		}
 
-		uMap, sMap, bMap, iMap, structMap, err := resourcesToProps(resources, v2)
+		uMap, sMap, bMap, iMap, structMap, err := resourcesToProps(resources, true)
 		if err != nil {
 			lastError = err
 			continue
@@ -176,13 +170,8 @@ func resourcesToProps(res *cgroups.Resources, v2 bool) (map[string]uint64, map[s
 
 	if res.CpuShares != 0 {
 		// convert from shares to weight. weight only supports 1-10000
-		v2, _ := IsCgroup2UnifiedMode()
-		if v2 {
-			wt := (1 + ((res.CpuShares-2)*9999)/262142)
-			uMap["CPUWeight"] = wt
-		} else {
-			uMap["CPUShares"] = res.CpuShares
-		}
+		wt := (1 + ((res.CpuShares-2)*9999)/262142)
+		uMap["CPUWeight"] = wt
 	}
 
 	// CPUSet

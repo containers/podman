@@ -20,28 +20,17 @@ func getCpusetHandler() *linuxCpusetHandler {
 
 // Apply set the specified constraints.
 func (c *linuxCpusetHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
-	if ctr.cgroup2 {
-		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
-		if err != nil {
-			return err
-		}
-		return man.Set(res)
+	man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
+	if err != nil {
+		return err
 	}
-	path := filepath.Join(cgroupRoot, CPUset, ctr.config.Path)
-	return c.CPUSet.Set(path, res)
+	return man.Set(res)
 }
 
 // Create the cgroup.
 func (c *linuxCpusetHandler) Create(ctr *CgroupControl) (bool, error) {
-	if ctr.cgroup2 {
-		path := filepath.Join(cgroupRoot, ctr.config.Path)
-		return true, cpusetCopyFromParent(path, true)
-	}
-	created, err := ctr.createCgroupDirectory(CPUset)
-	if !created || err != nil {
-		return created, err
-	}
-	return true, cpusetCopyFromParent(ctr.getCgroupv1Path(CPUset), false)
+	path := filepath.Join(cgroupRoot, ctr.config.Path)
+	return true, cpusetCopyFromParent(path, true)
 }
 
 // Destroy the cgroup.

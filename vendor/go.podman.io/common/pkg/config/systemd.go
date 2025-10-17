@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"go.podman.io/common/pkg/cgroupv2"
 	"go.podman.io/common/pkg/systemd"
 	"go.podman.io/storage/pkg/unshare"
 )
@@ -26,8 +25,7 @@ func defaultCgroupManager() string {
 	if !useSystemd() {
 		return CgroupfsCgroupsManager
 	}
-	enabled, err := cgroupv2.Enabled()
-	if err == nil && !enabled && unshare.IsRootless() {
+	if unshare.IsRootless() {
 		return CgroupfsCgroupsManager
 	}
 
