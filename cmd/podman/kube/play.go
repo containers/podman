@@ -176,6 +176,9 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
 	_ = flags.MarkHidden(noTruncFlagName)
 
+	replicas := "replicas"
+	flags.BoolVar(&playOptions.Replicas, replicas, false, "Replicas allows multiple Pods creation")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")

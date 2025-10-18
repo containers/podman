@@ -63,6 +63,8 @@ type PlayOptions struct {
 	// Wait - indicates whether to return after having created the pods
 	Wait             *bool
 	ServiceContainer *bool
+	// Replicas allows multiple Pods creation
+	Replicas *bool
 }
 
 // ApplyOptions are optional options for applying kube YAML files to a k8s cluster
