@@ -4,6 +4,11 @@ package machine
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/events"
@@ -70,7 +75,36 @@ func start(_ *cobra.Command, args []string) error {
 	if err := shim.Start(mc, provider, dirs, startOpts); err != nil {
 		return err
 	}
+	if err := changeDockerContext(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to change docker context to default. Error: %v\n", err)
+	} else {
+		fmt.Fprintf(os.Stderr, "Docker context has been set to default\n")
+	}
 	fmt.Printf("Machine %q started successfully\n", vmName)
 	newMachineEvent(events.Start, events.Event{Name: vmName})
 	return nil
+}
+
+func changeDockerContext() error {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	pathList := strings.Split(os.Getenv("PATH"), ":")
+	var dockerBinaryPath string
+	for _, path := range pathList {
+		dockerPath := filepath.Join(path, "docker")
+		if info, err := os.Stat(dockerPath); err == nil && info.Mode().IsRegular() {
+			dockerBinaryPath = dockerPath
+			break
+		}
+	}
+	if dockerBinaryPath == "" {
+		return fmt.Errorf("docker binary not found")
+	}
+
+	cmd := exec.Command(dockerBinaryPath, "context", "use", "default")
+
+	// Run the command
+	_, err := cmd.CombinedOutput()
+	return err
 }
