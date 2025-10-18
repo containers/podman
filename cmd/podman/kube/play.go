@@ -181,6 +181,9 @@ func playFlags(cmd *cobra.Command) {
 	noPodPrefix := "no-pod-prefix"
 	flags.BoolVar(&playOptions.NoPodPrefix, noPodPrefix, false, "Do not prefix container name with pod name")
 
+	replicas := "replicas"
+	flags.BoolVar(&playOptions.Replicas, replicas, false, "Replicas allows multiple Pods creation")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -210,9 +213,6 @@ func playFlags(cmd *cobra.Command) {
 		exitFlagName := "service-exit-code-propagation"
 		flags.StringVar(&playOptions.ExitCodePropagation, exitFlagName, "", "Exit-code propagation of the service container")
 		_ = flags.MarkHidden(exitFlagName)
-
-		replicas := "replicas"
-		flags.BoolVar(&playOptions.Replicas, replicas, false, "Replicas allows multiple Pods creation")
 	}
 }
 
