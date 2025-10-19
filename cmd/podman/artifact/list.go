@@ -3,12 +3,14 @@ package artifact
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/go-units"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/report"
@@ -40,11 +42,12 @@ type artifactListOutput struct {
 	Repository  string
 	Size        string
 	Tag         string
+	Created     string
 	VirtualSize string
 }
 
 var (
-	defaultArtifactListOutputFormat = "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.Digest}}\t{{.Size}}\n{{end -}}"
+	defaultArtifactListOutputFormat = "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.Digest}}\t{{.Created}}\t{{.Size}}\n{{end -}}"
 )
 
 func init() {
@@ -106,11 +109,22 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 			artifactHash = artifactDigest.Encoded()
 		}
 
+		var created string
+		createdAnnotation, ok := lr.Manifest.Annotations[imgspecv1.AnnotationCreated]
+		if ok {
+			createdTime, err := time.Parse(time.RFC3339Nano, createdAnnotation)
+			if err != nil {
+				return err
+			}
+			created = units.HumanDuration(time.Since(createdTime)) + " ago"
+		}
+
 		artifacts = append(artifacts, artifactListOutput{
 			Digest:      artifactHash,
 			Repository:  named.Name(),
 			Size:        units.HumanSize(float64(lr.Artifact.TotalSizeBytes())),
 			Tag:         tag,
+			Created:     created,
 			VirtualSize: fmt.Sprintf("%d", lr.Artifact.TotalSizeBytes()),
 		})
 	}
@@ -118,6 +132,7 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 	headers := report.Headers(artifactListOutput{}, map[string]string{
 		"REPOSITORY": "REPOSITORY",
 		"Tag":        "TAG",
+		"Created":    "CREATED",
 		"Size":       "SIZE",
 		"Digest":     "DIGEST",
 	})

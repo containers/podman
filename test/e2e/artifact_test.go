@@ -78,6 +78,16 @@ var _ = Describe("Podman artifact", func() {
 		// Verify if the virtual size values are present in the output
 		Expect(virtualSizes).To(ContainElement("4192"))
 		Expect(virtualSizes).To(ContainElement("10240"))
+
+		// Check if .Created is reported correctly
+		createdFormatSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.Created}}")
+		created := createdFormatSession.OutputToStringArray()
+
+		Expect(created).To(HaveLen(2))
+
+		// Assuming the test runs less than a minute
+		humanReadableDurationRegexp := `^(Less than a second|1 second|\d+ seconds) ago$`
+		Expect(created).To(ContainElements(MatchRegexp(humanReadableDurationRegexp), MatchRegexp(humanReadableDurationRegexp)))
 	})
 
 	It("podman artifact simple add", func() {
