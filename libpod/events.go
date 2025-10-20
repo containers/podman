@@ -202,7 +202,7 @@ func (r *Runtime) NewSecretEvent(status events.Status, secretID string) {
 }
 
 // NewArtifactEvent creates a new event for a libpod artifact
-func (r *Runtime) NewArtifactEvent(status events.Status, name, digest string, attr map[string]string){
+func (r *Runtime) NewArtifactEvent(status events.Status, name, digest string, attr map[string]string) {
 	e := events.NewEvent(status)
 	e.Type = events.Artifact
 	e.Name = name
