@@ -1,23 +1,35 @@
 package artifact
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/report"
 )
+
+type artifactInspectFormat struct {
+	Digest   string                                                  `json:"Digest"`
+	Manifest struct{ Annotations, ArtifactType, Config, Layers any } `json:"Manifest"`
+	Name     string                                                  `json:"Name"`
+}
 
 var (
 	inspectCmd = &cobra.Command{
-		Use:               "inspect [ARTIFACT...]",
+		Use:               "inspect [options] ARTIFACT",
 		Short:             "Inspect an OCI artifact",
 		Long:              "Provide details on an OCI artifact",
 		RunE:              inspect,
-		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteArtifacts,
-		Example:           `podman artifact inspect quay.io/myimage/myartifact:latest`,
+		Example: `podman artifact inspect quay.io/myimage/myartifact:latest
+  podman artifact inspect --format "{{.Name}}" myartifact
+  podman artifact inspect --format "{{.Digest}}" myartifact`,
 	}
+	inspectOpts = entities.InspectOptions{}
 )
 
 func init() {
@@ -26,25 +38,47 @@ func init() {
 		Parent:  artifactCmd,
 	})
 
-	// TODO When things firm up on inspect looks, we can do a format implementation
-	// flags := inspectCmd.Flags()
-	// formatFlagName := "format"
-	// flags.StringVar(&inspectFlag.format, formatFlagName, "", "Format volume output using JSON or a Go template")
-
-	// This is something we wanted to do but did not seem important enough for initial PR
-	// remoteFlagName := "remote"
-	// flags.BoolVar(&inspectFlag.remote, remoteFlagName, false, "Inspect the image on a container image registry")
-
-	// TODO When the inspect structure has been defined, we need to uncomment and redirect this.  Reminder, this
-	// will also need to be reflected in the podman-artifact-inspect man page
-	// _ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&machine.InspectInfo{}))
+	flags := inspectCmd.Flags()
+	formatFlagName := "format"
+	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&artifactInspectFormat{}))
 }
 
 func inspect(_ *cobra.Command, args []string) error {
 	artifactOptions := entities.ArtifactInspectOptions{}
-	inspectData, err := registry.ImageEngine().ArtifactInspect(registry.Context(), args[0], artifactOptions)
+
+	l := len(args)
+	if l != 1 {
+		return fmt.Errorf("accepts 1 arg, received %d", l)
+	}
+	data, err := registry.ImageEngine().ArtifactInspect(registry.Context(), args[0], artifactOptions)
 	if err != nil {
 		return err
 	}
-	return utils.PrintGenericJSON(inspectData)
+	if err := print(data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func print(inspectData *entities.ArtifactInspectReport) error {
+	var err error
+	data := []any{inspectData}
+
+	switch {
+	case report.IsJSON(inspectOpts.Format) || inspectOpts.Format == "":
+		err = utils.PrintGenericJSON(inspectData)
+	default:
+		// User has given a custom --format
+		var rpt *report.Formatter
+		rpt, err = report.New(os.Stdout, "inspect").Parse(report.OriginUser, inspectOpts.Format)
+		if err != nil {
+			return err
+		}
+		defer rpt.Flush()
+
+		err = rpt.Execute(data)
+	}
+
+	return err
 }

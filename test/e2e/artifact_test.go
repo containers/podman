@@ -319,6 +319,58 @@ var _ = Describe("Podman artifact", func() {
 		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12])
 	})
 
+	It("podman artifact inspect multiple artifacts", func() {
+		// Create two artifacts
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact1Name := "localhost/test/artifact1"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2Name := "localhost/test/artifact2"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact2Name, artifact2File)
+
+		inspectFail := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name, artifact2Name})
+		inspectFail.WaitWithDefaultTimeout()
+		Expect(inspectFail).Should(ExitWithError(125, "Error: accepts 1 arg, received 2"))
+	})
+
+	It("podman artifact inspect with --format", func() {
+		// Create an artifact
+		artifactFile, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifactName := "localhost/test/format-artifact"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifactName, artifactFile)
+
+		// Test --format with .Name
+		inspect := podmanTest.PodmanExitCleanly("artifact", "inspect", "--format", "{{.Name}}", artifactName)
+		Expect(inspect.OutputToString()).To(Equal(artifactName))
+
+		// Test --format with .Digest
+		inspect = podmanTest.PodmanExitCleanly("artifact", "inspect", "--format", "{{.Digest}}", artifactName)
+		digest := inspect.OutputToString()
+		Expect(digest).To(HavePrefix("sha256:"))
+		Expect(digest).To(HaveLen(71)) // "sha256:" + 64 chars
+
+		// Test --format with annotation
+		inspect = podmanTest.PodmanExitCleanly("artifact", "inspect", "--format", `{{index .Manifest.Annotations "org.opencontainers.image.created"}}`, artifactName)
+		created := inspect.OutputToString()
+		Expect(created).ToNot(BeEmpty())
+		// Verify it's a valid timestamp
+		Expect(created).To(MatchRegexp(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}`))
+
+		// Test --format with multiple artifacts
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2Name := "localhost/test/format-artifact2"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact2Name, artifact2File)
+
+		// Test short format flag -f
+		inspect = podmanTest.PodmanExitCleanly("artifact", "inspect", "-f", "{{.Name}}", artifactName)
+		Expect(inspect.OutputToString()).To(Equal(artifactName))
+	})
+
 	It("podman artifact extract single", func() {
 		podmanTest.PodmanExitCleanly("artifact", "pull", ARTIFACT_SINGLE)
 
