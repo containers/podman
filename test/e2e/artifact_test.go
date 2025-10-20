@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -307,6 +308,42 @@ var _ = Describe("Podman artifact", func() {
 
 		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest)
 		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12])
+	})
+
+	It("podman artifact inspect multiple artifacts", func() {
+		// Create two artifacts
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact1Name := "localhost/test/artifact1"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2Name := "localhost/test/artifact2"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact2Name, artifact2File)
+
+		// Inspect both artifacts at once
+		inspect := podmanTest.PodmanExitCleanly("artifact", "inspect", artifact1Name, artifact2Name)
+
+		// Parse the output as JSON array
+		output := inspect.OutputToString()
+		Expect(output).To(BeValidJSON())
+
+		// Verify it's an array with 2 elements
+		var artifacts []map[string]interface{}
+		err = json.Unmarshal([]byte(output), &artifacts)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(artifacts).To(HaveLen(2))
+
+		// Verify both artifact names are in the output
+		names := []string{}
+		for _, artifact := range artifacts {
+			if name, ok := artifact["Name"].(string); ok {
+				names = append(names, name)
+			}
+		}
+		Expect(names).To(ContainElement(artifact1Name))
+		Expect(names).To(ContainElement(artifact2Name))
 	})
 
 	It("podman artifact extract single", func() {

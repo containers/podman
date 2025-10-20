@@ -5,6 +5,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -42,9 +43,26 @@ func init() {
 
 func inspect(_ *cobra.Command, args []string) error {
 	artifactOptions := entities.ArtifactInspectOptions{}
-	inspectData, err := registry.ImageEngine().ArtifactInspect(registry.Context(), args[0], artifactOptions)
-	if err != nil {
-		return err
+
+	var prevErr error
+
+	for _, name := range args {
+		data, err := registry.ImageEngine().ArtifactInspect(registry.Context(), name, artifactOptions)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+			continue
+		}
+		// Print all successful inspections
+		if err := utils.PrintGenericJSON(data); err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
 	}
-	return utils.PrintGenericJSON(inspectData)
+
+	return prevErr
 }
