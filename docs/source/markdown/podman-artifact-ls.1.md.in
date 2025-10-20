@@ -18,6 +18,7 @@ Print results with a Go template.
 
 | **Placeholder** | **Description**                                |
 |-----------------|------------------------------------------------|
+| .Created        | Artifact creation time in human readable units |
 | .Digest         | The computed digest of the artifact's manifest |
 | .Repository     | Repository name of the artifact                |
 | .Size           | Size artifact in human readable units          |
@@ -33,24 +34,24 @@ Print results with a Go template.
 List artifacts in the local store
 ```
 $ podman artifact ls
-REPOSITORY                TAG         DIGEST             SIZE
-quay.io/artifact/foobar1  latest      ab609fad386d       2.097GB
-quay.io/artifact/foobar2  special     cd734b558ceb       12.58MB
+REPOSITORY                TAG         DIGEST             CREATED          SIZE
+quay.io/artifact/foobar1  latest      ab609fad386d       3 weeks ago      2.097GB
+quay.io/artifact/foobar2  special     cd734b558ceb       2 days ago       12.58MB
 ```
 
 List artifacts in the local store without truncating the digest
 ```
 $ podman artifact ls --no-trunc
-REPOSITORY                TAG         DIGEST                                                              SIZE
-quay.io/artifact/foobar1  latest      ab609fad386df1433f461b0643d9cf575560baf633809dcc9c190da6cc3a3c29    2.097GB
-quay.io/artifact/foobar2  special     cd734b558ceb8ccc0281ca76530e1dea1eb479407d3163f75fb601bffb6f73d0    12.58MB
+REPOSITORY                TAG         DIGEST                                                              CREATED          SIZE
+quay.io/artifact/foobar1  latest      ab609fad386df1433f461b0643d9cf575560baf633809dcc9c190da6cc3a3c29    3 weeks ago      2.097GB
+quay.io/artifact/foobar2  special     cd734b558ceb8ccc0281ca76530e1dea1eb479407d3163f75fb601bffb6f73d0    2 days ago       12.58MB
 ```
 
 List artifacts in the local store without the title header
 ```
 $ podman artifact ls --noheading
-quay.io/artifact/foobar1  latest      ab609fad386d       2.097GB
-quay.io/artifact/foobar2  special     cd734b558ceb       12.58MB
+quay.io/artifact/foobar1  latest      ab609fad386d       3 weeks ago      2.097GB
+quay.io/artifact/foobar2  special     cd734b558ceb       2 days ago       12.58MB
 ```
 
 List artifact digests and size using a --format

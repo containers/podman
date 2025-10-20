@@ -3,12 +3,14 @@ package artifact
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/go-units"
+	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/report"
@@ -36,6 +38,7 @@ type listFlagType struct {
 }
 
 type artifactListOutput struct {
+	Created     string
 	Digest      string
 	Repository  string
 	Size        string
@@ -44,7 +47,7 @@ type artifactListOutput struct {
 }
 
 var (
-	defaultArtifactListOutputFormat = "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.Digest}}\t{{.Size}}\n{{end -}}"
+	defaultArtifactListOutputFormat = "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.Digest}}\t{{.Created}}\t{{.Size}}\n{{end -}}"
 )
 
 func init() {
@@ -106,7 +109,18 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 			artifactHash = artifactDigest.Encoded()
 		}
 
+		// Get the created time from the manifest annotations
+		created := ""
+		if lr.Artifact.Manifest != nil && lr.Artifact.Manifest.Annotations != nil {
+			if createdStr, ok := lr.Artifact.Manifest.Annotations[imgspec.AnnotationCreated]; ok {
+				if createdTime, err := time.Parse(time.RFC3339Nano, createdStr); err == nil {
+					created = units.HumanDuration(time.Since(createdTime)) + " ago"
+				}
+			}
+		}
+
 		artifacts = append(artifacts, artifactListOutput{
+			Created:     created,
 			Digest:      artifactHash,
 			Repository:  named.Name(),
 			Size:        units.HumanSize(float64(lr.Artifact.TotalSizeBytes())),
@@ -116,10 +130,11 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 	}
 
 	headers := report.Headers(artifactListOutput{}, map[string]string{
-		"REPOSITORY": "REPOSITORY",
-		"Tag":        "TAG",
-		"Size":       "SIZE",
+		"Created":    "CREATED",
 		"Digest":     "DIGEST",
+		"Repository": "REPOSITORY",
+		"Size":       "SIZE",
+		"Tag":        "TAG",
 	})
 
 	rpt := report.New(os.Stdout, cmd.Name())

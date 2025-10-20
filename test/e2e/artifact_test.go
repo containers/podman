@@ -78,6 +78,19 @@ var _ = Describe("Podman artifact", func() {
 		// Verify if the virtual size values are present in the output
 		Expect(virtualSizes).To(ContainElement("4192"))
 		Expect(virtualSizes).To(ContainElement("10240"))
+
+		// Check if .Created is reported and is not "<unknown>"
+		createdFormatSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.Created}}")
+		createdTimes := createdFormatSession.OutputToStringArray()
+
+		// Should list 2 lines (without the header)
+		Expect(createdTimes).To(HaveLen(2))
+
+		// Verify the created times are not "<unknown>" and end with " ago"
+		for _, created := range createdTimes {
+			Expect(created).ToNot(Equal("<unknown>"))
+			Expect(created).To(HaveSuffix(" ago"))
+		}
 	})
 
 	It("podman artifact simple add", func() {
