@@ -201,6 +201,18 @@ func (r *Runtime) NewSecretEvent(status events.Status, secretID string) {
 	}
 }
 
+// NewArtifactEvent creates a new event for a libpod artifact
+func (r *Runtime) NewArtifactEvent(status events.Status, name, digest string, attr map[string]string){
+	e := events.NewEvent(status)
+	e.Type = events.Artifact
+	e.Name = name
+	e.ID = digest
+	e.Attributes = attr
+	if err := r.eventer.Write(e); err != nil {
+		logrus.Errorf("Unable to write artifact event: %q", err)
+	}
+}
+
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
 func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error {
