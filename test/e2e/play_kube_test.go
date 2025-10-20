@@ -222,6 +222,19 @@ spec:
       - sleep
       - "3600"`
 
+var simpleWithoutPodPrefixYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: libpod-test
+spec:
+  containers:
+  - name: simpleWithoutPodPrefix
+    image: ` + CITEST_IMAGE + `
+    command:
+      - sleep
+      - "3600"`
+
 var unknownKindYaml = `
 apiVersion: v1
 kind: UnknownKind
@@ -6419,5 +6432,14 @@ spec:
 		Expect(kube).To(ExitWithError(125, `cannot create file "foo" at volume mountpoint`))
 
 		Expect(testfile).ToNot(BeAnExistingFile(), "file should never be created on the host")
+	})
+
+	It("test container name without Pod name prefix", func() {
+		err := writeYaml(simpleWithoutPodPrefixYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", "--no-pod-prefix", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "simpleWithoutPodPrefix")
+		Expect(inspect.InspectContainerToJSON()[0].Name).Should(Equal("simpleWithoutPodPrefix"))
 	})
 })
