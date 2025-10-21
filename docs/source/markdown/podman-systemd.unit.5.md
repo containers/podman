@@ -1725,7 +1725,7 @@ Valid options for `[Build]` are listed below:
 | ForceRM=false                       | --force-rm=false                            |
 | GlobalArgs=--log-level=debug        | --log-level=debug                           |
 | GroupAdd=keep-groups                | --group-add=keep-groups                     |
-| IgnoreFile=/path/to/.customignore   | --ignorefile=/path/to/.customignore         |
+| IgnoreFile=/path/to/\.customignore  | --ignorefile=/path/to/\.customignore        |
 | ImageTag=localhost/imagename        | --tag=localhost/imagename                   |
 | Label=label                         | --label=label                               |
 | Network=host                        | --network=host                              |
