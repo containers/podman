@@ -1481,8 +1481,8 @@ func (p *PodmanTestIntegration) removeNetwork(name string) {
 
 // generatePolicyFile generates a signature verification policy file.
 // it returns the policy file path.
-func generatePolicyFile(tempDir string, port int) string {
-	keyPath := filepath.Join(tempDir, "key.gpg")
+func generatePolicyFile(tempDir string, port int, sequoiaKeyPath string) string {
+	gpgKeyPath := filepath.Join(tempDir, "key.gpg")
 	policyPath := filepath.Join(tempDir, "policy.json")
 	conf := fmt.Sprintf(`
 {
@@ -1511,11 +1511,18 @@ func generatePolicyFile(tempDir string, port int) string {
                     "type": "sigstoreSigned",
                     "keyPath": "testdata/sigstore-key.pub"
                 }
+            ],
+            "localhost:%[1]d/simple-sq-signed": [
+                {
+                    "type": "signedBy",
+                    "keyType": "GPGKeys",
+                    "keyPath": "%[3]s"
+                }
             ]
         }
     }
 }
-`, port, keyPath)
+`, port, gpgKeyPath, sequoiaKeyPath)
 	writeConf([]byte(conf), policyPath)
 	return policyPath
 }

@@ -95,6 +95,7 @@ validate-source_task:
         image_name: "${FEDORA_CACHE_IMAGE_NAME}"  # from stdenvars
     env:
         TEST_FLAVOR: validate-source
+        TEST_BUILD_TAGS: ""
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
     #       environment expectations in contrib/cirrus/lib.sh.  Specifically
     #       the 'origin' remote must be defined, and all remote branches/tags
@@ -151,11 +152,13 @@ build_task:
         # Ref: https://cirrus-ci.org/guide/writing-tasks/#matrix-modification
         - env: &stdenvars
               DISTRO_NV: ${FEDORA_NAME}
+              TEST_BUILD_TAGS: ""
               # Not used here, is used in other tasks
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              TEST_BUILD_TAGS: ""
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_DATABASE: boltdb
@@ -163,11 +166,13 @@ build_task:
         - env:
               <<: *stdenvars
               DISTRO_NV: ${RAWHIDE_NAME}
+              TEST_BUILD_TAGS: "containers_image_sequoia"
               VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
               CI_DESIRED_STORAGE: composefs
               CTR_FQIN: ""
         - env:
               DISTRO_NV: ${DEBIAN_NAME}
+              TEST_BUILD_TAGS: ""
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
     env:
         TEST_FLAVOR: build
@@ -209,6 +214,7 @@ build_aarch64_task:
         VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_FLAVOR: build
+        TEST_BUILD_TAGS: ""
     clone_script: *full_clone
     # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
     prebuild_script: *prebuild
@@ -236,6 +242,7 @@ alt_build_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
+        TEST_BUILD_TAGS: ""
     gce_instance: *fastvm
     matrix:
       - env:
@@ -399,6 +406,7 @@ bindings_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
+        TEST_BUILD_TAGS: ""
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc |
         cd /tmp
@@ -440,6 +448,7 @@ swagger_task:
         GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
         GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
         GCPPROJECT: 'libpod-218412'
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -533,6 +542,7 @@ docker-py_test_task:
         <<: *stdenvars
         TEST_FLAVOR: docker-py
         TEST_ENVIRON: container
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -565,6 +575,7 @@ unit_test_task:
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: unit
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -627,6 +638,7 @@ apiv2_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: apiv2
+        TEST_BUILD_TAGS: ""
     matrix:
       - env:
           PRIV_NAME: root
@@ -661,6 +673,7 @@ compose_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: compose_v2
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -733,6 +746,7 @@ container_integration_test_task:
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -777,6 +791,7 @@ podman_machine_task:
     env:
       EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
       TEST_FLAVOR: "machine-linux"
+      TEST_BUILD_TAGS: ""
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
       VM_IMAGE_NAME: "${FEDORA_AMI}"
@@ -796,6 +811,7 @@ podman_machine_aarch64_task:
     timeout_in: 30m
     env:
         TEST_FLAVOR: "machine-linux"
+        TEST_BUILD_TAGS: ""
         EC2_INST_TYPE: c6g.metal
         PRIV_NAME: "rootless"  # intended use-case
         DISTRO_NV: "${FEDORA_AARCH64_NAME}"
@@ -951,6 +967,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     env:
         <<: *stdenvars_aarch64
         TEST_FLAVOR: sys
+        TEST_BUILD_TAGS: ""
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
     clone_script: *get_gosrc_aarch64
     setup_script: *setup
@@ -1028,6 +1045,7 @@ farm_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: farm
+        TEST_BUILD_TAGS: ""
         PRIV_NAME: rootless
     clone_script: *get_gosrc
     setup_script: *setup
@@ -1050,6 +1068,7 @@ buildah_bud_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: bud
+        TEST_BUILD_TAGS: ""
     matrix:
         - env:
             PODBIN_NAME: podman
@@ -1087,6 +1106,7 @@ upgrade_test_task:
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
+        TEST_BUILD_TAGS: ""
         DISTRO_NV: ${FEDORA_NAME}
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         # Never force a DB, let the old version decide its default
@@ -1235,6 +1255,7 @@ release_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -1262,6 +1283,7 @@ release_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
+        TEST_BUILD_TAGS: ""
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main

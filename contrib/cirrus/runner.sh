@@ -213,7 +213,8 @@ function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
     showrun make vendor
-    showrun make -j $(nproc) --output-sync=target podman-release  # includes podman, podman-remote, and docs
+    # shellcheck disable=SC2154
+    showrun make -j $(nproc) --output-sync=target podman-release EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" # includes podman, podman-remote, and docs
 
     # There's no reason to validate-binaries across multiple linux platforms
     # shellcheck disable=SC2154
@@ -416,7 +417,7 @@ dotest() {
         die "The CI test TMPDIR is not on a tmpfs mount, we need tmpfs to make the tests faster"
     fi
 
-    showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
+    showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" \
         |& logformatter
 
     # FIXME: https://github.com/containers/podman/issues/22642
