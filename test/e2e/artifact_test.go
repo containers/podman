@@ -636,6 +636,18 @@ var _ = Describe("Podman artifact", func() {
 		// Verify we have 2 layers
 		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
+
+	It("podman artifact inspect with --format", func() {
+		artifact1File, err := createArtifactFile(4192)
+		Expect(err).ToNot(HaveOccurred())
+		artifact1Name := "localhost/test/artifact1"
+		addArtifact1 := podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		artifactDigest := addArtifact1.OutputToString()
+
+		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest, "--format", "{{.Digest}}")
+		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12], "--format", "{{.Name}}")
+	})
 })
 
 func digestToFilename(digest string) string {
