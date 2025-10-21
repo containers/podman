@@ -109,7 +109,7 @@ regardless of how the intermediate mapping is defined.
 
 Some mapping modifications may be cumbersome. For instance, a user
 starts with a mapping such as `--gidmap="0:0:65000"`, that needs to be
-changed such as the parent id `1000` is mapped to container id `100000`
+changed such as the parent id `1` is mapped to container id `100000`
 instead, leaving container id `1` unassigned. The corresponding `--gidmap`
 becomes `--gidmap="0:0:1" --gidmap="2:2:65534" --gidmap="100000:1:1"`.
 
