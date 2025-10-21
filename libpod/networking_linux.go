@@ -8,7 +8,6 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
@@ -29,9 +28,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
-	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)
 	}
@@ -59,17 +55,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 		}
 	}()
 
-	// set up rootless port forwarder when rootless with ports and the network status is empty,
-	// if this is called from network reload the network status will not be empty and we should
-	// not set up port because they are still active
-	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
-		// set up port forwarder for rootless netns
-		// TODO: support slirp4netns port forwarder as well
-		// make sure to fix this in container.handleRestartPolicy() as well
-		// Important we have to call this after r.setUpNetwork() so that
-		// we can use the proper netStatus
-		err = r.setupRootlessPortMappingViaRLK(ctr, ctrNS, netStatus)
-	}
 	return netStatus, err
 }
 

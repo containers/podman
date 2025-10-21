@@ -398,8 +398,8 @@ func checkAndOverrideIsolationOptions(isolation define.Isolation, options *RunOp
 	case IsolationOCIRootless:
 		// only change the netns if the caller did not set it
 		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns == nil {
-			if _, err := exec.LookPath("slirp4netns"); err != nil {
-				// if slirp4netns is not installed we have to use the hosts net namespace
+			if _, err := exec.LookPath("passt"); err != nil {
+				// if pasta is not installed we have to use the hosts net namespace
 				options.NamespaceOptions.AddOrReplace(define.NamespaceOption{Name: string(specs.NetworkNamespace), Host: true})
 			}
 		}

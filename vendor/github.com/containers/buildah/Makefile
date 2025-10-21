@@ -8,7 +8,7 @@ ifeq ($(shell uname -s),FreeBSD)
 # FreeBSD needs CNI until netavark is supported
 TAGS += cni
 endif
-BUILDTAGS += $(TAGS)
+BUILDTAGS += $(TAGS) $(EXTRA_BUILD_TAGS)
 PREFIX := /usr/local
 BINDIR := $(PREFIX)/bin
 BASHINSTALLDIR = $(PREFIX)/share/bash-completion/completions
@@ -37,8 +37,9 @@ SOURCE_DATE_EPOCH ?= $(if $(shell date +%s),$(shell date +%s),$(error "date fail
 COMMENT := \#
 CNI_COMMIT := $(shell sed -n 's;^$(COMMENT) github.com/containernetworking/cni \([^ \n]*\).*$$;\1;p' vendor/modules.txt)
 
+SEQUOIA_SONAME_DIR =
 EXTRA_LDFLAGS ?=
-BUILDAH_LDFLAGS := $(GO_LDFLAGS) '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
+BUILDAH_LDFLAGS := $(GO_LDFLAGS) '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) -X go.podman.io/image/v5/signature/internal/sequoia.sequoiaLibraryDir="$(SEQUOIA_SONAME_DIR)" $(EXTRA_LDFLAGS)'
 
 # This isn't what we actually build; it's a superset, used for target
 # dependencies. Basically: all *.go and *.c files, except *_test.go,

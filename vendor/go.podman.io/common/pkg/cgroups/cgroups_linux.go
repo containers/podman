@@ -554,7 +554,7 @@ func SystemCPUUsage() (uint64, error) {
 	return total, nil
 }
 
-// IsCgroup2UnifiedMode returns whether we are running in cgroup 2 cgroup2 mode.
+// IsCgroup2UnifiedMode returns whether we are running in cgroup 2 unified mode.
 func IsCgroup2UnifiedMode() (bool, error) {
 	isUnifiedOnce.Do(func() {
 		var st syscall.Statfs_t

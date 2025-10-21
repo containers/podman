@@ -55,7 +55,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
 	github.com/opencontainers/selinux v1.12.0
-	github.com/openshift/imagebuilder v1.2.17
+	github.com/openshift/imagebuilder v1.2.19
 	github.com/rootless-containers/rootlesskit/v2 v2.3.5
 	github.com/shirou/gopsutil/v4 v4.25.9
 	github.com/sirupsen/logrus v1.9.3
@@ -193,6 +193,6 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
 
-replace go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20251017191154-e63ca540eafe
+replace go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20251021180701-90bb6920858f
 
-replace github.com/containers/buildah => github.com/lsm5/buildah v0.0.0-20251017145416-1c35ea0ae809
+replace github.com/containers/buildah => github.com/lsm5/buildah v0.0.0-20251021181103-9374d7fa4e33

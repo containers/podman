@@ -2262,7 +2262,7 @@ func (c *Container) addResolvConf() error {
 			// add the nameservers from the networks status
 			nameservers = networkNameServers
 		} else {
-			// pasta and slirp4netns have a built in DNS forwarder.
+			// pasta has a built in DNS forwarder.
 			nameservers = c.addSpecialDNS(nameservers)
 		}
 	}
@@ -2317,12 +2317,7 @@ func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) bool {
 			}
 		}
 	}
-
-	if c.pastaResult != nil {
-		return c.pastaResult.IPv6
-	}
-
-	return c.isSlirp4netnsIPv6()
+	return c.pastaResult.IPv6
 }
 
 // Add a new nameserver to the container's resolv.conf, ensuring that it is the
@@ -2384,12 +2379,6 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 		if len(c.pastaResult.IPAddresses) > 0 {
 			entries = etchosts.HostEntries{{IP: c.pastaResult.IPAddresses[0].String(), Names: names}}
 		}
-	case c.config.NetMode.IsSlirp4netns():
-		ip, err := getSlirp4netnsIP(c.slirp4netnsSubnet)
-		if err != nil {
-			return nil, err
-		}
-		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
 	default:
 		if c.hasNetNone() {
 			entries = etchosts.HostEntries{{IP: "127.0.0.1", Names: names}}

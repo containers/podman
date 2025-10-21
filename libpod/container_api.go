@@ -928,7 +928,7 @@ func (c *Container) Sync() error {
 // reloaded, and existing rules have been wiped out. It is expected that some
 // downtime will result, as the rules are destroyed as part of this process.
 // At present, this only works on root containers; it may be expanded to restart
-// slirp4netns in the future to work with rootless containers as well.
+// pasta(?) in the future to work with rootless containers as well.
 // Requires that the container must be running or created.
 func (c *Container) ReloadNetwork() error {
 	if !c.batched {

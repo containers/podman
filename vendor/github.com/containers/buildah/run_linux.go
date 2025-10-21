@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
@@ -33,7 +32,6 @@ import (
 	"go.podman.io/common/libnetwork/etchosts"
 	"go.podman.io/common/libnetwork/pasta"
 	"go.podman.io/common/libnetwork/resolvconf"
-	"go.podman.io/common/libnetwork/slirp4netns"
 	nettypes "go.podman.io/common/libnetwork/types"
 	netUtil "go.podman.io/common/libnetwork/util"
 	"go.podman.io/common/pkg/capabilities"
@@ -693,46 +691,6 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 	return nil
 }
 
-func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options, hostnames []string) (func(), *netResult, error) {
-	// we need the TmpDir for the slirp4netns code
-	if err := os.MkdirAll(config.Engine.TmpDir, 0o751); err != nil {
-		return nil, nil, fmt.Errorf("failed to create tempdir: %w", err)
-	}
-	res, err := slirp4netns.Setup(&slirp4netns.SetupOptions{
-		Config:       config,
-		ContainerID:  cid,
-		Netns:        netns,
-		ExtraOptions: options,
-		Pdeathsig:    syscall.SIGKILL,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ip, err := slirp4netns.GetIP(res.Subnet)
-	if err != nil {
-		return nil, nil, fmt.Errorf("get slirp4netns ip: %w", err)
-	}
-
-	dns, err := slirp4netns.GetDNS(res.Subnet)
-	if err != nil {
-		return nil, nil, fmt.Errorf("get slirp4netns dns ip: %w", err)
-	}
-
-	result := &netResult{
-		entries:           etchosts.HostEntries{{IP: ip.String(), Names: hostnames}},
-		dnsServers:        []string{dns.String()},
-		ipv6:              res.IPv6,
-		keepHostResolvers: true,
-	}
-
-	return func() {
-		syscall.Kill(res.Pid, syscall.SIGKILL) //nolint:errcheck
-		var status syscall.WaitStatus
-		syscall.Wait4(res.Pid, &status, 0, nil) //nolint:errcheck
-	}, result, nil
-}
-
 func setupPasta(config *config.Config, netns string, options, hostnames []string) (func(), *netResult, error) {
 	res, err := pasta.Setup(&pasta.SetupOptions{
 		Config:       config,
@@ -780,8 +738,6 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 	}
 	if isolation == IsolationOCIRootless && name == "" {
 		switch defConfig.Network.DefaultRootlessNetworkCmd {
-		case slirp4netns.BinaryName, "":
-			name = slirp4netns.BinaryName
 		case pasta.BinaryName:
 			name = pasta.BinaryName
 		default:
@@ -791,8 +747,6 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 	}
 
 	switch {
-	case name == slirp4netns.BinaryName:
-		return setupSlirp4netnsNetwork(defConfig, netns, containerName, netOpts, hostnames)
 	case name == pasta.BinaryName:
 		return setupPasta(defConfig, netns, netOpts, hostnames)
 

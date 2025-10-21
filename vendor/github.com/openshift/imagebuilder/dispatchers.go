@@ -562,12 +562,12 @@ func expose(b *Builder, args []string, attributes map[string]bool, flagArgs []st
 
 	existing := map[string]struct{}{}
 	for k := range b.RunConfig.ExposedPorts {
-		existing[k.Port()] = struct{}{}
+		existing[k.Port()+"/"+k.Proto()] = struct{}{}
 	}
 
 	for _, port := range args {
 		dp := docker.Port(port)
-		if _, exists := existing[dp.Port()]; !exists {
+		if _, exists := existing[dp.Port()+"/"+dp.Proto()]; !exists {
 			b.RunConfig.ExposedPorts[docker.Port(fmt.Sprintf("%s/%s", dp.Port(), dp.Proto()))] = struct{}{}
 		}
 	}
