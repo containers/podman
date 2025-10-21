@@ -144,6 +144,21 @@ func setup() (string, *machineTestBuilder) {
 		if err := os.Setenv("USERPROFILE", homeDir); err != nil {
 			Fail("unable to set home dir on windows")
 		}
+		if testProvider.VMType() == define.WSLVirt {
+			// create file $USERPROFILE/.wslconfig
+			// https://github.com/microsoft/WSL/issues/13301#issuecomment-3367452109
+			wslconfig, err := os.Create(filepath.Join(homeDir, ".wslconfig"))
+			if err != nil {
+				Fail(fmt.Sprintf("failed to create wslconfig file: %q", err))
+			}
+			_, err = wslconfig.WriteString("[wsl]\nkernelCommandLine=WSL_DEBUG=hvsocket WSL_SOCKET_LOG=1\nkernelBootTimeout=300000")
+			if err != nil {
+				Fail(fmt.Sprintf("failed to write wslconfig file: %q", err))
+			}
+			if err := wslconfig.Close(); err != nil {
+				Fail(fmt.Sprintf("failed to close wslconfig file: %q", err))
+			}
+		}
 	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", homeDir); err != nil {
 		Fail("failed to set xdg_runtime dir")

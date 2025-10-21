@@ -39,11 +39,18 @@ if ($LogProfile -eq $null -Or ![System.IO.File]::Exists($LogProfile))
 {
     if ($LogProfile -eq $null)
     {
+        Write-Host "`nWSL Log profile is default."
         $url = "https://raw.githubusercontent.com/microsoft/WSL/master/diagnostics/wsl.wprp"
     }
     elseif ($LogProfile -eq "storage")
     {
+         Write-Host "`nWSL Log profile is storage."
          $url = "https://raw.githubusercontent.com/microsoft/WSL/master/diagnostics/wsl_storage.wprp"
+    }
+    elseif ($LogProfile -eq "hvsocket")
+    {
+         Write-Host "`nWSL Log profile is hvsocket."
+         $url = "https://raw.githubusercontent.com/microsoft/WSL/master/diagnostics/wsl_hvsocket.wprp"
     }
     else
     {
