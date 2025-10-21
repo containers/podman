@@ -36,6 +36,7 @@ podman quadlet install https://github.com/containers/podman/blob/main/test/e2e/q
 func installFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&installOptions.ReloadSystemd, "reload-systemd", true, "Reload systemd after installing Quadlets")
+	flags.BoolVarP(&installOptions.Replace, "replace", "r", false, "Replace the installation even if the quadlet already exists")
 }
 
 func init() {

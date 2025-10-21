@@ -4,6 +4,8 @@ package entities
 type QuadletInstallOptions struct {
 	// Whether to reload systemd after installation is completed
 	ReloadSystemd bool
+	// Replace the installation even if the quadlet already exists
+	Replace bool
 }
 
 // QuadletInstallReport contains the output of the `quadlet install` command
