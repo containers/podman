@@ -15,6 +15,9 @@
 %define qemu 1
 # bats is included in the default repos (No epel/copr etc.)
 %define distro_bats 1
+%if %{?fedora} >= 43
+%define sequoia 1
+%endif
 %endif
 
 %if %{defined copr_username}
@@ -109,6 +112,10 @@ Requires: containers-common-extra >= 5:0.58.0-1
 %else
 Requires: containers-common-extra
 %endif
+%if %{defined sequoia}
+Requires: podman-sequoia
+%endif
+
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
 Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}
 
@@ -265,6 +272,11 @@ export BASEBUILDTAGS="$BASEBUILDTAGS libtrust_openssl"
 
 # build %%{name}
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh)"
+
+%if %{defined sequoia}
+export BUILDTAGS="$BUILDTAGS containers_image_sequoia"
+%endif
+
 %gobuild -o bin/%{name} ./cmd/%{name}
 
 # build %%{name}-remote
