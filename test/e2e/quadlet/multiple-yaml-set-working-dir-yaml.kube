@@ -1,3 +1,6 @@
+## assert-failed
+## assert-stderr-contains "SetWorkingDirectory=yaml is only supported when a single Yaml key is provided"
+
 [Kube]
 Yaml=foo.yml
 Yaml=bar.yml

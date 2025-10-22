@@ -1140,7 +1140,7 @@ BOGUS=foo
 		Entry("Volume - Quadlet image (.image) not found", "image-not-found.quadlet.volume", "converting \"image-not-found.quadlet.volume\": requested Quadlet image not-found.image was not found"),
 
 		Entry("Kube - User Remap Manual", "remap-manual.kube", "converting \"remap-manual.kube\": RemapUsers=manual is not supported"),
-		Entry("Kube - Multiple Yaml and SetWorkingDir=yaml", "multiple-yaml-set-working-dir-yaml.kube", "converting \"multiple-yaml-set-working-dir-yaml.kube\": SetWorkingDirectory=yaml is only supported when a single Yaml key is provided quadlet-generator"),
+		Entry("Kube - Multiple Yaml and SetWorkingDir=yaml", "multiple-yaml-set-working-dir-yaml.kube", "converting \"multiple-yaml-set-working-dir-yaml.kube\": SetWorkingDirectory=yaml is only supported when a single Yaml key is provided"),
 
 		Entry("Network - Gateway not enough Subnet", "gateway.less-subnet.network", "converting \"gateway.less-subnet.network\": cannot set more gateways than subnets"),
 		Entry("Network - Gateway without Subnet", "gateway.no-subnet.network", "converting \"gateway.no-subnet.network\": cannot set gateway or range without subnet"),
