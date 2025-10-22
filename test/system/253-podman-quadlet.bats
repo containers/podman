@@ -75,6 +75,10 @@ EOF
     run_podman quadlet print alpine-quadlet.container
     assert "$output" == "$(<$quadlet_file)" "print output matches quadlet file"
 
+    # Test quadlet cat
+    run_podman quadlet cat alpine-quadlet.container
+    assert "$output" == "$(<$quadlet_file)" "cat output matches quadlet file"
+
     # Test quadlet rm
     run_podman quadlet rm alpine-quadlet.container
     # Verify remove output contains the quadlet name on a single line

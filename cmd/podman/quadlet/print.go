@@ -17,6 +17,7 @@ var (
 		Long:              quadletPrintDescription,
 		RunE:              print,
 		ValidArgsFunction: common.AutocompleteQuadlets,
+		Aliases:           []string{"cat"},
 		Args:              cobra.ExactArgs(1),
 		Example: `podman quadlet print myquadlet.container
 podman quadlet print mypod.pod
