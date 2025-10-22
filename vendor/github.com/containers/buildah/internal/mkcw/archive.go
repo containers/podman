@@ -543,7 +543,7 @@ func slop(size int64, slop string) int64 {
 	if slop == "" {
 		return size * 5 / 4
 	}
-	for _, factor := range strings.Split(slop, "+") {
+	for factor := range strings.SplitSeq(slop, "+") {
 		factor = strings.TrimSpace(factor)
 		if factor == "" {
 			continue

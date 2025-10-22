@@ -156,7 +156,10 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 	}
 	tlsClientConfig.InsecureSkipVerify = insecureSkipTLSVerify == types.OptionalBoolTrue
 
-	tr := &http.Transport{TLSClientConfig: tlsClientConfig}
+	tr := &http.Transport{
+		TLSClientConfig: tlsClientConfig,
+		Proxy:           http.ProxyFromEnvironment,
+	}
 	httpClient := &http.Client{Transport: tr}
 	response, err := httpClient.Get(src)
 	if err != nil {

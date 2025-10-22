@@ -1,3 +1,92 @@
+- Changelog for v1.42.0 (2025-10-17)
+  * Bump to storage v1.61.0, image v5.38.0, common v0.66.0
+  * fix(deps): update module github.com/openshift/imagebuilder to v1.2.19
+  * fix(deps): update module github.com/openshift/imagebuilder to v1.2.18
+  * copier: ignore user.overlay.* xattrs
+  * commit: always return the config digest as the image ID
+  * fix(deps): update module golang.org/x/crypto to v0.43.0
+  * fix(deps): update module golang.org/x/sys to v0.37.0
+  * fix(deps): update module github.com/docker/docker to v28.5.1+incompatible
+  * fix(deps): update module github.com/moby/buildkit to v0.25.1
+  * fix(deps): update module github.com/opencontainers/runc to v1.3.2
+  * fix(deps): update module github.com/docker/docker to v28.5.0+incompatible
+  * fix(deps): update module github.com/moby/buildkit to v0.25.0
+  * fix(deps): update github.com/containers/luksy digest to 2cf5bc9
+  * Make some test files different from each other
+  * Revert "fix(deps): update module github.com/cyphar/filepath-securejoin to v0.5.0"
+  * Also run integration tests with the Sequoia backend
+  * Allow users to build against podman-sequoia in non-default locations
+  * fix(deps): update module github.com/cyphar/filepath-securejoin to v0.5.0
+  * .cirrus.yml: Test Vendoring bump golang
+  * vendor: bump go.podman.io/{common,image,storage} to main
+  * fix(deps): update module golang.org/x/crypto to v0.42.0
+  * fix(deps): update module github.com/docker/docker to v28.4.0+incompatible
+  * fix(deps): update module github.com/moby/buildkit to v0.24.0
+  * fix(deps): update module github.com/spf13/pflag to v1.0.10
+  * fix(deps): update module github.com/fsouza/go-dockerclient to v1.12.2
+  * fix(deps): update module github.com/opencontainers/runc to v1.3.1
+  * fix(deps): update module github.com/opencontainers/cgroups to v0.0.5
+  * fix(deps): update module golang.org/x/sync to v0.17.0
+  * tests/run.bats: "run masks" test: accept "unreadable" masked directories
+  * Run: create parent directories of mount targets with mode 0755
+  * tests/run.bats: "run masks" test: accept "unreadable" masked directories
+  * New VM images
+  * Suppress a linter warning
+  * modernize: JSON doesn't do "omitempty" structs, so stop asking
+  * modernize: use maps.Copy() instead of iterating over a map to copy it
+  * modernize: use strings.CutPrefix/SplitSeq/FieldsSeq
+  * Update expected/minimum version of Go to 1.24
+  * chroot: use $PATH when finding commands
+  * [skip-ci] Update actions/stale action to v10
+  * Update module github.com/ulikunitz/xz to v0.5.15 [SECURITY]
+  * Update go.sum
+  * New VM images
+  * Update module github.com/openshift/imagebuilder to v1
+  * Update module github.com/spf13/cobra to v1.10.1
+  * Switch common, storage and image to monorepo.
+  * Update module github.com/stretchr/testify to v1.11.1
+  * Update module go.etcd.io/bbolt to v1.4.3
+  * Handle tagged+digested references when processing --all-platforms
+  * Update module github.com/stretchr/testify to v1.11.0
+  * Add --transient-store global option
+  * Support "--imagestore" global flags
+  * Commit: don't depend on MountImage(), because .imagestore
+  * Adding mohanboddu as community manager to MAINTAINERS.md
+  * Rework how we decide what to filter out of layer diffs
+  * Note that we have to build `true` first for the sake of its tests
+  * copier.Stat(): return owner UID and GID if available
+  * copier.Get(): ensure that directory entries end in "/"
+  * copier.Get(): strip user and group names from entries
+  * imagebuildah.Executor/StageExecutor: check numeric --from= values
+  * Losen the dependency on go-connections/tlsconfig
+  * fix(deps): update module golang.org/x/crypto to v0.41.0
+  * fix(deps): update module golang.org/x/term to v0.34.0
+  * fix(deps): update module github.com/docker/go-connections to v0.6.0
+  * fix(deps): update module golang.org/x/sys to v0.35.0
+  * copy: assume a destination with basename "." is a directory
+  * generatePathChecksum: ignore ModTime, AccessTime and ChangeTime
+  * fix(deps): update module github.com/seccomp/libseccomp-golang to v0.11.1
+  * fix(deps): update module github.com/containers/common to v0.64.1
+  * History should note unset-label, timestamp, and rewrite-timestamp
+  * pkg/cli.GenBuildOptions(): don't hardwire optional bools
+  * fix(deps): update module github.com/containers/image/v5 to v5.36.1
+  * imagebuildah.StageExecutor.Execute: commit more "no instructions" cases
+  * fix(deps): update module github.com/containers/storage to v1.59.1
+  * Only suppress "noted" items when not squashing
+  * Reap stray processes
+  * fix(deps): update github.com/containers/luksy digest to 8fccf78
+  * fix(deps): update module github.com/docker/docker to v28.3.3+incompatible
+  * Restore the default meaning of `--pull` (should be `always`).
+  * Test that pulled up parent directories are excluded at commit
+  * Exclude pulled up parent directories at commit-time
+  * copier.Ensure(): also return parent directories
+  * copier.MkdirOptions: add ModTimeNew
+  * fix(deps): update module github.com/containers/common to v0.64.0
+  * Bump to Buildah v1.42.0-dev
+  * fix(deps): update module github.com/spf13/pflag to v1.0.7
+  * CI: make runc tests non-blocking
+  * build,add: add support for corporate proxies
+
 - Changelog for v1.41.0 (2025-07-16)
   * Bump to c/storage v1.59.0, c/image v5.36.0, ... c/common v0.64.0
   * stage_executor: check platform of cache candidates

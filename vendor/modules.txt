@@ -78,8 +78,8 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.8.0
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.41.1-0.20250829135344-3367a9bc2c9f
-## explicit; go 1.23.3
+# github.com/containers/buildah v1.42.0
+## explicit; go 1.24.2
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -128,8 +128,8 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e
-## explicit; go 1.23.0
+# github.com/containers/luksy v0.0.0-20250910190358-2cf5bc928957
+## explicit; go 1.24.0
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.1
 ## explicit; go 1.22
@@ -236,9 +236,7 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
-github.com/docker/docker/pkg/archive
 github.com/docker/docker/pkg/homedir
-github.com/docker/docker/pkg/idtools
 github.com/docker/docker/pkg/jsonmessage
 github.com/docker/docker/pkg/meminfo
 github.com/docker/docker/pkg/namesgenerator
@@ -274,8 +272,8 @@ github.com/felixge/httpsnoop
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
 github.com/fsnotify/fsnotify/internal
-# github.com/fsouza/go-dockerclient v1.12.1
-## explicit; go 1.23
+# github.com/fsouza/go-dockerclient v1.12.2
+## explicit; go 1.24.0
 github.com/fsouza/go-dockerclient
 # github.com/go-jose/go-jose/v4 v4.0.5
 ## explicit; go 1.21
@@ -428,8 +426,8 @@ github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs/v3 v3.1.0
 ## explicit; go 1.14
 github.com/mistifyio/go-zfs/v3
-# github.com/moby/buildkit v0.23.2
-## explicit; go 1.23.0
+# github.com/moby/buildkit v0.25.1
+## explicit; go 1.24.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
 github.com/moby/buildkit/frontend/dockerfile/shell
@@ -553,7 +551,7 @@ github.com/opencontainers/runtime-tools/validate/capabilities
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.16-0.20250828154754-e22ebd3ff511
+# github.com/openshift/imagebuilder v1.2.19
 ## explicit; go 1.23.3
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
@@ -742,7 +740,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.65.1-0.20251016162239-c4c5e00ad22d
+# go.podman.io/common v0.66.0
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -812,7 +810,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.37.1-0.20251016133615-aa970d2c7532
+# go.podman.io/image/v5 v5.38.0
 ## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -886,7 +884,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.60.1-0.20251016133615-aa970d2c7532
+# go.podman.io/storage v1.61.0
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
