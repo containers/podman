@@ -66,7 +66,7 @@ timeout_in: 20m
 
 gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
 
-aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241e895dbf1737580b4d84eed27a311a2b74287ef9f79f]
+aws_credentials: ENCRYPTED[b4127fef212e5bc38dd3d96eff17440f2c62d6d04219fa97fa7acdcd81475352e70a34863705b5e01289fdc4012d5ee2]
 
 # N/B: This matrix of build tasks are critical to CI, along with the following
 # aarch64 task. They build binaries for all CI platforms, and versions. On
