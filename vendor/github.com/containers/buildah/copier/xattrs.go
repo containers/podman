@@ -21,6 +21,7 @@ const (
 
 var (
 	relevantAttributes    = []string{"security.capability", imaXattr, "user.*"} // the attributes that we preserve - we discard others
+	irrelevantAttributes  = []string{"user.overlay.*"}                          // the attributes that we discard, even from the relevantAttributes list
 	initialXattrListSize  = 64 * 1024
 	initialXattrValueSize = 64 * 1024
 )
@@ -32,6 +33,13 @@ func isRelevantXattr(attribute string) bool {
 		matched, err := filepath.Match(relevant, attribute)
 		if err != nil || !matched {
 			continue
+		}
+		for _, irrelevant := range irrelevantAttributes {
+			matched, err := filepath.Match(irrelevant, attribute)
+			if err != nil || !matched {
+				continue
+			}
+			return false
 		}
 		return true
 	}
@@ -65,7 +73,7 @@ func Lgetxattrs(path string) (map[string]string, error) {
 		return nil, fmt.Errorf("unable to read list of attributes for %q: size would have been too big", path)
 	}
 	m := make(map[string]string)
-	for _, attribute := range strings.Split(string(list), string('\000')) {
+	for attribute := range strings.SplitSeq(string(list), string('\000')) {
 		if isRelevantXattr(attribute) {
 			attributeSize := initialXattrValueSize
 			var attributeValue []byte

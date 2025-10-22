@@ -403,6 +403,14 @@ func (b *Builder) extractHeadingArgsFromNode(node *parser.Node) error {
 	// Use a separate builder to evaluate the heading args
 	tempBuilder := NewBuilder(b.UserArgs)
 
+	// Built-in ARGs are declared implicitly in the heading and should be resolvable in its scope
+	for k, v := range tempBuilder.BuiltinArgDefaults {
+		tempBuilder.AllowedArgs[k] = true
+		if _, ok := tempBuilder.Args[k]; !ok {
+			tempBuilder.Args[k] = v
+		}
+	}
+
 	// Evaluate all the heading arg commands
 	for _, c := range args {
 		step := tempBuilder.Step()

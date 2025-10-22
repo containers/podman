@@ -240,8 +240,8 @@ func GenerateMeasurement(workloadConfig WorkloadConfig, firmwareLibrary string) 
 			scanner := bufio.NewScanner(&stdout)
 			for scanner.Scan() {
 				line := scanner.Text()
-				if strings.HasPrefix(line, prefix+":") {
-					return strings.TrimSpace(strings.TrimPrefix(line, prefix+":")), nil
+				if after, ok := strings.CutPrefix(line, prefix+":"); ok {
+					return strings.TrimSpace(after), nil
 				}
 			}
 			return "", fmt.Errorf("generating measurement: no line starting with %q found in output from krunfw_measurement", prefix+":")
