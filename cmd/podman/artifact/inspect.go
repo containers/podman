@@ -14,11 +14,11 @@ import (
 
 var (
 	inspectCmd = &cobra.Command{
-		Use:               "inspect [ARTIFACT...]",
+		Use:               "inspect [options] ARTIFACT",
 		Short:             "Inspect an OCI artifact",
 		Long:              "Provide details on an OCI artifact",
 		RunE:              artifactInspect,
-		Args:              cobra.MinimumNArgs(1),
+		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteArtifacts,
 		Example:           `podman artifact inspect quay.io/myimage/myartifact:latest`,
 	}

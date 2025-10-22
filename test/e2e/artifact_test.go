@@ -645,8 +645,10 @@ var _ = Describe("Podman artifact", func() {
 
 		artifactDigest := addArtifact1.OutputToString()
 
-		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest, "--format", "{{.Digest}}")
-		podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12], "--format", "{{.Name}}")
+		session := podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest, "--format", "{{.Digest}}")
+		Expect(session.OutputToString()).To(Equal("sha256:" + artifactDigest))
+		session = podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12], "-f", "{{.Name}}")
+		Expect(session.OutputToString()).To(Equal(artifact1Name))
 	})
 })
 

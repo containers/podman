@@ -12,6 +12,7 @@ function teardown() {
     run_podman '?' secret rm "s-$(safename)"
     run_podman '?' pod rm -f "p-$(safename)"
     run_podman '?' rm -f -t0 "c-$(safename)"
+    run_podman '?' artifact rm "a-$(safename)"
 
     basic_teardown
 }
@@ -125,10 +126,12 @@ function check_subcommand() {
     ctrname="c-$(safename)"
     podname="p-$(safename)"
     secretname="s-$(safename)"
+    artifactname="a-$(safename)"
     # Setup: some commands need a container, pod, secret, ...
     run_podman run -d --name $ctrname $IMAGE top
     run_podman pod create $podname
     run_podman secret create $secretname /etc/hosts
+    run_podman artifact add $artifactname /etc/hosts
 
     # For 'search' and 'image search': if local cache registry is available,
     # use it. This bypasses quay, and thus prevents flakes.
@@ -147,7 +150,7 @@ image inspect     | $IMAGE
 container inspect | $ctrname
 inspect           | $ctrname
 
-
+artifact inspect  | $artifactname
 volume inspect    | -a
 secret inspect    | $secretname
 network inspect   | podman
@@ -200,6 +203,7 @@ stats             | --no-stream
     run_podman rm -f -t0 $ctrname
     run_podman secret rm $secretname
     run_podman '?' machine rm -f $machinename
+    run_podman artifact rm $artifactname
 
     # Make sure there are no leftover commands in our table - this would
     # indicate a typo in the table, or a flaw in our logic such that

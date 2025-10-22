@@ -4,7 +4,7 @@
 podman\-artifact\-inspect - Inspect an OCI artifact
 
 ## SYNOPSIS
-**podman artifact inspect** [*name*] ...
+**podman artifact inspect** *name*
 
 ## DESCRIPTION
 
@@ -34,6 +34,10 @@ Valid placeholders for the Go template are listed below:
 | .Manifest ...            | Artifact manifest details (struct)                 |
 | .Name                    | Artifact name (string)                             |
 | .TotalSizeBytes          | Total Size of the artifact in bytes                |
+
+#### **--help**, **-h**
+
+Print usage statement
 
 ## EXAMPLES
 
