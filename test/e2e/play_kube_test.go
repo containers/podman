@@ -2394,6 +2394,45 @@ var _ = Describe("Podman kube play", func() {
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
 	})
 
+	It("all arguments should be read", func() {
+		pods := []string{"testPod1", "testPod2", "testPod3", "testPod4"}
+		cmd := []string{"kube", "play"}
+
+		for _, name := range pods {
+			kubeYaml = filepath.Join(podmanTest.TempDir, name+".yaml")
+
+			cmd = append(cmd, kubeYaml)
+
+			pod := getPod(withPodName(name))
+
+			err := generateKubeYaml("pod", pod, kubeYaml)
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		podmanTest.PodmanExitCleanly(cmd...)
+
+		ids := []string{}
+		for _, name := range pods {
+			inspect := podmanTest.PodmanExitCleanly(
+				"pod", "inspect", "--format", "{{.ID}}@{{.Name}}:{{.State}}", name,
+			)
+			output := inspect.OutputToString()
+			id, state, found := strings.Cut(output, "@")
+			Expect(found).To(BeTrue())
+			Expect(state).To(Equal(name + ":Running"))
+			ids = append(ids, id)
+
+		}
+
+		teardownCmd := []string{"kube", "down"}
+		teardownCmd = append(teardownCmd, cmd[2:]...)
+		teardown := podmanTest.PodmanExitCleanly(teardownCmd...)
+		teardownOutput := teardown.OutputToString()
+		for _, id := range ids {
+			Expect(teardownOutput).Should(ContainSubstring(id))
+		}
+	})
+
 	It("[play kube] fail with yaml of unsupported kind", func() {
 		err := writeYaml(unknownKindYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
