@@ -176,7 +176,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	default:
 		// Landing here implies user has given a custom --format
 		var rpt *report.Formatter
-		format := inspectNormalize(i.options.Format, i.options.Type)
+		format := InspectNormalize(i.options.Format, i.options.Type)
 		rpt, err = report.New(os.Stdout, "inspect").Parse(report.OriginUser, format)
 		if err != nil {
 			return err
@@ -258,7 +258,22 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]any,
 	return data, allErrs, nil
 }
 
-func inspectNormalize(row string, inspectType string) string {
+// InspectNormalize modifies a given row string based on the specified inspect type.
+// It replaces specific field names within the row string for standardization.
+// For the `image` inspect type, it includes additional field replacements like `.Config.Healthcheck`.
+//
+// Parameters:
+// - row: The input string that represents a data row to be modified.
+// - inspectType: The type of inspection (e.g., "image") to determine specific replacements.
+//
+// Returns:
+// - A new string with the necessary replacements applied based on the inspect type.
+//
+// InspectNormalize does not need to be exported but to avoid de-duplication of code. We had to export it.
+// It can be reverted back once `podman artifact inspect` can use [Inspect] to fetch artifact data instead of
+// fetching it itself.
+// The reason why we did it in this way can be further read [here](https://github.com/containers/podman/pull/27182#issuecomment-3402465389).
+func InspectNormalize(row string, inspectType string) string {
 	m := regexp.MustCompile(`{{\s*\.Id\s*}}`)
 	row = m.ReplaceAllString(row, "{{.ID}}")
 
