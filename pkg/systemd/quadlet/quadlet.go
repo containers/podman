@@ -1201,14 +1201,19 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 		return nil, err
 	}
 
-	yamlPath, ok := kube.Lookup(KubeGroup, KeyYaml)
-	if !ok || len(yamlPath) == 0 {
+	yamlPaths := kube.LookupAllStrv(KubeGroup, KeyYaml)
+	if len(yamlPaths) == 0 {
 		return nil, fmt.Errorf("no Yaml key specified")
 	}
 
-	yamlPath, err = getAbsolutePath(kube, yamlPath)
-	if err != nil {
-		return nil, err
+	// Convert all yaml paths to absolute paths
+	absoluteYamlPaths := make([]string, 0, len(yamlPaths))
+	for _, yamlPath := range yamlPaths {
+		absPath, err := getAbsolutePath(kube, yamlPath)
+		if err != nil {
+			return nil, err
+		}
+		absoluteYamlPaths = append(absoluteYamlPaths, absPath)
 	}
 
 	// Only allow mixed or control-group, as nothing else works well
@@ -1293,7 +1298,8 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 
 	handlePodmanArgs(kube, KubeGroup, execStart)
 
-	execStart.add(yamlPath)
+	// Add all YAML file paths to the command
+	execStart.add(absoluteYamlPaths...)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
 
@@ -1307,7 +1313,8 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 		execStop.addBool("--force", kubeDownForce)
 	}
 
-	execStop.add(yamlPath)
+	// Add all YAML file paths to the stop command
+	execStop.add(absoluteYamlPaths...)
 	service.AddCmdline(ServiceGroup, "ExecStopPost", execStop.Args)
 
 	_, err = handleSetWorkingDirectory(kube, service, KubeGroup)
@@ -1988,10 +1995,14 @@ func handleSetWorkingDirectory(quadletUnitFile, serviceUnitFile *parser.UnitFile
 			return "", fmt.Errorf("SetWorkingDirectory=%s is only supported in .kube files", setWorkingDirectory)
 		}
 
-		relativeToFile, ok = quadletUnitFile.Lookup(quadletGroup, KeyYaml)
-		if !ok {
+		yamlPaths := quadletUnitFile.LookupAllStrv(KubeGroup, KeyYaml)
+		if len(yamlPaths) == 0 {
 			return "", fmt.Errorf("no Yaml key specified")
+		} else if len(yamlPaths) != 1 {
+			return "", fmt.Errorf("SetWorkingDirectory=yaml is only supported when a single Yaml key is provided")
 		}
+
+		relativeToFile = yamlPaths[0]
 	case "file":
 		if quadletGroup != BuildGroup {
 			return "", fmt.Errorf("SetWorkingDirectory=%s is only supported in .build files", setWorkingDirectory)

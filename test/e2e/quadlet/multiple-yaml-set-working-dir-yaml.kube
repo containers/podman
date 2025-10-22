@@ -1,0 +1,4 @@
+[Kube]
+Yaml=foo.yml
+Yaml=bar.yml
+SetWorkingDirectory=yaml

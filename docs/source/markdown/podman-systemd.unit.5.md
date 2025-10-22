@@ -1392,6 +1392,9 @@ Alternatively, users can explicitly set the `WorkingDirectory` field of the `Ser
 Please note that if the `WorkingDirectory` field of the `Service` group is set,
 Quadlet will not set it even if `SetWorkingDirectory` is set
 
+Special case:
+* If multiple `Yaml` path are provided only `unit` is supported.
+
 ### `UserNS=`
 
 Set the user namespace mode for the container. This is equivalent to the Podman `--userns` option and
@@ -1400,6 +1403,8 @@ generally has the form `MODE[:OPTIONS,...]`.
 ### `Yaml=`
 
 The path, absolute or relative to the location of the unit file, to the Kubernetes YAML file to use.
+
+This key can be listed multiple times.
 
 ## Network units [Network]
 
