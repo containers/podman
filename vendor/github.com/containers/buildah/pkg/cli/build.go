@@ -474,7 +474,7 @@ func readBuildArgFile(buildargfile string, args map[string]string) error {
 	if err != nil {
 		return err
 	}
-	for _, arg := range strings.Split(string(argfile), "\n") {
+	for arg := range strings.SplitSeq(string(argfile), "\n") {
 		if len(arg) == 0 || arg[0] == '#' {
 			continue
 		}

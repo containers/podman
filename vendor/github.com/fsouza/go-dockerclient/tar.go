@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/pkg/archive"
+	"github.com/moby/go-archive"
 	"github.com/moby/patternmatcher"
 )
 

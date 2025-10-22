@@ -55,7 +55,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
 	github.com/opencontainers/selinux v1.12.0
-	github.com/openshift/imagebuilder v1.2.16-0.20250828154754-e22ebd3ff511
+	github.com/openshift/imagebuilder v1.2.19
 	github.com/rootless-containers/rootlesskit/v2 v2.3.5
 	github.com/shirou/gopsutil/v4 v4.25.9
 	github.com/sirupsen/logrus v1.9.3
@@ -66,8 +66,8 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.4.3
 	go.podman.io/common v0.65.1-0.20251016162239-c4c5e00ad22d
-	go.podman.io/image/v5 v5.37.1-0.20251016133615-aa970d2c7532
-	go.podman.io/storage v1.60.1-0.20251016133615-aa970d2c7532
+	go.podman.io/image/v5 v5.38.0
+	go.podman.io/storage v1.61.0
 	golang.org/x/crypto v0.43.0
 	golang.org/x/net v0.45.0
 	golang.org/x/sync v0.17.0
@@ -98,7 +98,7 @@ require (
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containers/common v0.62.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
-	github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e // indirect
+	github.com/containers/luksy v0.0.0-20250910190358-2cf5bc928957 // indirect
 	github.com/coreos/go-oidc/v3 v3.14.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
@@ -110,7 +110,7 @@ require (
 	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fsouza/go-dockerclient v1.12.1 // indirect
+	github.com/fsouza/go-dockerclient v1.12.2 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -136,7 +136,7 @@ require (
 	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.1.0 // indirect
-	github.com/moby/buildkit v0.23.2 // indirect
+	github.com/moby/buildkit v0.25.1 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
@@ -192,3 +192,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+replace go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20251021180701-90bb6920858f
+
+replace github.com/containers/buildah => github.com/lsm5/buildah v0.0.0-20251021181103-9374d7fa4e33

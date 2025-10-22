@@ -225,7 +225,3 @@ func (c *Container) inspectJoinedNetworkNS(_ string) (q types.StatusBlock, retEr
 	// TODO: extract interface information from the vnet jail
 	return types.StatusBlock{}, nil
 }
-
-func (c *Container) reloadRootlessRLKPortMapping() error {
-	return errors.New("unsupported (*Container).reloadRootlessRLKPortMapping")
-}

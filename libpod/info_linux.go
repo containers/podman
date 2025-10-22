@@ -16,7 +16,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/pasta"
-	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/seccomp"
@@ -30,14 +29,8 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		return fmt.Errorf("getting Seccomp profile path: %w", err)
 	}
 
-	// Cgroups version
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return fmt.Errorf("reading cgroups mode: %w", err)
-	}
-
 	// Get Map of all available controllers
-	availableControllers, err := cgroups.AvailableControllers(nil, unified)
+	availableControllers, err := cgroups.AvailableControllers()
 	if err != nil {
 		return fmt.Errorf("getting available cgroup controllers: %w", err)
 	}
@@ -52,30 +45,6 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		SECCOMPEnabled:      seccomp.IsEnabled(),
 		SECCOMPProfilePath:  seccompProfilePath,
 		SELinuxEnabled:      selinux.GetEnabled(),
-	}
-	info.Slirp4NetNS = define.SlirpInfo{}
-
-	cgroupVersion := "v1"
-	if unified {
-		cgroupVersion = "v2"
-	}
-	info.CgroupsVersion = cgroupVersion
-
-	slirp4netnsPath := r.config.Engine.NetworkCmdPath
-	if slirp4netnsPath == "" {
-		slirp4netnsPath, _ = r.config.FindHelperBinary(slirp4netns.BinaryName, true)
-	}
-	if slirp4netnsPath != "" {
-		ver, err := version.Program(slirp4netnsPath)
-		if err != nil {
-			logrus.Warnf("Failed to retrieve program version for %s: %v", slirp4netnsPath, err)
-		}
-		program := define.SlirpInfo{
-			Executable: slirp4netnsPath,
-			Package:    version.Package(slirp4netnsPath),
-			Version:    ver,
-		}
-		info.Slirp4NetNS = program
 	}
 
 	pastaPath, _ := r.config.FindHelperBinary(pasta.BinaryName, true)

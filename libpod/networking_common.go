@@ -111,8 +111,7 @@ func (r *Runtime) teardownNetwork(ctr *Container) error {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsSlirp4netns() &&
-		!ctr.config.NetMode.IsPasta() && len(networks) > 0 {
+	if !ctr.config.NetMode.IsPasta() && len(networks) > 0 {
 		netOpts := ctr.getNetworkOptions(networks)
 		return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
 	}
@@ -133,8 +132,7 @@ func isBridgeNetMode(n namespaces.NetworkMode) error {
 // This is mainly used when a reload of firewall rules wipes out existing
 // firewall configuration.
 // Efforts will be made to preserve MAC and IP addresses.
-// Only works on containers with bridge networking at present, though in the future we could
-// extend this to stop + restart slirp4netns
+// Only works on containers with bridge networking.
 func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
 	if ctr.state.NetNS == "" {
 		return nil, fmt.Errorf("container %s network is not configured, refusing to reload: %w", ctr.ID(), define.ErrCtrStateInvalid)
@@ -433,14 +431,6 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 		return err
 	}
 
-	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
-	// Reloading without connected networks does not make sense, so we can skip this step.
-	if rootless.IsRootless() && len(networkStatus) > 0 {
-		if err := c.reloadRootlessRLKPortMapping(); err != nil {
-			return err
-		}
-	}
-
 	// Update resolv.conf if required
 	if statusExist {
 		stringIPs := make([]string, 0, len(oldStatus.DNSServerIPs))
@@ -585,14 +575,6 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	err = c.save()
 	if err != nil {
 		return err
-	}
-
-	// The first network needs a port reload to set the correct child ip for the rootlessport process.
-	// Adding a second network does not require a port reload because the child ip is still valid.
-	if rootless.IsRootless() && len(networks) == 0 {
-		if err := c.reloadRootlessRLKPortMapping(); err != nil {
-			return err
-		}
 	}
 
 	ipv6 := c.checkForIPv6(networkStatus)

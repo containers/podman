@@ -32,12 +32,14 @@ env:
     IMAGE_PROJECT: "libpod-218412"
     FEDORA_NAME: "fedora-42"
     PRIOR_FEDORA_NAME: "fedora-41"
+    RAWHIDE_NAME: "rawhide"
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250422t130822z-f42f41d13"
+    IMAGE_SUFFIX: "c20250910t092246z-f42f41d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
+    RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}" # Used temporarily for rust-podman-sequoia. After that RPM is available in stable Fedora releases, we can stop testing against Rawhide again.
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
     IN_PODMAN_IMAGE: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
@@ -79,6 +81,7 @@ meta_task:
         IMGNAMES: |-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+            ${RAWHIDE_CACHE_IMAGE_NAME}
             ${DEBIAN_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         BUILDID: "${CIRRUS_BUILD_ID}"
@@ -124,7 +127,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.23.3
+        image: docker.io/library/golang:1.24.2
         cpu: 1
         memory: 1
 
@@ -238,6 +241,11 @@ integration_task:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
+        - env:
+            DISTRO_NV: "${RAWHIDE_NAME}"
+            IMAGE_NAME: "${RAWHIDE_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            TEST_BUILD_TAGS: 'containers_image_sequoia'
 
     gce_instance: &integration_gce_instance
         image_name: "$IMAGE_NAME"

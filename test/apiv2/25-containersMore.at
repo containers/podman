@@ -28,15 +28,6 @@ if root || have_cgroupsv2; then
       .Name=foo
 
     t POST libpod/containers/foo/unpause 204
-else
-    # cgroupsv1 rootless : pause and unpause are not supported in cgroups v1 rootless
-    t POST libpod/containers/foo/pause 500 \
-      .cause="this container does not have a cgroup" \
-      .message~".*pause containers on rootless containers with cgroup V1"
-
-    t POST libpod/containers/foo/unpause 500 \
-      .cause="container state improper" \
-      .message~".*is not paused, can't unpause: container state improper"
 fi
 
 t GET libpod/containers/foo/json 200 \

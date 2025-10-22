@@ -3,19 +3,12 @@
 package integration
 
 import (
-	"fmt"
-
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Podman run memory", func() {
-
-	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("Setting Memory not supported on cgroupv1 for rootless users")
-	})
-
 	It("podman run memory test", func() {
 		var session *PodmanSessionIntegration
 
@@ -60,17 +53,6 @@ var _ = Describe("Podman run memory", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(expect))
 	})
-
-	for _, limit := range []string{"0", "15", "100"} {
-		testName := fmt.Sprintf("podman run memory-swappiness test(%s)", limit)
-		It(testName, func() {
-			SkipIfCgroupV2("memory-swappiness not supported on cgroupV2")
-			session := podmanTest.Podman([]string{"run", fmt.Sprintf("--memory-swappiness=%s", limit), ALPINE, "cat", "/sys/fs/cgroup/memory/memory.swappiness"})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
-			Expect(session.OutputToString()).To(Equal(limit))
-		})
-	}
 
 	It("podman run memory test on oomkilled container", func() {
 		mem := SystemExec("cat", []string{"/proc/sys/vm/overcommit_memory"})

@@ -58,9 +58,9 @@ func moveProcessToScope(pid int, slice, scope string) error {
 	return err
 }
 
-// MoveRootlessNetnsSlirpProcessToUserSlice moves the slirp4netns process for the rootless netns
+// MoveRootlessNetnsProcessToUserSlice moves the process for the rootless netns
 // into a different scope so that systemd does not kill it with a container.
-func MoveRootlessNetnsSlirpProcessToUserSlice(pid int) error {
+func MoveRootlessNetnsProcessToUserSlice(pid int) error {
 	randBytes := make([]byte, 4)
 	_, err := rand.Read(randBytes)
 	if err != nil {
@@ -88,11 +88,7 @@ func MovePauseProcessToScope(pausePidPath string) {
 	}
 
 	if err != nil {
-		unified, err2 := cgroups.IsCgroup2UnifiedMode()
-		if err2 != nil {
-			logrus.Warnf("Failed to detect if running with cgroup unified: %v", err)
-		}
-		if RunsOnSystemd() && unified {
+		if RunsOnSystemd() {
 			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
 		} else {
 			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)

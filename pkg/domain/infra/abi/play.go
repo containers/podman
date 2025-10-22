@@ -74,11 +74,10 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	}
 	ctrOpts := entities.ContainerCreateOptions{
 		// Inherited from infra containers
-		IsInfra:          false,
-		MemorySwappiness: -1,
-		ReadOnly:         true,
-		ReadWriteTmpFS:   false,
-		// No need to spin up slirp etc.
+		IsInfra:              false,
+		MemorySwappiness:     -1,
+		ReadOnly:             true,
+		ReadWriteTmpFS:       false,
 		Net:                  &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
 		StopTimeout:          rtc.Engine.StopTimeout,
 		HealthLogDestination: define.DefaultHealthCheckLocalDestination,

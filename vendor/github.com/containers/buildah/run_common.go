@@ -398,8 +398,8 @@ func checkAndOverrideIsolationOptions(isolation define.Isolation, options *RunOp
 	case IsolationOCIRootless:
 		// only change the netns if the caller did not set it
 		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns == nil {
-			if _, err := exec.LookPath("slirp4netns"); err != nil {
-				// if slirp4netns is not installed we have to use the hosts net namespace
+			if _, err := exec.LookPath("passt"); err != nil {
+				// if pasta is not installed we have to use the hosts net namespace
 				options.NamespaceOptions.AddOrReplace(define.NamespaceOption{Name: string(specs.NetworkNamespace), Host: true})
 			}
 		}
@@ -2119,6 +2119,12 @@ func (b *Builder) createMountTargets(spec *specs.Spec) ([]copier.ConditionalRemo
 			}
 			if perms, ok := overridePermissions[cleanedDestination]; ok {
 				// forced permissions
+				mode = &perms
+			}
+			if mode == nil && destination != cleanedDestination {
+				// parent directories default to 0o755, for
+				// the sake of commands running as UID != 0
+				perms := os.FileMode(0o755)
 				mode = &perms
 			}
 			targets.Paths = append(targets.Paths, copier.EnsurePath{
