@@ -190,3 +190,9 @@ func (g *GinkgoTBWrapper) Skipped() bool {
 func (g *GinkgoTBWrapper) TempDir() string {
 	return g.GinkgoT.TempDir()
 }
+func (g *GinkgoTBWrapper) Attr(key, value string) {
+	g.GinkgoT.Attr(key, value)
+}
+func (g *GinkgoTBWrapper) Output() io.Writer {
+	return g.GinkgoT.Output()
+}

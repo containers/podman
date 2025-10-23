@@ -1,3 +1,31 @@
+## 2.27.1
+
+### Fixes
+- Fix Ginkgo Reporter slice-bounds panic [606c1cb]
+- Bug Fix: Add GinkoTBWrapper.Attr() and GinkoTBWrapper.Output() [a6463b3]
+
+## 2.27.0
+
+### Features
+
+#### Transforming Nodes during Tree Construction
+
+This release adds support for `NodeArgsTransformer`s that can be registered with `AddTreeConstructionNodeArgsTransformer`.
+
+These are called during the tree construction phase as nodes are constructed and can modify the node strings and decorators.  This enables frameworks built on top of Ginkgo to modify Ginkgo nodes and enforce conventions.
+
+Learn more [here](https://onsi.github.io/ginkgo/#advanced-transforming-node-arguments-during-tree-construction).
+
+#### Spec Prioritization
+
+A new `SpecPriority(int)` decorator has been added.  Ginkgo will honor priority when ordering specs, ensuring that higher priority specs start running before lower priority specs
+
+Learn more [here](https://onsi.github.io/ginkgo/#prioritizing-specs).
+
+### Maintenance
+- Bump rexml from 3.4.0 to 3.4.2 in /docs (#1595) [1333dae]
+- Bump github.com/gkampitakis/go-snaps from 0.5.14 to 0.5.15 (#1600) [17ae63e]
+
 ## 2.26.0
 
 ### Features
