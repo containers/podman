@@ -14,7 +14,7 @@ import (
 	"github.com/containers/podman/v5/pkg/copy"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
+	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/spf13/cobra"
@@ -78,12 +78,16 @@ func cp(_ *cobra.Command, args []string) error {
 		destPath = args[1]
 	}
 
-	mc, err := resolveMachine(srcMachine, destMachine)
+	vmName, err := resolveMachineName(srcMachine, destMachine)
+	if err != nil {
+		return err
+	}
+	mc, vmProvider, err := shim.VMExists(vmName)
 	if err != nil {
 		return err
 	}
 
-	state, err := provider.State(mc, false)
+	state, err := vmProvider.State(mc, false)
 	if err != nil {
 		return err
 	}
@@ -135,25 +139,18 @@ func localhostSSHCopy(opts *cpOptions) error {
 	return cmd.Run()
 }
 
-func resolveMachine(srcMachine, destMachine string) (*vmconfigs.MachineConfig, error) {
+func resolveMachineName(srcMachine, destMachine string) (string, error) {
 	if len(srcMachine) > 0 && len(destMachine) > 0 {
-		return nil, errors.New("copying between two machines is unsupported")
+		return "", errors.New("copying between two machines is unsupported")
 	}
 
 	if len(srcMachine) == 0 && len(destMachine) == 0 {
-		return nil, errors.New("a machine name must prefix either the source path or destination path")
+		return "", errors.New("a machine name must prefix either the source path or destination path")
 	}
-
-	dirs, err := env.GetMachineDirs(provider.VMType())
-	if err != nil {
-		return nil, err
-	}
-
 	name := destMachine
 	if len(srcMachine) > 0 {
 		cpOpts.IsSrc = true
 		name = srcMachine
 	}
-
-	return vmconfigs.LoadMachineByName(name, dirs)
+	return name, nil
 }

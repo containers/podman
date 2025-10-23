@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
@@ -44,10 +43,9 @@ var (
 )
 
 type listFlagType struct {
-	format       string
-	noHeading    bool
-	quiet        bool
-	allProviders bool
+	format    string
+	noHeading bool
+	quiet     bool
 }
 
 func init() {
@@ -62,7 +60,6 @@ func init() {
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListReporter{}))
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print headers")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
-	flags.BoolVar(&listFlag.allProviders, "all-providers", false, "Show machines from all providers")
 }
 
 func list(cmd *cobra.Command, _ []string) error {
@@ -70,17 +67,7 @@ func list(cmd *cobra.Command, _ []string) error {
 		opts machine.ListOptions
 		err  error
 	)
-	var providers []vmconfigs.VMProvider
-	if listFlag.allProviders {
-		providers = provider2.GetAll()
-	} else {
-		provider, err = provider2.Get()
-		if err != nil {
-			return err
-		}
-		providers = []vmconfigs.VMProvider{provider}
-	}
-
+	providers := provider2.GetAll()
 	listResponse, err := shim.List(providers, opts)
 	if err != nil {
 		return err

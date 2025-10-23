@@ -42,7 +42,7 @@ func resetMachine() error {
 		}
 
 		if state == define.Running {
-			if err := shim.Stop(mc, provider, dirs, true); err != nil {
+			if err := shim.Stop(mc, provider, true); err != nil {
 				logrus.Errorf("unable to stop running machine %s: %q", mc.Name, err)
 			}
 		}

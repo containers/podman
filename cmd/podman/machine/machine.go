@@ -42,6 +42,7 @@ var (
 )
 
 var (
+	// TODO This needs to be deleted!
 	provider vmconfigs.VMProvider
 )
 

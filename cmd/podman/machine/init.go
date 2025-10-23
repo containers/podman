@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -183,15 +182,21 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid username %q: %w", initOpts.Username, ldefine.RegexError)
 	}
 
+	// the same name and error
 	// Check if machine already exists
-	_, exists, err := shim.VMExists(initOpts.Name, []vmconfigs.VMProvider{provider})
-	if err != nil {
+	var errNotExists *define.ErrVMDoesNotExist
+	_, _, err := shim.VMExists(initOpts.Name)
+	if err != nil && !errors.As(err, &errNotExists) {
 		return err
 	}
 
-	// machine exists, return error
+	// Check if something on the hypervisor exists with the same name
+	exists, err := shim.VMExistsOnHyperVisor(initOpts.Name)
+	if err != nil {
+		return err
+	}
 	if exists {
-		return fmt.Errorf("%s: %w", initOpts.Name, define.ErrVMAlreadyExists)
+		return fmt.Errorf("%s already exists on hypervisor", initOpts.Name)
 	}
 
 	// check if a system connection already exists
