@@ -108,7 +108,6 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill paused container", func() {
-		SkipIfRootlessCgroupsV1("pause is not supported for cgroupv1 rootless")
 		ctrName := "testctr"
 		session := podmanTest.RunTopContainer(ctrName)
 		session.WaitWithDefaultTimeout()

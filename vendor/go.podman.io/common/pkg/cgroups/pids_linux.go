@@ -20,24 +20,16 @@ func getPidsHandler() *linuxPidHandler {
 
 // Apply set the specified constraints.
 func (c *linuxPidHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
-	if ctr.cgroup2 {
-		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
-		if err != nil {
-			return err
-		}
-		return man.Set(res)
+	man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
+	if err != nil {
+		return err
 	}
-
-	path := filepath.Join(cgroupRoot, Pids, ctr.config.Path)
-	return c.Pid.Set(path, res)
+	return man.Set(res)
 }
 
 // Create the cgroup.
 func (c *linuxPidHandler) Create(ctr *CgroupControl) (bool, error) {
-	if ctr.cgroup2 {
-		return false, nil
-	}
-	return ctr.createCgroupDirectory(Pids)
+	return false, nil
 }
 
 // Destroy the cgroup.
@@ -52,12 +44,7 @@ func (c *linuxPidHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 		return nil
 	}
 
-	var PIDRoot string
-	if ctr.cgroup2 {
-		PIDRoot = filepath.Join(cgroupRoot, ctr.config.Path)
-	} else {
-		PIDRoot = ctr.getCgroupv1Path(Pids)
-	}
+	PIDRoot := filepath.Join(cgroupRoot, ctr.config.Path)
 
 	current, err := readFileAsUint64(filepath.Join(PIDRoot, "pids.current"))
 	if err != nil {
