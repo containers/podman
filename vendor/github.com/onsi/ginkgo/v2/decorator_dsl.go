@@ -155,6 +155,13 @@ Nodes that do not finish within a GracePeriod will be leaked and Ginkgo will pro
 type GracePeriod = internal.GracePeriod
 
 /*
+SpecPriority allows you to assign a priority to a spec or container.
+
+Specs with higher priority will be scheduled to run before specs with lower priority.  The default priority is 0 and negative priorities are allowed.
+*/
+type SpecPriority = internal.SpecPriority
+
+/*
 SuppressProgressReporting is a decorator that allows you to disable progress reporting of a particular node.  This is useful if `ginkgo -v -progress` is generating too much noise; particularly
 if you have a `ReportAfterEach` node that is running for every skipped spec and is generating lots of progress reports.
 */

@@ -184,15 +184,15 @@ func (f fx) String() string {
 }
 
 type unexpectedPacketErr struct {
-	want, got uint8
+	want, got fxp
 }
 
 func (u *unexpectedPacketErr) Error() string {
-	return fmt.Sprintf("sftp: unexpected packet: want %v, got %v", fxp(u.want), fxp(u.got))
+	return fmt.Sprintf("sftp: unexpected packet: want %v, got %v", u.want, u.got)
 }
 
-func unimplementedPacketErr(u uint8) error {
-	return fmt.Errorf("sftp: unimplemented packet type: got %v", fxp(u))
+func unimplementedPacketErr(u fxp) error {
+	return fmt.Errorf("sftp: unimplemented packet type: got %v", u)
 }
 
 type unexpectedIDErr struct{ want, got uint32 }
