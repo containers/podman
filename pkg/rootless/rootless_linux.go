@@ -16,7 +16,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/moby/sys/capability"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/idtools"

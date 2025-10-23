@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v6/libpod/define"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"

@@ -75,10 +75,10 @@ truncate -s 20M $WORKDIR/zeroes
 function test_artifacts_with_args() {
     # these values, ideally, are local to our caller
     local args="$artifact_annotations $artifact_config $artifact_config_type $artifact_exclude_titles $artifact_layer_type $artifact_type"
-    t POST /v5.0.0/libpod/manifests/artifacts 201
+    t POST /v6.0.0/libpod/manifests/artifacts 201
     local id_artifacts=$(jq -r '.Id' <<<"$output")
-    t PUT /v5.0.0/libpod/manifests/$id_artifacts operation='update' $args --form=listed.txt="oh yeah" --form=zeroes=@"$WORKDIR/zeroes" 200
-    t POST "/v5.0.0/libpod/manifests/artifacts:latest/registry/localhost:$REGISTRY_PORT%2Fartifacts:latest?tlsVerify=false&all=true" 200
+    t PUT /v6.0.0/libpod/manifests/$id_artifacts operation='update' $args --form=listed.txt="oh yeah" --form=zeroes=@"$WORKDIR/zeroes" 200
+    t POST "/v6.0.0/libpod/manifests/artifacts:latest/registry/localhost:$REGISTRY_PORT%2Fartifacts:latest?tlsVerify=false&all=true" 200
 
     local index=$(skopeo inspect --raw --tls-verify=false docker://localhost:$REGISTRY_PORT/artifacts:latest)
     # jq <<<"$index"
@@ -165,7 +165,7 @@ function test_artifacts_with_args() {
     is $(jq -r '.layers[0].annotations["org.opencontainers.image.title"]'<<<"$artifact") "$expect_first_title" "org.opencontainers.image.title annotation on listed.txt layer in artifact manifest with artifact_exclude_titles arg \"${artifact_exclude_titles}\""
     is $(jq -r '.layers[1].annotations["org.opencontainers.image.title"]'<<<"$artifact") "$expect_second_title" "org.opencontainers.image.title annotation on zeroes layer in artifact manifest with artifact_exclude_titles arg \"${artifact_exclude_titles}\""
 
-    t DELETE /v5.0.0/libpod/manifests/$id_artifacts 200
+    t DELETE /v6.0.0/libpod/manifests/$id_artifacts 200
 }
 
 function test_artifacts() {

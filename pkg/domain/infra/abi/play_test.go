@@ -6,8 +6,8 @@ import (
 	"bytes"
 	"testing"
 
-	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
-	v12 "github.com/containers/podman/v5/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
+	v12 "github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
 )
 

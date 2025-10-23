@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/criu"
-	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/podman/v6/pkg/criu"
+	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

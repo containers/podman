@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/containers/podman/v5/pkg/api/types"
+	"github.com/containers/podman/v6/pkg/api/types"
 	"github.com/google/uuid"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 )
 
 func (ir *ImageEngine) ShowTrust(_ context.Context, _ []string, _ entities.ShowTrustOptions) (*entities.ShowTrustReport, error) {

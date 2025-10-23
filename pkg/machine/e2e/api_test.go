@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v6/pkg/machine"
 	"github.com/docker/docker/client"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"

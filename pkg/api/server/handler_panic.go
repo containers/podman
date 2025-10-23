@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/podman/v5/pkg/api/handlers/utils"
+	"github.com/containers/podman/v6/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )

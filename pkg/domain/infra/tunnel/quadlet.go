@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 )
 
 var errNotImplemented = errors.New("not implemented for the remote Podman client")

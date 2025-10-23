@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/bindings"
-	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/podman/v6/pkg/bindings"
+	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
 	"go.podman.io/common/libnetwork/types"
 )

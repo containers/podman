@@ -5,7 +5,7 @@ package libpod
 import (
 	"net/http"
 
-	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v6/libpod/define"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/common/pkg/resize"
 )

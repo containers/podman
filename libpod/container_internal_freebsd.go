@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/podman/v6/pkg/rootless"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"

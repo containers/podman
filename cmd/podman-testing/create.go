@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/containers/podman/v5/cmd/podman/validate"
-	"github.com/containers/podman/v5/internal/domain/entities"
+	"github.com/containers/podman/v6/cmd/podman/validate"
+	"github.com/containers/podman/v6/internal/domain/entities"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 )

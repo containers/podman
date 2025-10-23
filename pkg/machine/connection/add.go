@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/define"
 )
 
 // AddSSHConnectionsToPodmanSocket adds SSH connections to the podman socket if

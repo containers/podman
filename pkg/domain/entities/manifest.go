@@ -1,7 +1,7 @@
 package entities
 
 import (
-	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
+	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"go.podman.io/image/v5/types"
 )
 

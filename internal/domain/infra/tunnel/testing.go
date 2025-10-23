@@ -6,7 +6,7 @@ import (
 	"context"
 	"syscall"
 
-	"github.com/containers/podman/v5/internal/domain/entities"
+	"github.com/containers/podman/v6/internal/domain/entities"
 )
 
 type TestingEngine struct {

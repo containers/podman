@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/ocipull"
-	"github.com/containers/podman/v5/pkg/machine/stdpull"
+	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/ocipull"
+	"github.com/containers/podman/v6/pkg/machine/stdpull"
 	"go.podman.io/image/v5/types"
 )
 

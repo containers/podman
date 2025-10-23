@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/machine/compression"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/ocipull"
+	"github.com/containers/podman/v6/pkg/machine/compression"
+	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/ocipull"
 	"go.podman.io/image/v5/types"
 )
 

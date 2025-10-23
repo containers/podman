@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	encconfig "github.com/containers/ocicrypt/config"
-	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
+	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/signature/signer"
 	"go.podman.io/image/v5/types"

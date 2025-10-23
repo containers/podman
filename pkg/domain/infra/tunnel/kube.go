@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/containers/podman/v5/pkg/bindings/generate"
-	"github.com/containers/podman/v5/pkg/bindings/kube"
-	"github.com/containers/podman/v5/pkg/bindings/play"
-	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/bindings/generate"
+	"github.com/containers/podman/v6/pkg/bindings/kube"
+	"github.com/containers/podman/v6/pkg/bindings/play"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/image/v5/types"
 )
 

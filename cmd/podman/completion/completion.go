@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/spf13/cobra"
 	commonComp "go.podman.io/common/pkg/completion"
 )

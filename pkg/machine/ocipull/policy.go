@@ -11,7 +11,7 @@ import (
 // the shipped policy.json file is located. This can either be absolute path or a relative path. If it
 // is relative it will be resolved relative to the podman binary and NOT the CWD.
 //
-// use "-X github.com/containers/podman/v5/pkg/machine/ocipull.DefaultPolicyJSONPath=/somepath" in go ldflags to overwrite this
+// use "-X github.com/containers/podman/v6/pkg/machine/ocipull.DefaultPolicyJSONPath=/somepath" in go ldflags to overwrite this
 var DefaultPolicyJSONPath = ""
 
 const policyfile = "policy.json"

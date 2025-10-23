@@ -8,11 +8,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
-	pkgOS "github.com/containers/podman/v5/pkg/machine/os"
-	"github.com/containers/podman/v5/pkg/machine/provider"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/env"
+	pkgOS "github.com/containers/podman/v6/pkg/machine/os"
+	"github.com/containers/podman/v6/pkg/machine/provider"
+	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	machineconfig "go.podman.io/common/pkg/machine"
 )
 

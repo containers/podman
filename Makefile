@@ -123,7 +123,7 @@ ifdef SOURCE_DATE_EPOCH
 else
 	BUILD_INFO ?= $(shell date "+$(DATE_FMT)")
 endif
-LIBPOD := ${PROJECT}/v5/libpod
+LIBPOD := ${PROJECT}/v6/libpod
 GOFLAGS ?= -trimpath
 LDFLAGS_PODMAN ?= \
 	$(if $(GIT_COMMIT),-X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT),) \
@@ -131,7 +131,7 @@ LDFLAGS_PODMAN ?= \
 	$(if $(BUILD_ORIGIN),-X "$(LIBPOD)/define.buildOrigin=$(BUILD_ORIGIN)",) \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
-	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
+	-X $(PROJECT)/v6/pkg/systemd/quadlet._binDir=$(BINDIR) \
 	-X go.podman.io/image/v5/signature/internal/sequoia.sequoiaLibraryDir='"$(SEQUOIA_SONAME_DIR)"' \
 	-X go.podman.io/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)

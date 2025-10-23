@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"strconv"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/define"
 )
 
 // CleanupGVProxy reads the --pid-file for gvproxy attempts to stop it

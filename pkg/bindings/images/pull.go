@@ -10,10 +10,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/containers/podman/v5/pkg/auth"
-	"github.com/containers/podman/v5/pkg/bindings"
-	"github.com/containers/podman/v5/pkg/domain/entities/types"
-	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/containers/podman/v6/pkg/auth"
+	"github.com/containers/podman/v6/pkg/bindings"
+	"github.com/containers/podman/v6/pkg/domain/entities/types"
+	"github.com/containers/podman/v6/pkg/errorhandling"
 	imgTypes "go.podman.io/image/v5/types"
 )
 

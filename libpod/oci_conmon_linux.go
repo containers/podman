@@ -13,8 +13,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/podman/v5/pkg/rootless"
+	"github.com/containers/podman/v6/pkg/errorhandling"
+	"github.com/containers/podman/v6/pkg/rootless"
 	runcconfig "github.com/opencontainers/cgroups"
 	devices "github.com/opencontainers/cgroups/devices/config"
 	spec "github.com/opencontainers/runtime-spec/specs-go"

@@ -5,7 +5,7 @@ package localapi
 import (
 	"context"
 
-	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 )
 

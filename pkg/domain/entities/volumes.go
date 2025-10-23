@@ -4,7 +4,7 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/podman/v6/pkg/domain/entities/types"
 )
 
 // VolumeCreateOptions provides details for creating volumes

@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/logiface"
+	"github.com/containers/podman/v6/pkg/logiface"
 )
 
 // This returns whether a file has an extension recognized as a valid Quadlet unit type.

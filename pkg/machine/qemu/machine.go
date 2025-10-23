@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v6/pkg/errorhandling"
+	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/fileutils"

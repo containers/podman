@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v5/libpod"
-	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v6/libpod"
+	"github.com/containers/podman/v6/libpod/define"
 	"go.podman.io/common/pkg/filters"
 	"go.podman.io/common/pkg/util"
 )

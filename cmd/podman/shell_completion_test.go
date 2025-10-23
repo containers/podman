@@ -6,7 +6,7 @@
 	function set. (except boolean, hidden and deprecated flags)
 
 	Shell completion functions are defined in:
-	- "github.com/containers/podman/v5/cmd/podman/common/completion.go"
+	- "github.com/containers/podman/v6/cmd/podman/common/completion.go"
 	- "go.podman.io/common/pkg/completion"
 	and are called Autocomplete...
 
