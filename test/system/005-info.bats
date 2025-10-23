@@ -289,6 +289,7 @@ EOF
 
 }
 
+# TODO 6.0: Remove this
 @test "podman - BoltDB cannot create new databases" {
     skip_if_remote "DB checks only work for local Podman"
 
@@ -302,7 +303,7 @@ EOF
     assert "$output" =~ "Allowing deprecated database backend" \
            "with CI_DESIRED_DATABASE"
 
-    run_podman $safe_opts system reset --force
+    SUPPRESS_BOLTDB_WARNING=true run_podman $safe_opts system reset --force
 }
 
 @test "podman - empty string defaults for certain values" {

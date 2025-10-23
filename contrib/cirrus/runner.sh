@@ -81,6 +81,7 @@ function _run_sys() {
 }
 
 function _run_upgrade_test() {
+    export SUPPRESS_BOLTDB_WARNING=true
     showrun bats test/upgrade |& logformatter
 }
 
