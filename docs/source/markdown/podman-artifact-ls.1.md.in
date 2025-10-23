@@ -19,6 +19,7 @@ Print results with a Go template.
 | **Placeholder** | **Description**                                |
 |-----------------|------------------------------------------------|
 | .Created        | Elapsed time since the artifact was created    |
+| .CreatedAt      | Full timestamp of when the artifact was created|
 | .Digest         | The computed digest of the artifact's manifest |
 | .Repository     | Repository name of the artifact                |
 | .Size           | Size artifact in human readable units          |
