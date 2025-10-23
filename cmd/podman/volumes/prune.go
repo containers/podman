@@ -30,7 +30,8 @@ var (
 		RunE:              prune,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
-	filter = []string{}
+	filter       = []string{}
+	pruneOptions = entities.VolumePruneOptions{}
 )
 
 func init() {
@@ -44,6 +45,7 @@ func init() {
 	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumeFilters)
 	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
+	flags.BoolVar(&pruneOptions.IncludePinned, "include-pinned", false, "Do not prune pinned volumes")
 }
 
 func prune(cmd *cobra.Command, _ []string) error {
