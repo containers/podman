@@ -151,7 +151,7 @@ jobs:
         steps.check.outputs.buildarm == 'true' ||
         steps.check.outputs.builduniversal == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: installers
         path: |

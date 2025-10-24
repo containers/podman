@@ -80,7 +80,7 @@ jobs:
       run: |
           make release-artifacts
     - name: Upload to Actions as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: release-artifacts
         path: release/*
@@ -136,7 +136,7 @@ jobs:
       run: |
         make ARCH=universal notarize &> /dev/null
     - name: Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: mac-installers
         path: |
@@ -163,7 +163,7 @@ jobs:
     - name: Checkout Podman
       uses: actions/checkout@v5
     - name: Download Windows zip artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
@@ -230,13 +230,13 @@ jobs:
         Copy-Item -Path podman-${{steps.getversion.outputs.version}}-setup.exe -Destination podman-installer-windows-${{ matrix.arch }}.exe
         Pop-Location
     - name: Upload the MSI
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: win-msi-${{ matrix.arch }}
         path: |
           .\contrib\win-installer\podman-installer-windows-${{ matrix.arch }}.msi
     - name: Upload the bundle (legacy)
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: win-installer-${{ matrix.arch }}
         path: |
@@ -244,7 +244,7 @@ jobs:
       # For backwards compatibility, we also upload the amd64 windows
       # installer using the old name
     - name: Upload the bundle with the old name (legacy)
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: ${{ matrix.arch == 'amd64' }}
       with:
         name: win-installer
@@ -281,7 +281,7 @@ jobs:
     - name: Display release notes
       run: cat $VERSION-release-notes.md
     - name: Download all artifacts
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
     - name: Show artifacts
       run: |
         mv win-installer/* release-artifacts
