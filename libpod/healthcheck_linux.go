@@ -40,7 +40,7 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 		cmd = append(cmd, "--setenv=PATH="+path)
 	}
 
-	cmd = append(cmd, "--unit", hcUnitName, fmt.Sprintf("--on-unit-inactive=%s", interval), "--timer-property=AccuracySec=1s", podman)
+	cmd = append(cmd, "--unit", hcUnitName, fmt.Sprintf("--on-unit-inactive=%s", interval), "--timer-property=AccuracySec=1s", podman, "--property=StartLimitIntervalSec=0")
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd = append(cmd, "--log-level=debug", "--syslog")
