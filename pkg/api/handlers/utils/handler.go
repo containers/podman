@@ -19,9 +19,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
 
-	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
-	api "github.com/containers/podman/v5/pkg/api/types"
-	"github.com/containers/podman/v5/pkg/bindings/images"
+	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
+	api "github.com/containers/podman/v6/pkg/api/types"
+	"github.com/containers/podman/v6/pkg/bindings/images"
 )
 
 // IsLibpodRequest returns true if the request related to a libpod endpoint

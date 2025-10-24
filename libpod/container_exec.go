@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/libpod/events"
-	"github.com/containers/podman/v5/pkg/pidhandle"
+	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/libpod/events"
+	"github.com/containers/podman/v6/pkg/pidhandle"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/resize"
 	"go.podman.io/common/pkg/util"

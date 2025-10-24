@@ -5,7 +5,7 @@ package main
 import (
 	"net/url"
 
-	"github.com/containers/podman/v5/internal/localapi"
+	"github.com/containers/podman/v6/internal/localapi"
 )
 
 func getMachineConn(connectionURI string, parsedConnection *url.URL) (string, error) {

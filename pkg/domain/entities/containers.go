@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/pkg/domain/entities/types"
-	"github.com/containers/podman/v5/pkg/specgen"
+	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/pkg/domain/entities/types"
+	"github.com/containers/podman/v6/pkg/specgen"
 	nettypes "go.podman.io/common/libnetwork/types"
 	imageTypes "go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"

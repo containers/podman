@@ -12,8 +12,8 @@ import (
 	"sync"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/pkg/domain/infra"
+	"github.com/containers/podman/v6/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/domain/infra"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	lplatform "go.podman.io/common/libimage/platform"

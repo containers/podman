@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/containers/podman/v5/pkg/bindings"
-	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/podman/v6/pkg/bindings"
+	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 )
 
 func Add(ctx context.Context, artifactName string, blobName string, artifactBlob io.Reader, options *AddOptions) (*entitiesTypes.ArtifactAddReport, error) {

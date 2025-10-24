@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/copy"
 	"go.podman.io/image/v5/oci/layout"

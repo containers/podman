@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/podman/v5/cmd/podman/system"
-	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/podman/v6/cmd/podman/system"
+	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.podman.io/storage/pkg/stringid"

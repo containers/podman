@@ -11,7 +11,7 @@ import (
 	"os/exec"
 
 	"github.com/containers/buildah/pkg/jail"
-	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v6/libpod/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
 )

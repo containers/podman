@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/podman/v6/pkg/util"
 	"go.podman.io/common/pkg/secrets"
 )
 

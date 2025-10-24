@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	sig "github.com/containers/podman/v5/pkg/signal"
+	sig "github.com/containers/podman/v6/pkg/signal"
 	"golang.org/x/sys/windows"
 	"golang.org/x/term"
 )

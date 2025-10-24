@@ -4,7 +4,7 @@ import (
 	"errors"
 	"path/filepath"
 
-	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/define"
 )
 
 func extractConnectionString(_ *define.VMFile, podmanPipe *define.VMFile) (string, error) {

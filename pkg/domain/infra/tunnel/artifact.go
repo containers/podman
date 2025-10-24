@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/containers/podman/v5/pkg/bindings/artifacts"
-	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/bindings/artifacts"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/image/v5/types"
 )
 

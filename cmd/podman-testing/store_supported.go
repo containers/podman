@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/storage"
 	"go.podman.io/storage/types"
 )

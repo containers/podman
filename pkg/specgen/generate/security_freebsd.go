@@ -3,8 +3,8 @@
 package generate
 
 import (
-	"github.com/containers/podman/v5/libpod"
-	"github.com/containers/podman/v5/pkg/specgen"
+	"github.com/containers/podman/v6/libpod"
+	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"

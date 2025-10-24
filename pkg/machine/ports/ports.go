@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/containers/podman/v5/pkg/machine/env"
+	"github.com/containers/podman/v6/pkg/machine/env"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/ioutils"
 	"go.podman.io/storage/pkg/lockfile"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/containers/podman/v5/pkg/domain/entities/reports"
+	"github.com/containers/podman/v6/pkg/domain/entities/reports"
 	"go.podman.io/common/libimage/define"
 	"go.podman.io/common/pkg/config"
 )

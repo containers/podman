@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/libpod/shutdown"
+	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/libpod/shutdown"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )

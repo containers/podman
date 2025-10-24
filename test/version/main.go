@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/containers/podman/v5/version"
+	"github.com/containers/podman/v6/version"
 )
 
 func main() {

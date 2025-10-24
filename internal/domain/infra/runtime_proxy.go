@@ -5,10 +5,10 @@ package infra
 import (
 	"context"
 
-	ientities "github.com/containers/podman/v5/internal/domain/entities"
-	"github.com/containers/podman/v5/internal/domain/infra/abi"
-	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/pkg/domain/infra"
+	ientities "github.com/containers/podman/v6/internal/domain/entities"
+	"github.com/containers/podman/v6/internal/domain/infra/abi"
+	"github.com/containers/podman/v6/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/domain/infra"
 	flag "github.com/spf13/pflag"
 	"go.podman.io/storage"
 )

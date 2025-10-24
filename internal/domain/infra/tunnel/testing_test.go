@@ -2,6 +2,6 @@
 
 package tunnel
 
-import "github.com/containers/podman/v5/internal/domain/entities"
+import "github.com/containers/podman/v6/internal/domain/entities"
 
 var _ entities.TestingEngine = &TestingEngine{}

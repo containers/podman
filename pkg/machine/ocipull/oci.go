@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v5/version"
+	"github.com/containers/podman/v6/version"
 )
 
 type OSVersion struct {
