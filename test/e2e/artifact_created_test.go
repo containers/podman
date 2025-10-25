@@ -47,7 +47,7 @@ var _ = Describe("Podman artifact created timestamp", func() {
 
 		// Inspect artifact
 		a := podmanTest.InspectArtifact(artifactName)
-		Expect(a.Name).To(Equal(artifactName))
+		Expect(a.Name).To(Equal(artifactName + ":latest"))
 
 		// Check that created annotation exists and is in valid RFC3339 format
 		createdStr, exists := a.Manifest.Annotations["org.opencontainers.image.created"]
