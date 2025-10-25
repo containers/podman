@@ -94,6 +94,14 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
 	case Secret:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, id)
+	case Artifact:
+		humanFormat = fmt.Sprintf("%s %s %s %s (name=%s", e.Time, e.Type, e.Status, id, e.Name)
+		if len(e.Attributes) > 0 {
+			for k, v := range e.Attributes {
+				humanFormat += fmt.Sprintf(", %s=%s", k, v)
+			}
+		}
+		humanFormat += ")"
 	}
 	return humanFormat
 }
@@ -127,6 +135,8 @@ func StringToType(name string) (Type, error) {
 		return Volume, nil
 	case Secret.String():
 		return Secret, nil
+	case Artifact.String():
+		return Artifact, nil
 	case "":
 		return "", ErrEventTypeBlank
 	}
@@ -136,6 +146,8 @@ func StringToType(name string) (Type, error) {
 // StringToStatus converts a string to an Event Status
 func StringToStatus(name string) (Status, error) {
 	switch name {
+	case Add.String():
+		return Add, nil
 	case Attach.String():
 		return Attach, nil
 	case AutoUpdate.String():
@@ -156,6 +168,8 @@ func StringToStatus(name string) (Status, error) {
 		return ExecDied, nil
 	case Exited.String():
 		return Exited, nil
+	case Extract.String():
+		return Extract, nil
 	case Export.String():
 		return Export, nil
 	case HealthStatus.String():

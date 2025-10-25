@@ -133,7 +133,11 @@ const (
 	Machine Type = "machine"
 	// Secret - event is related to secrets
 	Secret Type = "secret"
+	// Artifact - event is related to artifacts
+	Artifact Type = "artifact"
 
+	// Add ...
+	Add Status = "add"
 	// Attach ...
 	Attach Status = "attach"
 	// AutoUpdate ...
@@ -156,6 +160,8 @@ const (
 	ExecDied Status = "exec_died"
 	// Exited indicates that a container's process died
 	Exited Status = "died"
+	// Extract ...
+	Extract Status = "extract"
 	// Export ...
 	Export Status = "export"
 	// HealthStatus ...
