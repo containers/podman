@@ -79,6 +79,53 @@ var _ = Describe("Podman prune", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
 
+	It("podman container prune leaves running containers", func() {
+		// Create running container
+		top := podmanTest.RunTopContainer("")
+		top.WaitWithDefaultTimeout()
+		Expect(top).Should(ExitCleanly())
+
+		// Create stopped container
+		top2 := podmanTest.RunTopContainer("")
+		top2.WaitWithDefaultTimeout()
+		Expect(top2).Should(ExitCleanly())
+		cid2 := top2.OutputToString()
+		podmanTest.StopContainer(cid2)
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+
+		// Prune containers (should only remove stopped ones)
+		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(ExitCleanly())
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+	})
+
+	It("podman container prune --all removes running containers", func() {
+
+		// Create running container
+		top := podmanTest.RunTopContainer("")
+		top.WaitWithDefaultTimeout()
+		Expect(top).Should(ExitCleanly())
+
+		// Create stopped container
+		top2 := podmanTest.RunTopContainer("")
+		top2.WaitWithDefaultTimeout()
+		Expect(top2).Should(ExitCleanly())
+		cid2 := top2.OutputToString()
+		podmanTest.StopContainer(cid2)
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+
+		// Prune containers (should remove both containers)
+		prune := podmanTest.Podman([]string{"container", "prune", "-af"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(ExitCleanly())
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+	})
+
 	It("podman image prune - remove only dangling images", func() {
 		session := podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()
