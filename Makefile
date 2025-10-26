@@ -960,35 +960,57 @@ install.docker-full: install.docker install.docker-docs
 
 .PHONY: install.systemd
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
-PODMAN_GENERATED_UNIT_FILES = contrib/systemd/system/podman-auto-update.service \
-		    contrib/systemd/system/podman.service \
-		    contrib/systemd/system/podman-restart.service \
-		    contrib/systemd/system/podman-kube@.service \
-		    contrib/systemd/system/podman-clean-transient.service
 
-%.service: %.service.in
-	sed -e 's;@@PODMAN@@;$(BINDIR)/podman;g' $< >$@.tmp.$$ \
+# HACK; as rootless this unit will not work due the requires on a non existing target
+# as the user session does not see system units. We could define two different units
+# but this seems much more complicated then this small fixup here.
+# https://github.com/containers/podman/issues/23790
+
+contrib/systemd/system/%.service: contrib/systemd/system/%.service.in
+	sed \
+		-e 's;@@PODMAN@@;$(BINDIR)/podman;g' \
+		-e 's;@@NETWORK_ONLINE_UNIT@@;network-online.target;g' \
+		-e 's;@@LOCAL_FS_UNIT@@;local-fs.target;g' \
+		-e 's;@@BOOT_COMPLETE_UNIT@@;boot-complete.target;g' \
+		$< >$@.tmp.$$ \
 		&& mv -f $@.tmp.$$ $@
 
-install.systemd: $(PODMAN_GENERATED_UNIT_FILES)
-	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}  $(DESTDIR)${USERSYSTEMDDIR}
-	for unit in $^ \
-				contrib/systemd/system/podman-auto-update.timer \
-				contrib/systemd/system/podman.socket; do \
-		install ${SELINUXOPT} -m 644 $$unit $(DESTDIR)${USERSYSTEMDDIR}/$$(basename $$unit); \
+contrib/systemd/user/%.service: contrib/systemd/user/%.service.in
+	sed \
+		-e 's;@@PODMAN@@;$(BINDIR)/podman;g' \
+		-e 's;@@NETWORK_ONLINE_UNIT@@;podman-user-wait-network-online.service;g' \
+		-e 's;@@LOCAL_FS_UNIT@@;;g' \
+		-e 's;@@BOOT_COMPLETE_UNIT@@;;g' \
+		$< >$@.tmp.$$ \
+		&& mv -f $@.tmp.$$ $@
+
+PODMAN_SYSTEMD_SYSTEM_UNIT_FILES_GENERATED := $(patsubst %.service.in,%.service,$(wildcard contrib/systemd/system/*.service.in))
+PODMAN_SYSTEMD_SYSTEM_UNIT_FILES := \
+	$(wildcard contrib/systemd/system/*.service contrib/systemd/system/*.timer contrib/systemd/system/*.socket) \
+	${PODMAN_SYSTEMD_SYSTEM_UNIT_FILES_GENERATED}
+
+PODMAN_SYSTEMD_USER_UNIT_FILES_GENERATED := $(patsubst %.service.in,%.service,$(wildcard contrib/systemd/user/*.service.in))
+PODMAN_SYSTEMD_USER_UNIT_FILES := \
+	$(wildcard contrib/systemd/user/*.service contrib/systemd/user/*.timer contrib/systemd/user/*.socket) \
+	${PODMAN_SYSTEMD_USER_UNIT_FILES_GENERATED}
+
+.PHONY: install.systemd-system
+install.systemd-system: ${PODMAN_SYSTEMD_SYSTEM_UNIT_FILES}
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${SYSTEMDDIR}
+	for unit in $^; do \
 		install ${SELINUXOPT} -m 644 $$unit $(DESTDIR)${SYSTEMDDIR}/$$(basename $$unit); \
 	done
-	# HACK; as rootless this unit will not work due the requires on a non existing target
-	# as the user session does not see system units. We could define two different units
-	# but this seems much more complicated then this small fixup here.
-	# https://github.com/containers/podman/issues/23790
-	sed -i '/Requires=/d' $(DESTDIR)${USERSYSTEMDDIR}/podman-clean-transient.service
-	sed -i '/After=/d' $(DESTDIR)${USERSYSTEMDDIR}/podman-clean-transient.service
+	rm -f ${PODMAN_SYSTEMD_SYSTEM_UNIT_FILES_GENERATED}
 
-	# Important this unit should only be installed for the user session and is thus not added to the loop above.
-	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman-user-wait-network-online.service \
-		$(DESTDIR)${USERSYSTEMDDIR}/podman-user-wait-network-online.service
-	rm -f $^
+.PHONY: install.systemd-user
+install.systemd-user: ${PODMAN_SYSTEMD_USER_UNIT_FILES}
+	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${USERSYSTEMDDIR}
+	for unit in $^; do \
+		install ${SELINUXOPT} -m 644 $$unit $(DESTDIR)${USERSYSTEMDDIR}/$$(basename $$unit); \
+	done
+	rm -f ${PODMAN_SYSTEMD_USER_UNIT_FILES_GENERATED}
+
+install.systemd: install.systemd-system install.systemd-user
 else
 install.systemd:
 endif

@@ -1,8 +1,8 @@
 [Unit]
 Description=Podman auto-update service
 Documentation=man:podman-auto-update(1)
-Wants=network-online.target
-After=network-online.target
+Wants=@@NETWORK_ONLINE_UNIT@@
+After=@@NETWORK_ONLINE_UNIT@@
 
 [Service]
 Type=oneshot

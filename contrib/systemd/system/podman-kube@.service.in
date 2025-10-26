@@ -1,8 +1,8 @@
 [Unit]
 Description=A template for running K8s workloads via podman-kube-play
 Documentation=man:podman-kube-play(1)
-Wants=network-online.target
-After=network-online.target
+Wants=@@NETWORK_ONLINE_UNIT@@
+After=@@NETWORK_ONLINE_UNIT@@
 RequiresMountsFor=%t/containers
 
 [Service]
