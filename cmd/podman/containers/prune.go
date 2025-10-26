@@ -30,9 +30,9 @@ var (
 		Example:           `podman container prune`,
 		Args:              validate.NoArgs,
 	}
-	force  bool
-	pruneRunning    bool
-	filter = []string{}
+	force        bool
+	pruneRunning bool
+	filter       = []string{}
 )
 
 func init() {
