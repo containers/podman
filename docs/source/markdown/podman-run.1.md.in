@@ -647,11 +647,82 @@ Using **--mount** flags to mount a host directory as a container folder, specify
 the absolute path to the directory or the volume name, and the absolute path
 within the container directory:
 
+
 ````
 $ podman run --mount type=bind,src=/var/db,target=/data1 busybox sh
 
 $ podman run --mount type=bind,src=volume-name,target=/data1 busybox sh
 ````
+
+The **--mount** flag provides a structured, key-value style for defining mounts
+inside containers. It is similar in purpose to **-v** or **--volume**, but offers
+greater clarity for complex or multi-option configurations. The general syntax
+is:
+
+```
+--mount type=<TYPE>,src=<SOURCE>,dst=<TARGET>[,options...]
+```
+
+Supported mount types include **bind**, **volume**, **tmpfs**, **artifact**,
+**devpts**, **image**, **glob**, and **ramfs**. Each type serves a different
+purpose in how data is attached to the container.
+
+#### Bind mounts
+
+Bind mounts directly link a directory or file on the host into the container.
+Changes made in one are immediately visible in the other. Use bind mounts when
+both the host and container need access to the same files, such as configuration
+files or source code.
+
+Example:
+
+```
+podman run --mount type=bind,src=/etc/config,dst=/app/config alpine cat /app/config/file.conf
+```
+
+#### Volume mounts
+
+Volume mounts use Podman-managed named volumes that persist independently of
+containers. They are ideal for persistent data such as databases or logs and are
+isolated from direct host paths.
+
+Example:
+
+```
+podman volume create mydata
+podman run --mount type=volume,src=mydata,dst=/var/lib/data postgres
+```
+
+#### Tmpfs mounts
+
+A tmpfs mount creates an in-memory filesystem on the host that is mounted inside
+the container. Data stored here is temporary and removed when the container
+stops or the host reboots. tmpfs mounts are useful for temporary caches or
+sensitive data that should not persist to disk.
+
+Example:
+
+```
+podman run --mount type=tmpfs,dst=/cache,tmpfs-size=64m alpine
+```
+
+#### Artifact, devpts, image, glob, and ramfs mounts
+
+Other specialized mount types are available for advanced use cases:
+
+- **artifact** - Mounts read-only content from a container image or artifact.  
+- **devpts** - Provides a pseudo-terminal device inside the container.  
+- **image** - Mounts files directly from another container image.  
+- **glob** - Mounts multiple host files matching a glob pattern.  
+- **ramfs** - Similar to tmpfs but backed directly by system RAM without size limits.  
+
+These mount types are less commonly used and often appear in internal or
+advanced Podman workflows.
+
+In summary, **--mount** provides a single consistent interface for connecting
+external storage to containers. Choose the mount type that best fits your use
+case: **bind** for direct host access, **volume** for persistent data managed by
+Podman, and **tmpfs** for ephemeral in-memory storage.
 
 When using SELinux, be aware that the host has no knowledge of container SELinux
 policy. Therefore, in the above example, if SELinux policy is enforced, the
