@@ -20,10 +20,10 @@ import (
 var (
 	pruneDescription = `podman container prune
 
-	Removes all non running containers`
+	Removes containers`
 	pruneCommand = &cobra.Command{
 		Use:               "prune [options]",
-		Short:             "Remove all non running containers",
+		Short:             "Remove containers",
 		Long:              pruneDescription,
 		RunE:              prune,
 		ValidArgsFunction: completion.AutocompleteNone,
@@ -31,6 +31,7 @@ var (
 		Args:              validate.NoArgs,
 	}
 	force  bool
+	pruneRunning    bool
 	filter = []string{}
 )
 
@@ -41,6 +42,7 @@ func init() {
 	})
 	flags := pruneCommand.Flags()
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
+	flags.BoolVarP(&pruneRunning, "all", "a", false, "Remove running containers. The default is to remove only non running containers")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
@@ -53,7 +55,11 @@ func prune(_ *cobra.Command, _ []string) error {
 	)
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("WARNING! This will remove all non running containers.")
+		if pruneRunning {
+			fmt.Println("WARNING! This will remove ALL containers.")
+		} else {
+			fmt.Println("WARNING! This will remove all non running containers.")
+		}
 		fmt.Print("Are you sure you want to continue? [y/N] ")
 		answer, err := reader.ReadString('\n')
 		if err != nil {
@@ -64,6 +70,7 @@ func prune(_ *cobra.Command, _ []string) error {
 		}
 	}
 
+	pruneOptions.PruneRunning = pruneRunning
 	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filter)
 	if err != nil {
 		return err

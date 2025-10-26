@@ -316,7 +316,7 @@ func (ic *ContainerEngine) ContainerRm(_ context.Context, namesOrIds []string, o
 }
 
 func (ic *ContainerEngine) ContainerPrune(_ context.Context, opts entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
-	options := new(containers.PruneOptions).WithFilters(opts.Filters)
+	options := new(containers.PruneOptions).WithFilters(opts.Filters).WithPruneRunning(opts.PruneRunning)
 	return containers.Prune(ic.ClientCtx, options)
 }
 

@@ -1359,25 +1359,29 @@ func (r *Runtime) GetExecSessionContainer(id string) (*Container, error) {
 
 // PruneContainers removes stopped and exited containers from localstorage.  A set of optional filters
 // can be provided to be more granular.
-func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) ([]*reports.PruneReport, error) {
+func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter, pruneRunning bool) ([]*reports.PruneReport, error) {
 	preports := make([]*reports.PruneReport, 0)
-	// We add getting the exited and stopped containers via a filter
-	containerStateFilter := func(c *Container) bool {
-		if c.PodID() != "" {
+
+	if !pruneRunning {
+		// We add getting the exited and stopped containers via a filter
+		containerStateFilter := func(c *Container) bool {
+			if c.PodID() != "" {
+				return false
+			}
+			state, err := c.State()
+			if err != nil {
+				logrus.Error(err)
+				return false
+			}
+			if state == define.ContainerStateStopped || state == define.ContainerStateExited ||
+				state == define.ContainerStateCreated || state == define.ContainerStateConfigured {
+				return true
+			}
 			return false
 		}
-		state, err := c.State()
-		if err != nil {
-			logrus.Error(err)
-			return false
-		}
-		if state == define.ContainerStateStopped || state == define.ContainerStateExited ||
-			state == define.ContainerStateCreated || state == define.ContainerStateConfigured {
-			return true
-		}
-		return false
+		filterFuncs = append(filterFuncs, containerStateFilter)
 	}
-	filterFuncs = append(filterFuncs, containerStateFilter)
+
 	delContainers, err := r.GetContainers(false, filterFuncs...)
 	if err != nil {
 		return nil, err
@@ -1394,7 +1398,7 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) ([]*reports.Pru
 			continue
 		}
 		var time *uint
-		err = r.RemoveContainer(context.Background(), c, false, false, time)
+		err = r.RemoveContainer(context.Background(), c, pruneRunning, false, time)
 		if err != nil {
 			report.Err = err
 		} else {

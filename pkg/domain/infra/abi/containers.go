@@ -394,7 +394,7 @@ func (ic *ContainerEngine) ContainerPrune(_ context.Context, options entities.Co
 
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
-	return ic.Libpod.PruneContainers(filterFuncs)
+	return ic.Libpod.PruneContainers(filterFuncs, options.PruneRunning)
 }
 
 func (ic *ContainerEngine) ContainerKill(_ context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {

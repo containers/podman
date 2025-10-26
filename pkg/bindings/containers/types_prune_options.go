@@ -31,3 +31,18 @@ func (o *PruneOptions) GetFilters() map[string][]string {
 	}
 	return o.Filters
 }
+
+// WithPruneRunning set field PruneRunning to given value
+func (o *PruneOptions) WithPruneRunning(value bool) *PruneOptions {
+	o.PruneRunning = &value
+	return o
+}
+
+// GetPruneRunning returns value of field PruneRunning
+func (o *PruneOptions) GetPruneRunning() bool {
+	if o.PruneRunning == nil {
+		var z bool
+		return z
+	}
+	return *o.PruneRunning
+}

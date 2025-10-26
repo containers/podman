@@ -19,6 +19,18 @@ import (
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+
+	decoder := utils.GetDecoder(r)
+	query := struct {
+		PruneRunning bool `schema:"prune_running"`
+	}{
+		// Override golang default values for types
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.BadRequest(w, "url", r.URL.String(), err)
+		return
+	}
+
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
@@ -35,7 +47,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 
-	report, err := PruneContainersHelper(r, filterFuncs)
+	report, err := PruneContainersHelper(r, filterFuncs, query.PruneRunning)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -68,10 +80,10 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, payload)
 }
 
-func PruneContainersHelper(r *http.Request, filterFuncs []libpod.ContainerFilter) ([]*reports.PruneReport, error) {
+func PruneContainersHelper(r *http.Request, filterFuncs []libpod.ContainerFilter, pruneRunning bool) ([]*reports.PruneReport, error) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	report, err := runtime.PruneContainers(filterFuncs)
+	report, err := runtime.PruneContainers(filterFuncs, pruneRunning)
 	if err != nil {
 		return nil, err
 	}

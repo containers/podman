@@ -435,7 +435,8 @@ type ContainerUnmountReport struct {
 // ContainerPruneOptions describes the options needed
 // to prune a container from the CLI
 type ContainerPruneOptions struct {
-	Filters url.Values `json:"filters" schema:"filters"`
+	Filters      url.Values `json:"filters" schema:"filters"`
+	PruneRunning bool       `json:"prune_running" schema:"prune_running"`
 }
 
 // ContainerPortOptions describes the options to obtain
