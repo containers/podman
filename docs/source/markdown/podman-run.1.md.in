@@ -710,11 +710,11 @@ podman run --mount type=tmpfs,dst=/cache,tmpfs-size=64m alpine
 
 Other specialized mount types are available for advanced use cases:
 
-- **artifact** - Mounts read-only content from a container image or artifact.  
-- **devpts** - Provides a pseudo-terminal device inside the container.  
-- **image** - Mounts files directly from another container image.  
-- **glob** - Mounts multiple host files matching a glob pattern.  
-- **ramfs** - Similar to tmpfs but backed directly by system RAM without size limits.  
+- **artifact** - Mounts read-only content from a container image or artifact.
+- **devpts** - Provides a pseudo-terminal device inside the container.
+- **image** - Mounts files directly from another container image.
+- **glob** - Mounts multiple host files matching a glob pattern.
+- **ramfs** - Similar to tmpfs but backed directly by system RAM without size limits.
 
 These mount types are less commonly used and often appear in internal or
 advanced Podman workflows.
