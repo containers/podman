@@ -59,7 +59,7 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	// Given that we are locked now and check again that the config file does not exists,
 	// if it does it means the VM was already created and we should error.
 	if err := fileutils.Exists(cf.Path); err == nil {
-		return nil, fmt.Errorf("%s: %w", opts.Name, define.ErrVMAlreadyExists)
+		return nil, &define.ErrVMAlreadyExists{Name: opts.Name}
 	}
 
 	if vmtype != define.QemuVirt && len(opts.USBs) > 0 {

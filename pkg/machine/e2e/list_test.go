@@ -185,7 +185,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession.outputToString()).To(Equal("2GiB 11GiB"))
 	})
 	It("list machine from all providers", func() {
-		skipIfVmtype(define.QemuVirt, "linux only has one provider")
+		Skip("This test will be changed for when --provider is added to init")
 
 		// create machine on other provider
 		currprovider := os.Getenv("CONTAINERS_MACHINE_PROVIDER")
