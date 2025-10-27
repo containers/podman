@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build (linux || freebsd) && !remote
 
 package main
 
@@ -21,7 +21,7 @@ var (
 		Long:              createLayerDataDescription,
 		RunE:              createLayerData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-layer-data`,
+		Example:           `podman-testing create-layer-data`,
 	}
 
 	createLayerDataOpts  entities.CreateLayerDataOptions
@@ -37,7 +37,7 @@ var (
 		Long:              createImageDataDescription,
 		RunE:              createImageData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-image-data`,
+		Example:           `podman-testing create-image-data`,
 	}
 
 	createImageDataOpts  entities.CreateImageDataOptions
@@ -53,7 +53,7 @@ var (
 		Long:              createContainerDataDescription,
 		RunE:              createContainerData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-container-data`,
+		Example:           `podman-testing create-container-data`,
 	}
 
 	createContainerDataOpts  entities.CreateContainerDataOptions
@@ -69,7 +69,7 @@ var (
 		Long:              modifyLayerDataDescription,
 		RunE:              modifyLayerData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing modify-layer-data`,
+		Example:           `podman-testing modify-layer-data`,
 	}
 
 	modifyLayerDataOpts  entities.ModifyLayerDataOptions
@@ -84,7 +84,7 @@ var (
 		Long:              modifyImageDataDescription,
 		RunE:              modifyImageData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing modify-image-data`,
+		Example:           `podman-testing modify-image-data`,
 	}
 
 	modifyImageDataOpts  entities.ModifyImageDataOptions
@@ -99,7 +99,7 @@ var (
 		Long:              modifyContainerDataDescription,
 		RunE:              modifyContainerData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing modify-container-data`,
+		Example:           `podman-testing modify-container-data`,
 	}
 
 	modifyContainerDataOpts  entities.ModifyContainerDataOptions
@@ -114,7 +114,7 @@ var (
 		Long:              removeLayerDataDescription,
 		RunE:              removeLayerData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-layer-data`,
+		Example:           `podman-testing remove-layer-data`,
 	}
 
 	removeLayerDataOpts entities.RemoveLayerDataOptions
@@ -127,7 +127,7 @@ var (
 		Long:              removeImageDataDescription,
 		RunE:              removeImageData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-image-data`,
+		Example:           `podman-testing remove-image-data`,
 	}
 
 	removeImageDataOpts entities.RemoveImageDataOptions
@@ -140,7 +140,7 @@ var (
 		Long:              removeContainerDataDescription,
 		RunE:              removeContainerData,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-container-data`,
+		Example:           `podman-testing remove-container-data`,
 	}
 
 	removeContainerDataOpts entities.RemoveContainerDataOptions

@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build (linux || freebsd) && !remote
 
 package main
 
@@ -20,7 +20,7 @@ var (
 		Long:              removeStorageLayerDescription,
 		RunE:              removeStorageLayer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-storage-layer`,
+		Example:           `podman-testing remove-storage-layer`,
 	}
 
 	removeStorageLayerOpts entities.RemoveStorageLayerOptions
@@ -33,7 +33,7 @@ var (
 		Long:              removeLayerDescription,
 		RunE:              removeLayer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-layer`,
+		Example:           `podman-testing remove-layer`,
 	}
 
 	removeLayerOpts entities.RemoveLayerOptions
@@ -46,7 +46,7 @@ var (
 		Long:              removeImageDescription,
 		RunE:              removeImage,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-image`,
+		Example:           `podman-testing remove-image`,
 	}
 
 	removeImageOpts entities.RemoveImageOptions
@@ -59,7 +59,7 @@ var (
 		Long:              removeContainerDescription,
 		RunE:              removeContainer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing remove-container`,
+		Example:           `podman-testing remove-container`,
 	}
 
 	removeContainerOpts entities.RemoveContainerOptions
