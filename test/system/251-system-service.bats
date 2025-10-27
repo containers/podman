@@ -46,6 +46,24 @@ function _podman_system_service {
     rm -f $PODMAN_TMPDIR/myunix.sock
 }
 
+@test "podman system service: grpc listener" {
+    unset REMOTESYSTEM_TRANSPORT
+
+    skip_if_remote "podman system service unavailable over remote"
+    URL=unix://$PODMAN_TMPDIR/myunix.sock
+
+    _podman_system_service $URL --time=0
+    wait_for_file $PODMAN_TMPDIR/myunix.sock
+
+    nonce=$RANDOM
+    run_podman_testing --url "$URL" noop '{"ignored":"'$nonce'"}'
+    assert $status -eq 0
+    is $(jq -c <<< "$output") '{"ignored":"'$nonce'"}' "noop responder"
+
+    systemctl stop $SERVICE_NAME
+    rm -f $PODMAN_TMPDIR/myunix.sock
+}
+
 @test "podman-system-service containers survive service stop" {
     unset REMOTESYSTEM_TRANSPORT
 
