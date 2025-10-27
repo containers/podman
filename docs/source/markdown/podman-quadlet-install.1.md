@@ -16,6 +16,8 @@ This command allows you to:
 
     * Specify a directory containing multiple Quadlet files and other non-Quadlet files for installation ( example a config file for a quadlet container ).
 
+    * Install multiple Quadlets from a single file with `.quadlets` extension where each Quadlet is separated by a `---` delimiter. When using multiple quadlets in a single file, each quadlet section must include a `# FileName=<name>` comment to specify the name for that quadlet.
+
 Note: If a quadlet is part of an application, removing that specific quadlet will remove the entire application. When a quadlet is installed from a directory, all files installed from that directory—including both quadlet and non-quadlet files—are considered part of a single application.
 
 Note: In case user wants to install Quadlet application then first path should be the path to application directory.
@@ -58,6 +60,35 @@ Install quadlet from a url
 $ podman quadlet install https://github.com/containers/podman/blob/main/test/e2e/quadlet/basic.container
 /home/user/.config/containers/systemd/basic.container
 ```
+
+Install multiple quadlets from a single .quadlets file
+```
+$ cat webapp.quadlets
+# FileName=web-server
+[Container]
+Image=nginx:latest
+ContainerName=web-server
+PublishPort=8080:80
+
+---
+
+# FileName=app-storage
+[Volume]
+Label=app=webapp
+
+---
+
+# FileName=app-network
+[Network]
+Subnet=10.0.0.0/24
+
+$ podman quadlet install webapp.quadlets
+/home/user/.config/containers/systemd/web-server.container
+/home/user/.config/containers/systemd/app-storage.volume
+/home/user/.config/containers/systemd/app-network.network
+```
+
+Note: Multi-quadlet functionality requires the `.quadlets` file extension. Files with other extensions will only be processed as single quadlets or asset files.
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-quadlet(1)](podman-quadlet.1.md)**
