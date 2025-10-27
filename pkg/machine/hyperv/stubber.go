@@ -177,7 +177,7 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 	//
 	// This is to prevent a non-admin user from deleting the last machine
 	// which would require removal of vsock entries from the Windows Registry.
-	if err := h.canRemove(); err != nil {
+	if err := h.canRemove(mc); err != nil {
 		return nil, nil, err
 	}
 
@@ -200,8 +200,12 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		}
 
 		// remove vsock registry entries
-		if err := h.removeHvSockFromRegistry(); err != nil {
-			logrus.Errorf("unable to remove hvsock registry entries: %q", err)
+		if isLegacyMachine(mc) {
+			removeLegacyHvSockEntries(mc)
+		} else {
+			if err := h.removeHvSockFromRegistry(); err != nil {
+				logrus.Errorf("unable to remove hvsock registry entries: %q", err)
+			}
 		}
 
 		return nil
@@ -232,11 +236,21 @@ func (h HyperVStubber) canCreate() error {
 	return ErrHypervUserNotInAdminGroup
 }
 
-func (h HyperVStubber) canRemove() error {
+func isLegacyMachine(mc *vmconfigs.MachineConfig) bool {
+	return mc.HyperVHypervisor != nil && mc.HyperVHypervisor.ReadyVsock.MachineName != ""
+}
+
+func (h HyperVStubber) canRemove(mc *vmconfigs.MachineConfig) error {
 	// if admin, can always remove
 	if windows.HasAdminRights() {
 		return nil
 	}
+
+	// if machine is legacy (machineName field), require admin rights to remove
+	if isLegacyMachine(mc) {
+		return ErrHypervRegistryRemoveRequiresElevation
+	}
+
 	// not admin, check if there are multiple machines
 	// if so, user could remove the machine just by being member of the hyperv admin group
 	// (only the last machine removal requires Registry changes)
@@ -268,6 +282,45 @@ func (h HyperVStubber) countMachinesWithToolname() (int, error) {
 		}
 	}
 	return count, nil
+}
+
+// removeLegacyHvSockEntries removes any legacy HVSOCK registry entries associated with the machine.
+// This is used to clean up entries from older versions of Podman that did not manage the Toolname field.
+func removeLegacyHvSockEntries(mc *vmconfigs.MachineConfig) {
+	if mc.HyperVHypervisor.NetworkVSock.MachineName != "" {
+		// Remove the HVSOCK for networking
+		if err := mc.HyperVHypervisor.NetworkVSock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.NetworkVSock.KeyName, err)
+		}
+	}
+
+	if mc.HyperVHypervisor.ReadyVsock.MachineName != "" {
+		// Remove the HVSOCK for events
+		if err := mc.HyperVHypervisor.ReadyVsock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.ReadyVsock.KeyName, err)
+		}
+	}
+
+	for _, mount := range mc.Mounts {
+		if mount.VSockNumber == nil {
+			// nothing to do if the vsock number was never defined
+			continue
+		}
+
+		vsockReg, err := vsock.LoadHVSockRegistryEntry(*mount.VSockNumber)
+		if err != nil {
+			logrus.Debugf("Vsock %d for mountpoint %s does not have a valid registry entry, skipping removal", *mount.VSockNumber, mount.Target)
+			continue
+		}
+
+		if vsockReg.MachineName == "" {
+			continue
+		}
+
+		if err := vsockReg.Remove(); err != nil {
+			logrus.Debugf("unable to remove vsock %d for mountpoint %s: %v", *mount.VSockNumber, mount.Target, err)
+		}
+	}
 }
 
 func (h HyperVStubber) removeHvSockFromRegistry() error {

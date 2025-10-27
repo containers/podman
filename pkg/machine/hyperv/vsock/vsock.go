@@ -244,11 +244,17 @@ func LoadHVSockRegistryEntry(port uint64) (*HVSockRegistryEntry, error) {
 		return nil, err
 	}
 
+	m, _, err := k.GetStringValue(HvsockMachineName)
+	if err != nil {
+		return nil, err
+	}
+
 	return &HVSockRegistryEntry{
-		KeyName: keyName,
-		Purpose: purpose,
-		Port:    port,
-		Key:     k,
+		KeyName:     keyName,
+		Purpose:     purpose,
+		Port:        port,
+		Key:         k,
+		MachineName: m,
 	}, nil
 }
 
