@@ -219,7 +219,7 @@ func (t *quadletTestcase) assertLastKeyIsRegex(args []string, unit *parser.UnitF
 	return true
 }
 
-func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
+func (t *quadletTestcase) assertLastKeyContains(args []string, unit *parser.UnitFile) bool {
 	Expect(args).To(HaveLen(3))
 	group := args[0]
 	key := args[1]
@@ -229,8 +229,8 @@ func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile
 	return ok && strings.Contains(realValue, value)
 }
 
-func (t *quadletTestcase) assertKeyNotContains(args []string, unit *parser.UnitFile) bool {
-	return !t.assertKeyContains(args, unit)
+func (t *quadletTestcase) assertLastKeyNotContains(args []string, unit *parser.UnitFile) bool {
+	return !t.assertLastKeyContains(args, unit)
 }
 
 func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
@@ -544,10 +544,10 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertKeyIsEmpty(args, unit)
 	case "assert-key-is-regex":
 		ok = t.assertKeyIsRegex(args, unit)
-	case "assert-key-contains":
-		ok = t.assertKeyContains(args, unit)
-	case "assert-key-not-contains":
-		ok = t.assertKeyNotContains(args, unit)
+	case "assert-last-key-contains":
+		ok = t.assertLastKeyContains(args, unit)
+	case "assert-last-key-not-contains":
+		ok = t.assertLastKeyNotContains(args, unit)
 	case "assert-last-key-is-regex":
 		ok = t.assertLastKeyIsRegex(args, unit)
 	case "assert-podman-args":
