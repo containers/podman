@@ -88,6 +88,16 @@ var _ = Describe("Podman artifact", func() {
 		// Assuming the test runs less than a minute
 		humanReadableDurationRegexp := `^(Less than a second|1 second|\d+ seconds) ago$`
 		Expect(created).To(ContainElements(MatchRegexp(humanReadableDurationRegexp), MatchRegexp(humanReadableDurationRegexp)))
+
+		// Check if .CreatedAt is reported correctly
+		createdAtFormatSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.CreatedAt}}")
+		createdAt := createdAtFormatSession.OutputToStringArray()
+
+		Expect(createdAt).To(HaveLen(2))
+
+		// Verify the timestamp format looks like "2025-10-23 12:34:56.789 +0000 UTC"
+		timestampRegexp := `^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)? \+\d{4} UTC$`
+		Expect(createdAt).To(ContainElements(MatchRegexp(timestampRegexp), MatchRegexp(timestampRegexp)))
 	})
 
 	It("podman artifact simple add", func() {
