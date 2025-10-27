@@ -210,13 +210,90 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				installReport.QuadletErrors[toInstall] = err
 				continue
 			}
-			// If toInstall is a single file, execute the original logic
-			installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir, assetFile, validateQuadletFile, options.Replace)
-			if err != nil {
-				installReport.QuadletErrors[toInstall] = err
-				continue
+
+			// Check if this file has a supported extension or is a .quadlets file
+			hasValidExt := systemdquadlet.IsExtSupported(toInstall)
+			ext := strings.ToLower(filepath.Ext(toInstall))
+			isQuadletsFile := ext == ".quadlets"
+
+			// Only check for multi-quadlet content if it's a .quadlets file
+			var isMulti bool
+			if isQuadletsFile {
+				var err error
+				isMulti, err = isMultiQuadletFile(toInstall)
+				if err != nil {
+					installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to check if file is multi-quadlet: %w", err)
+					continue
+				}
+				// For .quadlets files, always treat as multi-quadlet (even single quadlets)
+				isMulti = true
 			}
-			installReport.InstalledQuadlets[toInstall] = installedPath
+
+			// Handle files with unsupported extensions that are not .quadlets files
+			if !hasValidExt && !isQuadletsFile {
+				// If we're installing as part of an app (assetFile is set), allow non-quadlet files as assets
+				if assetFile != "" {
+					// This is part of an app installation, allow non-quadlet files as assets
+					// Don't validate as quadlet file (validateQuadletFile will be false)
+				} else {
+					// Standalone files with unsupported extensions are not allowed
+					installReport.QuadletErrors[toInstall] = fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(toInstall))
+					continue
+				}
+			}
+
+			if isMulti {
+				// Parse the multi-quadlet file
+				quadlets, err := parseMultiQuadletFile(toInstall)
+				if err != nil {
+					installReport.QuadletErrors[toInstall] = err
+					continue
+				}
+
+				// Install each quadlet section as a separate file
+				for _, quadlet := range quadlets {
+					// Create a temporary file for this quadlet section
+					tmpFile, err := os.CreateTemp("", quadlet.name+"*"+quadlet.extension)
+					if err != nil {
+						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to create temporary file for quadlet section %s: %w", quadlet.name, err)
+						continue
+					}
+
+					// Write the quadlet content to the temporary file
+					_, err = tmpFile.WriteString(quadlet.content)
+					if err != nil {
+						tmpFile.Close()
+						os.Remove(tmpFile.Name())
+						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to write quadlet section %s to temporary file: %w", quadlet.name, err)
+						continue
+					}
+					tmpFile.Close()
+
+					// Install the quadlet from the temporary file
+					destName := quadlet.name + quadlet.extension
+					installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), destName, installDir, assetFile, true, options.Replace)
+					if err != nil {
+						os.Remove(tmpFile.Name())
+						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to install quadlet section %s: %w", quadlet.name, err)
+						continue
+					}
+
+					// Clean up temporary file
+					os.Remove(tmpFile.Name())
+
+					// Record the installation (use a unique key for each section)
+					sectionKey := fmt.Sprintf("%s#%s", toInstall, quadlet.name)
+					installReport.InstalledQuadlets[sectionKey] = installedPath
+				}
+			} else {
+				// If toInstall is a single file with a supported extension, execute the original logic
+				installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir, assetFile, validateQuadletFile, options.Replace)
+				if err != nil {
+					installReport.QuadletErrors[toInstall] = err
+					continue
+				}
+				installReport.InstalledQuadlets[toInstall] = installedPath
+			}
 		}
 	}
 
@@ -324,6 +401,172 @@ func appendStringToFile(filePath, text string) error {
 
 	_, err = f.WriteString(text + "\n")
 	return err
+}
+
+// quadletSection represents a single quadlet extracted from a multi-quadlet file
+type quadletSection struct {
+	content   string
+	extension string
+	name      string
+}
+
+// parseMultiQuadletFile parses a file that may contain multiple quadlets separated by "---"
+// Returns a slice of quadletSection structs, each representing a separate quadlet
+func parseMultiQuadletFile(filePath string) ([]quadletSection, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read file %s: %w", filePath, err)
+	}
+
+	// Split content by lines and reconstruct sections manually to handle "---" properly
+	lines := strings.Split(string(content), "\n")
+	var sections []string
+	var currentSection strings.Builder
+
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "---" {
+			// Found separator, save current section and start new one
+			if currentSection.Len() > 0 {
+				sections = append(sections, currentSection.String())
+				currentSection.Reset()
+			}
+		} else {
+			// Add line to current section
+			if currentSection.Len() > 0 {
+				currentSection.WriteString("\n")
+			}
+			currentSection.WriteString(line)
+		}
+	}
+
+	// Add the last section
+	if currentSection.Len() > 0 {
+		sections = append(sections, currentSection.String())
+	}
+
+	baseName := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
+	isMultiSection := len(sections) > 1
+
+	// Pre-allocate slice with capacity based on number of sections
+	quadlets := make([]quadletSection, 0, len(sections))
+
+	for i, section := range sections {
+		// Trim whitespace from section
+		section = strings.TrimSpace(section)
+		if section == "" {
+			continue // Skip empty sections
+		}
+
+		// Determine quadlet type from section content
+		extension, err := detectQuadletType(section)
+		if err != nil {
+			return nil, fmt.Errorf("unable to detect quadlet type in section %d: %w", i+1, err)
+		}
+
+		// Extract name for this quadlet section
+		var name string
+		if isMultiSection {
+			// For multi-section files, extract FileName from comments
+			fileName, err := extractFileNameFromSection(section)
+			if err != nil {
+				return nil, fmt.Errorf("section %d: %w", i+1, err)
+			}
+			name = fileName
+		} else {
+			// Single section, use original name
+			name = baseName
+		}
+
+		quadlets = append(quadlets, quadletSection{
+			content:   section,
+			extension: extension,
+			name:      name,
+		})
+	}
+
+	if len(quadlets) == 0 {
+		return nil, fmt.Errorf("no valid quadlet sections found in file %s", filePath)
+	}
+
+	return quadlets, nil
+}
+
+// extractFileNameFromSection extracts the FileName from a comment in the quadlet section
+// The comment must be in the format: # FileName=my-name
+func extractFileNameFromSection(content string) (string, error) {
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// Look for comment lines starting with #
+		if strings.HasPrefix(line, "#") {
+			// Remove the # and trim whitespace
+			commentContent := strings.TrimSpace(line[1:])
+			// Check if it's a FileName directive
+			if strings.HasPrefix(commentContent, "FileName=") {
+				fileName := strings.TrimSpace(commentContent[9:]) // Remove "FileName="
+				if fileName == "" {
+					return "", fmt.Errorf("FileName comment found but no filename specified")
+				}
+				// Validate filename (basic validation - no path separators, no extensions)
+				if strings.ContainsAny(fileName, "/\\") {
+					return "", fmt.Errorf("FileName '%s' cannot contain path separators", fileName)
+				}
+				if strings.Contains(fileName, ".") {
+					return "", fmt.Errorf("FileName '%s' should not include file extension", fileName)
+				}
+				return fileName, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("missing required '# FileName=<name>' comment at the beginning of quadlet section")
+}
+
+// detectQuadletType analyzes the content of a quadlet section to determine its type
+// Returns the appropriate file extension (.container, .volume, .network, etc.)
+func detectQuadletType(content string) (string, error) {
+	// Look for section headers like [Container], [Volume], [Network], etc.
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			sectionName := strings.ToLower(strings.Trim(line, "[]"))
+			switch sectionName {
+			case "container":
+				return ".container", nil
+			case "volume":
+				return ".volume", nil
+			case "network":
+				return ".network", nil
+			case "kube":
+				return ".kube", nil
+			case "image":
+				return ".image", nil
+			case "build":
+				return ".build", nil
+			case "pod":
+				return ".pod", nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no recognized quadlet section found (expected [Container], [Volume], [Network], [Kube], [Image], [Build], or [Pod])")
+}
+
+// isMultiQuadletFile checks if a file contains multiple quadlets by looking for "---" delimiter
+// The delimiter must be on its own line (possibly with whitespace)
+func isMultiQuadletFile(filePath string) (bool, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return false, err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "---" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // buildAppMap scans the given directory for files that start with '.'
