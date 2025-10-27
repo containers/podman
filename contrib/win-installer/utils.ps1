@@ -81,7 +81,11 @@ function SignItem() {
         }
     }
 
-    CheckCommand AzureSignTool.exe 'AzureSignTool'
+    # Check if AzureSignTool is installed
+    if (! (Get-Command 'AzureSignTool.exe' -errorAction SilentlyContinue)) {
+        Write-Error "Required dep `"AzureSignTool`" is not installed. "
+        Exit 1
+    }
 
     AzureSignTool.exe sign -du 'https://github.com/containers/podman' `
         -kvu "https://$ENV:VAULT_ID.vault.azure.net" `
