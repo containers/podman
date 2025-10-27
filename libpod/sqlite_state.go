@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage"
 
 	// SQLite backend for database/sql
@@ -102,6 +103,11 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	state.runtime = runtime
 
 	return state, nil
+}
+
+// Name gets the name of the current DB backend.
+func (s *SQLiteState) Name() string {
+	return config.DBBackendSQLite.String()
 }
 
 // Close closes the state and prevents further use
@@ -661,17 +667,7 @@ func (s *SQLiteState) HasContainer(id string) (bool, error) {
 
 	row := s.conn.QueryRow("SELECT 1 FROM ContainerConfig WHERE ID=?;", id)
 
-	var check int
-	if err := row.Scan(&check); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, fmt.Errorf("looking up container %s in database: %w", id, err)
-	} else if check != 1 {
-		return false, fmt.Errorf("check digit for container %s lookup incorrect: %w", id, define.ErrInternal)
-	}
-
-	return true, nil
+	return hasContainerBody(id, row)
 }
 
 // AddContainer adds a container to the state
@@ -685,10 +681,6 @@ func (s *SQLiteState) AddContainer(ctr *Container) error {
 		return define.ErrCtrRemoved
 	}
 
-	if ctr.config.Pod != "" {
-		return fmt.Errorf("cannot add a container that belongs to a pod with AddContainer - use AddContainerToPod: %w", define.ErrInvalidArg)
-	}
-
 	return s.addContainer(ctr)
 }
 
@@ -698,10 +690,6 @@ func (s *SQLiteState) AddContainer(ctr *Container) error {
 func (s *SQLiteState) RemoveContainer(ctr *Container) error {
 	if !s.valid {
 		return define.ErrDBClosed
-	}
-
-	if ctr.config.Pod != "" {
-		return fmt.Errorf("container %s is part of a pod, use RemoveContainerFromPod instead: %w", ctr.ID(), define.ErrPodExists)
 	}
 
 	return s.removeContainer(ctr)
@@ -788,7 +776,7 @@ func (s *SQLiteState) SaveContainer(ctr *Container) (defErr error) {
 // ContainerInUse checks if other containers depend on the given container
 // It returns a slice of the IDs of the containers depending on the given
 // container. If the slice is empty, no containers depend on the given container
-func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
+func (s *SQLiteState) ContainerInUse(ctr *Container) (_ []string, defErr error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -797,7 +785,30 @@ func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
 		return nil, define.ErrCtrRemoved
 	}
 
-	rows, err := s.conn.Query("SELECT ID FROM ContainerDependency WHERE DependencyID=?;", ctr.ID())
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("beginning transaction to retrieve container dependents: %w", err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction retrieve container dependents: %v", err)
+			}
+		}
+	}()
+
+	row := tx.QueryRow("SELECT 1 FROM ContainerConfig WHERE ID=?;", ctr.ID())
+
+	exists, err := hasContainerBody(ctr.ID(), row)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		ctr.valid = false
+		return nil, define.ErrNoSuchCtr
+	}
+
+	rows, err := tx.Query("SELECT ID FROM ContainerDependency WHERE DependencyID=?;", ctr.ID())
 	if err != nil {
 		return nil, fmt.Errorf("retrieving containers that depend on container %s: %w", ctr.ID(), err)
 	}
@@ -813,6 +824,10 @@ func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("committing transaction to retrieve container %s dependents: %w", ctr.ID(), err)
 	}
 
 	return deps, nil
@@ -1230,7 +1245,6 @@ func (s *SQLiteState) RemoveContainerExecSessions(ctr *Container) (defErr error)
 // container ID.
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
-// TODO: Once BoltDB is removed, this can be combined with SafeRewriteContainerConfig.
 func (s *SQLiteState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -1238,31 +1252,6 @@ func (s *SQLiteState) RewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 
 	if !ctr.valid {
 		return define.ErrCtrRemoved
-	}
-
-	return s.rewriteContainerConfig(ctr, newCfg)
-}
-
-// SafeRewriteContainerConfig rewrites a container's configuration in a more
-// limited fashion than RewriteContainerConfig. It is marked as safe to use
-// under most circumstances, unlike RewriteContainerConfig.
-// DO NOT USE TO: Change container dependencies, change pod membership, change
-// locks, change container ID.
-// TODO: Once BoltDB is removed, this can be combined with RewriteContainerConfig.
-func (s *SQLiteState) SafeRewriteContainerConfig(ctr *Container, oldName, newName string, newCfg *ContainerConfig) error {
-	if !s.valid {
-		return define.ErrDBClosed
-	}
-
-	if !ctr.valid {
-		return define.ErrCtrRemoved
-	}
-
-	if newName != "" && newCfg.Name != newName {
-		return fmt.Errorf("new name %s for container %s must match name in given container config: %w", newName, ctr.ID(), define.ErrInvalidArg)
-	}
-	if newName != "" && oldName == "" {
-		return fmt.Errorf("must provide old name for container if a new name is given: %w", define.ErrInvalidArg)
 	}
 
 	return s.rewriteContainerConfig(ctr, newCfg)
@@ -1450,17 +1439,7 @@ func (s *SQLiteState) HasPod(id string) (bool, error) {
 
 	row := s.conn.QueryRow("SELECT 1 FROM PodConfig WHERE ID=?;", id)
 
-	var check int
-	if err := row.Scan(&check); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, fmt.Errorf("looking up pod %s in database: %w", id, err)
-	} else if check != 1 {
-		return false, fmt.Errorf("check digit for pod %s lookup incorrect: %w", id, define.ErrInternal)
-	}
-
-	return true, nil
+	return hasPodBody(id, row)
 }
 
 // PodHasContainer checks if the given pod has a container with the given ID
@@ -1501,6 +1480,15 @@ func (s *SQLiteState) PodContainersByID(pod *Pod) ([]string, error) {
 		return nil, define.ErrPodRemoved
 	}
 
+	hasPod, err := s.HasPod(pod.ID())
+	if err != nil {
+		return nil, err
+	}
+	if !hasPod {
+		pod.valid = false
+		return nil, define.ErrNoSuchPod
+	}
+
 	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE PodID=?;", pod.ID())
 	if err != nil {
 		return nil, fmt.Errorf("retrieving container IDs of pod %s from database: %w", pod.ID(), err)
@@ -1531,6 +1519,15 @@ func (s *SQLiteState) PodContainers(pod *Pod) ([]*Container, error) {
 
 	if !pod.valid {
 		return nil, define.ErrPodRemoved
+	}
+
+	hasPod, err := s.HasPod(pod.ID())
+	if err != nil {
+		return nil, err
+	}
+	if !hasPod {
+		pod.valid = false
+		return nil, define.ErrNoSuchPod
 	}
 
 	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE PodID=?;", pod.ID())
@@ -1737,24 +1734,62 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) (defErr error) {
 		}
 	}()
 
+	hasPod, err := hasPodTx(pod.ID(), tx)
+	if err != nil {
+		return err
+	}
+	if !hasPod {
+		pod.valid = false
+		return define.ErrNoSuchPod
+	}
+
 	rows, err := tx.Query("SELECT ID FROM ContainerConfig WHERE PodID=?;", pod.ID())
 	if err != nil {
 		return fmt.Errorf("retrieving container IDs of pod %s from database: %w", pod.ID(), err)
 	}
 	defer rows.Close()
 
+	var ids []string
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
 			return fmt.Errorf("scanning container from database: %w", err)
 		}
-
-		if err := s.removeContainerWithTx(id, tx); err != nil {
-			return err
-		}
+		ids = append(ids, id)
 	}
 	if err := rows.Err(); err != nil {
 		return err
+	}
+	if len(ids) == 0 {
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("committing pod containers %s removal transaction: %w", pod.ID(), err)
+		}
+
+		return nil
+	}
+
+	// This is absolutely cursed, but still seems to be the best way to pass an array as a SQLite argument
+	jsonIDs, err := json.Marshal(ids)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerState WHERE ID in (SELECT value from json_each(?));", jsonIDs); err != nil {
+		return fmt.Errorf("removing pod %s container states: %w", pod.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE ID in (SELECT value from json_each(?));", jsonIDs); err != nil {
+		return fmt.Errorf("removing pod %s container dependencies: %w", pod.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID in (SELECT value from json_each(?));", jsonIDs); err != nil {
+		return fmt.Errorf("removing pod %s container volumes: %w", pod.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID in (SELECT value from json_each(?));", jsonIDs); err != nil {
+		return fmt.Errorf("removing pod %s container exec sessions: %w", pod.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE ID in (SELECT value from json_each(?));", jsonIDs); err != nil {
+		return fmt.Errorf("removing pod %s container configs: %w", pod.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE ID in (SELECT value from json_each(?));", jsonIDs); err != nil {
+		return fmt.Errorf("removing pod %s container IDs: %w", pod.ID(), err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1762,50 +1797,6 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) (defErr error) {
 	}
 
 	return nil
-}
-
-// AddContainerToPod adds the given container to an existing pod
-// The container will be added to the state and the pod
-func (s *SQLiteState) AddContainerToPod(pod *Pod, ctr *Container) error {
-	if !s.valid {
-		return define.ErrDBClosed
-	}
-
-	if !pod.valid {
-		return define.ErrPodRemoved
-	}
-
-	if !ctr.valid {
-		return define.ErrCtrRemoved
-	}
-
-	if ctr.config.Pod != pod.ID() {
-		return fmt.Errorf("container %s is not part of pod %s: %w", ctr.ID(), pod.ID(), define.ErrNoSuchCtr)
-	}
-
-	return s.addContainer(ctr)
-}
-
-// RemoveContainerFromPod removes a container from an existing pod
-// The container will also be removed from the state
-func (s *SQLiteState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
-	if !s.valid {
-		return define.ErrDBClosed
-	}
-
-	if !pod.valid {
-		return define.ErrPodRemoved
-	}
-
-	if ctr.config.Pod == "" {
-		return fmt.Errorf("container %s is not part of a pod, use RemoveContainer instead: %w", ctr.ID(), define.ErrNoSuchPod)
-	}
-
-	if ctr.config.Pod != pod.ID() {
-		return fmt.Errorf("container %s is not part of pod %s: %w", ctr.ID(), pod.ID(), define.ErrInvalidArg)
-	}
-
-	return s.removeContainer(ctr)
 }
 
 // UpdatePod updates a pod's state from the database.

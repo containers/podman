@@ -1458,16 +1458,6 @@ func (c *Container) networks() (map[string]types.PerNetworkOptions, error) {
 	return c.runtime.state.GetNetworks(c)
 }
 
-// getInterfaceByName returns a formatted interface name for a given
-// network along with a bool as to whether the network existed
-func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (string, bool) {
-	val, exists := d[networkName]
-	if !exists {
-		return "", exists
-	}
-	return fmt.Sprintf("eth%d", val), exists
-}
-
 // GetNetworkStatus returns the current network status for this container.
 // This returns a map without deep copying which means this should only ever
 // be used as read only access, do not modify this status.

@@ -57,7 +57,6 @@ env:
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
     CI_DESIRED_RUNTIME: crun    # As of 2024-05-28 there are no other supported runtimes
-    CI_DESIRED_DATABASE: sqlite # 'sqlite' or 'boltdb'
     CI_DESIRED_STORAGE: overlay # overlay, vfs, or composefs (which is actually overlay)
 
     # Curl-command prefix for downloading task artifacts, simply add the
@@ -161,7 +160,6 @@ build_task:
               TEST_BUILD_TAGS: ""
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_DATABASE: boltdb
               CI_DESIRED_STORAGE: vfs
         - env:
               <<: *stdenvars
@@ -684,7 +682,7 @@ compose_test_task:
 local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
-    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON ${CI_DESIRED_DATABASE}"
+    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -737,11 +735,6 @@ container_integration_test_task:
               DISTRO_NV: ${FEDORA_NAME}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
     env:
         TEST_FLAVOR: int
@@ -1096,12 +1089,6 @@ upgrade_test_task:
     depends_on: *build
     matrix:
         - env:
-              # 2024-02: as long as possible/reasonable, try to keep
-              #   one version < 4.8 so we can test boltdb. v4.3.1 is
-              #   the lowest we can go right now, builds before that
-              #   have netavark <1.4 which hangs on f39 kernel (#21863).
-              PODMAN_UPGRADE_FROM: v4.3.1
-        - env:
               PODMAN_UPGRADE_FROM: v4.8.0
     gce_instance: *standardvm
     env:
@@ -1109,8 +1096,6 @@ upgrade_test_task:
         TEST_BUILD_TAGS: ""
         DISTRO_NV: ${FEDORA_NAME}
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        # Never force a DB, let the old version decide its default
-        CI_DESIRED_DATABASE:
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main

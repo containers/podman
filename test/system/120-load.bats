@@ -84,11 +84,6 @@ verify_iid_and_name() {
 @test "podman image scp transfer" {
     skip_if_remote "only applicable under local podman"
 
-    # See https://github.com/containers/podman/pull/21300 for details
-    if [[ "$CI_DESIRED_DATABASE" = "boltdb" ]]; then
-        skip "impossible due to pitfalls in our SSH implementation"
-    fi
-
     # FIXME: Broken on debian SID; still broken 2024-09-11
     # See https://github.com/containers/podman/pull/23020#issuecomment-2179284640
     OS_RELEASE_ID="${OS_RELEASE_ID:-$(source /etc/os-release; echo $ID)}"

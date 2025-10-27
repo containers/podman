@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -295,31 +294,11 @@ func getDBState(runtime *Runtime) (State, error) {
 		return nil, err
 	}
 
-	// get default boltdb path
-	baseDir := runtime.config.Engine.StaticDir
-	if runtime.storageConfig.TransientStore {
-		baseDir = runtime.config.Engine.TmpDir
-	}
-	boltDBPath := filepath.Join(baseDir, "bolt_state.db")
-
 	switch backend {
-	case config.DBBackendDefault:
-		// for backwards compatibility check if boltdb exists, if it does not we use sqlite
-		if err := fileutils.Exists(boltDBPath); err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				// need to set DBBackend string so podman info will show the backend name correctly
-				runtime.config.Engine.DBBackend = config.DBBackendSQLite.String()
-				return NewSqliteState(runtime)
-			}
-			// Return error here some other problem with the boltdb file, rather than silently
-			// switch to sqlite which would be hard to debug for the user return the error back
-			// as this likely a real bug.
-			return nil, err
-		}
-		runtime.config.Engine.DBBackend = config.DBBackendBoltDB.String()
-		fallthrough
 	case config.DBBackendBoltDB:
-		return NewBoltState(boltDBPath, runtime)
+		return nil, fmt.Errorf("the BoltDB database backend was removed in Podman 6.0")
+	case config.DBBackendDefault:
+		fallthrough
 	case config.DBBackendSQLite:
 		return NewSqliteState(runtime)
 	default:

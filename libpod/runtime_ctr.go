@@ -146,7 +146,7 @@ func (r *Runtime) RenameContainer(_ context.Context, ctr *Container, newName str
 	ctr.config.Name = newName
 
 	// Step 2: rewrite the old container's config in the DB.
-	if err := r.state.SafeRewriteContainerConfig(ctr, oldName, ctr.config.Name, ctr.config); err != nil {
+	if err := r.state.RewriteContainerConfig(ctr, ctr.config); err != nil {
 		// Assume the rename failed.
 		// Set config back to the old name so reflect what is actually
 		// present in the DB.
@@ -594,11 +594,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		// being removed
 		pod.lock.Lock()
 		defer pod.lock.Unlock()
-
-		if err := r.state.AddContainerToPod(pod, ctr); err != nil {
-			return nil, err
-		}
-	} else if err := r.state.AddContainer(ctr); err != nil {
+	}
+	if err := r.state.AddContainer(ctr); err != nil {
 		return nil, err
 	}
 
@@ -1004,17 +1001,10 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	}
 
 	// Remove the container from the state
-	if c.config.Pod != "" {
-		// If we're removing the pod, the container will be evicted
-		// from the state elsewhere
-		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-			reportErrorf("removing container %s from database: %w", c.ID(), err)
-		}
-	} else {
-		if err := r.state.RemoveContainer(c); err != nil {
-			reportErrorf("removing container %s from database: %w", c.ID(), err)
-		}
+	if err := r.state.RemoveContainer(c); err != nil {
+		reportErrorf("removing container %s from database: %w", c.ID(), err)
 	}
+
 	removedCtrs[c.ID()] = nil
 
 	// Remove the container's CID file on container removal.
@@ -1174,16 +1164,8 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 
 	var cleanupErr error
 	// Remove the container from the state
-	if c.config.Pod != "" {
-		// If we're removing the pod, the container will be evicted
-		// from the state elsewhere
-		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-			cleanupErr = err
-		}
-	} else {
-		if err := r.state.RemoveContainer(c); err != nil {
-			cleanupErr = err
-		}
+	if err := r.state.RemoveContainer(c); err != nil {
+		cleanupErr = err
 	}
 
 	// Unmount container mount points

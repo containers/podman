@@ -282,7 +282,6 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		"--network-config-dir", config.Network.NetworkConfigDir,
 		"--network-backend", config.Network.NetworkBackend,
 		"--volumepath", config.Engine.VolumePath,
-		"--db-backend", config.Engine.DBBackend,
 		fmt.Sprintf("--transient-store=%t", storageConfig.TransientStore),
 	}
 	for _, dir := range config.Engine.HooksDir.Get() {

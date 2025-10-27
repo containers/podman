@@ -332,9 +332,6 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 	os.Setenv("DISABLE_HC_SYSTEMD", "true")
 
 	dbBackend := "sqlite"
-	if os.Getenv("PODMAN_DB") == "boltdb" {
-		dbBackend = "boltdb"
-	}
 
 	networkBackend := Netavark
 	networkConfigDir := "/etc/containers/networks"
@@ -1377,8 +1374,8 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		eventsType = "none"
 	}
 
-	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --tmpdir %s --events-backend %s --db-backend %s",
-		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType, p.DatabaseBackend), " ")
+	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --tmpdir %s --events-backend %s",
+		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType), " ")
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {

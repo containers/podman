@@ -208,10 +208,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
 	}
 
-	if fs.Changed("db-backend") {
-		options = append(options, libpod.WithDatabaseBackend(cfg.ContainersConf.Engine.DBBackend))
-	}
-
 	if cfg.CdiSpecDirs != nil {
 		options = append(options, libpod.WithCDISpecDirs(cfg.CdiSpecDirs))
 	}

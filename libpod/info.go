@@ -111,7 +111,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	info := define.HostInfo{
 		Arch:               runtime.GOARCH,
 		BuildahVersion:     buildah.Version,
-		DatabaseBackend:    r.config.Engine.DBBackend,
+		DatabaseBackend:    r.state.Name(),
 		Linkmode:           linkmode.Linkmode(),
 		CPUs:               runtime.NumCPU(),
 		CPUUtilization:     cpuUtil,

@@ -218,11 +218,7 @@ EOF
 # Whichever DB was picked by old_podman, make sure we honor it
 @test "info - database" {
     run_podman info --format '{{.Host.DatabaseBackend}}'
-    if version_is_older_than 4.8; then
-        assert "$output" = "boltdb" "DatabaseBackend for podman < 4.8"
-    else
-        assert "$output" = "sqlite" "DatabaseBackend for podman >= 4.8"
-    fi
+    assert "$output" = "sqlite" "DatabaseBackend for podman >= 4.8"
 }
 
 @test "images" {

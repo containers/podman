@@ -10,7 +10,7 @@ import (
 )
 
 func Test_generateName(t *testing.T) {
-	state, path, _, err := getEmptyBoltState()
+	state, path, _, err := getEmptySqliteState()
 	assert.NoError(t, err)
 	defer os.RemoveAll(path)
 	defer state.Close()
