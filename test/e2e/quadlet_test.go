@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/systemd/parser"
@@ -170,6 +171,16 @@ func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool
 		}
 	}
 	return true
+}
+
+func (t *quadletTestcase) assertHasKey(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(3))
+	group := args[0]
+	key := args[1]
+	value := args[2]
+
+	realValues := unit.LookupAll(group, key)
+	return slices.Contains(realValues, value)
 }
 
 func (t *quadletTestcase) assertKeyIsEmpty(args []string, unit *parser.UnitFile) bool {
@@ -540,6 +551,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStdErrContains(args, session)
 	case "assert-key-is":
 		ok = t.assertKeyIs(args, unit)
+	case "assert-has-key":
+		ok = t.assertHasKey(args, unit)
 	case "assert-key-is-empty":
 		ok = t.assertKeyIsEmpty(args, unit)
 	case "assert-key-is-regex":
