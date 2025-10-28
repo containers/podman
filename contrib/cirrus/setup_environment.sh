@@ -99,14 +99,6 @@ mkdir -p /etc/containers/containers.conf.d
 [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || \
     die "Only cgroups v2 CI VMs are supported, not: '$CG_FS_TYPE'"
 
-# For testing boltdb without having to use --db-backend.
-# As of #20318 (2023-10-10) sqlite is the default, so do not create
-# a containers.conf file in that condition.
-# shellcheck disable=SC2154
-if [[ "${CI_DESIRED_DATABASE:-sqlite}" != "sqlite" ]]; then
-    printf "[engine]\ndatabase_backend=\"$CI_DESIRED_DATABASE\"\n" > /etc/containers/containers.conf.d/92-db.conf
-fi
-
 if ((CONTAINER==0)); then  # Not yet running inside a container
     showrun echo "conditional setup for CONTAINER == 0"
     # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
@@ -149,27 +141,6 @@ case "$OS_RELEASE_ID" in
         fi
         ;;
     *) die_unknown OS_RELEASE_ID
-esac
-
-# Database: force SQLite or BoltDB as requested in .cirrus.yml.
-# If unset, will default to SQLite.
-# shellcheck disable=SC2154
-showrun echo "about to set up for CI_DESIRED_DATABASE [=$CI_DESIRED_DATABASE]"
-case "$CI_DESIRED_DATABASE" in
-    sqlite)
-        warn "Forcing PODMAN_DB=sqlite"
-        echo "PODMAN_DB=sqlite" >> /etc/ci_environment
-	;;
-    boltdb)
-        warn "Forcing PODMAN_DB=boltdb"
-        echo "PODMAN_DB=boltdb" >> /etc/ci_environment
-	;;
-    "")
-        warn "Using default Podman database"
-        ;;
-    *)
-        die_unknown CI_DESIRED_DATABASE
-        ;;
 esac
 
 # Force the requested storage driver for both system and e2e tests.

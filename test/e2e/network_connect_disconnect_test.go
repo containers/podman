@@ -167,11 +167,7 @@ var _ = Describe("Podman network connect and disconnect", func() {
 
 		con2 := podmanTest.Podman([]string{"network", "connect", netName, "test"})
 		con2.WaitWithDefaultTimeout()
-		if podmanTest.DatabaseBackend == "boltdb" {
-			Expect(con2).Should(ExitWithError(125, fmt.Sprintf("container %s is already connected to network %q: network is already connected", cid, netName)))
-		} else {
-			Expect(con2).Should(ExitWithError(125, fmt.Sprintf("container %s is already connected to network %s: network is already connected", cid, netName)))
-		}
+		Expect(con2).Should(ExitWithError(125, fmt.Sprintf("container %s is already connected to network %s: network is already connected", cid, netName)))
 	})
 
 	It("podman network connect", func() {

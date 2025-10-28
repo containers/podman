@@ -168,68 +168,6 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.OutputToString()).To(Equal("netavark"))
 	})
 
-	It("Podman info: check desired database backend", func() {
-		// defined in .cirrus.yml
-		want := os.Getenv("CI_DESIRED_DATABASE")
-		if want == "" {
-			if os.Getenv("CIRRUS_CI") == "" {
-				Skip("CI_DESIRED_DATABASE is not set--this is OK because we're not running under Cirrus")
-			}
-			Fail("CIRRUS_CI is set, but CI_DESIRED_DATABASE is not! See #16389")
-		}
-		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.DatabaseBackend}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal(want))
-	})
-
-	It("podman --db-backend info basic check", Serial, func() {
-		SkipIfRemote("--db-backend only supported on the local client")
-
-		const desiredDB = "CI_DESIRED_DATABASE"
-
-		type argWant struct {
-			arg  string
-			want string
-		}
-		backends := []argWant{
-			// default should be sqlite
-			{arg: "", want: "sqlite"},
-			{arg: "boltdb", want: "boltdb"},
-			// now because a boltdb exists it should use boltdb when default is requested
-			{arg: "", want: "boltdb"},
-			{arg: "sqlite", want: "sqlite"},
-			// just because we requested sqlite doesn't mean it stays that way.
-			// once a boltdb exists, podman will forevermore stick with it
-			{arg: "", want: "boltdb"},
-		}
-
-		for _, tt := range backends {
-			oldDesiredDB := os.Getenv(desiredDB)
-			if tt.arg == "boltdb" {
-				err := os.Setenv(desiredDB, "boltdb")
-				Expect(err).To(Not(HaveOccurred()))
-				defer os.Setenv(desiredDB, oldDesiredDB)
-			}
-
-			session := podmanTest.Podman([]string{"--db-backend", tt.arg, "--log-level=info", "info", "--format", "{{.Host.DatabaseBackend}}"})
-			session.WaitWithDefaultTimeout()
-			Expect(session).To(Exit(0))
-			Expect(session.OutputToString()).To(Equal(tt.want))
-			Expect(session.ErrorToString()).To(ContainSubstring("Using %s as database backend", tt.want))
-
-			if tt.arg == "boltdb" {
-				err := os.Setenv(desiredDB, oldDesiredDB)
-				Expect(err).To(Not(HaveOccurred()))
-			}
-		}
-
-		// make sure we get an error for bogus values
-		session := podmanTest.Podman([]string{"--db-backend", "bogus", "info", "--format", "{{.Host.DatabaseBackend}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, `Error: unsupported database backend: "bogus"`))
-	})
-
 	It("Podman info: check desired storage driver", func() {
 		// defined in .cirrus.yml
 		want := os.Getenv("CI_DESIRED_STORAGE")

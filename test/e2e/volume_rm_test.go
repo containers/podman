@@ -103,10 +103,6 @@ var _ = Describe("Podman volume rm", func() {
 		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
 		session.WaitWithDefaultTimeout()
 		expect := "more than one result for volume name myv: volume already exists"
-		if podmanTest.DatabaseBackend == "boltdb" {
-			// boltdb issues volume name in quotes
-			expect = `more than one result for volume name "myv": volume already exists`
-		}
 		Expect(session).To(ExitWithError(125, expect))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})

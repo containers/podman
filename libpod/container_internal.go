@@ -709,7 +709,7 @@ func (c *Container) refresh() error {
 	// If a rewrite must happen the config.rewrite field is set to true.
 	if c.config.rewrite {
 		// SafeRewriteContainerConfig must be used with care. Make sure to not change config fields by accident.
-		if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
+		if err := c.runtime.state.RewriteContainerConfig(c, c.config); err != nil {
 			return fmt.Errorf("failed to rewrite the config for container %s: %w", c.config.ID, err)
 		}
 		c.config.rewrite = false
@@ -2846,7 +2846,7 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 		c.config.Spec.Process.Env = envLib.Slice(envMap)
 	}
 
-	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
+	if err := c.runtime.state.RewriteContainerConfig(c, c.config); err != nil {
 		// Assume DB write failed, revert to old resources block
 		c.config.Spec.Linux.Resources = oldResources
 		c.config.RestartPolicy = oldRestart
@@ -2937,7 +2937,7 @@ func (c *Container) updateHealthCheck(newHealthCheckConfig IHealthCheckConfig, c
 
 	newHealthCheckConfig.SetTo(c.config)
 
-	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
+	if err := c.runtime.state.RewriteContainerConfig(c, c.config); err != nil {
 		// Assume DB write failed, revert to old resources block
 		oldHealthCheckConfig.SetTo(c.config)
 		return err
@@ -2993,7 +2993,7 @@ func (c *Container) updateGlobalHealthCheckConfiguration(globalOptions define.Gl
 		c.config.HealthLogDestination = &dest
 	}
 
-	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
+	if err := c.runtime.state.RewriteContainerConfig(c, c.config); err != nil {
 		// Assume DB write failed, revert to old resources block
 		c.config.HealthCheckOnFailureAction = oldHealthCheckOnFailureAction
 		c.config.HealthLogDestination = oldHealthLogDestination

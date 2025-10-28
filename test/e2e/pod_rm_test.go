@@ -204,9 +204,6 @@ var _ = Describe("Podman pod rm", func() {
 		session.WaitWithDefaultTimeout()
 		// FIXME-someday: consolidate different error messages
 		expect = "no pod with name or ID test1 found"
-		if podmanTest.DatabaseBackend == "boltdb" {
-			expect = "test1 is a container, not a pod"
-		}
 		if IsRemote() {
 			expect = `unable to find pod "test1"`
 		}

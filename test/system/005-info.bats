@@ -103,28 +103,6 @@ host.slirp4netns.executable | $expr_path
     is "$output" "$CI_DESIRED_NETWORK" ".Host.NetworkBackend"
 }
 
-@test "podman info - confirm desired database" {
-    # Always run this and preserve its value. We will check again in 999-*.bats
-    run_podman info --format '{{.Host.DatabaseBackend}}'
-    db_backend="$output"
-    echo "$db_backend" > $BATS_SUITE_TMPDIR/db-backend
-
-    if [[ -z "$CI_DESIRED_DATABASE" ]]; then
-        # When running in Cirrus, CI_DESIRED_DATABASE *must* be defined
-        # in .cirrus.yml so we can double-check that all CI VMs are
-        # using netavark or cni as desired.
-        if [[ -n "$CIRRUS_CI" ]]; then
-            die "CIRRUS_CI is set, but CI_DESIRED_DATABASE is not! See #16389"
-        fi
-
-        # Not running under Cirrus (e.g., gating tests, or dev laptop).
-        # Totally OK to skip this test.
-        skip "CI_DESIRED_DATABASE is unset--OK, because we're not in Cirrus"
-    fi
-
-    is "$db_backend" "$CI_DESIRED_DATABASE" "CI_DESIRED_DATABASE (from .cirrus.yml)"
-}
-
 @test "podman info - confirm desired storage driver" {
     if [[ -z "$CI_DESIRED_STORAGE" ]]; then
         # When running in Cirrus, CI_DESIRED_STORAGE *must* be defined
@@ -287,23 +265,6 @@ EOF
     assert "$output" =~ "volplugin1" "CONTAINERS_CONF_OVERRIDE does not clobber volume_plugins from CONTAINERS_CONF"
     assert "$output" =~ "volplugin2" "volume_plugins seen from CONTAINERS_CONF_OVERRIDE"
 
-}
-
-# TODO 6.0: Remove this
-@test "podman - BoltDB cannot create new databases" {
-    skip_if_remote "DB checks only work for local Podman"
-
-    safe_opts=$(podman_isolation_opts ${PODMAN_TMPDIR})
-
-    CI_DESIRED_DATABASE= run_podman 125 $safe_opts --db-backend=boltdb info
-    assert "$output" =~ "deprecated, no new BoltDB databases can be created" \
-           "without CI_DESIRED_DATABASE"
-
-    CI_DESIRED_DATABASE=boltdb run_podman $safe_opts --log-level=debug --db-backend=boltdb info
-    assert "$output" =~ "Allowing deprecated database backend" \
-           "with CI_DESIRED_DATABASE"
-
-    SUPPRESS_BOLTDB_WARNING=true run_podman $safe_opts system reset --force
 }
 
 @test "podman - empty string defaults for certain values" {

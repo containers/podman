@@ -491,6 +491,9 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 	}()
 
 	if err := s.removeContainerWithTx(ctr.ID(), tx); err != nil {
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			ctr.valid = false
+		}
 		return err
 	}
 
@@ -504,28 +507,51 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 // removeContainerWithTx removes the container with the specified transaction.
 // Callers are responsible for committing.
 func (s *SQLiteState) removeContainerWithTx(id string, tx *sql.Tx) error {
-	// TODO TODO TODO:
-	// Need to verify that at least 1 row was deleted from ContainerConfig.
-	// Otherwise return ErrNoSuchCtr.
-	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", id); err != nil {
-		return fmt.Errorf("removing container %s id from database: %w", id, err)
+	var lastErr error
+
+	exec := func(countRows bool, field, query string, args ...any) {
+		res, err := tx.Exec(query, args...)
+		if err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error: %v", lastErr)
+			}
+			lastErr = fmt.Errorf("removing container %s %s from database: %w", id, field, err)
+			return
+		}
+		if !countRows {
+			return
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error: %v", lastErr)
+			}
+			lastErr = fmt.Errorf("getting rows affected while removing container %s %s from database: %w", id, field, err)
+		}
+		if n == 0 {
+			if lastErr != nil {
+				// No need to report duplicate ErrNoSuchCtr
+				if errors.Is(lastErr, define.ErrNoSuchCtr) {
+					return
+				}
+				logrus.Errorf("Error: %v", lastErr)
+			}
+			lastErr = fmt.Errorf("removing container %s from database: %w", id, define.ErrNoSuchCtr)
+		} else if n > 1 {
+			if lastErr != nil {
+				logrus.Errorf("Error: %v", lastErr)
+			}
+			lastErr = fmt.Errorf("removing container %s %s from database found more than 1 row: %w", id, field, define.ErrInternal)
+		}
 	}
-	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE ID=?;", id); err != nil {
-		return fmt.Errorf("removing container %s config from database: %w", id, err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerState WHERE ID=?;", id); err != nil {
-		return fmt.Errorf("removing container %s state from database: %w", id, err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE ID=?;", id); err != nil {
-		return fmt.Errorf("removing container %s dependencies from database: %w", id, err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID=?;", id); err != nil {
-		return fmt.Errorf("removing container %s volumes from database: %w", id, err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", id); err != nil {
-		return fmt.Errorf("removing container %s exec sessions from database: %w", id, err)
-	}
-	return nil
+
+	exec(true, "id", "DELETE FROM IDNamespace WHERE ID=?;", id)
+	exec(true, "config", "DELETE FROM ContainerConfig WHERE ID=?;", id)
+	exec(true, "state", "DELETE FROM ContainerState WHERE ID=?;", id)
+	exec(false, "dependencies", "DELETE FROM ContainerDependency WHERE ID=?;", id)
+	exec(false, "volumes", "DELETE FROM ContainerVolume WHERE ContainerID=?;", id)
+	exec(false, "exec sessions", "DELETE FROM ContainerExecSession WHERE ContainerID=?;", id)
+	return lastErr
 }
 
 // networkModify allows you to modify or add a new network, to add a new network use the new bool
@@ -577,4 +603,37 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 	ctr.config = newCfg
 
 	return nil
+}
+
+func hasContainerBody(id string, row *sql.Row) (bool, error) {
+	var check int
+	if err := row.Scan(&check); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("looking up container %s in database: %w", id, err)
+	} else if check != 1 {
+		return false, fmt.Errorf("check digit for container %s lookup incorrect: %w", id, define.ErrInternal)
+	}
+
+	return true, nil
+}
+
+func hasPodTx(id string, tx *sql.Tx) (bool, error) {
+	row := tx.QueryRow("SELECT 1 FROM PodConfig WHERE ID=?;", id)
+	return hasPodBody(id, row)
+}
+
+func hasPodBody(id string, row *sql.Row) (bool, error) {
+	var check int
+	if err := row.Scan(&check); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("looking up pod %s in database: %w", id, err)
+	} else if check != 1 {
+		return false, fmt.Errorf("check digit for pod %s lookup incorrect: %w", id, define.ErrInternal)
+	}
+
+	return true, nil
 }
