@@ -187,7 +187,8 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 			return nil, err
 		}
 		if len(inputPorts) > 0 {
-			opts.PublishPorts, err = specgenutil.CreatePortBindings(inputPorts)
+			defaultHostIPs := podmanConfig.ContainersConfDefaultsRO.Network.DefaultHostIPs.Get()
+			opts.PublishPorts, err = specgenutil.CreatePortBindings(inputPorts, defaultHostIPs)
 			if err != nil {
 				return nil, err
 			}
