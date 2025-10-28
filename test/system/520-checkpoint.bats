@@ -462,4 +462,31 @@ function setup() {
     run_podman rm -t 0 -f $ctrID
 }
 
+@test "podman checkpoint/restore - publish with default_host_ips" {
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE redirect does not work on remote"
+
+    local port=$(random_free_port)
+    local archive=$PODMAN_TMPDIR/checkpoint.tar.gz
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[network]
+  default_host_ips = ["127.0.0.1"]
+EOF
+
+    run_podman run -d $IMAGE top
+    local cid="$output"
+
+    run_podman container checkpoint --export "$archive" $cid
+    is "$output" "$cid" "podman container checkpoint"
+    run_podman rm -t 0 -f $cid
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman container restore --import "$archive" --publish $port:80
+    local newcid="$output"
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman inspect $newcid --format "{{.HostConfig.PortBindings}}"
+    assert "$output" =~ "127.0.0.1" "HostIP should be 127.0.0.1 from config"
+
+    run_podman rm -t 0 -f $newcid
+}
+
 # vim: filetype=sh

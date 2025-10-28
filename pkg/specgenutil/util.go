@@ -148,7 +148,6 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		toReturn = append(toReturn, newPort)
 	}
 
