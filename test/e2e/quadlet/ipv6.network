@@ -2,7 +2,7 @@
 ## assert-podman-args "--ipv6"
 ## assert-key-is Service Type exec
 ## assert-key-is Service RemainAfterExit no
-## assert-key-contains Service SyslogIdentifier "Modify %N"
+## assert-last-key-contains Service SyslogIdentifier "Modify %N"
 
 [Network]
 IPv6=yes

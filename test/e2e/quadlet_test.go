@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/containers/podman/v6/pkg/systemd/parser"
@@ -172,6 +173,16 @@ func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool
 	return true
 }
 
+func (t *quadletTestcase) assertHasKey(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(3))
+	group := args[0]
+	key := args[1]
+	value := args[2]
+
+	realValues := unit.LookupAll(group, key)
+	return slices.Contains(realValues, value)
+}
+
 func (t *quadletTestcase) assertKeyIsEmpty(args []string, unit *parser.UnitFile) bool {
 	Expect(args).To(HaveLen(2))
 	group := args[0]
@@ -219,7 +230,7 @@ func (t *quadletTestcase) assertLastKeyIsRegex(args []string, unit *parser.UnitF
 	return true
 }
 
-func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
+func (t *quadletTestcase) assertLastKeyContains(args []string, unit *parser.UnitFile) bool {
 	Expect(args).To(HaveLen(3))
 	group := args[0]
 	key := args[1]
@@ -229,8 +240,8 @@ func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile
 	return ok && strings.Contains(realValue, value)
 }
 
-func (t *quadletTestcase) assertKeyNotContains(args []string, unit *parser.UnitFile) bool {
-	return !t.assertKeyContains(args, unit)
+func (t *quadletTestcase) assertLastKeyNotContains(args []string, unit *parser.UnitFile) bool {
+	return !t.assertLastKeyContains(args, unit)
 }
 
 func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
@@ -540,14 +551,16 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStdErrContains(args, session)
 	case "assert-key-is":
 		ok = t.assertKeyIs(args, unit)
+	case "assert-has-key":
+		ok = t.assertHasKey(args, unit)
 	case "assert-key-is-empty":
 		ok = t.assertKeyIsEmpty(args, unit)
 	case "assert-key-is-regex":
 		ok = t.assertKeyIsRegex(args, unit)
-	case "assert-key-contains":
-		ok = t.assertKeyContains(args, unit)
-	case "assert-key-not-contains":
-		ok = t.assertKeyNotContains(args, unit)
+	case "assert-last-key-contains":
+		ok = t.assertLastKeyContains(args, unit)
+	case "assert-last-key-not-contains":
+		ok = t.assertLastKeyNotContains(args, unit)
 	case "assert-last-key-is-regex":
 		ok = t.assertLastKeyIsRegex(args, unit)
 	case "assert-podman-args":

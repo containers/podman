@@ -1,7 +1,7 @@
-## assert-key-contains Service ExecStart " --opt o=uid=0,gid=11 "
+## assert-last-key-contains Service ExecStart " --opt o=uid=0,gid=11 "
 ## assert-key-is Service Type oneshot
 ## assert-key-is Service RemainAfterExit no
-## assert-key-contains Service SyslogIdentifier "Modify %N"
+## assert-last-key-contains Service SyslogIdentifier "Modify %N"
 
 [Volume]
 # Test usernames too

@@ -1,7 +1,11 @@
 [Container]
 Image=localhost/imagename
+## assert-has-key Unit RequiresMountsFor "/path/on/host"
 ## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,destination=/path/in/container"
 Mount=type=bind,source=/path/on/host,destination=/path/in/container
+## assert-has-key Unit RequiresMountsFor "\"/path/on/host\\x20with\\x20spaces\""
+## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host with spaces,dst=/path"
+Mount="type=bind,src=/path/on/host with spaces,dst=/path"
 ## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,dst=/path/in/container,relabel=shared"
 Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
 ## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,dst=/path/in/container,relabel=shared,U=true"
