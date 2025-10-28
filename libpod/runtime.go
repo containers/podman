@@ -510,7 +510,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 		// Using sync once value to only init the store exactly once and only when it will be actually be used.
 		runtime.ArtifactStore = sync.OnceValues(func() (*artStore.ArtifactStore, error) {
-			return artStore.NewArtifactStore(filepath.Join(runtime.storageConfig.GraphRoot, "artifacts"), runtime.SystemContext())
+			artifactEventCallBack := func(status, name, digest string, attributes map[string]string) {
+				eventStatus, err := events.StringToStatus(status)
+				if err != nil {
+					logrus.Errorf("Unknown artifact event status %q: %v", status, err)
+					return
+				}
+				runtime.NewArtifactEvent(eventStatus, name, digest, attributes)
+			}
+			return artStore.NewArtifactStoreWithEventCallback(filepath.Join(runtime.storageConfig.GraphRoot, "artifacts"), runtime.SystemContext(), artifactEventCallBack)
 		})
 	}
 

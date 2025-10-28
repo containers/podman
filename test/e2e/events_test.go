@@ -5,7 +5,9 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -309,4 +311,52 @@ var _ = Describe("Podman events", func() {
 		Expect(result.OutputToStringArray()).ToNot(BeEmpty(), "Number of health_status events")
 	})
 
+	It("podman events artifacts", func() {
+		lock, port, err := setupRegistry(nil)
+		Expect(err).ToNot(HaveOccurred())
+		defer lock.Unlock()
+
+		artifactFile, err := createArtifactFile(4192)
+		Expect(err).ToNot(HaveOccurred())
+		artifactName := fmt.Sprintf("localhost:%s/test/artifact1", port)
+
+		podmanTest.PodmanExitCleanly("artifact", "add", artifactName, artifactFile)
+
+		podmanTest.PodmanExitCleanly("artifact", "extract", artifactName, artifactFile)
+
+		podmanTest.PodmanExitCleanly("artifact", "push", "-q", "--tls-verify=false", artifactName)
+
+		podmanTest.PodmanExitCleanly("artifact", "remove", artifactName)
+
+		podmanTest.PodmanExitCleanly("artifact", "pull", "--tls-verify=false", artifactName)
+
+		result := podmanTest.PodmanExitCleanly("events", "--stream=false", "--filter", "type=artifact")
+		events := result.OutputToStringArray()
+
+		// sort for remote
+		sort.Slice(events, func(i, j int) bool {
+			getStatus := func(log string) string {
+				status := strings.Fields(log)
+				return status[5]
+			}
+			return getStatus(events[i]) < getStatus(events[j])
+		})
+
+		Expect(events).To(HaveLen(5))
+		Expect(events[0]).To(And(
+			ContainSubstring("artifact add"),
+			ContainSubstring(fmt.Sprintf("(name=%s, files=%s)", artifactName, "1"))))
+		Expect(events[1]).To(And(
+			ContainSubstring("artifact extract"),
+			ContainSubstring(fmt.Sprintf("(name=%s, target=%s)", artifactName, artifactFile))))
+		Expect(events[2]).To(And(
+			ContainSubstring("artifact pull"),
+			ContainSubstring(fmt.Sprintf("(name=%s)", artifactName))))
+		Expect(events[3]).To(And(
+			ContainSubstring("artifact push"),
+			ContainSubstring(fmt.Sprintf("(name=%s)", artifactName))))
+		Expect(events[4]).To(And(
+			ContainSubstring("artifact remove"),
+			ContainSubstring(fmt.Sprintf("(name=%s)", artifactName))))
+	})
 })

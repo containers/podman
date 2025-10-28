@@ -74,6 +74,12 @@ func (e EventJournalD) Write(ee Event) error {
 		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
+	case Artifact:
+		m["PODMAN_NAME"] = ee.Name
+		m["PODMAN_ID"] = ee.ID
+		if err := addLabelsToJournal(m, ee.Details.Attributes); err != nil {
+			return err
+		}
 	}
 
 	// starting with commit 7e6e267329 we set LogLevel=notice for the systemd healthcheck unit
@@ -274,6 +280,11 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		if val, ok := entry.Fields["ERROR"]; ok {
 			newEvent.Error = val
+		}
+	case Artifact:
+		newEvent.ID = entry.Fields["PODMAN_ID"]
+		if err := getLabelsFromJournal(entry, &newEvent); err != nil {
+			return nil, err
 		}
 	}
 	return &newEvent, nil
