@@ -1334,3 +1334,23 @@ EOF
 
     run_podman pod rm -f $podname
 }
+
+# bats test_tags=ci:parallel
+@test "podman kube play - publish with default_host_ips" {
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE redirect does not work on remote"
+
+    HOST_PORT=$(random_free_port)
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[network]
+  default_host_ips = ["127.0.0.1"]
+EOF
+
+    _write_test_yaml command=top
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman kube play --publish $HOST_PORT:80 $TESTYAML
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman pod inspect $PODNAME --format "{{.InfraConfig.PortBindings}}"
+    assert "$output" =~ "127.0.0.1 $HOST_PORT" "HostIP should be 127.0.0.1 from config"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman kube down $TESTYAML
+}

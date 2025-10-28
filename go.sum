@@ -90,6 +90,8 @@ github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 h
 github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467/go.mod h1:uzvlm1mxhHkdfqitSA92i7Se+S9ksOn3a3qmv/kyOCw=
 github.com/cyphar/filepath-securejoin v0.6.1 h1:5CeZ1jPXEiYt3+Z6zqprSAgSWiggmpVyciv8syjIpVE=
 github.com/cyphar/filepath-securejoin v0.6.1/go.mod h1:A8hd4EnAeyujCJRrICiOWqjS1AX0a9kM5XL+NwKoYSc=
+github.com/danishprakash/container-libs/common v0.0.0-20260203051226-ba752de82c93 h1:819HSsc5ZhxyXLv2xAylZEElp3+WmzWbkLOCGhQPysk=
+github.com/danishprakash/container-libs/common v0.0.0-20260203051226-ba752de82c93/go.mod h1:+4bMKfBbfK+qgURkCj6vUtghP5ASjsWyYDI/udLOKxk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
@@ -445,8 +447,6 @@ go.opentelemetry.io/otel/trace v1.38.0 h1:Fxk5bKrDZJUH+AMyyIXGcFAPah0oRcT+LuNtJr
 go.opentelemetry.io/otel/trace v1.38.0/go.mod h1:j1P9ivuFsTceSWe1oY+EeW3sc+Pp42sO++GHkg4wwhs=
 go.opentelemetry.io/proto/otlp v1.7.1 h1:gTOMpGDb0WTBOP8JaO72iL3auEZhVmAQg4ipjOVAtj4=
 go.opentelemetry.io/proto/otlp v1.7.1/go.mod h1:b2rVh6rfI/s2pHWNlB7ILJcRALpcNDzKhACevjI+ZnE=
-go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39 h1:qMQW6s4s6dmewSyyR5bWWvdGXt9SnRSdXTHiOPvbgcI=
-go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39/go.mod h1:bGauG8nGM+EIHwcCXqhHFCOpdrMZrlap4yrlmNUJs1Y=
 go.podman.io/image/v5 v5.38.1-0.20251209230740-724707234895 h1:WWyrZFLYIg/BCCB5nVQJwPCbT8SbrmmhY6rUfM1EWzM=
 go.podman.io/image/v5 v5.38.1-0.20251209230740-724707234895/go.mod h1:aplZfUFBE3o4Ttj+hWH3QRmBRjPHOuaEnC9/yaMgxL0=
 go.podman.io/storage v1.61.1-0.20251209230740-724707234895 h1:v9uNYnaG3E6VArt6+6SZLzE1rvG6/7baZvE8jmijM6o=
