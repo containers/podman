@@ -106,7 +106,7 @@ Options specific to type=**tmpfs** and **ramfs**:
 
 - *notmpcopyup*: Disable copying files from the image to the tmpfs/ramfs.
 
-- *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
+- *U*, *chown*: *true* or *false* (default if unspecified: *false*). Set the uid and gid options for the tmpfs filesystem based on the UID and GID of the container. This is **not** recursive.
 
 Options specific to type=**devpts**:
 
