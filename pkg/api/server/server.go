@@ -28,6 +28,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
+	_ "google.golang.org/grpc"
+	_ "google.golang.org/grpc/reflection"
 )
 
 type APIServer struct {
