@@ -26,7 +26,7 @@
 - The `podman artifact add` command now supports a new option, `--replace`, which will replace any existing artifact with the given name ([#27082](https://github.com/containers/podman/issues/27082)).
 - The `podman artifact rm` command now supports a new option, `--ignore`, which will suppress errors when attempting to remove an artifact that does not exist ([#27084](https://github.com/containers/podman/issues/27084)).
 - The `podman artifact list` command now includes artifact creation time in its output ([#27314](https://github.com/containers/podman/issues/27314)).
-- The `podman artifact list --format` option now supports a new format key, `VirtualSize`, returning the size of the artifact in integer bytes (the existing `Size` key returned human-readable information) ([#27085](https://github.com/containers/podman/issues/27085)).
+- The `podman artifact list --format` option now supports two new format keys, `VirtualSize`, returning the size of the artifact in integer bytes, and `CreatedAt`, returning the time the artifact was created as an RFC3339 timestamp (the existing `Size` and `Created` fields returned human-readable information) ([#27085](https://github.com/containers/podman/issues/27085)).
 - The `podman artifact inspect` command now supports a new option, `--format`, to return specific information about an artifact with user-specified formatting ([#27112](https://github.com/containers/podman/issues/27112)).
 
 ### Changes
