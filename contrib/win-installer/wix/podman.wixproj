@@ -1,6 +1,7 @@
 <Project Sdk="WixToolset.Sdk/5.0.2">
 	<PropertyGroup>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<SuppressIces>ICE24</SuppressIces>
 	</PropertyGroup>
 	<ItemGroup>
 		<HarvestDirectory Include="..\docs">
