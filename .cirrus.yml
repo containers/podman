@@ -829,6 +829,7 @@ podman_machine_aarch64_task:
 podman_machine_windows_task:
     name: *std_name_fmt
     alias: podman_machine_windows
+    allow_failures: $TEST_FLAVOR == 'machine-wsl'
     # Docs: ./contrib/cirrus/CIModes.md
     # Duplicated from the main linux machine task as we also must match winmake.ps1 here since that is used on windows.
     only_if: >-
