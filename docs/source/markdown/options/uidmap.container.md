@@ -5,9 +5,8 @@
 #### **--uidmap**=*[flags]container_uid:from_uid[:amount]*
 
 Run the container in a new user namespace using the supplied UID mapping. This
-option conflicts with the **--userns** and **--subuidname** options. This
-option provides a way to map host UIDs to container UIDs. It can be passed
-several times to map different ranges.
+option conflicts with the **--userns** option. It provides a way to map host
+UIDs to container UIDs. It can be passed several times to map different ranges.
 
 The possible values of the optional *flags* are discussed further down on this page.
 The *amount* value is optional and assumed to be **1** if not given.
@@ -18,7 +17,6 @@ The *from_uid* value is based upon the user running the command, either rootful 
 * rootless user: [*flags*]*container_uid*:*intermediate_uid*[:*amount*]
 
   `Rootful mappings`
-
 
 When **podman <<subcommand>>** is called by a privileged user, the option **--uidmap**
 works as a direct mapping between host UIDs and container UIDs.
