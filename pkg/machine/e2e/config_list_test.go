@@ -48,8 +48,3 @@ func (i *listMachine) withFormat(format string) *listMachine {
 	i.format = format
 	return i
 }
-
-func (i *listMachine) withAllProviders() *listMachine {
-	i.allProviders = true
-	return i
-}

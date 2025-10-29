@@ -33,6 +33,12 @@ func Get() (vmconfigs.VMProvider, error) {
 	}
 
 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
+	return GetByVMType(resolvedVMType)
+}
+
+// GetByVMType takes a VMType (presumably from ParseVMType) and returns the correlating
+// VMProvider
+func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	switch resolvedVMType {
 	case define.AppleHvVirt:
 		return new(applehv.AppleHVStubber), nil
@@ -42,8 +48,8 @@ func Get() (vmconfigs.VMProvider, error) {
 		}
 		return new(libkrun.LibKrunStubber), nil
 	default:
-		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}
+	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 }
 
 func GetAll() []vmconfigs.VMProvider {

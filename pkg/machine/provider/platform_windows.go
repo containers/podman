@@ -5,12 +5,11 @@ import (
 	"os"
 
 	"github.com/containers/libhvee/pkg/hypervctl"
+	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/hyperv"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v6/pkg/machine/wsl"
 	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
-
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/hyperv"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 )
@@ -28,8 +27,13 @@ func Get() (vmconfigs.VMProvider, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	logrus.Debugf("Using Podman machine with `%s` virtualization provider", resolvedVMType.String())
+	return GetByVMType(resolvedVMType)
+}
+
+// GetByVMType takes a VMType (presumably from ParseVMType) and returns the correlating
+// VMProvider
+func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	switch resolvedVMType {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
@@ -39,8 +43,8 @@ func Get() (vmconfigs.VMProvider, error) {
 		}
 		return new(hyperv.HyperVStubber), nil
 	default:
-		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 	}
+	return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
 }
 
 func GetAll() []vmconfigs.VMProvider {

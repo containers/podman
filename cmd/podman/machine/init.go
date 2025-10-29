@@ -6,12 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	ldefine "github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/provider"
 	"github.com/containers/podman/v6/pkg/machine/shim"
+	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,6 +39,7 @@ var (
 	initOptionalFlags  = InitOptionalFlags{}
 	defaultMachineName = define.DefaultMachineName
 	now                bool
+	providerOverride   string
 )
 
 // Flags which have a meaning when unspecified that differs from the flag default
@@ -158,6 +162,10 @@ func init() {
 
 	flags.BoolVar(&initOptionalFlags.tlsVerify, "tls-verify", true,
 		"Require HTTPS and verify certificates when contacting registries")
+
+	providerFlagName := "provider"
+	flags.StringVar(&providerOverride, providerFlagName, "", "Override the default machine provider")
+	_ = initCmd.RegisterFlagCompletionFunc(providerFlagName, autocompleteMachineProvider)
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
@@ -171,6 +179,21 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		if !ldefine.NameRegex.MatchString(initOpts.Name) {
 			return fmt.Errorf("invalid name %q: %w", initOpts.Name, ldefine.RegexError)
 		}
+	}
+
+	// If the provider option was given, we need to override the
+	// current provider
+	if cmd.Flags().Changed("provider") {
+		// var found bool
+		indexFunc := func(s vmconfigs.VMProvider) bool {
+			return s.VMType().String() == providerOverride
+		}
+		providers := provider.GetAll()
+		indexVal := slices.IndexFunc(providers, indexFunc)
+		if indexVal == -1 {
+			return fmt.Errorf("unsupported provider %q", providerOverride)
+		}
+		machineProvider = providers[indexVal]
 	}
 
 	// The vmtype names need to be reserved and cannot be used for podman machine names
@@ -251,7 +274,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	// 	return err
 	// }
 
-	err = shim.Init(initOpts, provider)
+	err = shim.Init(initOpts, machineProvider)
 	if err != nil {
 		// The installation is partially complete and podman should
 		// exit gracefully with no error and no success message.
