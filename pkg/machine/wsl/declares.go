@@ -38,6 +38,8 @@ ln -fs /dev/null /etc/systemd/system/console-getty.service
 ln -fs /dev/null /etc/systemd/system/systemd-oomd.socket
 mkdir -p /etc/systemd/system/systemd-sysusers.service.d/
 echo CREATE_MAIL_SPOOL=no >> /etc/default/useradd
+sed -ir 's/SUB_UID_COUNT.*/SUB_UID_COUNT 200000/' /etc/login.defs
+sed -ir 's/SUB_GID_COUNT.*/SUB_GID_COUNT 200000/' /etc/login.defs
 adduser -m [USER] -G wheel
 mkdir -p /home/[USER]/.config/systemd/[USER]/
 chown [USER]:[USER] /home/[USER]/.config
