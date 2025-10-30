@@ -56,8 +56,8 @@ github.com/containerd/log
 # github.com/containerd/platforms v1.0.0-rc.1
 ## explicit; go 1.20
 github.com/containerd/platforms
-# github.com/containerd/stargz-snapshotter/estargz v0.17.0
-## explicit; go 1.23.0
+# github.com/containerd/stargz-snapshotter/estargz v0.18.0
+## explicit; go 1.24.0
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
 # github.com/containerd/typeurl/v2 v2.2.3
@@ -111,8 +111,8 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.62.2
-## explicit; go 1.22.8
+# github.com/containers/common v0.64.2
+## explicit; go 1.23.3
 github.com/containers/common/pkg/strongunits
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
@@ -120,6 +120,11 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.7
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
+# github.com/containers/image/v5 v5.36.2
+## explicit; go 1.23.3
+github.com/containers/image/v5/pkg/compression
+github.com/containers/image/v5/pkg/compression/internal
+github.com/containers/image/v5/pkg/compression/types
 # github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
 ## explicit; go 1.23.3
 github.com/containers/libhvee/pkg/hypervctl
@@ -149,6 +154,11 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
+# github.com/containers/podman/v5 v5.6.2
+## explicit; go 1.23.3
+github.com/containers/podman/v5/pkg/machine/compression
+github.com/containers/podman/v5/pkg/machine/define
+github.com/containers/podman/v5/utils
 # github.com/containers/psgo v1.9.1-0.20250826150930-4ae76f200c86
 ## explicit; go 1.23.3
 github.com/containers/psgo
@@ -158,6 +168,23 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
+# github.com/containers/storage v1.59.1
+## explicit; go 1.23.0
+github.com/containers/storage/pkg/archive
+github.com/containers/storage/pkg/chrootarchive
+github.com/containers/storage/pkg/chunked/compressor
+github.com/containers/storage/pkg/chunked/internal/minimal
+github.com/containers/storage/pkg/fileutils
+github.com/containers/storage/pkg/idtools
+github.com/containers/storage/pkg/ioutils
+github.com/containers/storage/pkg/longpath
+github.com/containers/storage/pkg/mount
+github.com/containers/storage/pkg/pools
+github.com/containers/storage/pkg/promise
+github.com/containers/storage/pkg/reexec
+github.com/containers/storage/pkg/regexp
+github.com/containers/storage/pkg/system
+github.com/containers/storage/pkg/unshare
 # github.com/containers/winquit v1.1.0
 ## explicit; go 1.19
 github.com/containers/winquit/pkg/winquit
@@ -369,8 +396,8 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.4.0
 ## explicit; go 1.18
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.18.0
-## explicit; go 1.22
+# github.com/klauspost/compress v1.18.1
+## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -680,7 +707,7 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/vbatts/tar-split v0.12.1
+# github.com/vbatts/tar-split v0.12.2
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
@@ -740,7 +767,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.0
+# go.podman.io/common v0.66.0 => github.com/inknos/container-libs/common v0.0.0-20251023125301-ca14033a51c1
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -1189,3 +1216,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/common => github.com/inknos/container-libs/common v0.0.0-20251023125301-ca14033a51c1
