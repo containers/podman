@@ -117,6 +117,11 @@ var _ = Describe("podman machine init", func() {
 			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
 			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
 		}
+		// creating a new VM with the same name must fail
+		repeatSession, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(repeatSession).To(Exit(125))
+		Expect(repeatSession.errorToString()).To(ContainSubstring(fmt.Sprintf("Error: machine %q already exists", mb.names[0])))
 	})
 
 	It("run playbook", func() {
@@ -655,7 +660,6 @@ var _ = Describe("podman machine init", func() {
 		session, err := mb.setName(machineName).setCmd(i.withImage(mb.imagePath).withProvider(providerOverride)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session.errorToString()).To(ContainSubstring(fmt.Sprintf("unsupported provider %q", providerOverride)))
-
 	})
 
 	It("machine init --provider", func() {
@@ -699,7 +703,6 @@ var _ = Describe("podman machine init", func() {
 			Expect(p).To(Equal(l.VMType))
 		}
 	})
-
 })
 
 var p4Config = []byte(`{
