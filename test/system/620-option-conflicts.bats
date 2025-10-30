@@ -14,7 +14,6 @@ load helpers
 create,run        | --cpu-period=1 | --cpus=2               | $IMAGE
 create,run        | --cpu-quota=1  | --cpus=2               | $IMAGE
 create,run        | --no-hosts     | --add-host=foo:1.1.1.1 | $IMAGE
-create,run        | --userns=bar   | --pod=foo              | $IMAGE
 container cleanup | --all          | --exec=foo
 container cleanup | --exec=foo     | --rmi                  | foo
 "
@@ -48,6 +47,13 @@ container cleanup | --exec=foo     | --rmi                  | foo
                "podman $cmd --platform + --$opt"
         done
     done
+
+    # --userns and --pod have a different error message format
+    run_podman pod create --name userns-pod-test
+    run_podman 125 run --uidmap=0:1000:1000 --pod=userns-pod-test $IMAGE true
+    is "$output" "Error: cannot set user namespace mappings that differ from pod: invalid argument" \
+       "podman run --uidmap + --pod"
+    run_podman pod rm -f userns-pod-test
 }
 
 
