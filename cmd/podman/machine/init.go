@@ -208,7 +208,10 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	// Check if machine already exists
 	var errNotExists *define.ErrVMDoesNotExist
 	_, _, err := shim.VMExists(initOpts.Name)
-	// errors.As checks for nil so safe to use.
+	// if nil, means we found a vm and need to reject it by name
+	if err == nil {
+		return &define.ErrVMAlreadyExists{Name: initOpts.Name}
+	}
 	if !errors.As(err, &errNotExists) {
 		return err
 	}
