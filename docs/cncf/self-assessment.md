@@ -202,8 +202,7 @@ This document provides the CNCF TAG-Security with an initial understanding of Po
 
 * **Outbound**:
 
-  - Release announcements via GitHub releases and the Podman mailing list
-  - Security advisories through [https://access.redhat.com](https://access.redhat.com) and Bugzilla trackers for Fedora and RHEL on [bugzilla.redhat.com](http://bugzilla.redhat.com)
+  - Release announcements via the [official Podman website](https://podman.io), GitHub releases, and the Podman mailing list
   - Documentation updates and blog posts
   - Conference presentations and talks
   - Project website at [podman.io](https://podman.io) with comprehensive documentation
@@ -226,21 +225,21 @@ Podman is a critical component of the cloud-native ecosystem:
 
 * **Response Time**: The team commits to responding to vulnerability reports within 48 hours. All medium and higher severity exploitable vulnerabilities are prioritized as a matter of general practice.
 
-* **Coordination**: For critical vulnerabilities, Red Hat’s Product Security team coordinates with downstream projects to file bug trackers for downstreams (Fedora / RHEL).
+* **Coordination**: For critical vulnerabilities, ct Security team coordinates with downstream projects to file bug trackers for downstreams (Fedora / RHEL).
 
 * **Credit**: Security researchers who responsibly disclose vulnerabilities are credited in security advisories and release notes.
 
-* **Public Disclosure**: Vulnerabilities are disclosed by Red Hat’s Product Security team with appropriate embargo periods for critical issues, following industry best practices for responsible disclosure.
+* **Public Disclosure**: Vulnerabilities are disclosed by the project maintainers with appropriate embargo periods for critical issues, following industry best practices for responsible disclosure.
 
 ### Vulnerability Response Process
 
-* **Triage**: Security reports are triaged by the Red Hat’s Product security team and assigned severity levels (Critical, High, Medium, Low) using CVSS scoring where applicable.
+* **Triage**: Security reports are triaged by the project maintainers and assigned severity levels (Critical, High, Medium, Low) using CVSS scoring where applicable.
 
 * **Investigation**: The team investigates the vulnerability, determines impact, and develops fixes. All medium and higher severity exploitable vulnerabilities discovered through static or dynamic analysis are fixed in a timely way after they are confirmed.
 
 * **Fix Development**: Security fixes for embargoed CVEs are developed in private repositories to prevent premature disclosure.
 
-* **Disclosure**: Vulnerabilities are disclosed by the Red Hat Product Security team with appropriate embargo periods for critical issues. The project follows industry best practices for coordinated vulnerability disclosure.
+* **Disclosure**: Vulnerabilities are disclosed by the project maintainers with appropriate embargo periods for critical issues. The project follows industry best practices for coordinated vulnerability disclosure.
 
 ### Incident Response
 
@@ -249,6 +248,11 @@ Podman is a critical component of the cloud-native ecosystem:
 * **Containment**: Immediate steps are taken to contain and mitigate the impact of security incidents. If the system and e2e tests point out any issues in the development phase, those get fixed before any code is merged.
 
 ## Appendix
+
+### Known Issues Over Time
+
+* See [this NIST Vulnerability Database list](https://nvd.nist.gov/vuln/search#/nvd/home?vulnRevisionStatusList=published&offset=0&rowCount=50&keyword=podman&resultType=records) for CVEs to date. This includes issues in the Go toolchain and dependencies used by Podman.
+(Four of the entries as of the date of this writing aren't directly related to Podman but contain Podman in the search terms.)
 
 ### OpenSSF Best Practices
 
@@ -265,8 +269,6 @@ Podman is a critical component of the cloud-native ecosystem:
 ### Case Studies
 
 * List of companies and organizations using / shipping Podman [https://github.com/containers/podman/blob/main/ADOPTERS.md](https://github.com/containers/podman/blob/main/ADOPTERS.md)
-
-* Details TBD
 
 ### Related Projects / Vendors
 
