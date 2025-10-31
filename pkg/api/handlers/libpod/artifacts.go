@@ -5,8 +5,11 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"path/filepath"
 
+	"github.com/containers/podman/v6/internal/localapi"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v6/pkg/api/types"
@@ -212,19 +215,21 @@ func BatchRemoveArtifact(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, artifacts)
 }
 
+type artifactAddRequestQuery struct {
+	Name             string   `schema:"name"`
+	FileName         string   `schema:"fileName"`
+	FileMIMEType     string   `schema:"fileMIMEType"`
+	Annotations      []string `schema:"annotations"`
+	ArtifactMIMEType string   `schema:"artifactMIMEType"`
+	Append           bool     `schema:"append"`
+	Replace          bool     `schema:"replace"`
+	Path             string   `schema:"path"`
+}
+
 func AddArtifact(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
-	query := struct {
-		Name             string   `schema:"name"`
-		FileName         string   `schema:"fileName"`
-		FileMIMEType     string   `schema:"fileMIMEType"`
-		Annotations      []string `schema:"annotations"`
-		ArtifactMIMEType string   `schema:"artifactMIMEType"`
-		Append           bool     `schema:"append"`
-		Replace          bool     `schema:"replace"`
-	}{}
+	query := artifactAddRequestQuery{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
@@ -236,6 +241,53 @@ func AddArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	artifactBlobs := []entities.ArtifactBlob{{
+		BlobReader: r.Body,
+		FileName:   query.FileName,
+	}}
+
+	addArtifactHelper(query, artifactBlobs, w, r)
+}
+
+func AddLocalArtifact(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+
+	query := artifactAddRequestQuery{}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	if query.Name == "" || query.FileName == "" {
+		utils.Error(w, http.StatusBadRequest, errors.New("name and file parameters are required"))
+		return
+	}
+
+	cleanPath := filepath.Clean(query.Path)
+	// Check if the path exists on server side.
+	// Note: localapi.ValidatePathForLocalAPI returns nil if the file exists and path is absolute, not an error.
+	switch err := localapi.ValidatePathForLocalAPI(cleanPath); {
+	case err == nil:
+		// no error -> continue
+	case errors.Is(err, fs.ErrNotExist):
+		utils.Error(w, http.StatusNotFound, fmt.Errorf("file does not exist: %q", cleanPath))
+		return
+	default:
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to access file: %w", err))
+		return
+	}
+
+	artifactBlobs := []entities.ArtifactBlob{{
+		BlobFilePath: cleanPath,
+		FileName:     query.FileName,
+	}}
+
+	addArtifactHelper(query, artifactBlobs, w, r)
+}
+
+func addArtifactHelper(query artifactAddRequestQuery, artifactBlobs []entities.ArtifactBlob, w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	annotations, err := domain_utils.ParseAnnotations(query.Annotations)
 	if err != nil {
 		utils.Error(w, http.StatusBadRequest, err)
@@ -250,13 +302,7 @@ func AddArtifact(w http.ResponseWriter, r *http.Request) {
 		Replace:          query.Replace,
 	}
 
-	artifactBlobs := []entities.ArtifactBlob{{
-		BlobReader: r.Body,
-		FileName:   query.FileName,
-	}}
-
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-
 	artifacts, err := imageEngine.ArtifactAdd(r.Context(), query.Name, artifactBlobs, artifactAddOptions)
 	if err != nil {
 		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
