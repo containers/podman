@@ -390,7 +390,7 @@ func (svr *Server) Serve() error {
 
 	var err error
 	var pkt requestPacket
-	var pktType uint8
+	var pktType fxp
 	var pktBytes []byte
 	for {
 		pktType, pktBytes, err = svr.serverConn.recvPacket(svr.pktMgr.getNextOrderID())
@@ -403,7 +403,7 @@ func (svr *Server) Serve() error {
 			break
 		}
 
-		pkt, err = makePacket(rxPacket{fxp(pktType), pktBytes})
+		pkt, err = makePacket(rxPacket{pktType, pktBytes})
 		if err != nil {
 			switch {
 			case errors.Is(err, errUnknownExtendedPacket):

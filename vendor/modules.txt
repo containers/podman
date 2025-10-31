@@ -56,8 +56,8 @@ github.com/containerd/log
 # github.com/containerd/platforms v1.0.0-rc.1
 ## explicit; go 1.20
 github.com/containerd/platforms
-# github.com/containerd/stargz-snapshotter/estargz v0.17.0
-## explicit; go 1.23.0
+# github.com/containerd/stargz-snapshotter/estargz v0.18.0
+## explicit; go 1.24.0
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
 # github.com/containerd/typeurl/v2 v2.2.3
@@ -369,8 +369,8 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.4.0
 ## explicit; go 1.18
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.18.0
-## explicit; go 1.22
+# github.com/klauspost/compress v1.18.1
+## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -562,8 +562,8 @@ github.com/openshift/imagebuilder/strslice
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pkg/sftp v1.13.9
-## explicit; go 1.15
+# github.com/pkg/sftp v1.13.10
+## explicit; go 1.23.0
 github.com/pkg/sftp
 github.com/pkg/sftp/internal/encoding/ssh/filexfer
 github.com/pkg/sftp/internal/encoding/ssh/filexfer/openssh
@@ -680,7 +680,7 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/vbatts/tar-split v0.12.1
+# github.com/vbatts/tar-split v0.12.2
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
@@ -740,7 +740,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.0
+# go.podman.io/common v0.66.0 => github.com/zvenigorodsky/container-libs/common v0.0.0-20251026140432-c2617a9600a7
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -1189,3 +1189,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/common => github.com/zvenigorodsky/container-libs/common v0.0.0-20251026140432-c2617a9600a7

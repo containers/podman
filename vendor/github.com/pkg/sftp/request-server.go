@@ -148,7 +148,7 @@ func (rs *RequestServer) serveLoop(pktChan chan<- orderedRequest) error {
 
 	var err error
 	var pkt requestPacket
-	var pktType uint8
+	var pktType fxp
 	var pktBytes []byte
 
 	for {
@@ -158,7 +158,7 @@ func (rs *RequestServer) serveLoop(pktChan chan<- orderedRequest) error {
 			return err
 		}
 
-		pkt, err = makePacket(rxPacket{fxp(pktType), pktBytes})
+		pkt, err = makePacket(rxPacket{pktType, pktBytes})
 		if err != nil {
 			switch {
 			case errors.Is(err, errUnknownExtendedPacket):

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+    "syscall"
 
 	"github.com/sirupsen/logrus"
 	dirTransport "go.podman.io/image/v5/directory"
@@ -110,6 +111,11 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 			return loadedImages, err
 		}
 		logrus.Debugf("Error loading %s (%s): %v", path, transportName, err)
+
+		if errors.Is(err, syscall.ENOSPC){
+            return nil, fmt.Errorf("no space left on device")
+		}
+
 		loadErrors = append(loadErrors, fmt.Errorf("%s: %v", transportName, err))
 	}
 
