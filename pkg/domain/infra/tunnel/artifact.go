@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
+	"github.com/containers/podman/v5/internal/localapi"
 	"github.com/containers/podman/v5/pkg/bindings/artifacts"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/errorhandling"
 	"go.podman.io/image/v5/types"
 )
 
@@ -101,26 +104,57 @@ func (ir *ImageEngine) ArtifactAdd(_ context.Context, name string, artifactBlob 
 			// When adding more than 1 blob, set append true after the first
 			options.WithAppend(true)
 		}
-		f, err := os.Open(blob.BlobFilePath)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
 
-		artifactAddReport, err = artifacts.Add(ir.ClientCtx, name, blob.FileName, f, &options)
-		if err != nil && i > 0 {
-			removeOptions := artifacts.RemoveOptions{
-				Artifacts: []string{name},
+		var err error
+		if localMap, ok := localapi.CheckPathOnRunningMachine(ir.ClientCtx, blob.BlobFilePath); ok {
+			artifactAddReport, err = artifacts.AddLocal(ir.ClientCtx, name, blob.FileName, localMap.RemotePath, &options)
+			if err == nil {
+				continue
 			}
-			_, recoverErr := artifacts.Remove(ir.ClientCtx, "", &removeOptions)
-			if recoverErr != nil {
-				return nil, fmt.Errorf("failed to cleanup unfinished artifact add: %w", errors.Join(err, recoverErr))
+			var errModel *errorhandling.ErrorModel
+			if errors.As(err, &errModel) {
+				switch errModel.ResponseCode {
+				case http.StatusNotFound, http.StatusMethodNotAllowed:
+				default:
+					return nil, artifactAddErrorCleanup(ir.ClientCtx, i, name, err)
+				}
+			} else {
+				return nil, artifactAddErrorCleanup(ir.ClientCtx, i, name, err)
 			}
-			return nil, err
 		}
+
+		artifactAddReport, err = addArtifact(ir.ClientCtx, name, i, blob, &options)
 		if err != nil {
 			return nil, err
 		}
+	}
+	return artifactAddReport, nil
+}
+
+func artifactAddErrorCleanup(ctx context.Context, index int, name string, err error) error {
+	if index == 0 {
+		return err
+	}
+	removeOptions := artifacts.RemoveOptions{
+		Artifacts: []string{name},
+	}
+	_, recoverErr := artifacts.Remove(ctx, "", &removeOptions)
+	if recoverErr != nil {
+		return fmt.Errorf("failed to cleanup unfinished artifact add: %w", errors.Join(err, recoverErr))
+	}
+	return err
+}
+
+func addArtifact(ctx context.Context, name string, index int, blob entities.ArtifactBlob, options *artifacts.AddOptions) (*entities.ArtifactAddReport, error) {
+	f, err := os.Open(blob.BlobFilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	artifactAddReport, err := artifacts.Add(ctx, name, blob.FileName, f, options)
+	if err != nil {
+		return nil, artifactAddErrorCleanup(ctx, index, name, err)
 	}
 	return artifactAddReport, nil
 }
