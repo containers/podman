@@ -126,7 +126,8 @@ func ConcatJSON(blobs ...[]byte) []byte {
 			continue // don't know how to concatenate non container objects
 		}
 
-		if len(b) < 3 { // yep empty but also the last one, so closing this thing
+		const minLengthIfNotEmpty = 3
+		if len(b) < minLengthIfNotEmpty { // yep empty but also the last one, so closing this thing
 			if i == last && a > 0 {
 				if err := buf.WriteByte(closing); err != nil {
 					log.Println(err)

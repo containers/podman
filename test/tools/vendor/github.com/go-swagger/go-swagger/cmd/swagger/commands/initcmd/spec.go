@@ -15,7 +15,7 @@ import (
 
 // Spec a command struct for initializing a new swagger application.
 type Spec struct {
-	Format      string   `long:"format" description:"the format for the spec document" default:"yaml" choice:"yaml" choice:"json"`
+	Format      string   `long:"format" description:"the format for the spec document" default:"yaml" choice:"yaml" choice:"json"` //nolint:staticcheck
 	Title       string   `long:"title" description:"the title of the API"`
 	Description string   `long:"description" description:"the description of the API"`
 	Version     string   `long:"version" description:"the version of the API" default:"0.1.0"`
