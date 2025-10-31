@@ -429,7 +429,7 @@ similar to `Environment`.
 
 This key can be listed multiple times.
 
-### AppArmor=
+### `AppArmor=`
 
 Sets the apparmor confinement profile for the container. A value of `unconfined` turns off apparmor confinement.
 
