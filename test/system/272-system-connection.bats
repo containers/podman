@@ -94,6 +94,31 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     run_podman context rm $c1
 }
 
+# Test system connection add bad identities with ssh/unix/tcp
+@test "podman system connection --identity" {
+    run_podman system connection ls -q
+    assert "$output" == "" ""
+
+    run_podman 125 system connection add ssh-conn --identity $PODMAN_TMPDIR/nonexistent ssh://localhost
+    assert "$output" =~ \
+        "Error: failed to validate: failed to read identity *" ""
+    run_podman 125 system connection add unix-conn --identity $PODMAN_TMPDIR/identity unix://path
+    assert "$output" == \
+        "Error: --identity option not supported for unix scheme" ""
+    run_podman 125 system connection add tcp-conn --identity $PODMAN_TEMPDIR/identity tcp://path
+    assert "$output" =~ \
+        "Error: --identity option not supported for tcp scheme" ""
+
+    run touch $PODMAN_TEMPDIR/badfile
+    run chmod -r $PODMAN_TEMPDIR/badfile
+    run_podman 125 system connection add bad-conn --identity $PODMAN_TEMPDIR/badfile ssh://localhost
+    assert "$output" =~ \
+        "Error: failed to validate: failed to read identity*" ""
+    # Ensure no connections were added
+    run_podman system connection ls -q
+    assert "$output" == "" ""
+}
+
 # Test tcp socket; requires starting a local server
 @test "podman system connection - tcp" {
     unset REMOTESYSTEM_TRANSPORT REMOTESYSTEM_TLS_{CLIENT,SERVER,CA}_{CRT,KEY}
