@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build (linux || freebsd) && !remote
 
 package main
 
@@ -21,7 +21,7 @@ var (
 		Long:              populateLayerDescription,
 		RunE:              populateLayer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing populate-layer`,
+		Example:           `podman-testing populate-layer`,
 	}
 
 	populateLayerOpts entities.PopulateLayerOptions
@@ -35,7 +35,7 @@ var (
 		Long:              modifyLayerDescription,
 		RunE:              modifyLayer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing modify-layer`,
+		Example:           `podman-testing modify-layer`,
 	}
 
 	modifyLayerOpts entities.ModifyLayerOptions

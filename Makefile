@@ -239,11 +239,11 @@ all: binaries docs
 
 .PHONY: binaries
 ifeq ($(GOOS),freebsd)
-binaries: podman podman-remote ## (FreeBSD) Build podman and podman-remote binaries
+binaries: podman podman-remote podman-testing ## (FreeBSD) Build podman, podman-remote, and podman-testing binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
 binaries: podman-remote ## (macOS/Windows) Build podman-remote (client) only binaries
 else
-binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## (Linux) Build podman, podman-remote and rootlessport binaries quadlet
+binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## (Linux) Build podman, podman-remote, podmansh, rootlessport, and quadlet binaries
 endif
 
 # Extract text following double-# for targets, as their description for
@@ -478,7 +478,7 @@ $(SRCBINDIR)/podman-testing: $(SOURCES) go.mod go.sum
 		-o $@ ./cmd/podman-testing
 
 .PHONY: podman-testing
-podman-testing: bin/podman-testing
+podman-testing: $(SRCBINDIR)/podman-testing
 
 ###
 ### Secondary binary-build targets

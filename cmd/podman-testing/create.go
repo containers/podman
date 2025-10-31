@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build (linux || freebsd) && !remote
 
 package main
 
@@ -20,7 +20,7 @@ var (
 		Long:              createStorageLayerDescription,
 		RunE:              createStorageLayer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-storage-layer`,
+		Example:           `podman-testing create-storage-layer`,
 	}
 
 	createStorageLayerOpts entities.CreateStorageLayerOptions
@@ -33,7 +33,7 @@ var (
 		Long:              createLayerDescription,
 		RunE:              createLayer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-layer`,
+		Example:           `podman-testing create-layer`,
 	}
 
 	createLayerOpts entities.CreateLayerOptions
@@ -46,7 +46,7 @@ var (
 		Long:              createImageDescription,
 		RunE:              createImage,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-image`,
+		Example:           `podman-testing create-image`,
 	}
 
 	createImageOpts entities.CreateImageOptions
@@ -59,7 +59,7 @@ var (
 		Long:              createContainerDescription,
 		RunE:              createContainer,
 		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman testing create-container`,
+		Example:           `podman-testing create-container`,
 	}
 
 	createContainerOpts entities.CreateContainerOptions

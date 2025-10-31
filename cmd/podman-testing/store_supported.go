@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"os"
 
+	ientities "github.com/containers/podman/v6/internal/domain/entities"
+	"github.com/containers/podman/v6/internal/domain/infra"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/storage"
 	"go.podman.io/storage/types"
 )
 
 var (
-	globalStore storage.Store
-	engineMode  = entities.ABIMode
+	globalStorageOptions storage.StoreOptions
+	globalStore          storage.Store
+	engineMode           = entities.ABIMode
+	testingEngine        ientities.TestingEngine
 )
 
 func init() {
@@ -52,6 +56,7 @@ func storeBefore() error {
 	} else {
 		engineMode = entities.ABIMode
 	}
+	podmanConfig.EngineMode = engineMode
 	return nil
 }
 
@@ -61,4 +66,15 @@ func storeAfter() error {
 		return err
 	}
 	return nil
+}
+
+func testingEngineBefore(podmanConfig *entities.PodmanConfig) (err error) {
+	podmanConfig.StorageDriver = globalStorageOptions.GraphDriverName
+	podmanConfig.GraphRoot = globalStorageOptions.GraphRoot
+	podmanConfig.Runroot = globalStorageOptions.RunRoot
+	podmanConfig.ImageStore = globalStorageOptions.ImageStore
+	podmanConfig.StorageOpts = globalStorageOptions.GraphDriverOptions
+	podmanConfig.TransientStore = globalStorageOptions.TransientStore
+	testingEngine, err = infra.NewTestingEngine(podmanConfig)
+	return err
 }

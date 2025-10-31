@@ -1,5 +1,3 @@
-//go:build !remote
-
 package main
 
 import (
@@ -11,13 +9,10 @@ import (
 	"syscall"
 
 	_ "github.com/containers/podman/v6/cmd/podman/completion"
-	ientities "github.com/containers/podman/v6/internal/domain/entities"
-	"github.com/containers/podman/v6/internal/domain/infra"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/config"
-	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/reexec"
 	"go.podman.io/storage/pkg/unshare"
 )
@@ -38,11 +33,9 @@ var (
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	mainContext          = context.Background()
-	podmanConfig         entities.PodmanConfig
-	globalStorageOptions storage.StoreOptions
-	globalLogLevel       string
-	testingEngine        ientities.TestingEngine
+	mainContext    = context.Background()
+	podmanConfig   entities.PodmanConfig
+	globalLogLevel string
 )
 
 func init() {
@@ -80,18 +73,9 @@ func before() error {
 	}
 	podmanConfig.ContainersConf = containersConf
 
-	podmanConfig.StorageDriver = globalStorageOptions.GraphDriverName
-	podmanConfig.GraphRoot = globalStorageOptions.GraphRoot
-	podmanConfig.Runroot = globalStorageOptions.RunRoot
-	podmanConfig.ImageStore = globalStorageOptions.ImageStore
-	podmanConfig.StorageOpts = globalStorageOptions.GraphDriverOptions
-	podmanConfig.TransientStore = globalStorageOptions.TransientStore
-
-	te, err := infra.NewTestingEngine(&podmanConfig)
-	if err != nil {
-		return fmt.Errorf("initializing libpod: %w", err)
+	if err := testingEngineBefore(&podmanConfig); err != nil {
+		return fmt.Errorf("setting up testing engine: %w", err)
 	}
-	testingEngine = te
 	return nil
 }
 
