@@ -390,12 +390,12 @@ class ArtifactTestCase(APITestCase):
         rjson = r.json()
 
         # Assert correct response code
-        self.assertEqual(r.status_code, 500, r.text)
+        self.assertEqual(r.status_code, 400, r.text)
 
         # Assert return error response is json and contains correct message
         self.assertEqual(
             rjson["cause"],
-            'path "../../etc/passwd" is not absolute',
+            'path is not absolute',
         )
 
     def test_inspect(self):
