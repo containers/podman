@@ -778,7 +778,7 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 	}
 
 	apparmor, hasApparmor := container.Lookup(ContainerGroup, KeyAppArmor)
-	if hasApparmor {
+	if hasApparmor && len(apparmor) > 0{
 		podman.add("--security-opt", fmt.Sprintf("apparmor=%s", apparmor))
 	}
 
