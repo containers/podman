@@ -21,32 +21,53 @@
 //go:build linux
 // +build linux
 
-package cgroups
+package automaxprocs
 
-import "fmt"
+import (
+	"errors"
+)
 
-type cgroupSubsysFormatInvalidError struct {
-	line string
+// CPUQuotaToGOMAXPROCS converts the CPU quota applied to the calling process
+// to a valid GOMAXPROCS value. The quota is converted from float to int using round.
+// If round == nil, DefaultRoundFunc is used.
+func CPUQuotaToGOMAXPROCS(minValue int, round func(v float64) int) (int, CPUQuotaStatus, error) {
+	if round == nil {
+		round = DefaultRoundFunc
+	}
+	cgroups, err := _newQueryer()
+	if err != nil {
+		return -1, CPUQuotaUndefined, err
+	}
+
+	quota, defined, err := cgroups.CPUQuota()
+	if !defined || err != nil {
+		return -1, CPUQuotaUndefined, err
+	}
+
+	maxProcs := round(quota)
+	if minValue > 0 && maxProcs < minValue {
+		return minValue, CPUQuotaMinUsed, nil
+	}
+	return maxProcs, CPUQuotaUsed, nil
 }
 
-type mountPointFormatInvalidError struct {
-	line string
+type queryer interface {
+	CPUQuota() (float64, bool, error)
 }
 
-type pathNotExposedFromMountPointError struct {
-	mountPoint string
-	root       string
-	path       string
-}
+var (
+	_newCgroups2 = NewCGroups2ForCurrentProcess
+	_newCgroups  = NewCGroupsForCurrentProcess
+	_newQueryer  = newQueryer
+)
 
-func (err cgroupSubsysFormatInvalidError) Error() string {
-	return fmt.Sprintf("invalid format for CGroupSubsys: %q", err.line)
-}
-
-func (err mountPointFormatInvalidError) Error() string {
-	return fmt.Sprintf("invalid format for MountPoint: %q", err.line)
-}
-
-func (err pathNotExposedFromMountPointError) Error() string {
-	return fmt.Sprintf("path %q is not a descendant of mount point root %q and cannot be exposed from %q", err.path, err.root, err.mountPoint)
+func newQueryer() (queryer, error) {
+	cgroups, err := _newCgroups2()
+	if err == nil {
+		return cgroups, nil
+	}
+	if errors.Is(err, ErrNotV2) {
+		return _newCgroups()
+	}
+	return nil, err
 }
