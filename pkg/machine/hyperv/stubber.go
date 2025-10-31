@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v6/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v6/pkg/machine/ignition"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/containers/podman/v6/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/strongunits"
@@ -55,9 +56,51 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		Memory:   uint64(mc.Resources.Memory),
 	}
 
-	networkHVSock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Network)
+	// Allow creation in these two cases:
+	// 1. if the user is Admin
+	// 2. if the user has Hyper-V admin rights and there is at least one machine.
+	//
+	// This is to prevent a non-admin user from creating the first machine
+	// which would require adding vsock entries into the Windows Registry.
+	if err := h.canExecute(0, ErrHypervRegistryInitRequiresElevation); err != nil {
+		return err
+	}
+
+	machines, err := h.countMachines()
 	if err != nil {
 		return err
+	}
+	// Callback to remove any created vsock entries in the Windows Registry if the creation fails
+	removeRegistryEntriesCallBack := func() error {
+		// Allow removal only if user is Admin and this is the first machine created.
+		// If there are already existing machines, the vsock entries should remain.
+		//
+		// There is no need to check for admin rights here as this is already a requirement
+		// to create the first machine and so it would have failed earlier.
+		if machines > 0 {
+			return nil
+		}
+
+		if err := vsock.RemoveAllHVSockRegistryEntries(); err != nil {
+			return fmt.Errorf("unable to remove hvsock registry entries: %q", err)
+		}
+
+		return nil
+	}
+	callbackFuncs.Add(removeRegistryEntriesCallBack)
+
+	// Attempt to load an existing HVSock registry entry for networking.
+	// If no existing entry is found, create a new one.
+	// Creating a new entry requires administrative rights.
+	networkHVSock, err := vsock.LoadHVSockRegistryEntryByPurpose(vsock.Network)
+	if err != nil {
+		if !windows.HasAdminRights() {
+			return ErrHypervRegistryInitRequiresElevation
+		}
+		networkHVSock, err = vsock.NewHVSockRegistryEntry(vsock.Network)
+		if err != nil {
+			return err
+		}
 	}
 
 	mc.HyperVHypervisor.NetworkVSock = *networkHVSock
@@ -67,17 +110,6 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	if err != nil {
 		return err
 	}
-
-	removeShareCallBack := func() error {
-		return removeShares(mc)
-	}
-	callbackFuncs.Add(removeShareCallBack)
-
-	removeRegistrySockets := func() error {
-		removeNetworkAndReadySocketsFromRegistry(mc)
-		return nil
-	}
-	callbackFuncs.Add(removeRegistrySockets)
 
 	netUnitFile, err := createNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
 	if err != nil {
@@ -137,15 +169,22 @@ func (h HyperVStubber) MountVolumesToVM(_ *vmconfigs.MachineConfig, _ bool) erro
 }
 
 func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
+	// Allow removal in these two cases:
+	// 1. if the user is Admin
+	// 2. if the user has Hyper-V admin rights and there are multiple machines.
+	//
+	// This is to prevent a non-admin user from deleting the last machine
+	// which would require removal of vsock entries from the Windows Registry.
+	if err := h.canExecute(1, ErrHypervRegistryRemoveRequiresElevation); err != nil {
+		return nil, nil, err
+	}
+
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	rmFunc := func() error {
-		// Tear down vsocks
-		removeNetworkAndReadySocketsFromRegistry(mc)
-
 		// Remove ignition registry entries - not a fatal error
 		// for vm removal
 		// TODO we could improve this by recommending an action be done
@@ -154,9 +193,109 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		}
 
 		// disk path removal is done by generic remove
-		return vm.Remove("")
+		if err = vm.Remove(""); err != nil {
+			return err
+		}
+
+		// remove vsock registry entries
+		if err := h.removeHvSockFromRegistry(); err != nil {
+			logrus.Errorf("unable to remove hvsock registry entries: %q", err)
+		}
+
+		removeLegacyHvSockEntries(mc)
+
+		return nil
 	}
 	return []string{}, rmFunc, nil
+}
+
+func (h HyperVStubber) canExecute(adminRequiredMachineCount int, adminRequiredError error) error {
+	isAdmin := windows.HasAdminRights()
+	hasHyperVAdmin := HasHyperVAdminRights()
+
+	machines, err := h.countMachines()
+	if err != nil {
+		return err
+	}
+
+	// Allow action in these two cases:
+	// 1. if the user is Admin
+	// 2. if the user has Hyper-V admin rights and the machine count is greater than the required count.
+	//
+	// This is to prevent a non-admin user from deleting the last machine
+	// which would require removal of vsock entries from the Windows Registry or creating the first machine
+	// which would require adding vsock entries to the Windows Registry.
+	canPerformAction := isAdmin || (hasHyperVAdmin && machines > adminRequiredMachineCount)
+	if !canPerformAction {
+		if !isAdmin && machines == adminRequiredMachineCount {
+			return adminRequiredError
+		}
+		return ErrHypervUserNotInAdminGroup
+	}
+	return nil
+}
+
+// removeLegacyHvSockEntries removes any legacy HVSOCK registry entries associated with the machine.
+// This is used to clean up entries from older versions of Podman that did not manage the Toolname field.
+func removeLegacyHvSockEntries(mc *vmconfigs.MachineConfig) {
+	if mc.HyperVHypervisor.NetworkVSock.MachineName != "" {
+		// Remove the HVSOCK for networking
+		if err := mc.HyperVHypervisor.NetworkVSock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.NetworkVSock.KeyName, err)
+		}
+	}
+
+	if mc.HyperVHypervisor.ReadyVsock.MachineName != "" {
+		// Remove the HVSOCK for events
+		if err := mc.HyperVHypervisor.ReadyVsock.Remove(); err != nil {
+			logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.ReadyVsock.KeyName, err)
+		}
+	}
+
+	for _, mount := range mc.Mounts {
+		if mount.VSockNumber == nil {
+			// nothing to do if the vsock number was never defined
+			continue
+		}
+
+		vsockReg, err := vsock.LoadHVSockRegistryEntry(*mount.VSockNumber)
+		if err != nil {
+			logrus.Debugf("Vsock %d for mountpoint %s does not have a valid registry entry, skipping removal", *mount.VSockNumber, mount.Target)
+			continue
+		}
+
+		if vsockReg.MachineName == "" {
+			continue
+		}
+
+		if err := vsockReg.Remove(); err != nil {
+			logrus.Debugf("unable to remove vsock %d for mountpoint %s: %v", *mount.VSockNumber, mount.Target, err)
+		}
+	}
+}
+
+func (h HyperVStubber) countMachines() (int, error) {
+	dirs, err := env.GetMachineDirs(h.VMType())
+	if err != nil {
+		return 0, err
+	}
+	mcs, err := vmconfigs.LoadMachinesInDir(dirs)
+	if err != nil {
+		return 0, err
+	}
+	return len(mcs), nil
+}
+
+func (h HyperVStubber) removeHvSockFromRegistry() error {
+	machines, err := h.countMachines()
+	if err != nil {
+		return err
+	}
+	if machines > 1 {
+		// there are still machines, do not remove any vsock entries
+		return nil
+	}
+	return vsock.RemoveAllHVSockRegistryEntries()
 }
 
 func (h HyperVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
@@ -353,9 +492,19 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.
 	// simply be derived. So we create the HyperVConfig here.
 	mc.HyperVHypervisor = new(vmconfigs.HyperVConfig)
 	var ignOpts ignition.ReadyUnitOpts
-	readySock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Events)
+
+	// Attempt to load an existing HVSock registry entry for events.
+	// If no existing entry is found, create a new one.
+	// Creating a new entry requires administrative rights.
+	readySock, err := vsock.LoadHVSockRegistryEntryByPurpose(vsock.Events)
 	if err != nil {
-		return nil, err
+		if !windows.HasAdminRights() {
+			return nil, ErrHypervRegistryInitRequiresElevation
+		}
+		readySock, err = vsock.NewHVSockRegistryEntry(vsock.Events)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// TODO Stopped here ... fails bc mc.Hypervisor is nil ... this can be nil checked prior and created
@@ -455,20 +604,6 @@ func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
 		return fmt.Errorf("resizing image: %q", err)
 	}
 	return nil
-}
-
-// removeNetworkAndReadySocketsFromRegistry removes the Network and Ready sockets
-// from the Windows Registry
-func removeNetworkAndReadySocketsFromRegistry(mc *vmconfigs.MachineConfig) {
-	// Remove the HVSOCK for networking
-	if err := mc.HyperVHypervisor.NetworkVSock.Remove(); err != nil {
-		logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.NetworkVSock.KeyName, err)
-	}
-
-	// Remove the HVSOCK for events
-	if err := mc.HyperVHypervisor.ReadyVsock.Remove(); err != nil {
-		logrus.Errorf("unable to remove registry entry for %s: %q", mc.HyperVHypervisor.ReadyVsock.KeyName, err)
-	}
 }
 
 // readAndSplitIgnition reads the ignition file and splits it into key:value pairs

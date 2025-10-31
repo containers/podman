@@ -12,34 +12,9 @@ import (
 	"github.com/containers/podman/v6/pkg/machine"
 	"github.com/containers/podman/v6/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/sirupsen/logrus"
 )
-
-func removeShares(mc *vmconfigs.MachineConfig) error {
-	var removalErr error
-
-	for _, mount := range mc.Mounts {
-		if mount.VSockNumber == nil {
-			// nothing to do if the vsock number was never defined
-			continue
-		}
-
-		vsockReg, err := vsock.LoadHVSockRegistryEntry(*mount.VSockNumber)
-		if err != nil {
-			logrus.Debugf("Vsock %d for mountpoint %s does not have a valid registry entry, skipping removal", *mount.VSockNumber, mount.Target)
-			continue
-		}
-
-		if err := vsockReg.Remove(); err != nil {
-			if removalErr != nil {
-				logrus.Errorf("Error removing vsock: %v", removalErr)
-			}
-			removalErr = fmt.Errorf("removing vsock %d for mountpoint %s: %w", *mount.VSockNumber, mount.Target, err)
-		}
-	}
-
-	return removalErr
-}
 
 func startShares(mc *vmconfigs.MachineConfig) error {
 	for _, mount := range mc.Mounts {
@@ -72,11 +47,31 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 }
 
 func createShares(mc *vmconfigs.MachineConfig) (err error) {
-	for _, mount := range mc.Mounts {
-		testVsock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Fileserver)
-		if err != nil {
-			return err
+	fileServerVsocks, err := vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Fileserver)
+	if err != nil {
+		return fmt.Errorf("failed to load existing file server vsock registry entries: %w", err)
+	}
+	for i, mount := range mc.Mounts {
+		var testVsock *vsock.HVSockRegistryEntry
+
+		// Check if there's an existing file server vsock entry that can be reused for the current mount.
+		if i < len(fileServerVsocks) {
+			testVsock = fileServerVsocks[i]
+		} else {
+			// If no existing vsock entry can be reused, a new one must be created.
+			// Creating a new HVSockRegistryEntry requires administrator privileges.
+			if !windows.HasAdminRights() {
+				if i == 0 {
+					return ErrHypervRegistryInitRequiresElevation
+				}
+				return ErrHypervRegistryUpdateRequiresElevation
+			}
+			testVsock, err = vsock.NewHVSockRegistryEntry(vsock.Fileserver)
+			if err != nil {
+				return err
+			}
 		}
+
 		mount.VSockNumber = &testVsock.Port
 		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, testVsock.Port)
 	}
