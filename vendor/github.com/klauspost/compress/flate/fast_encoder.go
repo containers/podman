@@ -7,7 +7,6 @@ package flate
 
 import (
 	"fmt"
-	"math/bits"
 
 	"github.com/klauspost/compress/internal/le"
 )
@@ -151,29 +150,9 @@ func (e *fastGen) matchlen(s, t int, src []byte) int32 {
 			panic(fmt.Sprint(s, "-", t, "(", s-t, ") > maxMatchLength (", maxMatchOffset, ")"))
 		}
 	}
-	s1 := min(s+maxMatchLength-4, len(src))
-	left := s1 - s
-	n := int32(0)
-	for left >= 8 {
-		diff := le.Load64(src, s) ^ le.Load64(src, t)
-		if diff != 0 {
-			return n + int32(bits.TrailingZeros64(diff)>>3)
-		}
-		s += 8
-		t += 8
-		n += 8
-		left -= 8
-	}
-
-	a := src[s:s1]
+	a := src[s:min(s+maxMatchLength-4, len(src))]
 	b := src[t:]
-	for i := range a {
-		if a[i] != b[i] {
-			break
-		}
-		n++
-	}
-	return n
+	return int32(matchLen(a, b))
 }
 
 // matchlenLong will return the match length between offsets and t in src.
@@ -193,29 +172,7 @@ func (e *fastGen) matchlenLong(s, t int, src []byte) int32 {
 			panic(fmt.Sprint(s, "-", t, "(", s-t, ") > maxMatchLength (", maxMatchOffset, ")"))
 		}
 	}
-	// Extend the match to be as long as possible.
-	left := len(src) - s
-	n := int32(0)
-	for left >= 8 {
-		diff := le.Load64(src, s) ^ le.Load64(src, t)
-		if diff != 0 {
-			return n + int32(bits.TrailingZeros64(diff)>>3)
-		}
-		s += 8
-		t += 8
-		n += 8
-		left -= 8
-	}
-
-	a := src[s:]
-	b := src[t:]
-	for i := range a {
-		if a[i] != b[i] {
-			break
-		}
-		n++
-	}
-	return n
+	return int32(matchLen(src[s:], src[t:]))
 }
 
 // Reset the encoding table.

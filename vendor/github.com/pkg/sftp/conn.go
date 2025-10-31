@@ -22,7 +22,7 @@ type conn struct {
 // For the client mode just pass 0.
 // It returns io.EOF if the connection is closed and
 // there are no more packets to read.
-func (c *conn) recvPacket(orderID uint32) (uint8, []byte, error) {
+func (c *conn) recvPacket(orderID uint32) (fxp, []byte, error) {
 	return recvPacket(c, c.alloc, orderID)
 }
 
@@ -43,6 +43,8 @@ type clientConn struct {
 	conn
 	wg sync.WaitGroup
 
+	wait func() error // if non-nil, call this during Wait() to get a possible remote status error.
+
 	sync.Mutex                          // protects inflight
 	inflight   map[uint32]chan<- result // outstanding requests
 
@@ -55,6 +57,27 @@ type clientConn struct {
 // goroutines.
 func (c *clientConn) Wait() error {
 	<-c.closed
+
+	if c.wait == nil {
+		// Only return this error if c.wait won't return something more useful.
+		return c.err
+	}
+
+	if err := c.wait(); err != nil {
+
+		// TODO: when https://github.com/golang/go/issues/35025 is fixed,
+		// we can remove this if block entirely.
+		// Right now, it’s always going to return this, so it is not useful.
+		// But we have this code here so that as soon as the ssh library is updated,
+		// we can return a possibly more useful error.
+		if err.Error() == "ssh: session not started" {
+			return c.err
+		}
+
+		return err
+	}
+
+	// c.wait returned no error; so, let's return something maybe more useful.
 	return c.err
 }
 
@@ -119,7 +142,7 @@ func (c *clientConn) getChannel(sid uint32) (chan<- result, bool) {
 
 // result captures the result of receiving the a packet from the server
 type result struct {
-	typ  byte
+	typ  fxp
 	data []byte
 	err  error
 }
@@ -129,7 +152,7 @@ type idmarshaler interface {
 	encoding.BinaryMarshaler
 }
 
-func (c *clientConn) sendPacket(ctx context.Context, ch chan result, p idmarshaler) (byte, []byte, error) {
+func (c *clientConn) sendPacket(ctx context.Context, ch chan result, p idmarshaler) (fxp, []byte, error) {
 	if cap(ch) < 1 {
 		ch = make(chan result, 1)
 	}

@@ -299,6 +299,18 @@ type DriverWithDiffer interface {
 	DifferTarget(id string) (string, error)
 }
 
+// ApplyDiffStaging is an interface for driver who can apply the diff without holding the main storage lock.
+// This API is experimental and can be changed without bumping the major version number.
+type ApplyDiffStaging interface {
+	// StartStagingDiffToApply applies the new layer into a temporary directory.
+	// It returns a CleanupTempDirFunc which can nil or set regardless if the function return an error or not.
+	// StagedAddition is only set when there is no error returned and the int64 value returns the size of the layer.
+	// This can be done without holding the storage lock.
+	StartStagingDiffToApply(options ApplyDiffOpts) (tempdir.CleanupTempDirFunc, *tempdir.StagedAddition, int64, error)
+	// CommitStagedLayer commits the staged layer from StartStagingDiffToApply(). This must be done while the storage lock.
+	CommitStagedLayer(id string, commit *tempdir.StagedAddition) error
+}
+
 // Capabilities defines a list of capabilities a driver may implement.
 // These capabilities are not required; however, they do determine how a
 // graphdriver can be used.
