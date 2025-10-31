@@ -270,6 +270,9 @@ func AddLocalArtifact(w http.ResponseWriter, r *http.Request) {
 	switch err := localapi.ValidatePathForLocalAPI(cleanPath); {
 	case err == nil:
 		// no error -> continue
+	case errors.Is(err, localapi.ErrPathNotAbsolute):
+		utils.Error(w, http.StatusBadRequest, err)
+		return
 	case errors.Is(err, fs.ErrNotExist):
 		utils.Error(w, http.StatusNotFound, fmt.Errorf("file does not exist: %q", cleanPath))
 		return

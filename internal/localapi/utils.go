@@ -259,7 +259,7 @@ func IsHyperVProvider(ctx context.Context) (bool, error) {
 // It returns an error if the path is not absolute or does not exist on the filesystem.
 func ValidatePathForLocalAPI(path string) error {
 	if !filepath.IsAbs(path) {
-		return fmt.Errorf("path %q is not absolute", path)
+		return fmt.Errorf("%w: %q", ErrPathNotAbsolute, path)
 	}
 
 	if err := fileutils.Exists(path); err != nil {
