@@ -39,6 +39,8 @@ Suppress informational tips.
 
 Suppress machine starting status output.
 
+@@option update-connection
+
 ## EXAMPLES
 
 Start the specified podman machine.
