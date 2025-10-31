@@ -24,9 +24,6 @@ import (
 )
 
 const (
-	artifactRegistry     = "quay.io"
-	artifactRepo         = "podman"
-	artifactImageName    = "machine-os"
 	artifactOriginalName = specV1.AnnotationTitle
 	machineOS            = "linux"
 )
@@ -92,9 +89,23 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 
 	cache := false
 	if endpoint == "" {
-		imageName := artifactImageName
-		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, imageName, artifactVersion.majorMinor())
-		cache = true
+		return nil, fmt.Errorf("no machine image endpoint provided")
+	}
+
+	// Strip docker:// prefix to parse the reference
+	if strings.HasPrefix(endpoint, "docker://") {
+		ref, err := reference.ParseNormalizedNamed(strings.TrimPrefix(endpoint, "docker://"))
+		if err == nil {
+			// Check if the reference has neither a tag nor a digest
+			if _, hasTag := ref.(reference.Tagged); !hasTag {
+				taggedRef, err := reference.WithTag(ref, artifactVersion.majorMinor())
+				if err != nil {
+					return nil, fmt.Errorf("failed to add version tag: %w", err)
+				}
+				endpoint = "docker://" + taggedRef.String()
+			}
+		}
+		// If parsing failed, just continue with the original endpoint
 	}
 
 	ociDisk := OCIArtifactDisk{

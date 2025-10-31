@@ -305,14 +305,11 @@ func defaultMachineConfig() MachineConfig {
 	return MachineConfig{
 		CPUs:     uint64(cpus),
 		DiskSize: 100,
-		// TODO: Set machine image default here
-		// Currently the default is set in Podman as we need time to stabilize
-		// VM images and locations between different providers.
-		Image:   "",
-		Memory:  2048,
-		User:    getDefaultMachineUser(),
-		Volumes: attributedstring.NewSlice(getDefaultMachineVolumes()),
-		Rosetta: true,
+		Image:    "docker://quay.io/podman/machine-os",
+		Memory:   2048,
+		User:     getDefaultMachineUser(),
+		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
+		Rosetta:  true,
 	}
 }
 
