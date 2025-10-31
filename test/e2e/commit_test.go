@@ -302,13 +302,9 @@ var _ = Describe("Podman commit", func() {
 	})
 
 	It("podman commit container and print id to external file", func() {
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(os.TempDir())).To(Succeed())
+		GinkgoT().Chdir(os.TempDir())
 		targetPath := podmanTest.TempDir
 		targetFile := filepath.Join(targetPath, "idFile")
-		defer Expect(os.Chdir(cwd)).To(BeNil())
 
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
