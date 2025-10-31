@@ -896,6 +896,7 @@ BOGUS=foo
 		runSuccessQuadletTestCase,
 		Entry("Basic container", "basic.container"),
 		Entry("annotation.container", "annotation.container"),
+		Entry("apparmor.container", "apparmor.container"),
 		Entry("autoupdate.container", "autoupdate.container"),
 		Entry("basepodman.container", "basepodman.container"),
 		Entry("capabilities.container", "capabilities.container"),
