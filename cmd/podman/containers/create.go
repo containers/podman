@@ -308,10 +308,6 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 		if c.Flag("cgroups").Changed && vals.CgroupsMode == "split" && registry.IsRemote() {
 			return vals, fmt.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CgroupsMode)
 		}
-
-		if c.Flag("pod").Changed && !strings.HasPrefix(c.Flag("pod").Value.String(), "new:") && c.Flag("userns").Changed {
-			return vals, errors.New("--userns and --pod cannot be set together")
-		}
 	}
 	if c.Flag("shm-size").Changed {
 		vals.ShmSize = c.Flag("shm-size").Value.String()

@@ -21,6 +21,20 @@ import (
 
 const host = "host"
 
+// userNSConflictsWithPod returns an error if the user namespace mode
+// conflicts with pod namespace sharing requirements.
+// Linux requires containers sharing network or IPC namespaces (like in a pod)
+// to use the same user namespace. Trying to use different ones will fail at the kernel level.
+func userNSConflictsWithPod(pod *libpod.Pod, mode specgen.NamespaceMode) error {
+	if pod != nil && pod.HasInfraContainer() && (pod.SharesIPC() || pod.SharesNet()) {
+		// FromPod mode is allowed - container inherits from pod
+		if mode != specgen.FromPod {
+			return fmt.Errorf("cannot set user namespace mappings that differ from pod: %w", define.ErrInvalidArg)
+		}
+	}
+	return nil
+}
+
 // Get the default namespace mode for any given namespace type.
 func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod) (specgen.Namespace, error) {
 	// The default for most is private
@@ -214,6 +228,9 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	// User
 	switch s.UserNS.NSMode {
 	case specgen.KeepID:
+		if err := userNSConflictsWithPod(pod, s.UserNS.NSMode); err != nil {
+			return nil, err
+		}
 		opts, err := namespaces.UsernsMode(s.UserNS.String()).GetKeepIDOptions()
 		if err != nil {
 			return nil, err
@@ -247,6 +264,22 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			return nil, fmt.Errorf("looking up container to share user namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithUserNSFrom(userCtr))
+	case specgen.Private:
+		if err := userNSConflictsWithPod(pod, s.UserNS.NSMode); err != nil {
+			return nil, err
+		}
+	case specgen.Auto:
+		if err := userNSConflictsWithPod(pod, s.UserNS.NSMode); err != nil {
+			return nil, err
+		}
+	case specgen.NoMap:
+		if err := userNSConflictsWithPod(pod, s.UserNS.NSMode); err != nil {
+			return nil, err
+		}
+	case specgen.Path:
+		if err := userNSConflictsWithPod(pod, s.UserNS.NSMode); err != nil {
+			return nil, err
+		}
 	}
 
 	// This wipes the UserNS settings that get set from the infra container
@@ -255,8 +288,6 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	if s.IDMappings != nil {
 		if pod == nil {
 			toReturn = append(toReturn, libpod.WithIDMappings(*s.IDMappings))
-		} else if pod.HasInfraContainer() && (len(s.IDMappings.UIDMap) > 0 || len(s.IDMappings.GIDMap) > 0) {
-			return nil, fmt.Errorf("cannot specify a new uid/gid map when entering a pod with an infra container: %w", define.ErrInvalidArg)
 		}
 	}
 	if s.User != "" {
