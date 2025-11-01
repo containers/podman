@@ -237,7 +237,7 @@ func (p *Process) getKProc() (*unix.KinfoProc, error) {
 
 // call ps command.
 // Return value deletes Header line(you must not input wrong arg).
-// And splited by Space. Caller have responsibility to manage.
+// And split by Space. Caller have responsibility to manage.
 // If passed arg pid is 0, get information from all process.
 func callPsWithContext(ctx context.Context, arg string, pid int32, threadOption, nameOption bool) ([][]string, error) {
 	var cmd []string

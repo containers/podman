@@ -4,31 +4,13 @@
 package common
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
 	"golang.org/x/sys/unix"
 )
-
-func DoSysctrlWithContext(ctx context.Context, mib string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "sysctl", "-n", mib)
-	cmd.Env = getSysctrlEnv(os.Environ())
-	out, err := cmd.Output()
-	if err != nil {
-		return []string{}, err
-	}
-	v := strings.Replace(string(out), "{ ", "", 1)
-	v = strings.Replace(string(v), " }", "", 1)
-	values := strings.Fields(string(v))
-
-	return values, nil
-}
 
 func CallSyscall(mib []int32) ([]byte, uint64, error) {
 	miblen := uint64(len(mib))

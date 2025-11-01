@@ -442,7 +442,7 @@ func HostRootWithContext(ctx context.Context, combineWith ...string) string {
 }
 
 // getSysctrlEnv sets LC_ALL=C in a list of env vars for use when running
-// sysctl commands (see DoSysctrl).
+// sysctl commands.
 func getSysctrlEnv(env []string) []string {
 	foundLC := false
 	for i, line := range env {
