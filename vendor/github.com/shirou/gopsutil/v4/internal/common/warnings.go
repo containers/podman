@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 package common
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 const (
 	maxWarnings             = 100 // An arbitrary limit to avoid excessive memory usage, it has no sense to store hundreds of errors
@@ -33,9 +36,11 @@ func (w *Warnings) Reference() error {
 func (w *Warnings) Error() string {
 	if w.Verbose {
 		str := ""
+		var sb strings.Builder
 		for i, e := range w.List {
-			str += fmt.Sprintf("\tError %d: %s\n", i, e.Error())
+			sb.WriteString(fmt.Sprintf("\tError %d: %s\n", i, e.Error()))
 		}
+		str += sb.String()
 		if w.tooManyErrors {
 			str += fmt.Sprintf("\t%s\n", tooManyErrorsMessage)
 		}
