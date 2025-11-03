@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/types"
 )
@@ -182,14 +181,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 
 	if fs.Changed("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(cfg.ContainersConf.Engine.CgroupManager))
-	} else {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return nil, err
-		}
-		if rootless.IsRootless() && !unified {
-			options = append(options, libpod.WithCgroupManager("cgroupfs"))
-		}
 	}
 
 	// TODO flag to set libpod static dir?
