@@ -122,7 +122,7 @@ func (p *Pod) removePodCgroup() error {
 		// hard - instead, just log errors.
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
-		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
+		if err != nil && err != cgroups.ErrCgroupDeleted {
 			return fmt.Errorf("retrieving pod %s conmon cgroup: %w", p.ID(), err)
 		}
 		if err == nil {
@@ -131,7 +131,7 @@ func (p *Pod) removePodCgroup() error {
 			}
 		}
 		cgroup, err := cgroups.Load(p.state.CgroupPath)
-		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
+		if err != nil && err != cgroups.ErrCgroupDeleted {
 			return fmt.Errorf("retrieving pod %s cgroup: %w", p.ID(), err)
 		}
 		if err == nil {
