@@ -8,12 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"math/bits"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"unsafe"
 
-	"github.com/yusufpapurcu/wmi"
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 
 	"github.com/shirou/gopsutil/v4/internal/common"
 )
@@ -75,6 +77,8 @@ const (
 	smbiosEndOfTable                   = 127        // Minimum length for processor structure
 	smbiosTypeProcessor                = 4          // SMBIOS Type 4: Processor Information
 	smbiosProcessorMinLength           = 0x18       // Minimum length for processor structure
+
+	centralProcessorRegistryKey = `HARDWARE\DESCRIPTION\System\CentralProcessor`
 )
 
 type relationship uint32
@@ -179,61 +183,27 @@ func getProcessorPowerInformation(ctx context.Context) ([]processorPowerInformat
 
 func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	var ret []InfoStat
-	var dst []win32_Processor
-	q := wmi.CreateQuery(&dst, "")
-	if err := common.WMIQueryWithContext(ctx, q, &dst); err != nil {
-		return ret, err
-	}
-
-	var procID string
-	for i, l := range dst {
-		procID = ""
-		if l.ProcessorID != nil {
-			procID = *l.ProcessorID
-		}
-
-		cpu := InfoStat{
-			CPU:        int32(i),
-			Family:     strconv.FormatUint(uint64(l.Family), 10),
-			VendorID:   l.Manufacturer,
-			ModelName:  l.Name,
-			Cores:      int32(l.NumberOfLogicalProcessors), // TO BE REMOVED, set by getSystemLogicalProcessorInformationEx
-			PhysicalID: procID,
-			Mhz:        float64(l.MaxClockSpeed),
-			Flags:      []string{},
-		}
-		ret = append(ret, cpu)
-	}
-
 	processorPackages, err := getSystemLogicalProcessorInformationEx(relationProcessorPackage)
 	if err != nil {
-		// return an error whem wmi will be removed
-		// return ret, fmt.Errorf("failed to get processor package information: %w", err)
-		return ret, nil
-	}
-
-	if len(processorPackages) != len(ret) {
-		// this should never happen, but it's kept for safety until wmi is removed
-		return ret, nil
+		return ret, fmt.Errorf("failed to get processor package information: %w", err)
 	}
 
 	ppis, powerInformationErr := getProcessorPowerInformation(ctx)
 	if powerInformationErr != nil {
-		// return an error whem wmi will be removed
-		// return ret, fmt.Errorf("failed to get processor power information: %w", err)
-		return ret, nil
+		return ret, fmt.Errorf("failed to get processor power information: %w", err)
 	}
 
 	family, processorId, smBIOSErr := getSMBIOSProcessorInfo()
 	if smBIOSErr != nil {
-		// return an error whem wmi will be removed
-		// return ret, smBIOSErr
-		return ret, nil
+		return ret, smBIOSErr
 	}
 
 	for i, pkg := range processorPackages {
 		logicalCount := 0
 		maxMhz := 0
+		model := ""
+		vendorId := ""
+		// iterate over each set bit in the package affinity mask
 		for _, ga := range pkg.processor.groupMask {
 			g := int(ga.group)
 			forEachSetBit64(uint64(ga.mask), func(bit int) {
@@ -246,12 +216,26 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 						maxMhz = m
 					}
 				}
+
+				registryKeyPath := filepath.Join(centralProcessorRegistryKey, strconv.Itoa(globalLpl))
+				key, err := registry.OpenKey(registry.LOCAL_MACHINE, registryKeyPath, registry.QUERY_VALUE|registry.READ)
+				if err == nil {
+					model = getRegistryStringValueIfUnset(key, "ProcessorNameString", model)
+					vendorId = getRegistryStringValueIfUnset(key, "VendorIdentifier", vendorId)
+					_ = key.Close()
+				}
 			})
 		}
-		ret[i].Mhz = float64(maxMhz)
-		ret[i].Cores = int32(logicalCount)
-		ret[i].Family = strconv.FormatUint(uint64(family), 10)
-		ret[i].PhysicalID = processorId
+		ret = append(ret, InfoStat{
+			CPU:        int32(i),
+			Family:     strconv.FormatUint(uint64(family), 10),
+			VendorID:   vendorId,
+			ModelName:  model,
+			Cores:      int32(logicalCount),
+			PhysicalID: processorId,
+			Mhz:        float64(maxMhz),
+			Flags:      []string{},
+		})
 	}
 
 	return ret, nil
@@ -459,6 +443,17 @@ func getSystemLogicalProcessorInformationEx(relationship relationship) ([]system
 func getPhysicalCoreCount() (int, error) {
 	infos, err := getSystemLogicalProcessorInformationEx(relationProcessorCore)
 	return len(infos), err
+}
+
+func getRegistryStringValueIfUnset(key registry.Key, keyName, value string) string {
+	if value != "" {
+		return value
+	}
+	val, _, err := key.GetStringValue(keyName)
+	if err == nil {
+		return strings.TrimSpace(val)
+	}
+	return ""
 }
 
 func CountsWithContext(_ context.Context, logical bool) (int, error) {
