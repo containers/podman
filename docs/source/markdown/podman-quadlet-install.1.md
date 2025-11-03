@@ -16,9 +16,9 @@ This command allows you to:
 
     * Specify a directory containing multiple Quadlet files and other non-Quadlet files for installation ( example a config file for a quadlet container ).
 
-    * Install multiple Quadlets from a single file with `.quadlets` extension where each Quadlet is separated by a `---` delimiter. When using multiple quadlets in a single file, each quadlet section must include a `# FileName=<name>` comment to specify the name for that quadlet.
+    * Install multiple Quadlets from a single file with the `.quadlets` extension, where each Quadlet is separated by a `---` delimiter. When using multiple quadlets in a single `.quadlets` file, each quadlet section must include a `# FileName=<name>` comment to specify the name for that quadlet.
 
-Note: If a quadlet is part of an application, removing that specific quadlet will remove the entire application. When a quadlet is installed from a directory, all files installed from that directory—including both quadlet and non-quadlet files—are considered part of a single application.
+Note: If a quadlet is part of an application, removing that specific quadlet will remove the entire application. When a quadlet is installed from a directory, all files installed from that directory—including both quadlet and non-quadlet files—are considered part of a single application. Similarly, when multiple quadlets are installed from a single `.quadlets` file, they are all considered part of the same application.
 
 Note: In case user wants to install Quadlet application then first path should be the path to application directory.
 
@@ -69,15 +69,11 @@ $ cat webapp.quadlets
 Image=nginx:latest
 ContainerName=web-server
 PublishPort=8080:80
-
 ---
-
 # FileName=app-storage
 [Volume]
 Label=app=webapp
-
 ---
-
 # FileName=app-network
 [Network]
 Subnet=10.0.0.0/24
