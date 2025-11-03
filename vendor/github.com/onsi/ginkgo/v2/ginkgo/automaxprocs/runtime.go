@@ -18,16 +18,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package automaxprocs automatically sets GOMAXPROCS to match the Linux
-// container CPU quota, if any.
-package automaxprocs // import "go.uber.org/automaxprocs"
+package automaxprocs
 
-import (
-	"log"
+import "math"
 
-	"go.uber.org/automaxprocs/maxprocs"
+// CPUQuotaStatus presents the status of how CPU quota is used
+type CPUQuotaStatus int
+
+const (
+	// CPUQuotaUndefined is returned when CPU quota is undefined
+	CPUQuotaUndefined CPUQuotaStatus = iota
+	// CPUQuotaUsed is returned when a valid CPU quota can be used
+	CPUQuotaUsed
+	// CPUQuotaMinUsed is returned when CPU quota is smaller than the min value
+	CPUQuotaMinUsed
 )
 
-func init() {
-	maxprocs.Set(maxprocs.Logger(log.Printf))
+// DefaultRoundFunc is the default function to convert CPU quota from float to int. It rounds the value down (floor).
+func DefaultRoundFunc(v float64) int {
+	return int(math.Floor(v))
 }
