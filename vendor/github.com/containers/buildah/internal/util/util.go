@@ -58,7 +58,7 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 			return err
 		}
 	}
-	if opts.IsDir {
+	if opts.Type == define.BuildOutputLocalDir {
 		// In order to keep this feature as close as possible to
 		// buildkit it was decided to preserve ownership when
 		// invoked as root since caller already has access to artifacts
@@ -80,7 +80,7 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 		}
 	} else {
 		outFile := os.Stdout
-		if !opts.IsStdout {
+		if opts.Type != define.BuildOutputStdout {
 			if outFile, err = os.Create(opts.Path); err != nil {
 				return fmt.Errorf("failed while creating destination tar at %q: %w", opts.Path, err)
 			}
