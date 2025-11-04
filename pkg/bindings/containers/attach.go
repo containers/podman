@@ -80,9 +80,14 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	if options.Changed("DetachKeys") {
 		params.Add("detachKeys", options.GetDetachKeys())
 
-		detachKeysInBytes, err = term.ToBytes(options.GetDetachKeys())
-		if err != nil {
-			return fmt.Errorf("invalid detach keys: %w", err)
+		// Empty string disables detaching; do not attempt to parse
+		if options.GetDetachKeys() == "" {
+			detachKeysInBytes = []byte{}
+		} else {
+			detachKeysInBytes, err = term.ToBytes(options.GetDetachKeys())
+			if err != nil {
+				return fmt.Errorf("invalid detach keys: %w", err)
+			}
 		}
 	}
 	if isSet.stdin {

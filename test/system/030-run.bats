@@ -1224,6 +1224,14 @@ EOF
     run_podman rm $ctr_name
 }
 
+# Regression test for https://github.com/containers/podman/issues/27414
+# bats test_tags=ci:parallel
+@test "podman run with empty --detach-keys" {
+    # Empty string should disable detaching, not error with "invalid detach keys"
+    run_podman run --rm --detach-keys="" $IMAGE echo "success"
+    is "$output" "success" "empty detach-keys should work"
+}
+
 # 15895: --privileged + --systemd = hide /dev/ttyNN
 # bats test_tags=ci:parallel
 @test "podman run --privileged as root with systemd will not mount /dev/tty" {
