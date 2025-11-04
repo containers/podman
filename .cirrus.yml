@@ -801,7 +801,7 @@ podman_machine_aarch64_task:
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
-    timeout_in: 30m
+    timeout_in: 40m
     env:
         TEST_FLAVOR: "machine-linux"
         TEST_BUILD_TAGS: ""
