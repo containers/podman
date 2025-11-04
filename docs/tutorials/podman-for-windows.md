@@ -144,11 +144,12 @@ A curl command against localhost on the PowerShell prompt will return a
 successful HTTP response:
 
 ```
-PS C:\Users\User> curl http://localhost:8080/ -UseBasicParsing
+PS C:\Users\User> Invoke-WebRequest -UseBasicParsing http://localhost:8080/
 
-StatusCode : 200
+StatusCode        : 200
 StatusDescription : OK
-Content : <html><body><h1>It works!</h1></body></html>
+Content           : <html><body><h1>It works!</h1></body></html>
+[...]
 ```
 
 As with Linux, to stop, run:
@@ -164,7 +165,7 @@ Docker. Provided there is no other service listening on the Docker API pipe;
 no special settings will be required.
 
 ```
-PS C:\Users\User> .\docker.exe run -it fedora echo "Hello Podman!"
+PS C:\Users\User> docker run -it fedora echo "Hello Podman!"
 Hello Podman!
 ```
 
