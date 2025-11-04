@@ -6,12 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"github.com/kdomanski/iso9660"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 type User struct {
@@ -22,38 +20,24 @@ type User struct {
 	SSHKeys []string `yaml:"ssh_authorized_keys"`
 }
 
-type UserData struct {
-	Users []User `yaml:"users"`
+type WriteFile struct {
+	Path        string `yaml:"path,omitempty"`
+	Content     string `yaml:"content,omitempty"`
+	Encoding    string `yaml:"encoding,omitempty"`
+	Owner       string `yaml:"owner,omitempty"`
+	Permissions string `yaml:"permissions,omitempty"`
 }
 
-func GenerateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
-	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
-	if err != nil {
-		return nil, err
-	}
+type UserData struct {
+	Users      []User      `yaml:"users"`
+	WriteFiles []WriteFile `yaml:"write_files,omitempty"`
+	RunCmd     []string    `yaml:"runcmd,omitempty"`
+	Mounts     [][]string  `yaml:"mounts,omitempty"`
+}
 
-	userData := UserData{
-		Users: []User{
-			User{
-				Name:    mc.SSH.RemoteUsername,
-				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
-				Shell:   "/bin/bash",
-				Groups:  []string{"users"},
-				SSHKeys: []string{sshKey},
-			},
-		},
-	}
-
-	yamlBytes, err := yaml.Marshal(&userData)
-	if err != nil {
-		logrus.Errorf("Error marshaling to YAML: %v", err)
-		return nil, err
-	}
-
-	headerLine := "#cloud-config\n"
-	yamlBytes = append([]byte(headerLine), yamlBytes...)
-
-	return yamlBytes, nil
+type EmbeddedResource struct {
+	Name    string `yaml:"name"`
+	Content []byte `yaml:"content"`
 }
 
 func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
@@ -136,6 +120,15 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	}
 	if err := writer.AddFile(bytes.NewReader(networkConfig), "network-config"); err != nil {
 		return nil, err
+	}
+
+	resources := GetEmbeddedResources(mc)
+	if resources != nil {
+		for _, res := range resources {
+			if err := writer.AddFile(bytes.NewReader(res.Content), res.Name); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	vmFile, err := GetCloudInitISOVMFile(mc)

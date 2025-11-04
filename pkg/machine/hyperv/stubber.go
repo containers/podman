@@ -27,11 +27,11 @@ import (
 	"go.podman.io/podman/v6/pkg/machine/cloudinit"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/hyperv/hutil"
 	"go.podman.io/podman/v6/pkg/machine/hyperv/vsock"
 	"go.podman.io/podman/v6/pkg/machine/ignition"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"go.podman.io/podman/v6/pkg/machine/windows"
-	"go.podman.io/podman/v6/pkg/systemd/parser"
 )
 
 type HyperVStubber struct {
@@ -74,7 +74,7 @@ func (h HyperVStubber) RequireExclusiveActive() bool {
 	return exclusiveActive
 }
 
-func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
+func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
 	var err error
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
@@ -128,17 +128,9 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	}
 
 	// Set userModeNetworking based on cloudInit value for backwards compatibility
-	// Usermode networking with hyperv requires gvforwarder in the guest, and the cloud init code cannot inject it for now,
-	// so it has to be disabled.
-	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit
-	if mc.CloudInit {
-		// Generate cloud-init ISO
-		iso, err := cloudinit.GenerateISO(mc)
-		if err != nil {
-			return fmt.Errorf("generating cloud-init ISO: %w", err)
-		}
-		hwConfig.DVDDiskPath = iso.GetPath()
-	}
+	// Usermode networking is true by default when working with ignition
+	// If cloud-init is enabled, use userModeNetworking from options
+	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit || opts.UserModeNetworking
 
 	if mc.HyperVHypervisor.UserModeNetworking {
 		// count number of existing machines, used later to determine if Registry should be cleaned over a failure
@@ -186,6 +178,15 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		hwConfig.Network = true
 	}
 
+	if mc.CloudInit {
+		// Generate cloud-init ISO
+		iso, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return fmt.Errorf("generating cloud-init ISO: %w", err)
+		}
+		hwConfig.DVDDiskPath = iso.GetPath()
+	}
+
 	// Add vsock port numbers to mounts
 	err = createShares(mc)
 	if err != nil {
@@ -193,7 +194,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	}
 
 	if builder != nil {
-		netUnitFile, err := createNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
+		netUnitFile, err := hutil.CreateNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
 		if err != nil {
 			return err
 		}
@@ -211,7 +212,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 			FileEmbedded1: ignition.FileEmbedded1{
 				Append: nil,
 				Contents: ignition.Resource{
-					Source: ignition.EncodeDataURLPtr(hyperVVsockNMConnection),
+					Source: ignition.EncodeDataURLPtr(hutil.HyperVVsockNMConnection),
 				},
 				Mode: ignition.IntToPtr(0o600),
 			},
@@ -976,34 +977,6 @@ func logCommandToFile(c *exec.Cmd, filename string) (*os.File, error) {
 	c.Stderr = log
 
 	return log, nil
-}
-
-const hyperVVsockNMConnection = `
-[connection]
-id=vsock0
-type=tun
-interface-name=vsock0
-
-[tun]
-mode=2
-
-[802-3-ethernet]
-cloned-mac-address=5A:94:EF:E4:0C:EE
-
-[ipv4]
-method=auto
-
-[proxy]
-`
-
-func createNetworkUnit(netPort uint64) (string, error) {
-	netUnit := parser.NewUnitFile()
-	netUnit.Add("Unit", "Description", "vsock_network")
-	netUnit.Add("Unit", "After", "NetworkManager.service")
-	netUnit.Add("Service", "ExecStart", fmt.Sprintf("/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect", netPort))
-	netUnit.Add("Service", "ExecStartPost", "/usr/bin/nmcli c up vsock0")
-	netUnit.Add("Install", "WantedBy", "multi-user.target")
-	return netUnit.ToString()
 }
 
 func (h HyperVStubber) GetRosetta(_ *vmconfigs.MachineConfig) (bool, error) {
