@@ -38,6 +38,7 @@ func (ir *ImageEngine) ArtifactPull(_ context.Context, name string, opts entitie
 	options := artifacts.PullOptions{
 		Username:   &opts.Username,
 		Password:   &opts.Password,
+		Authfile:   &opts.AuthFilePath,
 		Quiet:      &opts.Quiet,
 		RetryDelay: &opts.RetryDelay,
 		Retry:      opts.MaxRetries,
@@ -67,6 +68,7 @@ func (ir *ImageEngine) ArtifactPush(_ context.Context, name string, opts entitie
 	options := artifacts.PushOptions{
 		Username:   &opts.Username,
 		Password:   &opts.Password,
+		Authfile:   &opts.Authfile,
 		Quiet:      &opts.Quiet,
 		RetryDelay: &opts.RetryDelay,
 		Retry:      opts.Retry,
