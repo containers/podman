@@ -721,7 +721,9 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 			IsStdout: true,
 		}, nil
 	}
-	if !strings.Contains(buildOutput, ",") {
+
+	// Support simple values, in the form --output ./mydir
+	if !strings.Contains(buildOutput, ",") && !strings.Contains(buildOutput, "=") {
 		// expect default --output <dirname>
 		return define.BuildOutputOption{
 			Path:     buildOutput,
@@ -729,6 +731,8 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 			IsStdout: false,
 		}, nil
 	}
+
+	// Support complex values, in the form --output type=local,dest=./mydir
 	isDir := true
 	isStdout := false
 	typeSelected := ""
