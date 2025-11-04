@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/containers/podman/v6/pkg/machine/define"
+	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman machine start", func() {
-
 	It("start simple machine", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
@@ -67,6 +68,7 @@ var _ = Describe("podman machine start", func() {
 		session, err := machineTestBuilderInit.run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
+
 		s := new(startMachine)
 		startSession, err := mb.setCmd(s).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -184,7 +186,7 @@ var _ = Describe("podman machine start", func() {
 			defer GinkgoRecover()
 			defer wg.Done()
 			s := &startMachine{}
-			startSession1, err = mb.setName(machine1).setCmd(s).setTimeout(time.Minute * 10).run()
+			startSession1, err = mb.setName(machine1).setCmd(s.withUpdateConnection(ptrBool(false))).setTimeout(time.Minute * 10).run()
 			Expect(err).ToNot(HaveOccurred())
 		}()
 		go func() {
@@ -197,7 +199,7 @@ var _ = Describe("podman machine start", func() {
 			// second run.
 			nmb, err := newMB()
 			Expect(err).ToNot(HaveOccurred())
-			startSession2, err = nmb.setName(machine2).setCmd(s).setTimeout(time.Minute * 10).run()
+			startSession2, err = nmb.setName(machine2).setCmd(s.withUpdateConnection(ptrBool(false))).setTimeout(time.Minute * 10).run()
 			Expect(err).ToNot(HaveOccurred())
 		}()
 		wg.Wait()
@@ -218,6 +220,89 @@ var _ = Describe("podman machine start", func() {
 			Expect(startSession1.errorToString()).To(ContainSubstring("%s already starting or running: only one VM can be active at a time", machine2))
 		}
 	})
+
+	It("machine start with --update-connection", func() {
+		// Add a connection and verify it was set to the default
+		defConnName := "QA"
+		err := addSystemConnection(defConnName, true)
+		Expect(err).ToNot(HaveOccurred())
+
+		listings, err := getSystemConnectionsAsSysConns()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(listings.IsDefault(defConnName)).To(BeTrue())
+
+		// Create a new machine
+		i := initMachine{}
+		machineName := randomString()
+		initSession, err := mb.setName(machineName).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initSession).To(Exit(0))
+
+		// Start the new machine with --update-connection=false
+		s := startMachine{}
+		startSession, err := mb.setName(machineName).setCmd(s.withUpdateConnection(ptrBool(false))).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
+
+		// We started the machine with --update-connection=false so it should not be default
+		listings, err = getSystemConnectionsAsSysConns()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(listings.IsDefault(defConnName)).To(BeTrue())
+
+		// Stop the machine
+		halt := stopMachine{}
+		stopSession, err := mb.setName(machineName).setCmd(halt).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stopSession).To(Exit(0))
+
+		// Start the new machine with --update-connection
+		startSession, err = mb.setName(machineName).setCmd(s.withUpdateConnection(ptrBool(true))).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
+
+		// We set true so the new default connection should have changed
+		listings, err = getSystemConnectionsAsSysConns()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(listings.IsDefault(machineName)).To(BeTrue())
+	})
+	It("machine init --now with --update-connection", func() {
+		// Add a connection and verify it was set to the default
+		defConnName := "QA"
+		err := addSystemConnection(defConnName, true)
+		Expect(err).ToNot(HaveOccurred())
+
+		listings, err := getSystemConnectionsAsSysConns()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(listings.IsDefault(defConnName)).To(BeTrue())
+
+		// Create a new machine
+		i := initMachine{}
+		machineName1 := randomString()
+		initSession, err := mb.setName(machineName1).setCmd(i.withImage(mb.imagePath).withUpdateConnection(ptrBool(false)).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initSession).To(Exit(0))
+
+		// We started the machine with --update-connection=false so it should not be default
+		listings, err = getSystemConnectionsAsSysConns()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(listings.IsDefault(defConnName)).To(BeTrue())
+
+		// Stop the machine
+		halt := stopMachine{}
+		stopSession, err := mb.setName(machineName1).setCmd(halt).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stopSession).To(Exit(0))
+
+		// Create another machine
+		machineName2 := randomString()
+		initSession2, err := mb.setName(machineName2).setCmd(i.withImage(mb.imagePath).withUpdateConnection(ptrBool(true)).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initSession2).To(Exit(0))
+
+		listings, err = getSystemConnectionsAsSysConns()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(listings.IsDefault(machineName2)).To(BeTrue())
+	})
 })
 
 func mapToPort(uris []string) ([]string, error) {
@@ -237,4 +322,71 @@ func mapToPort(uris []string) ([]string, error) {
 		ports = append(ports, port)
 	}
 	return ports, nil
+}
+
+func addSystemConnection(name string, setDefault bool) error {
+	addConn := []string{
+		"system", "connection", "add",
+		fmt.Sprintf("--default=%s", strconv.FormatBool(setDefault)),
+		"--identity", "~/.ssh/id_rsa",
+		name,
+		"ssh://root@podman.test:2222/run/podman/podman.sock",
+	}
+	mb.cmd = addConn
+	addConnSession, err := mb.run()
+	if err != nil {
+		return err
+	}
+	if addConnSession.ExitCode() != 0 {
+		fmt.Println(addConnSession.outputToString())
+		return fmt.Errorf("error: %s", addConnSession.errorToString())
+	}
+	return nil
+}
+
+func systemConnectionLsToSysConns(output []byte) (SysConns, error) {
+	var conns SysConns
+	err := jsoniter.Unmarshal(output, &conns)
+	return conns, err
+}
+
+type SysConn struct {
+	Name      string
+	URI       string
+	Identity  string
+	IsMachine bool
+	Default   bool
+	ReadWrite bool
+}
+
+type SysConns []SysConn
+
+func (s SysConns) IsDefault(name string) bool {
+	for _, conn := range s {
+		if conn.Name == name {
+			return conn.Default
+		}
+	}
+	return false
+}
+
+func (s SysConns) GetDefault() (SysConn, error) {
+	for _, conn := range s {
+		if conn.Default {
+			return conn, nil
+		}
+	}
+	return SysConn{}, fmt.Errorf("no default connection found")
+}
+
+func getSystemConnectionsAsSysConns() (SysConns, error) {
+	connections := new(listSystemConnection)
+	connSession, err := mb.setCmd(connections.withFormat("json")).run()
+	if err != nil {
+		return nil, err
+	}
+	if connSession.ExitCode() != 0 {
+		return nil, fmt.Errorf("error: %s", connSession.errorToString())
+	}
+	return systemConnectionLsToSysConns(connSession.Out.Contents())
 }
