@@ -712,18 +712,17 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 // GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
 // Takes `buildOutput` as string and returns BuildOutputOption
 func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
-	if buildOutput == "-" {
-		// Feature parity with buildkit, output tar to stdout
-		// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
-		return define.BuildOutputOption{
-			Type: define.BuildOutputStdout,
-			Path: "",
-		}, nil
-	}
-
 	// Support simple values, in the form --output ./mydir
 	if !strings.Contains(buildOutput, ",") && !strings.Contains(buildOutput, "=") {
-		// expect default --output <dirname>
+		if buildOutput == "-" {
+			// Feature parity with buildkit, output tar to stdout
+			// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
+			return define.BuildOutputOption{
+				Type: define.BuildOutputStdout,
+				Path: "",
+			}, nil
+		}
+
 		return define.BuildOutputOption{
 			Type: define.BuildOutputLocalDir,
 			Path: buildOutput,
@@ -761,20 +760,29 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 		}
 	}
 
-	// Validation
+	// Validate there is a type
 	if typeSelected == -1 {
 		return define.BuildOutputOption{}, fmt.Errorf("missing required key %q in build output option: %q", "type", buildOutput)
 	}
+
+	// Validate path is only set when needed
 	if typeSelected == define.BuildOutputLocalDir || typeSelected == define.BuildOutputTar {
 		if pathSelected == "" {
 			return define.BuildOutputOption{}, fmt.Errorf("missing required key %q in build output option: %q", "dest", buildOutput)
 		}
 	} else {
-		// Clear path selected when not needed by type
+		// Clear path when not needed by type
 		pathSelected = ""
 	}
-	if typeSelected == define.BuildOutputLocalDir && pathSelected == "-" {
-		return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, "type=local" can not be used with "dest=-"`, buildOutput)
+
+	// Handle redirecting stdout for tar output
+	if pathSelected == "-" {
+		if typeSelected == define.BuildOutputTar {
+			typeSelected = define.BuildOutputStdout
+			pathSelected = ""
+		} else {
+			return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, only "type=tar" can be used with "dest=-"`, buildOutput)
+		}
 	}
 
 	return define.BuildOutputOption{
