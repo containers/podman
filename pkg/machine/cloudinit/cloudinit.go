@@ -8,40 +8,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"github.com/kdomanski/iso9660"
 	"github.com/sirupsen/logrus"
 )
-
-type User struct {
-	Name    string   `yaml:"name"`
-	Sudo    string   `yaml:"sudo"`
-	Shell   string   `yaml:"shell"`
-	Groups  []string `yaml:"groups"`
-	SSHKeys []string `yaml:"ssh_authorized_keys"`
-}
-
-type WriteFile struct {
-	Path        string `yaml:"path,omitempty"`
-	Content     string `yaml:"content,omitempty"`
-	Encoding    string `yaml:"encoding,omitempty"`
-	Owner       string `yaml:"owner,omitempty"`
-	Permissions string `yaml:"permissions,omitempty"`
-}
-
-type UserData struct {
-	Users      []User      `yaml:"users"`
-	WriteFiles []WriteFile `yaml:"write_files,omitempty"`
-	RunCmd     []string    `yaml:"runcmd,omitempty"`
-	Mounts     [][]string  `yaml:"mounts,omitempty"`
-}
-
-type EmbeddedResource struct {
-	Name    string `yaml:"name"`
-	Content []byte `yaml:"content"`
-}
 
 func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
 	yamlBytes, err := generateUserData(mc)
@@ -163,23 +134,4 @@ func createCloudConfigPart(writer *multipart.Writer, content []byte) error {
 		return fmt.Errorf("failed to write content to MIME part: %w", err)
 	}
 	return nil
-}
-
-func getDefaultUserData(mc *vmconfigs.MachineConfig) (*UserData, error) {
-	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &UserData{
-		Users: []User{
-			{
-				Name:    mc.SSH.RemoteUsername,
-				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
-				Shell:   "/bin/bash",
-				Groups:  []string{"users"},
-				SSHKeys: []string{sshKey},
-			},
-		},
-	}, nil
 }

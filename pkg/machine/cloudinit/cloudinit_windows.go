@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/podman/v6/pkg/machine/hyperv/hutil"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
-	"gopkg.in/yaml.v3"
 )
 
 func setUserModeNetworkingPart(userData *UserData, mc *vmconfigs.MachineConfig) error {
@@ -57,7 +56,7 @@ func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
 	// otherwise use the provided one and just add user-mode networking part if needed
 	internalUserData := &UserData{}
 	if mc.CloudInitConfig.UserData == nil {
-		internalUserData, err = getDefaultUserData(mc)
+		internalUserData, err = defaultUserData(mc)
 		if err != nil {
 			return nil, err
 		}
@@ -70,14 +69,11 @@ func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
 		}
 	}
 
-	internalUserDataBytes, err := yaml.Marshal(internalUserData)
+	internalUserDataBytes, err := internalUserData.Marshal()
 	if err != nil {
 		logrus.Errorf("Error marshaling to YAML: %v", err)
 		return nil, err
 	}
-
-	headerLine := "#cloud-config\n"
-	internalUserDataBytes = append([]byte(headerLine), internalUserDataBytes...)
 
 	// If user has not provided any custom user-data, return the generated one
 	if mc.CloudInitConfig.UserData == nil {
