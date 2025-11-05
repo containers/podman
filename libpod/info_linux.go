@@ -30,14 +30,10 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		return fmt.Errorf("getting Seccomp profile path: %w", err)
 	}
 
-	// Cgroups version
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return fmt.Errorf("reading cgroups mode: %w", err)
-	}
-
 	// Get Map of all available controllers
-	availableControllers, err := cgroups.AvailableControllers(nil, unified)
+	// FIXME: AvailableControllers should be further simplified once CGv1 removal
+	// in container-libs is complete.
+	availableControllers, err := cgroups.AvailableControllers(nil, true)
 	if err != nil {
 		return fmt.Errorf("getting available cgroup controllers: %w", err)
 	}
@@ -55,11 +51,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	}
 	info.Slirp4NetNS = define.SlirpInfo{}
 
-	cgroupVersion := "v1"
-	if unified {
-		cgroupVersion = "v2"
-	}
-	info.CgroupsVersion = cgroupVersion
+	info.CgroupsVersion = "v2"
 
 	slirp4netnsPath := r.config.Engine.NetworkCmdPath
 	if slirp4netnsPath == "" {
