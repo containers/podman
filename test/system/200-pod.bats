@@ -535,7 +535,6 @@ spec:
 @test "pod resource limits" {
     skip_if_remote "resource limits only implemented on non-remote"
     skip_if_rootless "resource limits only work with root"
-    skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
 
     # create loopback device
     lofile=${PODMAN_TMPDIR}/disk.img
@@ -762,7 +761,6 @@ function thingy_with_unique_id() {
 # bats test_tags=ci:parallel
 @test "podman pod cleans cgroup and keeps limits" {
     skip_if_remote "we cannot check cgroup settings"
-    skip_if_rootless_cgroupsv1 "rootless cannot use cgroups on v1"
 
     for infra in true false; do
         run_podman pod create --infra=$infra --memory=256M
