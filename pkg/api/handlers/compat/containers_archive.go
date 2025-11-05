@@ -124,9 +124,17 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 	containerName := utils.GetName(r)
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
+	// Docker API semantics: copyUIDGID=true means "preserve UID/GID from archive"
+	// Podman internal semantics: Chown=true means "chown to container user" (override archive)
+	// For compat requests, we need to invert the value
+	chown := query.Chown
+	if !utils.IsLibpodRequest(r) {
+		chown = !query.Chown
+	}
+
 	copyFunc, err := containerEngine.ContainerCopyFromArchive(r.Context(), containerName, query.Path, r.Body,
 		entities.CopyOptions{
-			Chown:                query.Chown,
+			Chown:                chown,
 			NoOverwriteDirNonDir: query.NoOverwriteDirNonDir,
 			Rename:               rename,
 		})
