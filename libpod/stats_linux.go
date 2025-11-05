@@ -69,7 +69,6 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	stats.CPUNano = cgroupStats.CpuStats.CpuUsage.TotalUsage
 	stats.CPUSystemNano = cgroupStats.CpuStats.CpuUsage.UsageInKernelmode
 	stats.SystemNano = now
-	stats.PerCPU = cgroupStats.CpuStats.CpuUsage.PercpuUsage
 
 	return nil
 }
