@@ -609,7 +609,6 @@ var _ = Describe("Podman kube generate", func() {
 	})
 
 	It("on pod with memory limit", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		podName := "testMemoryLimit"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
 		podSession.WaitWithDefaultTimeout()
@@ -635,7 +634,6 @@ var _ = Describe("Podman kube generate", func() {
 	})
 
 	It("on pod with cpu limit", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		podName := "testCpuLimit"
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
 		podSession.WaitWithDefaultTimeout()

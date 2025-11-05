@@ -15,13 +15,6 @@ import (
 // TODO: we need to check the output. Currently, we only check the exit codes
 // which is not enough.
 var _ = Describe("Podman stats", func() {
-	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
-		if isContainerized() {
-			SkipIfCgroupV1("stats not supported inside cgroupv1 container environment")
-		}
-	})
-
 	It("podman stats with bogus container", func() {
 		session := podmanTest.Podman([]string{"stats", "--no-stream", "123"})
 		session.WaitWithDefaultTimeout()

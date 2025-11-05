@@ -133,7 +133,6 @@ var _ = Describe("Podman Info", func() {
 
 	It("Podman info must contain cgroupControllers with RelevantControllers", func() {
 		SkipIfRootless("Hard to tell which controllers are going to be enabled for rootless")
-		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.CgroupControllers}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitCleanly())
