@@ -28,7 +28,7 @@ func ParseCmdLine(pid string) ([]string, error) {
 	}
 
 	cmdLine := []string{}
-	for _, rawCmd := range bytes.Split(data, []byte{0}) {
+	for rawCmd := range bytes.SplitSeq(data, []byte{0}) {
 		cmdLine = append(cmdLine, string(rawCmd))
 	}
 

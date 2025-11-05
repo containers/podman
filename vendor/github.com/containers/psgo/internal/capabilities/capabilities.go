@@ -79,7 +79,7 @@ var (
 // the kernel.
 func TranslateMask(mask uint64) []string {
 	caps := []string{}
-	for i := uint(0); i < 64; i++ {
+	for i := range uint(64) {
 		if (mask>>i)&0x1 == 1 {
 			c, known := capabilities[i]
 			if !known {
