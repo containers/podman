@@ -316,7 +316,13 @@ func (mc *MachineConfig) GetAddress() string {
 	if mc.IPAddress != "" {
 		return mc.IPAddress
 	}
-	return "localhost"
+
+	// Default to the IPv4 localhost address "127.0.0.1".
+	// When using mirrored networking mode in WSL, attempting to connect by the name "localhost"
+	// often resolves to the IPv6 address (::1) first. Mirrored networking
+	// does not support this IPv6 localhost address resolution, leading to connection timeouts.
+	// By using "127.0.0.1" it avoids this resolution issue.
+	return "127.0.0.1"
 }
 
 // LoadMachineByName returns a machine config based on the vm name and provider
