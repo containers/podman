@@ -41,7 +41,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/etchosts"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/chown"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/hooks"
@@ -1362,41 +1361,25 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 }
 
 // Whether a container should use `all` when stopping
-func (c *Container) stopWithAll() (bool, error) {
+func (c *Container) stopWithAll() bool {
 	// If the container is running in a PID Namespace, then killing the
 	// primary pid is enough to kill the container.  If it is not running in
 	// a pid namespace then the OCI Runtime needs to kill ALL processes in
 	// the container's cgroup in order to make sure the container is stopped.
 	all := !c.hasNamespace(spec.PIDNamespace)
 	// We can't use --all if Cgroups aren't present.
-	// Rootless containers with Cgroups v1 and NoCgroups are both cases
-	// where this can happen.
-	if all {
-		if c.config.NoCgroups {
-			all = false
-		} else if rootless.IsRootless() {
-			// Only do this check if we need to
-			unified, err := cgroups.IsCgroup2UnifiedMode()
-			if err != nil {
-				return false, err
-			}
-			if !unified {
-				all = false
-			}
-		}
+	// Rootless containers with NoCgroups is a case where this can happen.
+	if all && c.config.NoCgroups {
+		all = false
 	}
-
-	return all, nil
+	return all
 }
 
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
-	all, err := c.stopWithAll()
-	if err != nil {
-		return err
-	}
+	all := c.stopWithAll()
 
 	// OK, the following code looks a bit weird but we have to make sure we can stop
 	// containers with the restart policy always, to do this we have to set
@@ -1503,7 +1486,7 @@ func (c *Container) waitForConmonToExitAndSave() error {
 				// could open a pidfd on container PID1 before
 				// this to get the real exit code... But I'm not
 				// that dedicated.
-				all, _ := c.stopWithAll()
+				all := c.stopWithAll()
 				if err := c.ociRuntime.StopContainer(c, 0, all); err != nil {
 					logrus.Errorf("Error stopping container %s after Conmon exited prematurely: %v", c.ID(), err)
 				}
@@ -1558,16 +1541,6 @@ func (c *Container) waitForConmonToExitAndSave() error {
 func (c *Container) pause() error {
 	if c.config.NoCgroups {
 		return fmt.Errorf("cannot pause without using Cgroups: %w", define.ErrNoCgroups)
-	}
-
-	if rootless.IsRootless() {
-		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return fmt.Errorf("failed to determine cgroupversion: %w", err)
-		}
-		if !cgroupv2 {
-			return fmt.Errorf("can not pause containers on rootless containers with cgroup V1: %w", define.ErrNoCgroups)
-		}
 	}
 
 	if c.state.HCUnitName != "" {
