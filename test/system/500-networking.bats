@@ -114,7 +114,6 @@ load helpers.network
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 # FIXME: random_rfc1918_subnet is not parallel-safe
 @test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -878,7 +877,6 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run /etc/* permissions" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     userns="--userns=keep-id"
     if ! is_rootless; then
         userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
@@ -992,8 +990,6 @@ EOF
 # Test for https://github.com/containers/podman/issues/18615
 # CANNOT BE PARALLELIZED due to strict checking of /run/netns
 @test "podman network cleanup --userns + --restart" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
-
     local net1=net-a-$(safename)
     # use /29 subnet to limit available ip space, a 29 gives 5 usable addresses (6 - 1 for the gw)
     local subnet="$(random_rfc1918_subnet).0/29"
