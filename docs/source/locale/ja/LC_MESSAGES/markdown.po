@@ -26475,10 +26475,6 @@ msgid "Network Output"
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:1
-msgid ".PerCPU"
-msgstr ""
-
-#: ../../source/markdown/podman-stats.1.md:1
 msgid "CPU time consumed by all tasks [1]"
 msgstr ""
 
