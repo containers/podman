@@ -4,7 +4,6 @@ package libpod
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,24 +12,13 @@ import (
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/pkg/cgroups"
 )
 
 func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
-
-	// Check if service is running rootless (cheap check)
-	if rootless.IsRootless() {
-		// if so, then verify cgroup v2 available (more expensive check)
-		if isV2, _ := cgroups.IsCgroup2UnifiedMode(); !isV2 {
-			utils.Error(w, http.StatusConflict, errors.New("container stats resource only available for cgroup v2"))
-			return
-		}
-	}
 
 	query := struct {
 		Containers []string `schema:"containers"`
