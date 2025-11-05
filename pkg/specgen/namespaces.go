@@ -14,7 +14,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/libnetwork/types"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/unshare"
@@ -262,26 +261,14 @@ func ParseNamespace(ns string) (Namespace, error) {
 // ParseCgroupNamespace parses a cgroup namespace specification in string
 // form.
 func ParseCgroupNamespace(ns string) (Namespace, error) {
-	toReturn := Namespace{}
-	// Cgroup is host for v1, private for v2.
-	// We can't trust c/common for this, as it only assumes private.
-	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return toReturn, err
+	switch ns {
+	case "host":
+		return Namespace{NSMode: Host}, nil
+	case "private", "":
+		return Namespace{NSMode: Private}, nil
+	default:
+		return Namespace{}, fmt.Errorf("unrecognized cgroup namespace mode %s passed", ns)
 	}
-	if cgroupsv2 {
-		switch ns {
-		case "host":
-			toReturn.NSMode = Host
-		case "private", "":
-			toReturn.NSMode = Private
-		default:
-			return toReturn, fmt.Errorf("unrecognized cgroup namespace mode %s passed", ns)
-		}
-	} else {
-		toReturn.NSMode = Host
-	}
-	return toReturn, nil
 }
 
 // ParseIPCNamespace parses an ipc namespace specification in string
