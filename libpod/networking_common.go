@@ -111,8 +111,7 @@ func (r *Runtime) teardownNetwork(ctr *Container) error {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsSlirp4netns() &&
-		!ctr.config.NetMode.IsPasta() && len(networks) > 0 {
+	if !ctr.config.NetMode.IsPasta() && len(networks) > 0 {
 		netOpts := ctr.getNetworkOptions(networks)
 		return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
 	}
@@ -134,7 +133,7 @@ func isBridgeNetMode(n namespaces.NetworkMode) error {
 // firewall configuration.
 // Efforts will be made to preserve MAC and IP addresses.
 // Only works on containers with bridge networking at present, though in the future we could
-// extend this to stop + restart slirp4netns
+// extend this to stop + restart pasta (?)
 func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
 	if ctr.state.NetNS == "" {
 		return nil, fmt.Errorf("container %s network is not configured, refusing to reload: %w", ctr.ID(), define.ErrCtrStateInvalid)
