@@ -149,8 +149,8 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/psgo v1.9.1-0.20250826150930-4ae76f200c86
-## explicit; go 1.23.3
+# github.com/containers/psgo v1.9.1-0.20251104204210-533b50b1c2d9
+## explicit; go 1.24.0
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
 github.com/containers/psgo/internal/cgroups
