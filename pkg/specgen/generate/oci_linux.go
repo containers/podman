@@ -50,7 +50,7 @@ func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
 	}
 	if isNewUserns {
 		switch s.NetNS.NSMode {
-		case specgen.Slirp, specgen.Pasta, specgen.Private, specgen.NoNetwork, specgen.Bridge:
+		case specgen.Pasta, specgen.Private, specgen.NoNetwork, specgen.Bridge:
 			return true
 		default:
 			return false

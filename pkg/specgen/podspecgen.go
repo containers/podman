@@ -106,13 +106,13 @@ type PodNetworkConfig struct {
 	// containers in the pod.
 	// Cannot be set to FromContainer and FromPod.
 	// Setting this to anything except default conflicts with NoInfra=true.
-	// Defaults to Bridge as root and Slirp as rootless.
+	// Defaults to Bridge as root and Pasta as rootless.
 	// Mandatory.
 	NetNS Namespace `json:"netns"`
 	// PortMappings is a set of ports to map into the infra container.
 	// As, by default, containers share their network with the infra
 	// container, this will forward the ports to the entire pod.
-	// Only available if NetNS is set to Bridge, Slirp, or Pasta.
+	// Only available if NetNS is set to Bridge, or Pasta.
 	// Optional.
 	PortMappings []types.PortMapping `json:"portmappings,omitempty"`
 	// Map of networks names to ids the container should join to.

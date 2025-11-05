@@ -345,12 +345,6 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		} else {
 			toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 		}
-	case specgen.Slirp:
-		val := "slirp4netns"
-		if s.NetNS.Value != "" {
-			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
-		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, val, nil))
 	case specgen.Pasta:
 		val := "pasta"
 		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, val, nil))

@@ -49,10 +49,6 @@ const (
 	// should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Bridge NamespaceMode = "bridge"
-	// Slirp indicates that a slirp4netns network stack should
-	// be used.
-	// Only used with the network namespace, invalid otherwise.
-	Slirp NamespaceMode = "slirp4netns"
 	// Pasta indicates that a pasta network stack should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Pasta NamespaceMode = "pasta"
@@ -158,8 +154,6 @@ func validateNetNS(n *Namespace) error {
 		return nil
 	}
 	switch n.NSMode {
-	case Slirp:
-		break
 	case Pasta:
 		// Check if we run rootless/in a userns. Do not use rootless.IsRootless() here.
 		// Pasta switches to nobody when running as root which causes it to fail while
@@ -181,7 +175,7 @@ func validateNetNS(n *Namespace) error {
 		if len(n.Value) < 1 {
 			return fmt.Errorf("namespace mode %s requires a value", n.NSMode)
 		}
-	} else if n.NSMode != Slirp {
+	} else {
 		// All others except must NOT set a string value
 		if len(n.Value) > 0 {
 			return fmt.Errorf("namespace value %s cannot be provided with namespace mode %s", n.Value, n.NSMode)
@@ -211,7 +205,7 @@ func (n *Namespace) validate() error {
 	switch n.NSMode {
 	case "", Default, Host, Path, FromContainer, FromPod, Private:
 		// Valid, do nothing
-	case NoNetwork, Bridge, Slirp, Pasta:
+	case NoNetwork, Bridge, Pasta:
 		return errors.New("cannot use network modes with non-network namespace")
 	default:
 		return fmt.Errorf("invalid namespace type %s specified", n.NSMode)
@@ -337,13 +331,6 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 	podmanNetworks := make(map[string]types.PerNetworkOptions)
 
 	switch {
-	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
-		key, options, hasOptions := strings.Cut(ns, ":")
-		if hasOptions {
-			networkOptions = make(map[string][]string)
-			networkOptions[key] = strings.Split(options, ",")
-		}
-		toReturn.NSMode = Slirp
 	case ns == string(FromPod):
 		toReturn.NSMode = FromPod
 	case ns == "" || ns == string(Default) || ns == string(Private):
@@ -416,7 +403,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
 			if slices.Contains([]string{
-				string(Bridge), string(Slirp), string(Pasta), string(FromPod), string(NoNetwork),
+				string(Bridge), string(Pasta), string(FromPod), string(NoNetwork),
 				string(Default), string(Private), string(Path), string(FromContainer), string(Host),
 			}, name) {
 				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", name, define.ErrInvalidArg)

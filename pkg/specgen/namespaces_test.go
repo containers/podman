@@ -58,12 +58,6 @@ func TestParseNetworkFlag(t *testing.T) {
 			},
 		},
 		{
-			name:     "slirp4netns mode",
-			args:     []string{"slirp4netns"},
-			nsmode:   Namespace{NSMode: Slirp},
-			networks: map[string]types.PerNetworkOptions{},
-		},
-		{
 			name:     "from pod mode",
 			args:     []string{"pod"},
 			nsmode:   Namespace{NSMode: FromPod},
@@ -86,15 +80,6 @@ func TestParseNetworkFlag(t *testing.T) {
 			args:     []string{"ns:/path"},
 			nsmode:   Namespace{NSMode: Path, Value: "/path"},
 			networks: map[string]types.PerNetworkOptions{},
-		},
-		{
-			name:     "slirp4netns mode with options",
-			args:     []string{"slirp4netns:cidr=10.0.0.0/24"},
-			nsmode:   Namespace{NSMode: Slirp},
-			networks: map[string]types.PerNetworkOptions{},
-			options: map[string][]string{
-				"slirp4netns": {"cidr=10.0.0.0/24"},
-			},
 		},
 		{
 			name:   "bridge mode with options 1",
