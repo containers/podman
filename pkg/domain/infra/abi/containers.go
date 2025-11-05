@@ -34,7 +34,6 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/storage"
@@ -1619,15 +1618,6 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
 	if options.Interval < 1 {
 		return nil, errors.New("invalid interval, must be a positive number greater zero")
-	}
-	if rootless.IsRootless() {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return nil, err
-		}
-		if !unified {
-			return nil, errors.New("stats is not supported in rootless mode without cgroups v2")
-		}
 	}
 	statsChan = make(chan entities.ContainerStatsReport, 1)
 
