@@ -13,7 +13,7 @@ import (
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
-func setUserModeNetworkingPart(userData *UserData, mc *vmconfigs.MachineConfig) error {
+func addUserModeNetworking(userData *UserData, mc *vmconfigs.MachineConfig) error {
 	netUnitFile, err := hutil.CreateNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
 	if err != nil {
 		return err
@@ -48,44 +48,53 @@ func setUserModeNetworkingPart(userData *UserData, mc *vmconfigs.MachineConfig) 
 	return nil
 }
 
-func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
-	var err error
-	// If user has not provided any custom user-data, generate default
-	// otherwise use the provided one and just add user-mode networking part if needed
-	internalUserData := &UserData{}
-	if mc.CloudInitConfig.UserData == nil {
-		internalUserData, err = defaultUserData(mc)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if mc.HyperVHypervisor != nil && mc.HyperVHypervisor.UserModeNetworking {
-		err = setUserModeNetworkingPart(internalUserData, mc)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// If user has not provided any custom user-data, return the generated one
-	if mc.CloudInitConfig.UserData == nil {
-		return internalUserData.Marshal()
-	}
-
-	// if user has provided a custom user-data but we're not on Hyper-V/user-mode networking, return it as-is
-	userUserData, err := mc.CloudInitConfig.UserData.Read()
+func defaultHypervUserData(mc *vmconfigs.MachineConfig, userModeNetworking bool) ([]byte, error) {
+	userData, err := defaultUserData(mc)
 	if err != nil {
 		return nil, err
 	}
-	if mc.HyperVHypervisor != nil && !mc.HyperVHypervisor.UserModeNetworking {
-		return userUserData, nil
+
+	if userModeNetworking {
+		err = addUserModeNetworking(userData, mc)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// if user has provided a custom user-data and we are on Hyper-V/user-mode networking,
+	return userData.Marshal()
+}
+
+func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
+	var err error
+	userModeNetworking := mc.HyperVHypervisor != nil && mc.HyperVHypervisor.UserModeNetworking
+
+	// If user has not provided any custom user-data, generate default
+	if mc.CloudInitConfig.UserData == nil {
+		return defaultHypervUserData(mc, userModeNetworking)
+	}
+
+	customUserData, err := mc.CloudInitConfig.UserData.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	// if user has provided a custom user-data but we're not on Hyper-V/user-mode networking, return it as-is
+	if !userModeNetworking {
+		return customUserData, nil
+	}
+
+	// otherwise use the custom user-data and add the user-mode networking configuration
+	userModeNetworkingUserData := &UserData{}
+
+	if err := addUserModeNetworking(userModeNetworkingUserData, mc); err != nil {
+		return nil, err
+	}
+
+	// if the user has provided a custom user-data and we are on Hyper-V/user-mode networking,
 	// we need to merge our generated user data with user's one
 	// To do it we create a MIME multi-part archive
 	// with both files
-	return internalUserData.MarshalMultiPart(userUserData)
+	return userModeNetworkingUserData.MarshalMultiPart(customUserData)
 }
 
 func getGvForwarderBytes() ([]byte, error) {
