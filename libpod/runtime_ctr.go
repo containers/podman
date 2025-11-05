@@ -28,7 +28,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/stringid"
@@ -856,18 +855,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	}
 
 	if c.state.State == define.ContainerStatePaused {
-		isV2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			retErr = err
-			return removedCtrs, removedPods, retErr
-		}
-		// cgroups v1 and v2 handle signals on paused processes differently
-		if !isV2 {
-			if err := c.unpause(); err != nil {
-				retErr = err
-				return removedCtrs, removedPods, retErr
-			}
-		}
 		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
 			retErr = err
 			return removedCtrs, removedPods, retErr
