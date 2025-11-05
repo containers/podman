@@ -11,11 +11,7 @@ import (
 func TestSupportedProviders(t *testing.T) {
 	switch runtime.GOOS {
 	case "darwin":
-		if runtime.GOARCH == "arm64" {
-			assert.Equal(t, []define.VMType{define.AppleHvVirt, define.LibKrun}, SupportedProviders())
-		} else {
-			assert.Equal(t, []define.VMType{define.AppleHvVirt}, SupportedProviders())
-		}
+		assert.Equal(t, []define.VMType{define.AppleHvVirt, define.LibKrun}, SupportedProviders())
 	case "windows":
 		assert.Equal(t, []define.VMType{define.WSLVirt, define.HyperVVirt}, SupportedProviders())
 	case "linux":
@@ -28,8 +24,7 @@ func TestInstalledProviders(t *testing.T) {
 	assert.NoError(t, err)
 	switch runtime.GOOS {
 	case "darwin":
-		// TODO: need to verify if an arm64 machine reports {applehv, libkrun}
-		assert.Equal(t, []define.VMType{define.AppleHvVirt}, installed)
+		assert.Equal(t, []define.VMType{define.LibKrun, define.AppleHvVirt}, installed)
 	case "windows":
 		provider, err := Get()
 		assert.NoError(t, err)
@@ -60,9 +55,8 @@ func TestBadSupportedProviders(t *testing.T) {
 	switch runtime.GOOS {
 	case "darwin":
 		assert.NotEqual(t, []define.VMType{define.QemuVirt}, SupportedProviders())
-		if runtime.GOARCH != "arm64" {
-			assert.NotEqual(t, []define.VMType{define.AppleHvVirt, define.LibKrun}, SupportedProviders())
-		}
+		assert.NotEqual(t, []define.VMType{define.WSLVirt, define.HyperVVirt}, SupportedProviders())
+		assert.NotEqual(t, []define.VMType{define.AppleHvVirt}, SupportedProviders())
 	case "windows":
 		assert.NotEqual(t, []define.VMType{define.QemuVirt}, SupportedProviders())
 	case "linux":
@@ -76,9 +70,8 @@ func TestBadInstalledProviders(t *testing.T) {
 	switch runtime.GOOS {
 	case "darwin":
 		assert.NotEqual(t, []define.VMType{define.QemuVirt}, installed)
-		if runtime.GOARCH != "arm64" {
-			assert.NotEqual(t, []define.VMType{define.AppleHvVirt, define.LibKrun}, installed)
-		}
+		assert.NotEqual(t, []define.VMType{define.AppleHvVirt}, installed)
+		assert.NotEqual(t, []define.VMType{define.WSLVirt, define.HyperVVirt}, installed)
 	case "windows":
 		assert.NotContains(t, installed, define.QemuVirt)
 	case "linux":

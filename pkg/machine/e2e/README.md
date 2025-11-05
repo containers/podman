@@ -67,7 +67,7 @@ above.
 ## MacOS
 
 Macs now support two different machine providers: `applehv` and `libkrun`. The
-`applehv` provider is the default.
+`libkrun` provider is the default.
 
 Note: On macOS, an error will occur if the path length of `$TMPDIR` is longer
 than 22 characters. Please set the appropriate path to `$TMPDIR`. Also, if
@@ -77,11 +77,11 @@ than 22 characters. Please set the appropriate path to `$TMPDIR`. Also, if
 
 1. `brew install vfkit`
 1. `make podman-remote`
+1. `export CONTAINERS_MACHINE_PROVIDER="applehv"`
 1. `make localmachine`
 
 ### [Libkrun](https://github.com/containers/libkrun)
 
 1. `brew install krunkit`
 1. `make podman-remote`
-1. `export CONTAINERS_MACHINE_PROVIDER="libkrun"`
 1. `make localmachine`
