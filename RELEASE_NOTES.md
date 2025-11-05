@@ -50,6 +50,7 @@
 - Fixed a bug where the remote Podman client could lose some initial bytes of output from attach sessions (`podman run`, `podman exec`, `podman attach`) due to a race condition ([#26951](https://github.com/containers/podman/issues/26951)).
 - Fixed a bug where the `podman build` command was ignoring SBOM related options ([#23915](https://github.com/containers/podman/issues/23915)).
 - Fixed a bug where the `--userns=ns:/path` option to `podman create` and `podman run` was broken with runc 1.1.11 and higher ([#27148](https://github.com/containers/podman/issues/27148)).
+- Fixed a bug where `podman machine` on Windows would always re-pull machine images when using the WSL provider, even if an the image had already been pulled and was present on disk.
 
 ### API
 - Added a new API endpoint to list quadlets (`GET /libpod/quadlets/json`).
