@@ -3,7 +3,6 @@
 package system
 
 import (
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/servicereaper"
@@ -15,11 +14,6 @@ func maybeStartServiceReaper() {
 }
 
 func maybeMoveToSubCgroup() {
-	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
-	if rootless.IsRootless() && !cgroupv2 {
-		logrus.Warnf("Running 'system service' in rootless mode without cgroup v2, containers won't survive a 'system service' restart")
-	}
-
 	if err := cgroups.MaybeMoveToSubCgroup(); err != nil {
 		// it is a best effort operation, so just print the
 		// error for debugging purposes.
