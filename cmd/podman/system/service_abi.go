@@ -125,7 +125,6 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 
 	maybeMoveToSubCgroup()
 
-	maybeStartServiceReaper()
 	infra.StartWatcher(libpodRuntime)
 	server, err := api.NewServerWithSettings(libpodRuntime, listener, opts)
 	if err != nil {

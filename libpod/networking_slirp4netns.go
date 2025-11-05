@@ -5,7 +5,6 @@ package libpod
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 
@@ -14,44 +13,6 @@ import (
 	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/libnetwork/types"
 )
-
-// setupSlirp4netns can be called in rootful as well as in rootless
-func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
-	ports := ctr.convertPortMappings()
-
-	if !ctr.config.PostConfigureNetNS {
-		var err error
-		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
-		if err != nil {
-			return fmt.Errorf("failed to create rootless network sync pipe: %w", err)
-		}
-		if len(ports) > 0 {
-			ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
-			if err != nil {
-				return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
-			}
-		}
-	}
-	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-	if ctr.rootlessPortSyncR != nil {
-		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-	}
-
-	res, err := slirp4netns.Setup(&slirp4netns.SetupOptions{
-		Config:                r.config,
-		ContainerID:           ctr.ID(),
-		Netns:                 netns,
-		Ports:                 ports,
-		ExtraOptions:          ctr.config.NetworkOptions[slirp4netns.BinaryName],
-		Slirp4netnsExitPipeR:  ctr.rootlessSlirpSyncR,
-		RootlessPortExitPipeR: ctr.rootlessPortSyncR,
-	})
-	if err != nil {
-		return err
-	}
-	ctr.slirp4netnsSubnet = res.Subnet
-	return nil
-}
 
 func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string, netStatus map[string]types.StatusBlock) error {
 	var err error
@@ -99,8 +60,4 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 		return fmt.Errorf("port reloading failed: %s", data)
 	}
 	return nil
-}
-
-func getSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
-	return slirp4netns.GetIP(subnet)
 }

@@ -7,7 +7,6 @@ import (
 	jdec "encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os/exec"
 
 	"github.com/containers/buildah/pkg/jail"
@@ -42,10 +41,6 @@ type NetstatAddress struct {
 	DroppedPackets uint64 `json:"dropped-packets"`
 
 	Collisions uint64 `json:"collisions"`
-}
-
-func getSlirp4netnsIP(_ *net.IPNet) (*net.IP, error) {
-	return nil, errors.New("not implemented GetSlirp4netnsIP")
 }
 
 // This is called after the container's jail is created but before its

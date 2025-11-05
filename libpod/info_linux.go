@@ -16,7 +16,6 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/pasta"
-	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/seccomp"
@@ -46,23 +45,8 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		SECCOMPProfilePath:  seccompProfilePath,
 		SELinuxEnabled:      selinux.GetEnabled(),
 	}
-	info.Slirp4NetNS = define.SlirpInfo{}
 
 	info.CgroupsVersion = "v2"
-
-	slirp4netnsPath, _ := r.config.FindHelperBinary(slirp4netns.BinaryName, true)
-	if slirp4netnsPath != "" {
-		ver, err := version.Program(slirp4netnsPath)
-		if err != nil {
-			logrus.Warnf("Failed to retrieve program version for %s: %v", slirp4netnsPath, err)
-		}
-		program := define.SlirpInfo{
-			Executable: slirp4netnsPath,
-			Package:    version.Package(slirp4netnsPath),
-			Version:    ver,
-		}
-		info.Slirp4NetNS = program
-	}
 
 	pastaPath, _ := r.config.FindHelperBinary(pasta.BinaryName, true)
 	if pastaPath != "" {

@@ -5,13 +5,7 @@ package system
 import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/cgroups"
-	"go.podman.io/common/pkg/servicereaper"
 )
-
-// Currently, we only need servicereaper on Linux to support slirp4netns.
-func maybeStartServiceReaper() {
-	servicereaper.Start()
-}
 
 func maybeMoveToSubCgroup() {
 	if err := cgroups.MaybeMoveToSubCgroup(); err != nil {

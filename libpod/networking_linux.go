@@ -29,9 +29,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
-	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)
 	}
