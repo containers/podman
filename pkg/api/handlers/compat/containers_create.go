@@ -27,7 +27,6 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/fileutils"
@@ -575,11 +574,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		cliOpts.MemoryReservation = strconv.Itoa(int(cc.HostConfig.MemoryReservation))
 	}
 
-	cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return nil, nil, err
-	}
-	if cc.HostConfig.MemorySwap > 0 && (!rootless.IsRootless() || (rootless.IsRootless() && cgroupsv2)) {
+	if cc.HostConfig.MemorySwap > 0 {
 		cliOpts.MemorySwap = strconv.Itoa(int(cc.HostConfig.MemorySwap))
 	}
 
@@ -600,7 +595,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		cliOpts.Restart = policy
 	}
 
-	if cc.HostConfig.MemorySwappiness != nil && (!rootless.IsRootless() || rootless.IsRootless() && cgroupsv2 && rtc.Engine.CgroupManager == "systemd") {
+	if cc.HostConfig.MemorySwappiness != nil && (!rootless.IsRootless() || rootless.IsRootless() && rtc.Engine.CgroupManager == "systemd") {
 		cliOpts.MemorySwappiness = *cc.HostConfig.MemorySwappiness
 	} else {
 		cliOpts.MemorySwappiness = -1
