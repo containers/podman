@@ -118,11 +118,9 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	}
 
 	resources := GetEmbeddedResources(mc)
-	if resources != nil {
-		for _, res := range resources {
-			if err := writer.AddFile(bytes.NewReader(res.Content), res.Name); err != nil {
-				return nil, err
-			}
+	for _, res := range resources {
+		if err := writer.AddFile(bytes.NewReader(res.Content), res.Name); err != nil {
+			return nil, err
 		}
 	}
 
@@ -175,7 +173,7 @@ func getDefaultUserData(mc *vmconfigs.MachineConfig) (*UserData, error) {
 
 	return &UserData{
 		Users: []User{
-			User{
+			{
 				Name:    mc.SSH.RemoteUsername,
 				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
 				Shell:   "/bin/bash",
