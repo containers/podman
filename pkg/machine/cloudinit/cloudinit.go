@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"github.com/kdomanski/iso9660"
@@ -41,7 +42,7 @@ type EmbeddedResource struct {
 }
 
 func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
-	yamlBytes, err := GenerateUserData(mc)
+	yamlBytes, err := generateUserData(mc)
 	if err != nil {
 		return "", err
 	}
@@ -83,12 +84,11 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 		}
 	}()
 
-	userdata, metadata, networkConfig := []byte{}, []byte{}, []byte{}
-	if mc.CloudInitConfig.UserData != nil {
-		userdata, err = mc.CloudInitConfig.UserData.Read()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read user-data file: %w", err)
-		}
+	metadata, networkConfig := []byte{}, []byte{}
+
+	userdata, err := generateUserData(mc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate user-data file: %w", err)
 	}
 
 	if mc.CloudInitConfig.MetaData != nil {
@@ -102,13 +102,6 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 		networkConfig, err = mc.CloudInitConfig.NetworkConfig.Read()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read network-config file: %w", err)
-		}
-	}
-
-	if len(userdata) == 0 && len(metadata) == 0 {
-		userdata, err = GenerateUserData(mc)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate user-data: %w", err)
 		}
 	}
 
@@ -154,4 +147,23 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	}
 
 	return vmFile, nil
+}
+
+func getDefaultUserData(mc *vmconfigs.MachineConfig) (*UserData, error) {
+	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserData{
+		Users: []User{
+			User{
+				Name:    mc.SSH.RemoteUsername,
+				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
+				Shell:   "/bin/bash",
+				Groups:  []string{"users"},
+				SSHKeys: []string{sshKey},
+			},
+		},
+	}, nil
 }
