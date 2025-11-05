@@ -34,7 +34,6 @@ import (
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/network"
 	nettypes "go.podman.io/common/libnetwork/types"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	artStore "go.podman.io/common/pkg/libartifact/store"
 	"go.podman.io/common/pkg/secrets"
@@ -179,11 +178,7 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 	runtime := new(Runtime)
 
 	if conf.Engine.OCIRuntime == "" {
-		conf.Engine.OCIRuntime = "runc"
-		// If we're running on cgroups v2, default to using crun.
-		if onCgroupsv2, _ := cgroups.IsCgroup2UnifiedMode(); onCgroupsv2 {
-			conf.Engine.OCIRuntime = "crun"
-		}
+		conf.Engine.OCIRuntime = "crun"
 	}
 
 	runtime.config = conf
@@ -543,8 +538,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			// and no valid systemd session is present
 			// warn only whenever new namespace is created
 			if runtime.config.Engine.CgroupManager == config.SystemdCgroupsManager {
-				unified, _ := cgroups.IsCgroup2UnifiedMode()
-				if unified && rootless.IsRootless() && !systemd.IsSystemdSessionValid(rootless.GetRootlessUID()) {
+				if rootless.IsRootless() && !systemd.IsSystemdSessionValid(rootless.GetRootlessUID()) {
 					logrus.Debug("Invalid systemd user session for current user")
 				}
 			}
