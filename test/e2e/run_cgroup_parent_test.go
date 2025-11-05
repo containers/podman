@@ -16,10 +16,6 @@ import (
 const cgroupRoot = "/sys/fs/cgroup"
 
 var _ = Describe("Podman run with --cgroup-parent", func() {
-	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("cgroup parent is not supported in cgroups v1")
-	})
-
 	Specify("valid --cgroup-parent using cgroupfs", func() {
 		if !Containerized() {
 			Skip("Must be containerized to run this test.")
@@ -47,7 +43,6 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("always honor --cgroup-parent", func() {
-		SkipIfCgroupV1("test not supported in cgroups v1")
 		if Containerized() || podmanTest.CgroupManager == "cgroupfs" {
 			Skip("Requires Systemd cgroup manager support")
 		}

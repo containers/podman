@@ -9,13 +9,6 @@ import (
 )
 
 var _ = Describe("Podman pod stats", func() {
-	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("Tests fail with both CGv1 + required --cgroup-manager=cgroupfs")
-		if isContainerized() {
-			SkipIfCgroupV1("All tests fail Error: unable to load cgroup at ...: cgroup deleted")
-		}
-	})
-
 	It("podman pod stats should run with no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()

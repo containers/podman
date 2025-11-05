@@ -3,7 +3,9 @@
 package integration
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
@@ -523,7 +525,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run security-opt unmask on /sys/fs/cgroup", func() {
-		SkipIfCgroupV1("podman umask on /sys/fs/cgroup will fail with cgroups V1")
 		SkipIfRootless("/sys/fs/cgroup rw access is needed")
 		rwOnCgroups := "/sys/fs/cgroup cgroup2 rw"
 		session := podmanTest.Podman([]string{"run", "--security-opt", "unmask=ALL", "--security-opt", "mask=/sys/fs/cgroup", ALPINE, "cat", "/proc/mounts"})
@@ -734,8 +735,6 @@ USER bin`, BB)
 	})
 
 	It("podman run limits test", func() {
-		SkipIfRootlessCgroupsV1("Setting limits not supported on cgroupv1 for rootless users")
-
 		if !isRootless() {
 			session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
 			session.WaitWithDefaultTimeout()
@@ -751,13 +750,6 @@ USER bin`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("1024"))
-
-		if !CGROUPSV2 {
-			// --oom-kill-disable not supported on cgroups v2.
-			session = podmanTest.Podman([]string{"run", "--rm", "--oom-kill-disable=true", fedoraMinimal, "echo", "memory-hog"})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
-		}
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=999", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
@@ -833,106 +825,60 @@ USER bin`, BB)
 	})
 
 	It("podman run blkio-weight test", func() {
-		SkipIfRootlessCgroupsV1("Setting blkio-weight not supported on cgroupv1 for rootless users")
 		SkipIfRootless("By default systemd doesn't delegate io to rootless users")
-		if CGROUPSV2 {
-			if _, err := os.Stat("/sys/fs/cgroup/io.stat"); os.IsNotExist(err) {
-				Skip("Kernel does not have io.stat")
-			}
-			if _, err := os.Stat("/sys/fs/cgroup/system.slice/io.bfq.weight"); os.IsNotExist(err) {
-				Skip("Kernel does not support BFQ IO scheduler")
-			}
-			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
-			// there was a documentation issue in the kernel that reported a different range [1-10000] for the io controller.
-			// older versions of crun/runc used it.  For the time being allow both versions to pass the test.
-			// FIXME: drop "|51" once all the runtimes we test have the fix in place.
-			Expect(strings.Replace(session.OutputToString(), "default ", "", 1)).To(MatchRegexp("15|51"))
-		} else {
-			if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
-				Skip("Kernel does not support blkio.weight")
-			}
-			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.weight"})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
-			Expect(session.OutputToString()).To(ContainSubstring("15"))
+		if _, err := os.Stat("/sys/fs/cgroup/io.stat"); errors.Is(err, fs.ErrNotExist) {
+			Skip("Kernel does not have io.stat")
 		}
+		if _, err := os.Stat("/sys/fs/cgroup/system.slice/io.bfq.weight"); errors.Is(err, fs.ErrNotExist) {
+			Skip("Kernel does not support BFQ IO scheduler")
+		}
+		session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/io.bfq.weight"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// there was a documentation issue in the kernel that reported a different range [1-10000] for the io controller.
+		// older versions of crun/runc used it.  For the time being allow both versions to pass the test.
+		// FIXME: drop "|51" once all the runtimes we test have the fix in place.
+		Expect(strings.Replace(session.OutputToString(), "default ", "", 1)).To(MatchRegexp("15|51"))
 	})
 
 	It("podman run device-read-bps test", func() {
 		SkipIfRootless("Setting device-read-bps not supported for rootless users")
 		skipWithoutDevNullb0()
 
-		var session *PodmanSessionIntegration
-
-		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/nullb0:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
-		} else {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/nullb0:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device"})
-		}
-
+		session := podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/nullb0:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
-			Expect(session.OutputToString()).To(ContainSubstring("1048576"))
-		}
+		// FIXME: https://github.com/containers/podman/commit/9b9789c207d8b84ee37e9c37c613879369a8690c
 	})
 
 	It("podman run device-write-bps test", func() {
 		SkipIfRootless("Setting device-write-bps not supported for rootless users")
 		skipWithoutDevNullb0()
 
-		var session *PodmanSessionIntegration
-
-		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/nullb0:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
-		} else {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/nullb0:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device"})
-		}
+		session := podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/nullb0:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
-			Expect(session.OutputToString()).To(ContainSubstring("1048576"))
-		}
+		// FIXME: https://github.com/containers/podman/commit/9b9789c207d8b84ee37e9c37c613879369a8690c
 	})
 
 	It("podman run device-read-iops test", func() {
 		SkipIfRootless("Setting device-read-iops not supported for rootless users")
 		skipWithoutDevNullb0()
 
-		var session *PodmanSessionIntegration
-
-		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/nullb0:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
-		} else {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/nullb0:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_iops_device"})
-		}
-
+		session := podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/nullb0:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
-			Expect(session.OutputToString()).To(ContainSubstring("100"))
-		}
+		// FIXME: https://github.com/containers/podman/commit/9b9789c207d8b84ee37e9c37c613879369a8690c
 	})
 
 	It("podman run device-write-iops test", func() {
 		SkipIfRootless("Setting device-write-iops not supported for rootless users")
 		skipWithoutDevNullb0()
 
-		var session *PodmanSessionIntegration
-
-		if CGROUPSV2 {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/nullb0:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
-		} else {
-			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/nullb0:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_iops_device"})
-		}
-
+		session := podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/nullb0:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		if !CGROUPSV2 { // TODO: Test Simplification.  For now, we only care about exit(0) w/ cgroupsv2
-			Expect(session.OutputToString()).To(ContainSubstring("100"))
-		}
+		// FIXME: https://github.com/containers/podman/commit/9b9789c207d8b84ee37e9c37c613879369a8690c
 	})
 
 	It("podman run notify_socket", func() {
@@ -1734,7 +1680,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run with cgroups=split", func() {
 		SkipIfNotSystemd(podmanTest.CgroupManager, "do not test --cgroups=split if not running on systemd")
-		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		SkipIfRemote("--cgroups=split cannot be used in remote mode")
 
 		checkLines := func(lines []string) {
@@ -1743,14 +1688,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 				parts := strings.SplitN(line, ":", 3)
 				if len(parts) < 2 {
 					continue
-				}
-				if !CGROUPSV2 {
-					// ignore unified on cgroup v1.
-					// both runc and crun do not set it.
-					// crun does not set named hierarchies.
-					if parts[1] == "" || strings.Contains(parts[1], "name=") {
-						continue
-					}
 				}
 				if parts[2] == "/" {
 					continue
@@ -1788,7 +1725,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 	})
 
 	It("podman run with cgroups=disabled runs without cgroups", func() {
-		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test only works on crun")
@@ -1822,7 +1758,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 	})
 
 	It("podman run with cgroups=enabled makes cgroups", func() {
-		SkipIfRootlessCgroupsV1("Enable cgroups not supported on cgroupv1 for rootless users")
 		// Only works on crun
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
 			Skip("Test only works on crun")
@@ -1970,7 +1905,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 	})
 
 	It("podman run verify pids-limit", func() {
-		SkipIfCgroupV1("pids-limit not supported on cgroup V1")
 		limit := "4321"
 		session := podmanTest.Podman([]string{"run", "--pids-limit", limit, "--net=none", "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
 		session.WaitWithDefaultTimeout()

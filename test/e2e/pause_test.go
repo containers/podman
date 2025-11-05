@@ -18,19 +18,15 @@ var _ = Describe("Podman pause", func() {
 	createdState := "created"
 
 	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
+		b, err := os.ReadFile("/proc/self/cgroup")
+		if err != nil {
+			Skip("cannot read self cgroup")
+		}
 
-		if CGROUPSV2 {
-			b, err := os.ReadFile("/proc/self/cgroup")
-			if err != nil {
-				Skip("cannot read self cgroup")
-			}
-
-			path := filepath.Join("/sys/fs/cgroup", strings.TrimSuffix(strings.Replace(string(b), "0::", "", 1), "\n"), "cgroup.freeze")
-			_, err = os.Stat(path)
-			if err != nil {
-				Skip("freezer controller not available on the current kernel")
-			}
+		path := filepath.Join("/sys/fs/cgroup", strings.TrimSuffix(strings.Replace(string(b), "0::", "", 1), "\n"), "cgroup.freeze")
+		_, err = os.Stat(path)
+		if err != nil {
+			Skip("freezer controller not available on the current kernel")
 		}
 	})
 

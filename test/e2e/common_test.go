@@ -38,7 +38,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/storage/pkg/ioutils"
 	"go.podman.io/storage/pkg/lockfile"
@@ -53,7 +52,6 @@ var (
 	CGROUP_MANAGER     = "systemd"
 	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE}
 	defaultWaitTimeout = 90
-	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
 
 // PodmanTestIntegration struct for command line options
@@ -1080,13 +1078,6 @@ func SkipIfRunc(p *PodmanTestIntegration, reason string) {
 	}
 }
 
-func SkipIfRootlessCgroupsV1(reason string) {
-	checkReason(reason)
-	if isRootless() && !CGROUPSV2 {
-		Skip("[rootless]: " + reason)
-	}
-}
-
 func SkipIfRootless(reason string) {
 	checkReason(reason)
 	if isRootless() {
@@ -1177,24 +1168,6 @@ func SkipIfJournaldUnavailable() {
 // This function can detect to join the user namespace by mistake
 func isRootless() bool {
 	return os.Geteuid() != 0
-}
-
-func isCgroupsV1() bool {
-	return !CGROUPSV2
-}
-
-func SkipIfCgroupV1(reason string) {
-	checkReason(reason)
-	if isCgroupsV1() {
-		Skip(reason)
-	}
-}
-
-func SkipIfCgroupV2(reason string) {
-	checkReason(reason)
-	if CGROUPSV2 {
-		Skip(reason)
-	}
 }
 
 func isContainerized() bool {
