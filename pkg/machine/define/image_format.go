@@ -24,9 +24,6 @@ func (imf ImageFormat) Kind() string {
 }
 
 func (imf ImageFormat) KindWithCompression() string {
-	// Tar uses xz; all others use zstd
-	if imf == Tar {
-		return "tar.xz"
-	}
+	// All image formats are compressed with zstd
 	return fmt.Sprintf("%s.zst", imf.Kind())
 }
