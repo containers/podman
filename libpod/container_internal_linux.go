@@ -17,7 +17,7 @@ import (
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/shutdown"
 	"github.com/containers/podman/v6/pkg/rootless"
-	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite"
 	"github.com/moby/sys/capability"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -741,7 +741,7 @@ func (s *safeMountInfo) Close() {
 // The caller is responsible for closing the file descriptor and unmounting the subpath
 // when it's no longer needed.
 func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountInfo, err error) {
-	file, err := securejoin.OpenInRoot(mountPoint, subpath)
+	file, err := pathrs.OpenInRoot(mountPoint, subpath)
 	if err != nil {
 		return nil, err
 	}
@@ -834,7 +834,7 @@ var hasCapSysResource = sync.OnceValues(func() (bool, error) {
 
 // containerPathIsFile returns true if the given containerPath is a file
 func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) {
-	f, err := securejoin.OpenInRoot(unsafeRoot, containerPath)
+	f, err := pathrs.OpenInRoot(unsafeRoot, containerPath)
 	if err != nil {
 		return false, err
 	}
