@@ -305,6 +305,7 @@ Valid options for `[Container]` are listed below:
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
 | AddHost=example\.com:192.168.10.11   | --add-host example.com:192.168.10.11                 |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
+| AppArmor="alternate-profile"         | --security-opt apparmor=alternate-profile            |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
 | CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
 | ContainerName=name                   | --name name                                          |
@@ -427,6 +428,10 @@ Set one or more OCI annotations on the container. The format is a list of `key=v
 similar to `Environment`.
 
 This key can be listed multiple times.
+
+### `AppArmor=`
+
+Sets the apparmor confinement profile for the container. A value of `unconfined` turns off apparmor confinement.
 
 ### `AutoUpdate=`
 
