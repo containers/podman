@@ -44,7 +44,7 @@ Print usage statement
 Inspect an OCI image in the local store.
 
 ```shell
-$ podman artifact inspect quay.io/myartifact/myml:latest
+$ podman artifact inspect quay.io/myartifact/mytxt:latest
 {
      "Manifest": {
           "schemaVersion": 2,
