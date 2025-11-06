@@ -402,6 +402,15 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		isTerm = respStruct.ProcessConfig.Tty
 	}
 
+	// Extract and parse detach keys from the exec session
+	detachKeysInBytes := []byte{}
+	if respStruct.DetachKeys != "" {
+		detachKeysInBytes, err = term.ToBytes(respStruct.DetachKeys)
+		if err != nil {
+			return fmt.Errorf("invalid detach keys in exec session: %w", err)
+		}
+	}
+
 	// If we are in TTY mode, we need to set raw mode for the terminal.
 	// TODO: Share all of this with Attach() for containers.
 	needTTY := terminalFile != nil && terminal.IsTerminal(int(terminalFile.Fd())) && isTerm
@@ -458,7 +467,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	if options.GetAttachInput() {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
-			_, err := detach.Copy(socket, options.InputStream, []byte{})
+			_, err := detach.Copy(socket, options.InputStream, detachKeysInBytes)
 			// Ignore "closed network connection" as it occurs when the exec ends, which is expected.
 			// This avoids noisy logs but does not fix the goroutine leak
 			// https://github.com/containers/podman/issues/25344
@@ -479,7 +488,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			return fmt.Errorf("exec session %s has a terminal and must have STDOUT enabled", sessionID)
 		}
 		// If not multiplex'ed, read from server and write to stdout
-		_, err := detach.Copy(options.GetOutputStream(), socket, []byte{})
+		_, err := detach.Copy(options.GetOutputStream(), socket, detachKeysInBytes)
 		if err != nil {
 			return err
 		}
