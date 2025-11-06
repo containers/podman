@@ -65,11 +65,11 @@ func CleanPath(path string) string {
 	return path
 }
 
-// stripRoot returns the passed path, stripping the root path if it was
+// StripRoot returns the passed path, stripping the root path if it was
 // (lexicially) inside it. Note that both passed paths will always be treated
 // as absolute, and the returned path will also always be absolute. In
 // addition, the paths are cleaned before stripping the root.
-func stripRoot(root, path string) string {
+func StripRoot(root, path string) string {
 	// Make the paths clean and absolute.
 	root, path = CleanPath("/"+root), CleanPath("/"+path)
 	switch {
@@ -111,5 +111,5 @@ func Annotations(labels []string) (bundle string, userAnnotations map[string]str
 			userAnnotations[name] = value
 		}
 	}
-	return
+	return bundle, userAnnotations
 }
