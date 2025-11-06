@@ -9,7 +9,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package pathrs
+package gopathrs
 
 import (
 	"errors"
@@ -23,9 +23,12 @@ import (
 	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/fd"
 	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/gocompat"
 	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/linux"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/procfs"
 )
 
-var errInvalidMode = errors.New("invalid permission mode")
+// ErrInvalidMode is returned from [MkdirAll] when the requested mode is
+// invalid.
+var ErrInvalidMode = errors.New("invalid permission mode")
 
 // modePermExt is like os.ModePerm except that it also includes the set[ug]id
 // and sticky bits.
@@ -45,11 +48,11 @@ func toUnixMode(mode os.FileMode) (uint32, error) {
 	}
 	// We don't allow file type bits.
 	if mode&os.ModeType != 0 {
-		return 0, fmt.Errorf("%w %+.3o (%s): type bits not permitted", errInvalidMode, mode, mode)
+		return 0, fmt.Errorf("%w %+.3o (%s): type bits not permitted", ErrInvalidMode, mode, mode)
 	}
 	// We don't allow other unknown modes.
 	if mode&^modePermExt != 0 || sysMode&unix.S_IFMT != 0 {
-		return 0, fmt.Errorf("%w %+.3o (%s): unknown mode bits", errInvalidMode, mode, mode)
+		return 0, fmt.Errorf("%w %+.3o (%s): unknown mode bits", ErrInvalidMode, mode, mode)
 	}
 	return sysMode, nil
 }
@@ -84,11 +87,11 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 	// users it seems more prudent to return an error so users notice that
 	// these bits will not be set.
 	if unixMode&^0o1777 != 0 {
-		return nil, fmt.Errorf("%w for mkdir %+.3o: suid and sgid are ignored by mkdir", errInvalidMode, mode)
+		return nil, fmt.Errorf("%w for mkdir %+.3o: suid and sgid are ignored by mkdir", ErrInvalidMode, mode)
 	}
 
 	// Try to open as much of the path as possible.
-	currentDir, remainingPath, err := partialLookupInRoot(root, unsafePath)
+	currentDir, remainingPath, err := PartialLookupInRoot(root, unsafePath)
 	defer func() {
 		if Err != nil {
 			_ = currentDir.Close()
@@ -117,7 +120,7 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 	// Re-open the path to match the O_DIRECTORY reopen loop later (so that we
 	// always return a non-O_PATH handle). We also check that we actually got a
 	// directory.
-	if reopenDir, err := Reopen(currentDir, unix.O_DIRECTORY|unix.O_CLOEXEC); errors.Is(err, unix.ENOTDIR) {
+	if reopenDir, err := procfs.ReopenFd(currentDir, unix.O_DIRECTORY|unix.O_CLOEXEC); errors.Is(err, unix.ENOTDIR) {
 		return nil, fmt.Errorf("cannot create subdirectories in %q: %w", currentDir.Name(), unix.ENOTDIR)
 	} else if err != nil {
 		return nil, fmt.Errorf("re-opening handle to %q: %w", currentDir.Name(), err)
@@ -206,41 +209,4 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode os.FileMode) (_ *os.F
 		// errors.
 	}
 	return currentDir, nil
-}
-
-// MkdirAll is a race-safe alternative to the [os.MkdirAll] function,
-// where the new directory is guaranteed to be within the root directory (if an
-// attacker can move directories from inside the root to outside the root, the
-// created directory tree might be outside of the root but the key constraint
-// is that at no point will we walk outside of the directory tree we are
-// creating).
-//
-// Effectively, MkdirAll(root, unsafePath, mode) is equivalent to
-//
-//	path, _ := securejoin.SecureJoin(root, unsafePath)
-//	err := os.MkdirAll(path, mode)
-//
-// But is much safer. The above implementation is unsafe because if an attacker
-// can modify the filesystem tree between [SecureJoin] and [os.MkdirAll], it is
-// possible for MkdirAll to resolve unsafe symlink components and create
-// directories outside of the root.
-//
-// If you plan to open the directory after you have created it or want to use
-// an open directory handle as the root, you should use [MkdirAllHandle] instead.
-// This function is a wrapper around [MkdirAllHandle].
-//
-// [SecureJoin]: https://pkg.go.dev/github.com/cyphar/filepath-securejoin#SecureJoin
-func MkdirAll(root, unsafePath string, mode os.FileMode) error {
-	rootDir, err := os.OpenFile(root, unix.O_PATH|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
-	if err != nil {
-		return err
-	}
-	defer rootDir.Close() //nolint:errcheck // close failures aren't critical here
-
-	f, err := MkdirAllHandle(rootDir, unsafePath, mode)
-	if err != nil {
-		return err
-	}
-	_ = f.Close()
-	return nil
 }
