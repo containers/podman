@@ -23,7 +23,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(firstList.outputToStringSlice()).To(HaveLen(1)) // just the header
 
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -50,11 +50,11 @@ var _ = Describe("podman machine list", func() {
 		Expect(noheaderSession.outputToStringSlice()).To(BeEmpty())
 
 		i := new(initMachine)
-		session, err := mb.setName(name1).setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name1).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		session2, err := mb.setName(name2).setCmd(i.withImage(mb.imagePath)).run()
+		session2, err := mb.setName(name2).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
 
@@ -113,7 +113,7 @@ var _ = Describe("podman machine list", func() {
 		name1 := randomString()
 
 		i := new(initMachine)
-		session, err := mb.setName(name1).setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name1).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -150,7 +150,7 @@ var _ = Describe("podman machine list", func() {
 	})
 	It("list machine in machine-readable byte format", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -172,7 +172,7 @@ var _ = Describe("podman machine list", func() {
 	})
 	It("list machine in human-readable format", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 

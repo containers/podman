@@ -24,7 +24,7 @@ var _ = Describe("podman machine rm", func() {
 	It("Remove machine", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		rm := rmMachine{}
@@ -47,13 +47,13 @@ var _ = Describe("podman machine rm", func() {
 		// Ensure that the system connections have the right rootfulness
 		name = randomString()
 		i = new(initMachine)
-		session, err = mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		session, err = mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		name2 := randomString()
 		i = new(initMachine)
-		session, err = mb.setName(name2).setCmd(i.withImage(mb.imagePath).withRootful(true)).run()
+		session, err = mb.setName(name2).setCmd(i.withFakeImage(mb).withRootful(true)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -99,7 +99,7 @@ var _ = Describe("podman machine rm", func() {
 
 	It("machine rm --save-ignition --save-image", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -141,7 +141,7 @@ var _ = Describe("podman machine rm", func() {
 
 		fooName := "foo"
 		foo := new(initMachine)
-		session, err := mb.setName(fooName).setCmd(foo.withImage(mb.imagePath)).run()
+		session, err := mb.setName(fooName).setCmd(foo.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -181,7 +181,7 @@ var _ = Describe("podman machine rm", func() {
 	It("Removing all machines doesn't delete ssh keys", func() {
 		fooName := "foo"
 		foo := new(initMachine)
-		session, err := mb.setName(fooName).setCmd(foo.withImage(mb.imagePath)).run()
+		session, err := mb.setName(fooName).setCmd(foo.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 

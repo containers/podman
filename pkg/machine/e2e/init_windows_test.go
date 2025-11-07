@@ -22,7 +22,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		}
 		i := new(initMachine)
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withUserModeNetworking(true)).run()
+		session, err := mb.setName(name).setCmd(i.withFakeImage(mb).withUserModeNetworking(true)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -79,7 +79,7 @@ var _ = Describe("podman machine init - windows only", func() {
 			}
 		}()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
 		Expect(session.errorToString()).To(ContainSubstring("already exists on hypervisor"))
@@ -97,7 +97,7 @@ var _ = Describe("podman machine init - windows only", func() {
 
 		// create a bogus machine
 		i := new(initMachine)
-		session, err := mb.setName("foobarexport").setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName("foobarexport").setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -122,7 +122,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		}()
 
 		// Trying to make a vm with the same name as an existing name should result in a 125
-		checkSession, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		checkSession, err := mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(checkSession).To(Exit(125))
 	})
