@@ -14,7 +14,7 @@ import (
 )
 
 func addUserModeNetworking(userData *UserData, mc *vmconfigs.MachineConfig) error {
-	netUnitFile, err := hutil.CreateNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
+	netUnitFile, err := hutil.CreateNetworkUnitWithBinary("/usr/local/bin/gvforwarder", mc.HyperVHypervisor.NetworkVSock.Port)
 	if err != nil {
 		return err
 	}
