@@ -27,9 +27,9 @@ class TestDependsOn(TestCaseBase):
 
     ALL_TASK_NAMES = None
     # All tasks must be listed as a dependency of one/more of these tasks
-    SUCCESS_DEPS_EXCLUDE = set(['build_success', 'success'])
+    SUCCESS_DEPS_EXCLUDE = set(['success'])
     # Tasks which do not influence any success aggregator (above)
-    NONSUCCESS_TASKS = set(['artifacts', 'release', 'release_test'])
+    NONSUCCESS_TASKS = set()
 
     def setUp(self):
         super().setUp()
