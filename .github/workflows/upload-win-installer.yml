@@ -120,7 +120,7 @@ jobs:
         Exit $code
     - name: Artifact
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: installer
         path: |
