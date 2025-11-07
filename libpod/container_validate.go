@@ -80,16 +80,6 @@ func (c *Container) validate() error {
 		}
 	}
 
-	// Can only set static IP or MAC is creating a network namespace.
-	if !c.config.CreateNetNS && (c.config.StaticIP != nil || c.config.StaticMAC != nil) {
-		return fmt.Errorf("cannot set static IP or MAC address if not creating a network namespace: %w", define.ErrInvalidArg)
-	}
-
-	// Cannot set static IP or MAC if joining >1 network.
-	if len(c.config.Networks) > 1 && (c.config.StaticIP != nil || c.config.StaticMAC != nil) {
-		return fmt.Errorf("cannot set static IP or MAC address if joining more than one network: %w", define.ErrInvalidArg)
-	}
-
 	// Using image resolv.conf conflicts with various DNS settings.
 	if c.config.UseImageResolvConf &&
 		(len(c.config.DNSSearch) > 0 || len(c.config.DNSServer) > 0 ||

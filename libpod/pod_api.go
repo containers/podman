@@ -667,7 +667,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		}
 		infraConfig = new(define.InspectPodInfraConfig)
 		infraConfig.HostNetwork = p.NetworkMode() == "host"
-		infraConfig.StaticIP = infra.config.ContainerNetworkConfig.StaticIP
 		infraConfig.NoManageResolvConf = infra.config.UseImageResolvConf
 		infraConfig.NoManageHostname = infra.config.UseImageHostname
 		infraConfig.NoManageHosts = infra.config.UseImageHosts

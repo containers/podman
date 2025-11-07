@@ -250,18 +250,6 @@ type ContainerNetworkConfig struct {
 	// network namespace for the container.
 	// This cannot be set if NetNsCtr is also set.
 	CreateNetNS bool `json:"createNetNS"`
-	// StaticIP is a static IP to request for the container.
-	// This cannot be set unless CreateNetNS is set.
-	// If not set, the container will be dynamically assigned an IP by CNI.
-	//
-	// Deprecated: Do no use this anymore, this is only for DB backwards compat.
-	StaticIP net.IP `json:"staticIP,omitempty"`
-	// StaticMAC is a static MAC to request for the container.
-	// This cannot be set unless CreateNetNS is set.
-	// If not set, the container will be dynamically assigned a MAC by CNI.
-	//
-	// Deprecated: Do no use this anymore, this is only for DB backwards compat.
-	StaticMAC types.HardwareAddr `json:"staticMAC,omitempty"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
