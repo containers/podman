@@ -12,7 +12,7 @@ $0 is a wrapper for invoking podman system tests.
 
    --root         Run only as root
    --rootless     Run only as user (i.e. you)
-   --remote       Run with podman-remote (see below)
+   --remote       Run with podman-remote
 
    FILENAME-PATTERN Run only test files that match 'test/system/*name*',
                     e.g. '500' or 'net' will match 500-networking.bats.
@@ -35,16 +35,6 @@ $0 is a wrapper for invoking podman system tests.
 By default, tests ./bin/podman. To test a different podman, do:
 
     \$ env PODMAN=/abs/path/to/podman $0 ....
-
-To test podman-remote, start your own servers (root and rootless) via:
-
-    \$ bin/podman system service --timeout=0 &
-    \$ sudo !!
-
-...then invoke this script with --remote. (This script can't start the
-servers, because we can sudo *starting* the service but can't sudo
-stopping it: by the time the bats tests finish, the sudo timeout will
-have expired. We apologize for the inconvenience.)
 
 Examples:
 
@@ -113,13 +103,7 @@ if [[ "$REMOTE" ]]; then
     if ! [[ $PODMAN =~ -remote ]]; then
         PODMAN=${PODMAN}-remote
     fi
-
-    if [[ -n "$TEST_ROOT" ]]; then
-        sudo $PODMAN info >/dev/null || exit 1
-    fi
-    if [[ -n "$TEST_ROOTLESS" ]]; then
-        $PODMAN info >/dev/null || exit 1
-    fi
+    export REMOTESYSTEM_TRANSPORT=unix
 fi
 
 # END   initialization and command-line arg checking
