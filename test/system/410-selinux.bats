@@ -259,7 +259,10 @@ function check_label() {
         # https://github.com/opencontainers/selinux/pull/148/commits/a5dc47f74c56922d58ead05d1fdcc5f7f52d5f4e
         #   from failed to set /proc/self/attr/keycreate on procfs
         #   to   write /proc/self/attr/keycreate: invalid argument
-        runc) expect=".*: \(failed to set\|write\) /proc/self/attr/keycreate.*" ;;
+        # runc 1.3.3 (temporarily?) changed the error message because of the fix to CVE-2025-52881, see
+        # https://github.com/opencontainers/runc/commit/2c5356e73f15b246729d03198bfb2c6c33454099
+        #   to   write fsmount:fscontext:proc/self/attr/keycreate: invalid argument
+        runc) expect=".*: \(failed\|write\).*proc/self/attr/keycreate.*" ;;
         *)    skip "Unknown runtime '$runtime'";;
     esac
 
