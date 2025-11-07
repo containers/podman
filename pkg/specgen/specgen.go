@@ -505,15 +505,6 @@ type ContainerNetworkConfig struct {
 	// will be joined to the default network.
 	// Optional.
 	Networks map[string]nettypes.PerNetworkOptions
-	// CNINetworks is a list of CNI networks to join the container to.
-	// If this list is empty, the default CNI network will be joined
-	// instead. If at least one entry is present, we will not join the
-	// default network (unless it is part of this list).
-	// Only available if NetNS is set to bridge.
-	// Optional.
-	//
-	// Deprecated: as of podman 4.0 use "Networks" instead.
-	CNINetworks []string `json:"cni_networks,omitempty"`
 	// UseImageResolvConf indicates that resolv.conf should not be managed
 	// by Podman, but instead sourced from the image.
 	// Conflicts with DNSServer, DNSSearch, DNSOption.
