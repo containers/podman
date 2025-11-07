@@ -34,7 +34,6 @@ type Progress struct {
 type pState struct {
 	ctx         context.Context
 	hm          heapManager
-	iterDrop    chan struct{}
 	renderReq   chan time.Time
 	idCount     int
 	popPriority int
@@ -71,7 +70,6 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	s := &pState{
 		ctx:         ctx,
 		hmQueueLen:  defaultHmQueueLength,
-		iterDrop:    make(chan struct{}),
 		renderReq:   make(chan time.Time),
 		popPriority: math.MinInt32,
 		refreshRate: defaultRefreshRate,
@@ -176,12 +174,13 @@ func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) (*Ba
 }
 
 func (p *Progress) traverseBars(cb func(b *Bar) bool) {
-	drop, iter := make(chan struct{}), make(chan *Bar)
+	req := make(iterRequest, 1)
 	select {
-	case p.operateState <- func(s *pState) { s.hm.iter(drop, iter, nil) }:
-		for b := range iter {
+	case p.operateState <- func(s *pState) {
+		s.hm.iter(req)
+	}:
+		for b := range <-req {
 			if !cb(b) {
-				close(drop)
 				break
 			}
 		}
@@ -227,12 +226,12 @@ func (p *Progress) Write(b []byte) (int, error) {
 // Wait waits for all bars to complete and finally shutdowns container. After
 // this method has been called, there is no way to reuse `*Progress` instance.
 func (p *Progress) Wait() {
-	p.bwg.Wait()
-	p.Shutdown()
 	// wait for user wg, if any
 	if p.uwg != nil {
 		p.uwg.Wait()
 	}
+	p.bwg.Wait()
+	p.Shutdown()
 }
 
 // Shutdown cancels any running bar immediately and then shutdowns `*Progress`
@@ -335,15 +334,14 @@ func (s *pState) manualRefreshListener(done chan struct{}) {
 }
 
 func (s *pState) render(cw *cwriter.Writer) (err error) {
-	iter, iterPop := make(chan *Bar), make(chan *Bar)
-	s.hm.sync(s.iterDrop)
-	s.hm.iter(s.iterDrop, iter, iterPop)
+	req := make(iterRequest, 1)
+	s.hm.sync()
+	s.hm.iter(req, req)
 
 	var width, height int
 	if cw.IsTerminal() {
 		width, height, err = cw.GetTermSize()
 		if err != nil {
-			close(s.iterDrop)
 			return err
 		}
 	} else {
@@ -355,24 +353,22 @@ func (s *pState) render(cw *cwriter.Writer) (err error) {
 		height = width
 	}
 
-	var barCount int
-	for b := range iter {
-		barCount++
+	for b := range <-req {
 		go b.render(width)
 	}
 
-	return s.flush(cw, height, barCount, iterPop)
+	return s.flush(cw, height, <-req)
 }
 
-func (s *pState) flush(cw *cwriter.Writer, height, barCount int, iter <-chan *Bar) error {
+func (s *pState) flush(cw *cwriter.Writer, height int, iter <-chan *Bar) error {
 	var total, popCount int
-	rows := make([][]io.Reader, 0, barCount)
+	rows := make([][]io.Reader, 0, cap(iter))
 
 	for b := range iter {
 		frame := <-b.frameCh
 		if frame.err != nil {
-			close(s.iterDrop)
 			b.cancel()
+			s.hm.push(b, false)
 			return frame.err // b.frameCh is buffered it's ok to return here
 		}
 		var discarded int

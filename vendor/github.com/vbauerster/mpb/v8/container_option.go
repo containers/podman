@@ -66,8 +66,8 @@ func WithRenderDelay(ch <-chan struct{}) ContainerOption {
 	}
 }
 
-// WithShutdownNotifier value of type `[]*mpb.Bar` will be send into provided
-// channel upon container shutdown.
+// WithShutdownNotifier value of type `[]*mpb.Bar` will be send to provided channel
+// on shutdown event, i.e. after `(*Progress) Wait()` or `(*Progress) Shutdown()` call.
 func WithShutdownNotifier(ch chan<- interface{}) ContainerOption {
 	return func(s *pState) {
 		s.shutdownNotifier = ch

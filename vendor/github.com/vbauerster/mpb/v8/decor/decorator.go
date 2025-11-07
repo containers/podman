@@ -73,11 +73,17 @@ type Decorator interface {
 // To be used with `func Any(DecorFunc, ...WC) Decorator`.
 type DecorFunc func(Statistics) string
 
+// Sync type used by Synchronizer.
+type Sync struct {
+	Tx chan int
+	Rx chan int
+}
+
 // Synchronizer interface.
 // All decorators implement this interface implicitly. Its Sync
 // method exposes width sync channel, if DSyncWidth bit is set.
 type Synchronizer interface {
-	Sync() (chan int, bool)
+	Sync() (*Sync, bool)
 }
 
 // Formatter interface.
@@ -129,10 +135,10 @@ var (
 // W represents width and C represents bit set of width related config.
 // A decorator should embed WC, to enable width synchronization.
 type WC struct {
-	W     int
-	C     int
-	fill  func(s string, w int) string
-	wsync chan int
+	W    int
+	C    int
+	sync *Sync
+	fill func(s string, w int) string
 }
 
 // Format should be called by any Decorator implementation.
@@ -145,8 +151,8 @@ func (wc WC) Format(str string) (string, int) {
 		width++
 	}
 	if (wc.C & DSyncWidth) != 0 {
-		wc.wsync <- width
-		width = <-wc.wsync
+		wc.sync.Tx <- width
+		width = <-wc.sync.Rx
 	}
 	return wc.fill(str, width), width
 }
@@ -161,17 +167,17 @@ func (wc *WC) Init() WC {
 	if (wc.C & DSyncWidth) != 0 {
 		// it's deliberate choice to override wsync on each Init() call,
 		// this way globals like WCSyncSpace can be reused
-		wc.wsync = make(chan int)
+		wc.sync = &Sync{make(chan int, 1), make(chan int, 1)}
 	}
 	return *wc
 }
 
 // Sync is implementation of Synchronizer interface.
-func (wc WC) Sync() (chan int, bool) {
-	if (wc.C&DSyncWidth) != 0 && wc.wsync == nil {
+func (wc WC) Sync() (*Sync, bool) {
+	if (wc.C&DSyncWidth) != 0 && wc.sync == nil {
 		panic(fmt.Sprintf("%T is not initialized", wc))
 	}
-	return wc.wsync, (wc.C & DSyncWidth) != 0
+	return wc.sync, (wc.C & DSyncWidth) != 0
 }
 
 func initWC(wcc ...WC) WC {
