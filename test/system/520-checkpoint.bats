@@ -22,15 +22,17 @@ function setup() {
         skip "checkpoint does not work rootless"
     fi
 
+    basic_setup
+
+    # Note basic_setup defines $PODMAN_RUNTIME so this must be after it
+
     # As of 2024-05, crun on Debian is not built with criu support:
     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1008249
-    runtime=$(podman_runtime)
+    runtime="$PODMAN_RUNTIME"
     run $runtime checkpoint --help
     if [[ $status -ne 0 ]]; then
         skip "runtime $runtime does not support checkpoint/restore"
     fi
-
-    basic_setup
 }
 
 # bats test_tags=ci:parallel
