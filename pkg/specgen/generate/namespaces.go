@@ -338,19 +338,9 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		}
 		// if no network was specified use add the default
 		if len(s.Networks) == 0 {
-			// backwards config still allow the old cni networks list and convert to new format
-			if len(s.CNINetworks) > 0 {
-				logrus.Warn(`specgen "cni_networks" option is deprecated use the "networks" map instead`)
-				networks := make(map[string]types.PerNetworkOptions, len(s.CNINetworks))
-				for _, net := range s.CNINetworks {
-					networks[net] = types.PerNetworkOptions{}
-				}
-				s.Networks = networks
-			} else {
-				// no networks given but bridge is set so use default network
-				s.Networks = map[string]types.PerNetworkOptions{
-					rtConfig.Network.DefaultNetwork: {},
-				}
+			// no networks given but bridge is set so use default network
+			s.Networks = map[string]types.PerNetworkOptions{
+				rtConfig.Network.DefaultNetwork: {},
 			}
 		}
 		// rename the "default" network to the correct default name
