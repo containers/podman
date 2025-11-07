@@ -64,6 +64,8 @@ function teardown() {
 
     # Verify we have 2 layers now
     assert "$layer_count" -eq 2 "Should have 2 layers after append"
+
+    run_podman artifact rm "$artifact_name"
 }
 
 
@@ -93,7 +95,6 @@ function teardown() {
 
     # Cleanup
     run_podman artifact rm "$artifact_name"
-    rm -f "$file1" "$file2"
 }
 
 @test "podman artifact add --replace nonexistent artifact" {
@@ -110,7 +111,6 @@ function teardown() {
 
     # Cleanup
     run_podman artifact rm "$artifact_name"
-    rm -f "$file1"
 }
 
 @test "podman artifact add --replace and --append conflict" {
@@ -122,8 +122,6 @@ function teardown() {
     # Using --replace and --append together should fail
     run_podman 125 artifact add --replace --append "$artifact_name" "$file1"
     assert "$output" =~ "--append and --replace options cannot be used together"
-
-    rm -f "$file1"
 }
 
 @test "podman artifact add --replace with existing artifact" {
@@ -151,7 +149,6 @@ function teardown() {
 
     # Cleanup
     run_podman artifact rm "$artifact_name"
-    rm -f "$file1" "$file2"
 }
 
 
