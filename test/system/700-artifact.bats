@@ -5,6 +5,8 @@
 
 load helpers
 
+# FIXME #27264: Artifact store does not seem to work properly with concurrent access. Do not the ci:parallel tags here!
+
 function setup() {
     basic_setup
 }
@@ -21,7 +23,6 @@ create_test_file() {
     echo "$filename"
 }
 
-# bats test_tags=ci:parallel
 @test "podman artifact add --replace basic functionality" {
     local artifact_name="localhost/test/replace-artifact"
     local file1 file2
@@ -51,7 +52,6 @@ create_test_file() {
     rm -f "$file1" "$file2"
 }
 
-# bats test_tags=ci:parallel
 @test "podman artifact add --replace nonexistent artifact" {
     local artifact_name="localhost/test/nonexistent-artifact"
     local file1
@@ -69,7 +69,6 @@ create_test_file() {
     rm -f "$file1"
 }
 
-# bats test_tags=ci:parallel
 @test "podman artifact add --replace and --append conflict" {
     local artifact_name="localhost/test/conflict-artifact"
     local file1
@@ -83,7 +82,6 @@ create_test_file() {
     rm -f "$file1"
 }
 
-# bats test_tags=ci:parallel
 @test "podman artifact add --replace with existing artifact" {
     local artifact_name="localhost/test/existing-artifact"
     local file1 file2
