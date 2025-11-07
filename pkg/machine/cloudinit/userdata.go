@@ -106,6 +106,7 @@ func createCloudConfigPart(writer *multipart.Writer, content []byte) error {
 	header := textproto.MIMEHeader{}
 	// Set the specific Content-Type that cloud-init recognizes for configuration files
 	header.Set("Content-Type", "text/cloud-config")
+	header.Set("Merge-Type", "list(append)+dict(no_replace,recurse_list)+str()")
 
 	partWriter, err := writer.CreatePart(header)
 	if err != nil {
