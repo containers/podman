@@ -236,6 +236,12 @@ function setup() {
 
 # bats test_tags=ci:parallel
 @test "podman checkpoint/restore ip and mac handling" {
+    # Broken only debian as it seems the host's /etc/hosts file keeps changing
+    # which causes false positives in the before/after restore comparison.
+    OS_RELEASE_ID="${OS_RELEASE_ID:-$(source /etc/os-release; echo $ID)}"
+    if [[ "$OS_RELEASE_ID" == "debian" ]]; then
+        skip "Test flakes on debian in CI"
+    fi
     # Refer to https://github.com/containers/podman/issues/16666#issuecomment-1337860545
     # for the correct behavior, this should cover all cases listed there.
     local netname="net-$(safename)"
