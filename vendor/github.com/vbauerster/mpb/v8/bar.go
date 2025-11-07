@@ -26,7 +26,7 @@ type Bar struct {
 	cancel       func()
 }
 
-type syncTable [2][]chan int
+type decorSyncTable [2][]*decor.Sync
 type extenderFunc func(decor.Statistics, ...io.Reader) ([]io.Reader, error)
 
 // bState is actual bar's state.
@@ -466,8 +466,8 @@ func (b *Bar) tryEarlyRefresh(renderReq chan<- time.Time) {
 	}
 }
 
-func (b *Bar) wSyncTable() syncTable {
-	result := make(chan syncTable)
+func (b *Bar) wSyncTable() decorSyncTable {
+	result := make(chan decorSyncTable)
 	select {
 	case b.operateState <- func(s *bState) { result <- s.wSyncTable() }:
 		return <-result
@@ -530,14 +530,14 @@ func (s *bState) draw(stat decor.Statistics) (_ io.Reader, err error) {
 	), nil
 }
 
-func (s *bState) wSyncTable() (table syncTable) {
+func (s *bState) wSyncTable() (table decorSyncTable) {
 	var start int
-	var row []chan int
+	var row []*decor.Sync
 
 	for i, group := range s.decorGroups {
 		for _, d := range group {
-			if ch, ok := d.Sync(); ok {
-				row = append(row, ch)
+			if s, ok := d.Sync(); ok {
+				row = append(row, s)
 			}
 		}
 		table[i], start = row[start:], len(row)
