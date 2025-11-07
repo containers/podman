@@ -139,8 +139,6 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 				opts.StaticMAC = nil
 				ctrConfig.Networks[net] = opts
 			}
-			ctrConfig.StaticIP = nil
-			ctrConfig.StaticMAC = nil
 		}
 
 		if ctrConfig.PIDNsCtr != "" {
