@@ -6,6 +6,9 @@ import (
 	"os"
 	"sync"
 
+	"golang.org/x/sys/unix"
+
+	"github.com/opencontainers/runc/internal/pathrs"
 	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
@@ -36,18 +39,12 @@ func setProcAttr(attr, value string) error {
 	// Under AppArmor you can only change your own attr, so there's no reason
 	// to not use /proc/thread-self/ (instead of /proc/<tid>/, like libapparmor
 	// does).
-	attrPath, closer := utils.ProcThreadSelf(attrSubPath)
-	defer closer()
-
-	f, err := os.OpenFile(attrPath, os.O_WRONLY, 0)
+	f, closer, err := pathrs.ProcThreadSelfOpen(attrSubPath, unix.O_WRONLY|unix.O_CLOEXEC)
 	if err != nil {
 		return err
 	}
+	defer closer()
 	defer f.Close()
-
-	if err := utils.EnsureProcHandle(f); err != nil {
-		return err
-	}
 
 	_, err = f.WriteString(value)
 	return err
