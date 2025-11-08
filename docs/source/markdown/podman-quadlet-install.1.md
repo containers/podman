@@ -60,4 +60,4 @@ $ podman quadlet install https://github.com/containers/podman/blob/main/test/e2e
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-quadlet(1)](podman-quadlet.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-quadlet(1)](podman-quadlet.1.md)**, **[podman-systemd.unit(5)](podman-systemd.unit.5.md)**
