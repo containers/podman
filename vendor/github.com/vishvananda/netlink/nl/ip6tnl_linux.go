@@ -11,11 +11,7 @@ const (
 	LWTUNNEL_IP6_HOPLIMIT
 	LWTUNNEL_IP6_TC
 	LWTUNNEL_IP6_FLAGS
-	LWTUNNEL_IP6_PAD // not implemented
+	LWTUNNEL_IP6_PAD  // not implemented
 	LWTUNNEL_IP6_OPTS // not implemented
 	__LWTUNNEL_IP6_MAX
 )
-
-
-
-

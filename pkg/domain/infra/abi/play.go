@@ -368,6 +368,14 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				podYAML.Annotations[name] = val
 			}
 
+			// Merge CLI-specified labels into pod YAML labels so they are applied to created resources
+			for name, val := range options.Labels {
+				if podYAML.Labels == nil {
+					podYAML.Labels = make(map[string]string)
+				}
+				podYAML.Labels[name] = val
+			}
+
 			if err := annotations.ValidateAnnotations(podYAML.Annotations); err != nil {
 				return nil, err
 			}
@@ -443,6 +451,14 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				pvcYAML.Annotations[name] = val
 			}
 
+			// Merge CLI-provided labels into PVC labels so created volumes get them
+			for name, val := range options.Labels {
+				if pvcYAML.Labels == nil {
+					pvcYAML.Labels = make(map[string]string)
+				}
+				pvcYAML.Labels[name] = val
+			}
+
 			if options.IsRemote {
 				if _, ok := pvcYAML.Annotations[util.VolumeImportSourceAnnotation]; ok {
 					return nil, fmt.Errorf("importing volumes is not supported for remote requests")
@@ -470,7 +486,15 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				return nil, fmt.Errorf("unable to read YAML as kube secret: %w", err)
 			}
 
-			r, err := ic.playKubeSecret(&secret)
+			// Merge CLI-provided labels into secret labels
+			for name, val := range options.Labels {
+				if secret.ObjectMeta.Labels == nil {
+					secret.ObjectMeta.Labels = make(map[string]string)
+				}
+				secret.ObjectMeta.Labels[name] = val
+			}
+
+			r, err := ic.playKubeSecret(&secret, options)
 			if err != nil {
 				return nil, err
 			}
@@ -1837,7 +1861,7 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 }
 
 // playKubeSecret allows users to create and store a kubernetes secret as a podman secret
-func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret) (*entities.SecretCreateReport, error) {
+func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret, options entities.PlayKubeOptions) (*entities.SecretCreateReport, error) {
 	r := &entities.SecretCreateReport{}
 
 	// Create the secret manager before hand
@@ -1854,9 +1878,6 @@ func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret) (*entities.SecretCr
 	secretsPath := ic.Libpod.GetSecretsStorageDir()
 	opts := make(map[string]string)
 	opts["path"] = filepath.Join(secretsPath, "filedriver")
-	// maybe k8sName(data)...
-	// using this does not allow the user to use the name given to the secret
-	// but keeping secret.Name as the ID can lead to a collision.
 
 	s, err := secretsManager.Lookup(secret.Name)
 	if err == nil {
@@ -1879,9 +1900,23 @@ func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret) (*entities.SecretCr
 		meta["immutable"] = "true"
 	}
 
+	// Merge labels from the secret YAML and CLI-provided options
+	mergedLabels := make(map[string]string)
+	if secret.ObjectMeta.Labels != nil {
+		for k, v := range secret.ObjectMeta.Labels {
+			mergedLabels[k] = v
+		}
+	}
+	if options.Labels != nil {
+		for k, v := range options.Labels {
+			mergedLabels[k] = v
+		}
+	}
+
 	storeOpts := secrets.StoreOptions{
 		DriverOpts: opts,
 		Metadata:   meta,
+		Labels:     mergedLabels,
 	}
 
 	secretID, err := secretsManager.Store(secret.Name, data, "file", storeOpts)

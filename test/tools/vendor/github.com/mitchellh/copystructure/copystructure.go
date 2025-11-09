@@ -18,20 +18,19 @@ const tagKey = "copy"
 //
 // For structs, copy behavior can be controlled with struct tags. For example:
 //
-//   struct {
-//     Name string
-//     Data *bytes.Buffer `copy:"shallow"`
-//   }
+//	struct {
+//	  Name string
+//	  Data *bytes.Buffer `copy:"shallow"`
+//	}
 //
 // The available tag values are:
 //
-// * "ignore" - The field will be ignored, effectively resulting in it being
-//   assigned the zero value in the copy.
+//   - "ignore" - The field will be ignored, effectively resulting in it being
+//     assigned the zero value in the copy.
 //
-// * "shallow" - The field will be be shallow copied. This means that references
-//   values such as pointers, maps, slices, etc. will be directly assigned
-//   versus deep copied.
-//
+//   - "shallow" - The field will be be shallow copied. This means that references
+//     values such as pointers, maps, slices, etc. will be directly assigned
+//     versus deep copied.
 func Copy(v interface{}) (interface{}, error) {
 	return Config{}.Copy(v)
 }

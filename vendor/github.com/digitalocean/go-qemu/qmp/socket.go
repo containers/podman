@@ -58,6 +58,7 @@ type SocketMonitor struct {
 // dial attempt times out.
 //
 // NewSocketMonitor may dial the QEMU socket using a variety of connection types:
+//
 //	NewSocketMonitor("unix", "/var/lib/qemu/example.monitor", 2 * time.Second)
 //	NewSocketMonitor("tcp", "8.8.8.8:4444", 2 * time.Second)
 func NewSocketMonitor(network, addr string, timeout time.Duration) (*SocketMonitor, error) {
@@ -78,6 +79,7 @@ func NewSocketMonitor(network, addr string, timeout time.Duration) (*SocketMonit
 // An error is returned if unable to listen at the specified file path or port.
 //
 // Listen will wait for a QEMU socket connection using a variety connection types:
+//
 //	Listen("unix", "/var/lib/qemu/example.monitor")
 //	Listen("tcp", "0.0.0.0:4444")
 func Listen(network, addr string) (*SocketMonitor, error) {
@@ -203,6 +205,7 @@ func (mon *SocketMonitor) listen(r io.Reader, events chan<- Event, stream chan<-
 
 // Run executes the given QAPI command against a domain's QEMU instance.
 // For a list of available QAPI commands, see:
+//
 //	http://git.qemu.org/?p=qemu.git;a=blob;f=qapi-schema.json;hb=HEAD
 func (mon *SocketMonitor) Run(command []byte) ([]byte, error) {
 	// Just call RunWithFile with no file
