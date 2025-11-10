@@ -33,25 +33,38 @@ var _ = Describe("podman machine ssh", func() {
 
 	It("ssh to running machine and check os-type", func() {
 		wsl := testProvider.VMType() == define.WSLVirt
-		name := randomString()
+
+		// setting this name instead of randomized because we want to test when the
+		// machine name is and is not provided.  That's what the loop below is for
+
+		name := "podman-machine-default"
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow().withUpdateConnection(ptrBool(true))).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
+		// pass 1
 		ssh := &sshMachine{}
-		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"cat", "/etc/os-release"})).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(sshSession).To(Exit(0))
+		// pass 2
+		bm := basicMachine{}
+		var mcs []machineCommand
+		// check with the machine name
+		mcs = append(mcs, ssh.withSSHCommand([]string{"cat", "/etc/os-release"}))
+		// check without the machine name
+		mcs = append(mcs, bm.withPodmanCommand([]string{"machine", "ssh", "cat", "/etc/os-release"}))
+		for _, mc := range mcs {
+			sshSession, err := mb.setCmd(mc).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sshSession).To(Exit(0))
 
-		if wsl {
-			Expect(sshSession.outputToString()).To(ContainSubstring("Fedora Linux"))
-		} else {
-			Expect(sshSession.outputToString()).To(ContainSubstring("Fedora CoreOS"))
+			if wsl {
+				Expect(sshSession.outputToString()).To(ContainSubstring("Fedora Linux"))
+			} else {
+				Expect(sshSession.outputToString()).To(ContainSubstring("Fedora CoreOS"))
+			}
 		}
-
 		// keep exit code
-		sshSession, err = mb.setName(name).setCmd(ssh.withSSHCommand([]string{"false"})).run()
+		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"false"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(1))
 		Expect(sshSession.outputToString()).To(Equal(""))
