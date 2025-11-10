@@ -9,8 +9,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-// Package pathrs (pathrs-lite) is a less complete pure Go implementation of
-// some of the APIs provided by [libpathrs].
+// Package gopathrs is a less complete pure Go implementation of some of the
+// APIs provided by [libpathrs].
 //
 // [libpathrs]: https://github.com/cyphar/libpathrs
-package pathrs
+package gopathrs
