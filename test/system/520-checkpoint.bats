@@ -22,15 +22,17 @@ function setup() {
         skip "checkpoint does not work rootless"
     fi
 
+    basic_setup
+
+    # Note basic_setup defines $PODMAN_RUNTIME so this must be after it
+
     # As of 2024-05, crun on Debian is not built with criu support:
     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1008249
-    runtime=$(podman_runtime)
+    runtime="$PODMAN_RUNTIME"
     run $runtime checkpoint --help
     if [[ $status -ne 0 ]]; then
         skip "runtime $runtime does not support checkpoint/restore"
     fi
-
-    basic_setup
 }
 
 # bats test_tags=ci:parallel
@@ -236,6 +238,12 @@ function setup() {
 
 # bats test_tags=ci:parallel
 @test "podman checkpoint/restore ip and mac handling" {
+    # Broken only debian as it seems the host's /etc/hosts file keeps changing
+    # which causes false positives in the before/after restore comparison.
+    OS_RELEASE_ID="${OS_RELEASE_ID:-$(source /etc/os-release; echo $ID)}"
+    if [[ "$OS_RELEASE_ID" == "debian" ]]; then
+        skip "Test flakes on debian in CI"
+    fi
     # Refer to https://github.com/containers/podman/issues/16666#issuecomment-1337860545
     # for the correct behavior, this should cover all cases listed there.
     local netname="net-$(safename)"
