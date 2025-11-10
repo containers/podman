@@ -12,6 +12,7 @@ import (
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var pruneImage = fmt.Sprintf(`
@@ -601,7 +602,7 @@ var _ = Describe("Podman prune", func() {
 		err := os.WriteFile(containerFilePath, []byte(longBuildImage), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
-		build := podmanTest.Podman([]string{"build", "-f", containerFilePath, "-t", "podmanleaker"})
+		build := podmanTest.Podman([]string{"build", "--network=none", "-f", containerFilePath, "-t", "podmanleaker"})
 		// Build will never finish so let's wait for build to ask for SIGKILL to simulate a failed build that leaves stage containers.
 		matchedOutput := false
 		for range 900 {
@@ -615,6 +616,10 @@ var _ = Describe("Podman prune", func() {
 		if !matchedOutput {
 			Fail("Did not match special string in podman build")
 		}
+
+		// kill is async, wait for process exit here and make sure it was killed (137).
+		build.WaitWithDefaultTimeout()
+		Expect(build).To(Exit(137))
 
 		// Check Intermediate image of stage container
 		none := podmanTest.Podman([]string{"images", "-a"})

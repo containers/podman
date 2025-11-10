@@ -185,6 +185,9 @@ function basic_setup() {
     # ancient BATS (v1.1) in RHEL gating tests.)
     PODMAN_TMPDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-/tmp} podman_bats.XXXXXX)
 
+    PODMAN_CMD=("${PODMAN}")
+    add_podman_args PODMAN_CMD
+
     # runtime is not likely to change
     if [[ -z "$PODMAN_RUNTIME" ]]; then
         PODMAN_RUNTIME=$(podman_runtime)
@@ -208,9 +211,6 @@ function basic_setup() {
     # idea being that a large number of failures can show patterns.
     ASSERTION_FAILURES=
     immediate-assertion-failures
-
-    PODMAN_CMD=("${PODMAN}")
-    add_podman_args PODMAN_CMD
 }
 
 # bail-now is how we terminate a test upon assertion failure.
@@ -560,7 +560,7 @@ function run_podman() {
 
 
     # stdout is only emitted upon error; this printf is to help in debugging
-    printf "\n%s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" $PODMAN "${podman_args[@]}" "$*"
+    printf "\n%s %s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" $PODMAN "${podman_args[*]}" "$*"
 
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
@@ -790,7 +790,7 @@ function selinux_enabled() {
 function podman_runtime() {
     # This function is intended to be used as '$(podman_runtime)', i.e.
     # our caller wants our output. It's unsafe to use run_podman().
-    runtime=$($PODMAN $_PODMAN_TEST_OPTS info --format '{{ .Host.OCIRuntime.Name }}' 2>/dev/null)
+    runtime=$("${PODMAN_CMD[@]}" info --format '{{ .Host.OCIRuntime.Name }}' 2>/dev/null)
     basename "${runtime:-[null]}"
 }
 
