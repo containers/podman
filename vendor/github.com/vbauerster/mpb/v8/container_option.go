@@ -1,6 +1,7 @@
 package mpb
 
 import (
+	"cmp"
 	"io"
 	"sync"
 	"time"
@@ -32,9 +33,7 @@ func WithWidth(width int) ContainerOption {
 
 // WithQueueLen sets buffer size of heap manager channel. Ideally it must be
 // kept at MAX value, where MAX is number of bars to be rendered at the same
-// time. If len < MAX then backpressure to the scheduler will be increased as
-// MAX-len extra goroutines will be launched at each render cycle.
-// Default queue len is 128.
+// time. Default queue len is 128.
 func WithQueueLen(len int) ContainerOption {
 	return func(s *pState) {
 		s.hmQueueLen = len
@@ -78,21 +77,15 @@ func WithShutdownNotifier(ch chan<- interface{}) ContainerOption {
 // is not a terminal then auto refresh is disabled unless WithAutoRefresh
 // option is set.
 func WithOutput(w io.Writer) ContainerOption {
-	if w == nil {
-		w = io.Discard
-	}
 	return func(s *pState) {
-		s.output = w
+		s.output = cmp.Or(w, io.Discard)
 	}
 }
 
 // WithDebugOutput sets debug output.
 func WithDebugOutput(w io.Writer) ContainerOption {
-	if w == nil {
-		w = io.Discard
-	}
 	return func(s *pState) {
-		s.debugOut = w
+		s.debugOut = cmp.Or(w, io.Discard)
 	}
 }
 

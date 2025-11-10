@@ -2,6 +2,7 @@ package mpb
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -110,8 +111,8 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	}
 
 	p.pwg.Add(1)
+	go s.hm.run(s.shutdownNotifier)
 	go p.serve(s, cw)
-	go s.hm.run()
 	return p
 }
 
@@ -243,7 +244,10 @@ func (p *Progress) Shutdown() {
 }
 
 func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
-	defer p.pwg.Done()
+	defer func() {
+		close(s.hm)
+		p.pwg.Done()
+	}()
 	var err error
 	var w *cwriter.Writer
 	renderReq := s.renderReq
@@ -297,7 +301,6 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 					s.hm.state(update)
 				}
 			}
-			s.hm.end(s.shutdownNotifier)
 			return
 		}
 	}
@@ -334,7 +337,7 @@ func (s *pState) manualRefreshListener(done chan struct{}) {
 }
 
 func (s *pState) render(cw *cwriter.Writer) (err error) {
-	req := make(iterRequest, 1)
+	req := make(iterRequest, 2)
 	s.hm.sync()
 	s.hm.iter(req, req)
 
@@ -345,11 +348,7 @@ func (s *pState) render(cw *cwriter.Writer) (err error) {
 			return err
 		}
 	} else {
-		if s.reqWidth > 0 {
-			width = s.reqWidth
-		} else {
-			width = 80
-		}
+		width = cmp.Or(s.reqWidth, 80)
 		height = width
 	}
 

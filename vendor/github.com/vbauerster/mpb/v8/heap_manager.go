@@ -17,7 +17,6 @@ const (
 	h_iter
 	h_fix
 	h_state
-	h_end
 )
 
 type heapRequest struct {
@@ -38,13 +37,23 @@ type fixData struct {
 	lazy     bool
 }
 
-func (m heapManager) run() {
+func (m heapManager) run(shutdownNotifier chan<- interface{}) {
 	var bHeap barHeap
-	var pMatrix map[int][]*decor.Sync
-	var aMatrix map[int][]*decor.Sync
+	done := make(chan struct{})
+	defer func() {
+		close(done)
+		if shutdownNotifier != nil {
+			select {
+			case shutdownNotifier <- []*Bar(bHeap):
+			case <-time.After(time.Second):
+			}
+		}
+	}()
 
 	var sync bool
 	var prevLen int
+	var pMatrix map[int][]*decor.Sync
+	var aMatrix map[int][]*decor.Sync
 
 	for req := range m {
 		switch req.cmd {
@@ -63,8 +72,8 @@ func (m heapManager) run() {
 				}
 				sync, prevLen = false, bHeap.Len()
 			}
-			syncWidth(pMatrix)
-			syncWidth(aMatrix)
+			syncWidth(pMatrix, done)
+			syncWidth(aMatrix, done)
 		case h_push:
 			data := req.data.(pushData)
 			heap.Push(&bHeap, data.bar)
@@ -92,17 +101,6 @@ func (m heapManager) run() {
 		case h_state:
 			ch := req.data.(chan<- bool)
 			ch <- sync || prevLen != bHeap.Len()
-		case h_end:
-			ch := req.data.(chan<- interface{})
-			if ch != nil {
-				go func() {
-					select {
-					case ch <- []*Bar(bHeap):
-					case <-time.After(time.Second):
-					}
-				}()
-			}
-			return
 		}
 	}
 }
@@ -113,14 +111,7 @@ func (m heapManager) sync() {
 
 func (m heapManager) push(b *Bar, sync bool) {
 	data := pushData{b, sync}
-	req := heapRequest{cmd: h_push, data: data}
-	select {
-	case m <- req:
-	default:
-		go func() {
-			m <- req
-		}()
-	}
+	m <- heapRequest{cmd: h_push, data: data}
 }
 
 func (m heapManager) iter(req ...iterRequest) {
@@ -136,22 +127,22 @@ func (m heapManager) state(ch chan<- bool) {
 	m <- heapRequest{cmd: h_state, data: ch}
 }
 
-func (m heapManager) end(ch chan<- interface{}) {
-	m <- heapRequest{cmd: h_end, data: ch}
-}
-
-func syncWidth(matrix map[int][]*decor.Sync) {
+func syncWidth(matrix map[int][]*decor.Sync, done <-chan struct{}) {
 	for _, column := range matrix {
-		go maxWidthDistributor(column)
+		go maxWidthDistributor(column, done)
 	}
 }
 
-func maxWidthDistributor(column []*decor.Sync) {
+func maxWidthDistributor(column []*decor.Sync, done <-chan struct{}) {
 	var maxWidth int
 	for _, s := range column {
-		w := <-s.Tx
-		if w > maxWidth {
-			maxWidth = w
+		select {
+		case w := <-s.Tx:
+			if w > maxWidth {
+				maxWidth = w
+			}
+		case <-done:
+			return
 		}
 	}
 	for _, s := range column {
