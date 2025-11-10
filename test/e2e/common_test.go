@@ -294,7 +294,7 @@ const (
 	PodmanTestCreateUtilTargetMTLS  = "mtls"
 )
 
-// PodmanTestCreate creates a PodmanTestIntegration instance for the tests
+// PodmanTestCreateUtil creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *PodmanTestIntegration {
 	host := GetHostDistributionInfo()
 	cwd, _ := os.Getwd()
@@ -964,7 +964,7 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 	checkStderrCleanupError(session, "volume rm -fa error logged")
 }
 
-// CleanupSecret cleans up the secrets and containers.
+// CleanupSecrets cleans up the secrets and containers.
 // This already calls Cleanup() internally.
 func (p *PodmanTestIntegration) CleanupSecrets() {
 	// Remove all containers
