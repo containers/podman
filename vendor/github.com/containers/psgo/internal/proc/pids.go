@@ -31,7 +31,7 @@ func GetPIDs() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer procDir.Close()
+	defer procDir.Close() //nolint:errcheck
 
 	// extract string slice of all directories in procDir
 	pidDirs, err := procDir.Readdirnames(0)
@@ -74,7 +74,7 @@ func getPIDsFromCgroupV1(pid string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	scanner := bufio.NewScanner(f)
 	cgroupPath := ""
@@ -109,7 +109,7 @@ func getPIDsFromCgroupV1(pid string) ([]string, error) {
 			return nil, err
 		}
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	pids := []string{}
 	scanner = bufio.NewScanner(f)
@@ -128,7 +128,7 @@ func getPIDsFromCgroupV2(pid string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	scanner := bufio.NewScanner(f)
 	cgroupSlice := ""
@@ -152,7 +152,7 @@ func getPIDsFromCgroupV2(pid string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	pids := []string{}
 	scanner = bufio.NewScanner(f)

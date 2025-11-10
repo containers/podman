@@ -73,7 +73,7 @@ func TTYs() (*[]TTY, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer devDir.Close()
+	defer devDir.Close() //nolint:errcheck
 
 	devices := []string{}
 	devTTYs, err := devDir.Readdirnames(0)
@@ -91,7 +91,7 @@ func TTYs() (*[]TTY, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer devPTSDir.Close()
+	defer devPTSDir.Close() //nolint:errcheck
 
 	devPTSs, err := devPTSDir.Readdirnames(0)
 	if err != nil {

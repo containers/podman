@@ -16,7 +16,7 @@ require (
 	github.com/containers/gvisor-tap-vsock v0.8.7
 	github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
 	github.com/containers/ocicrypt v1.2.1
-	github.com/containers/psgo v1.9.1-0.20251104204210-533b50b1c2d9
+	github.com/containers/psgo v1.10.0
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/crc-org/vfkit v0.6.1

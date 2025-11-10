@@ -1,5 +1,4 @@
 //go:build !cgo
-// +build !cgo
 
 // Copyright 2018 psgo authors
 //

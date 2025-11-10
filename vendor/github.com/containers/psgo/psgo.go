@@ -425,7 +425,7 @@ func JoinNamespaceAndProcessInfoWithOptions(pid string, descriptors []string, op
 			dataErr = err
 			return
 		}
-		defer fd.Close()
+		defer fd.Close() //nolint:errcheck
 
 		// create a new mountns on the current thread
 		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
