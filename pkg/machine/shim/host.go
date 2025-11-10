@@ -664,9 +664,21 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		}
 	}
 
+	// embedded function for handling if we should update the default connection
+	// and the actual update
+	updateConnectionFunc := func() error {
+		if !updateDefaultConnection {
+			return nil
+		}
+		return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+			logrus.Infof("Setting default Podman connection to %s", connName)
+			cfg.Connection.Default = connName
+			return nil
+		})
+	}
 	// Provider is responsible for waiting
 	if mp.UseProviderNetworkSetup() {
-		return nil
+		return updateConnectionFunc()
 	}
 
 	noInfo := opts.NoInfo
@@ -679,17 +691,7 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		noInfo,
 		mc.HostUser.Rootful,
 	)
-
-	// return if we dont need to set the machine to the default connection
-	// or it was determined to already be the default earlier
-	if !updateDefaultConnection {
-		return nil
-	}
-	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		logrus.Infof("Setting default Podman connection to %s", connName)
-		cfg.Connection.Default = connName
-		return nil
-	})
+	return updateConnectionFunc()
 }
 
 func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefine.SetOptions) error {
