@@ -28,10 +28,10 @@ env:
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
     PRIOR_FEDORA_NAME: "fedora-41"
     RAWHIDE_NAME: "rawhide"
-    DEBIAN_NAME: "debian-13"
+    DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20251106t183941z-f42f41d13"
+    IMAGE_SUFFIX: "c20251110t154831z-f42f41d14"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
