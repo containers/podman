@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/acarl005/stripansi"
@@ -266,21 +265,14 @@ func (b *Bar) EwmaIncrBy(n int, iterDur time.Duration) {
 func (b *Bar) EwmaIncrInt64(n int64, iterDur time.Duration) {
 	select {
 	case b.operateState <- func(s *bState) {
-		var wg sync.WaitGroup
-		wg.Add(len(s.ewmaDecorators))
 		for _, d := range s.ewmaDecorators {
-			// d := d // NOTE: uncomment for Go < 1.22, see /doc/faq#closures_and_goroutines
-			go func() {
-				defer wg.Done()
-				d.EwmaUpdate(n, iterDur)
-			}()
+			d.EwmaUpdate(n, iterDur)
 		}
 		s.current += n
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
 			s.triggerCompletion(b)
 		}
-		wg.Wait()
 	}:
 	case <-b.ctx.Done():
 	}
@@ -295,21 +287,14 @@ func (b *Bar) EwmaSetCurrent(current int64, iterDur time.Duration) {
 	select {
 	case b.operateState <- func(s *bState) {
 		n := current - s.current
-		var wg sync.WaitGroup
-		wg.Add(len(s.ewmaDecorators))
 		for _, d := range s.ewmaDecorators {
-			// d := d // NOTE: uncomment for Go < 1.22, see /doc/faq#closures_and_goroutines
-			go func() {
-				defer wg.Done()
-				d.EwmaUpdate(n, iterDur)
-			}()
+			d.EwmaUpdate(n, iterDur)
 		}
 		s.current = current
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
 			s.triggerCompletion(b)
 		}
-		wg.Wait()
 	}:
 	case <-b.ctx.Done():
 	}

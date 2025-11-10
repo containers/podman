@@ -165,7 +165,7 @@ func (wc *WC) Init() WC {
 		wc.fill = runewidth.FillLeft
 	}
 	if (wc.C & DSyncWidth) != 0 {
-		// it's deliberate choice to override wsync on each Init() call,
+		// it's deliberate choice to override wc.sync on each Init() call,
 		// this way globals like WCSyncSpace can be reused
 		wc.sync = &Sync{make(chan int, 1), make(chan int, 1)}
 	}
