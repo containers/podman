@@ -5,12 +5,9 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"os"
-	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -560,112 +557,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "9280"))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", "0.0.0.0"))
 	})
-
-	It("podman run slirp4netns verify net.ipv6.conf.default.accept_dad=0", func() {
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:enable_ipv6=true", ALPINE, "ip", "addr"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		// check the ipv6 setup id done without delay (https://github.com/containers/podman/issues/11062)
-		Expect(session.OutputToString()).To(ContainSubstring("inet6 fd00::"))
-
-		const ipv6ConfDefaultAcceptDadSysctl = "/proc/sys/net/ipv6/conf/all/accept_dad"
-
-		cat := SystemExec("cat", []string{ipv6ConfDefaultAcceptDadSysctl})
-		cat.WaitWithDefaultTimeout()
-		Expect(cat).Should(ExitCleanly())
-		sysctlValue := cat.OutputToString()
-
-		session = podmanTest.Podman([]string{"run", "--network", "slirp4netns:enable_ipv6=true", ALPINE, "cat", ipv6ConfDefaultAcceptDadSysctl})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal(sysctlValue))
-	})
-
-	It("podman run network expose host port 8080 to container port 8000 using invalid port handler", func() {
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=invalid", "-dt", "-p", "8080:8000", ALPINE, "/bin/sh"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(126, `unknown port_handler for slirp4netns: "invalid"`))
-	})
-
-	It("podman run slirp4netns network with host loopback", func() {
-		session := podmanTest.Podman([]string{"run", "--cap-add", "net_raw", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-	})
-
-	It("podman run slirp4netns network with mtu", func() {
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:mtu=9000", ALPINE, "ip", "addr"})
-		session.Wait(30)
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("mtu 9000"))
-	})
-
-	It("podman run slirp4netns network with different cidr", func() {
-		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
-		Expect(slirp4netnsHelp).Should(ExitCleanly())
-
-		networkConfiguration := "slirp4netns:cidr=192.168.0.0/24,allow_host_loopback=true"
-		session := podmanTest.Podman([]string{"run", "--cap-add", "net_raw", "--network", networkConfiguration, ALPINE, "ping", "-c1", "192.168.0.2"})
-		session.Wait(30)
-
-		if strings.Contains(slirp4netnsHelp.OutputToString(), "cidr") {
-			Expect(session).Should(ExitCleanly())
-		} else {
-			Expect(session).To(ExitWithError(125, "cidr not supported"))
-		}
-	})
-
-	for _, local := range []bool{true, false} {
-		testName := "HostIP"
-		if local {
-			testName = "127.0.0.1"
-		}
-		It(fmt.Sprintf("podman run network slirp4netns bind to %s", testName), func() {
-			ip := "127.0.0.1"
-			if !local {
-				// Determine our likeliest outgoing IP address
-				conn, err := net.Dial("udp", "8.8.8.8:80")
-				Expect(err).ToNot(HaveOccurred())
-
-				defer conn.Close()
-				ip = conn.LocalAddr().(*net.UDPAddr).IP.String()
-			}
-			port := strconv.Itoa(GetPort())
-
-			networkConfiguration := fmt.Sprintf("slirp4netns:outbound_addr=%s,allow_host_loopback=true", ip)
-
-			listener, err := net.Listen("tcp", ":"+port)
-			Expect(err).ToNot(HaveOccurred())
-			defer listener.Close()
-
-			msg := RandomString(10)
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			// now use a new goroutine to start accepting connection in the background and make the checks there
-			go func() {
-				defer GinkgoRecover()
-				defer wg.Done()
-				conn, err := listener.Accept()
-				Expect(err).ToNot(HaveOccurred(), "accept new connection")
-				defer conn.Close()
-				addr := conn.RemoteAddr()
-				// addr will be in the form ip:port, we don't care about the port as it is random
-				Expect(addr.String()).To(HavePrefix(ip+":"), "remote address")
-				gotBytes, err := io.ReadAll(conn)
-				Expect(err).ToNot(HaveOccurred(), "read from connection")
-				Expect(string(gotBytes)).To(Equal(msg), "received correct message from container")
-			}()
-
-			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "sh", "-c", "echo -n " + msg + " | nc -w 30 10.0.2.2 " + port})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
-
-			// explicitly close the socket here before we wait to unlock Accept() calls in case of hangs
-			listener.Close()
-			// wait for the checks in the goroutine to be done
-			wg.Wait()
-		})
-	}
 
 	It("podman run network expose ports in image metadata", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test", "-t", "-P", NGINX_IMAGE})
