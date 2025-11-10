@@ -286,6 +286,10 @@ func makeJWERecipient(alg KeyAlgorithm, encryptionKey interface{}) (recipientKey
 		return newSymmetricRecipient(alg, encryptionKey)
 	case string:
 		return newSymmetricRecipient(alg, []byte(encryptionKey))
+	case JSONWebKey:
+		recipient, err := makeJWERecipient(alg, encryptionKey.Key)
+		recipient.keyID = encryptionKey.KeyID
+		return recipient, err
 	case *JSONWebKey:
 		recipient, err := makeJWERecipient(alg, encryptionKey.Key)
 		recipient.keyID = encryptionKey.KeyID
