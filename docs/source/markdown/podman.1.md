@@ -104,11 +104,6 @@ Load the specified `containers.conf(5)` module.  Can be an absolute or relative 
 This flag is not supported on the remote client, including Mac and Windows (excluding WSL2) machines.
 Further note that the flag is a root-level flag and must be specified before any Podman sub-command.
 
-#### **--network-cmd-path**=*path*
-Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.
-If "" is used, then the binary will first be searched using the `helper_binaries_dir` option in `containers.conf`, and second using the `$PATH` environment variable.
-**Note:** This option is deprecated and will be removed with Podman 6.0. Use the `helper_binaries_dir` option in `containers.conf` instead.
-
 #### **--network-config-dir**=*directory*
 
 Path to the directory where network configuration files are located.
