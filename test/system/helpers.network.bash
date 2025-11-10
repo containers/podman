@@ -1,7 +1,5 @@
 # -*- bash -*-
 
-_cached_has_slirp4netns=
-
 ### Feature Checks #############################################################
 
 # has_ipv4() - Check if one default route is available for IPv4
@@ -30,18 +28,6 @@ function skip_if_no_ipv6() {
         local msg=$(_add_label_if_missing "$1" "IPv6")
         skip "${msg:-not applicable with no routable IPv6}"
     fi
-}
-
-# has_slirp4netns - Check if the slirp4netns(1) command is available
-function has_slirp4netns() {
-    if [[ -z "$_cached_has_slirp4netns" ]]; then
-        _cached_has_slirp4netns=n
-        run_podman info --format '{{.Host.Slirp4NetNS.Executable}}'
-        if [[ -n "$output" ]]; then
-            _cached_has_slirp4netns=y
-        fi
-    fi
-    test "$_cached_has_slirp4netns" = "y"
 }
 
 ### procfs access ##############################################################
