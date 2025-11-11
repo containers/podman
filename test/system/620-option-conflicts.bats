@@ -14,7 +14,6 @@ load helpers
 create,run        | --cpu-period=1 | --cpus=2               | $IMAGE
 create,run        | --cpu-quota=1  | --cpus=2               | $IMAGE
 create,run        | --no-hosts     | --add-host=foo:1.1.1.1 | $IMAGE
-create,run        | --userns=bar   | --pod=foo              | $IMAGE
 container cleanup | --all          | --exec=foo
 container cleanup | --exec=foo     | --rmi                  | foo
 "
@@ -48,6 +47,14 @@ container cleanup | --exec=foo     | --rmi                  | foo
                "podman $cmd --platform + --$opt"
         done
     done
+
+    # --userns and --pod have a different error message format
+    podname=p-$(safename)
+    run_podman pod create --name $podname
+    run_podman 125 run --uidmap=0:1000:1000 --pod=$podname $IMAGE true
+    is "$output" "Error: cannot set user namespace mode when joining pod with infra container: invalid argument" \
+       "podman run --uidmap + --pod"
+    run_podman pod rm -f $podname
 }
 
 

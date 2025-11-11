@@ -804,7 +804,7 @@ ENTRYPOINT ["sleep","99999"]
 		// fail if --pod and --userns set together
 		session = podmanTest.Podman([]string{"run", "--pod", podName, "--userns", "keep-id", ALPINE, "id", "-u"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(125, "--userns and --pod cannot be set together"))
+		Expect(session).Should(ExitWithError(125, "cannot set user namespace mode when joining pod with infra container"))
 	})
 
 	It("podman pod create with --userns=keep-id can add users", func() {

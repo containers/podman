@@ -681,13 +681,14 @@ var _ = Describe("Podman create", func() {
 		create := podmanTest.Podman([]string{"create", "--uidmap", "0:1000:1000", "--pod", "new:testing123", ALPINE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).ShouldNot(ExitCleanly())
-		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
+		Expect(create.ErrorToString()).To(ContainSubstring("cannot set user namespace mode when joining pod with infra container"))
+
+		podmanTest.PodmanExitCleanly("pod", "rm", "-f", "testing123")
 
 		create = podmanTest.Podman([]string{"create", "--gidmap", "0:1000:1000", "--pod", "new:testing1234", ALPINE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).ShouldNot(ExitCleanly())
-		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
-
+		Expect(create.ErrorToString()).To(ContainSubstring("cannot set user namespace mode when joining pod with infra container"))
 	})
 
 	It("podman create --chrootdirs inspection test", func() {
