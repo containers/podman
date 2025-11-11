@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman load", func() {
-
 	BeforeEach(func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 	})

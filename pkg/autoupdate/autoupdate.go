@@ -184,7 +184,6 @@ func (u *updater) updateUnit(ctx context.Context, unit string, tasks []*task) []
 			tasksUpdated = true
 			return nil
 		}()
-
 		if err != nil {
 			errors = append(errors, err)
 		}

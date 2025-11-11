@@ -39,8 +39,10 @@ func (ir *ImageEngine) FarmNodeInspect(ctx context.Context) (*entities.FarmInspe
 	ir.platforms.Do(func() {
 		ir.os, ir.arch, ir.variant, ir.nativePlatforms, ir.platformsErr = ir.fetchInfo(ctx)
 	})
-	return &entities.FarmInspectReport{NativePlatforms: ir.nativePlatforms,
-		OS:      ir.os,
-		Arch:    ir.arch,
-		Variant: ir.variant}, ir.platformsErr
+	return &entities.FarmInspectReport{
+		NativePlatforms: ir.nativePlatforms,
+		OS:              ir.os,
+		Arch:            ir.arch,
+		Variant:         ir.variant,
+	}, ir.platformsErr
 }

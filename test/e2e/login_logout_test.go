@@ -59,12 +59,14 @@ var _ = Describe("Podman login and logout", func() {
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDirPath, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
 
-		session := podmanTest.Podman([]string{"run", "-d", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"),
+		session := podmanTest.Podman([]string{
+			"run", "-d", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"),
 			"-e", strings.Join([]string{"REGISTRY_HTTP_ADDR=0.0.0.0", strconv.Itoa(port)}, ":"), "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth:Z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs:Z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE,
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -214,8 +216,10 @@ var _ = Describe("Podman login and logout", func() {
 		err = os.WriteFile(compatAuthFile, []byte("{}"), 0o700)
 		Expect(err).ToNot(HaveOccurred())
 
-		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test",
-			"--authfile", authFile, "--compat-auth-file", compatAuthFile, server})
+		session = podmanTest.Podman([]string{
+			"login", "--username", "podmantest", "--password", "test",
+			"--authfile", authFile, "--compat-auth-file", compatAuthFile, server,
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(125, "options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"))
 
@@ -308,11 +312,13 @@ var _ = Describe("Podman login and logout", func() {
 		// N/B: This second registry container shares the same auth and cert dirs
 		//      as the registry started from BeforeEach().  Since this one starts
 		//      second, re-labeling the volumes should keep SELinux happy.
-		session := podmanTest.Podman([]string{"run", "-d", "-p", "9001:9001", "-e", "REGISTRY_HTTP_ADDR=0.0.0.0:9001", "--name", "registry1", "-v",
+		session := podmanTest.Podman([]string{
+			"run", "-d", "-p", "9001:9001", "-e", "REGISTRY_HTTP_ADDR=0.0.0.0:9001", "--name", "registry1", "-v",
 			strings.Join([]string{authPath, "/auth:z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs:z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE,
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -426,7 +432,6 @@ var _ = Describe("Podman login and logout", func() {
 		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
 	})
 
 	It("podman login and logout with repository with fallback", func() {

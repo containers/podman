@@ -13,9 +13,7 @@ import (
 	"go.podman.io/common/libnetwork/etchosts"
 )
 
-var (
-	Var1 = []string{"ONE=1", "TWO=2"}
-)
+var Var1 = []string{"ONE=1", "TWO=2"}
 
 func createTmpFile(content []byte) (string, error) {
 	tmpfile, err := os.CreateTemp(os.TempDir(), "unittest")

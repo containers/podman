@@ -30,9 +30,7 @@ var (
 	}
 )
 
-var (
-	restartOptions = entities.PodRestartOptions{}
-)
+var restartOptions = entities.PodRestartOptions{}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -46,9 +44,7 @@ func init() {
 }
 
 func restart(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().PodRestart(context.Background(), args, restartOptions)
 	if err != nil {
 		return err

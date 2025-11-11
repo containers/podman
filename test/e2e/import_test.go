@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman import", func() {
-
 	It("podman import with source and reference", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
 		_, ec, cid := podmanTest.RunLsContainer("")

@@ -25,9 +25,7 @@ type WSLStubber struct {
 }
 
 func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) error {
-	var (
-		err error
-	)
+	var err error
 	// cleanup half-baked files if init fails at any point
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
@@ -235,9 +233,7 @@ func (w WSLStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, e
 }
 
 func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
-	var (
-		err error
-	)
+	var err error
 
 	if running, err := isRunning(mc.Name); !running {
 		return err

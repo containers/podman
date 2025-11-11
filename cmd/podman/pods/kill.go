@@ -30,9 +30,7 @@ var (
 	}
 )
 
-var (
-	killOpts entities.PodKillOptions
-)
+var killOpts entities.PodKillOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -50,9 +48,7 @@ func init() {
 }
 
 func kill(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().PodKill(context.Background(), args, killOpts)
 	if err != nil {
 		return err

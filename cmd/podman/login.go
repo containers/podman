@@ -78,7 +78,7 @@ func login(cmd *cobra.Command, args []string) error {
 		if len(loginOptions.Username) == 0 {
 			loginOptions.Username = secretName
 		}
-		var inspectOpts = entities.SecretInspectOptions{
+		inspectOpts := entities.SecretInspectOptions{
 			ShowSecret: true,
 		}
 		inspected, errs, _ := registry.ContainerEngine().SecretInspect(context.Background(), []string{secretName}, inspectOpts)

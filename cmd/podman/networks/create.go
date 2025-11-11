@@ -94,6 +94,7 @@ func networkCreateFlags(cmd *cobra.Command) {
 	flags.StringSliceVar(&networkCreateOptions.NetworkDNSServers, dnsserverFlagName, nil, "DNS servers this network will use")
 	_ = cmd.RegisterFlagCompletionFunc(dnsserverFlagName, completion.AutocompleteNone)
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: networkCreateCommand,
@@ -103,9 +104,7 @@ func init() {
 }
 
 func networkCreate(cmd *cobra.Command, args []string) error {
-	var (
-		name string
-	)
+	var name string
 	if len(args) > 0 {
 		name = args[0]
 	}
@@ -184,7 +183,6 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 
 	for i := range networkCreateOptions.Routes {
 		route, err := parseRoute(networkCreateOptions.Routes[i])
-
 		if err != nil {
 			return err
 		}
@@ -225,7 +223,6 @@ func parseRoute(routeStr string) (*types.Route, error) {
 
 		if len(s) == 3 {
 			mtr, err := strconv.ParseUint(s[2], 10, 32)
-
 			if err != nil {
 				return nil, fmt.Errorf("invalid route metric %s", s[2])
 			}

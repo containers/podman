@@ -22,12 +22,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	// BitmapSize is the size of the bitmap used when managing SHM locks.
-	// an SHM lock manager's max locks will be rounded up to a multiple of
-	// this number.
-	BitmapSize = uint32(C.bitmap_size_c)
-)
+// BitmapSize is the size of the bitmap used when managing SHM locks.
+// an SHM lock manager's max locks will be rounded up to a multiple of
+// this number.
+var BitmapSize = uint32(C.bitmap_size_c)
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory
 // segment.
@@ -134,14 +132,14 @@ func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 	// semaphore indexes, and can still return error codes.
 	retCode := C.allocate_semaphore(locks.lockStruct)
 	if retCode < 0 {
-		var err = syscall.Errno(-1 * retCode)
+		err := syscall.Errno(-1 * retCode)
 		// Negative errno returned
 		if errors.Is(err, syscall.ENOSPC) {
 			// ENOSPC expands to "no space left on device".  While it is technically true
 			// that there's no room in the SHM inn for this lock, this tends to send normal people
 			// down the path of checking disk-space which is not actually their problem.
 			// Give a clue that it's actually due to num_locks filling up.
-			var errFull = fmt.Errorf("allocation failed; exceeded num_locks (%d)", locks.maxLocks)
+			errFull := fmt.Errorf("allocation failed; exceeded num_locks (%d)", locks.maxLocks)
 			return uint32(retCode), errFull
 		}
 		return uint32(retCode), syscall.Errno(-1 * retCode)

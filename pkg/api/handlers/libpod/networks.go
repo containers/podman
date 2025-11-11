@@ -4,10 +4,9 @@ package libpod
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-
-	"errors"
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"

@@ -478,7 +478,8 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 // ExecHTTPStartAndAttach starts and performs an HTTP attach to an exec session.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, _ *string, cancel <-chan bool, hijackDone chan<- bool, newSize *resize.TerminalSize) error {
+	streams *HTTPAttachStreams, _ *string, cancel <-chan bool, hijackDone chan<- bool, newSize *resize.TerminalSize,
+) error {
 	// TODO: How do we combine streams with the default streams set in the exec session?
 
 	// Ensure that we don't leak a goroutine here
@@ -1016,9 +1017,9 @@ func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 				continue
 			}
 		}
-		return
+		return err
 	}
-	return
+	return err
 }
 
 // the path to a container's exec session bundle

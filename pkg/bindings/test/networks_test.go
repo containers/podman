@@ -25,7 +25,6 @@ var _ = Describe("Podman networks", func() {
 	)
 
 	BeforeEach(func() {
-
 		bt = newBindingTest()
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()

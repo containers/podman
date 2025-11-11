@@ -428,8 +428,10 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 			if name == "" {
 				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
-			if slices.Contains([]string{string(Bridge), string(Slirp), string(Pasta), string(FromPod), string(NoNetwork),
-				string(Default), string(Private), string(Path), string(FromContainer), string(Host)}, name) {
+			if slices.Contains([]string{
+				string(Bridge), string(Slirp), string(Pasta), string(FromPod), string(NoNetwork),
+				string(Default), string(Private), string(Path), string(FromContainer), string(Host),
+			}, name) {
 				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", name, define.ErrInvalidArg)
 			}
 			netOpts := types.PerNetworkOptions{}

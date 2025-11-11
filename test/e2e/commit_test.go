@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("Podman commit", func() {
-
 	It("podman commit container", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
@@ -347,7 +346,6 @@ var _ = Describe("Podman commit", func() {
 		session = podmanTest.Podman([]string{"run", "foobar.com/test1-image:latest", "cat", "/run/secrets/mysecret"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(1, "can't open '/run/secrets/mysecret': No such file or directory"))
-
 	})
 
 	It("podman commit should not commit env secret", func() {

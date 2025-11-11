@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Podman run memory", func() {
-
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Setting Memory not supported on cgroupv1 for rootless users")
 	})

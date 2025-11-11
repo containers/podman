@@ -39,7 +39,7 @@ var _ = Describe("Podman connection", func() {
 	})
 
 	It("cancel request in flight reports cancelled context", func() {
-		var name = "top"
+		name := "top"
 		_, err := bt.RunTopContainer(&name, nil)
 		Expect(err).ToNot(HaveOccurred())
 

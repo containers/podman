@@ -324,7 +324,6 @@ func cleanupAndCountNetEntries() (uint, error) {
 
 func obtainUserModeNetLock() (*fileLock, error) {
 	dir, err := getUserModeNetDir()
-
 	if err != nil {
 		return nil, err
 	}

@@ -10,9 +10,7 @@ import (
 	"github.com/containers/podman/v6/pkg/errorhandling"
 )
 
-var (
-	ErrNotImplemented = errors.New("function not implemented")
-)
+var ErrNotImplemented = errors.New("function not implemented")
 
 func handleError(data []byte, unmarshalErrorInto any) error {
 	if err := json.Unmarshal(data, unmarshalErrorInto); err != nil {

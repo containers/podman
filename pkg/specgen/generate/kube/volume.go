@@ -21,9 +21,9 @@ import (
 
 const (
 	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
-	kubeDirectoryPermission = 0755
+	kubeDirectoryPermission = 0o755
 	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
-	kubeFilePermission = 0644
+	kubeFilePermission = 0o644
 )
 
 type KubeVolumeType int

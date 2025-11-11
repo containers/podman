@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman run exit", func() {
-
 	It("podman run -d mount cleanup test", func() {
 		SkipIfRemote("podman-remote does not support mount")
 		SkipIfRootless("rootless podman mount requires podman unshare first")

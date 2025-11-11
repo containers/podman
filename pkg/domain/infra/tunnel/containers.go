@@ -42,8 +42,8 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	options := new(containers.WaitOptions).WithConditions(opts.Conditions).WithInterval(opts.Interval.String())
 
 	if opts.ExitFirstMatch {
-		var waitChannel = make(chan entities.WaitReport, 1)
-		var waitFunction = func(ctx context.Context, nameOrId string, options *containers.WaitOptions, waitChannel chan<- entities.WaitReport) {
+		waitChannel := make(chan entities.WaitReport, 1)
+		waitFunction := func(ctx context.Context, nameOrId string, options *containers.WaitOptions, waitChannel chan<- entities.WaitReport) {
 			response := entities.WaitReport{}
 			exitCode, err := containers.Wait(ic.ClientCtx, nameOrId, options)
 			if err != nil {
@@ -210,9 +210,7 @@ func (ic *ContainerEngine) ContainerKill(_ context.Context, namesOrIds []string,
 }
 
 func (ic *ContainerEngine) ContainerRestart(_ context.Context, namesOrIds []string, opts entities.RestartOptions) ([]*entities.RestartReport, error) {
-	var (
-		reports = []*entities.RestartReport{}
-	)
+	reports := []*entities.RestartReport{}
 	options := new(containers.RestartOptions)
 	if to := opts.Timeout; to != nil {
 		timeout := util.ConvertTimeout(int(*to))
@@ -777,7 +775,7 @@ func logIfRmError(id string, err error, reports []*reports.RmReport) {
 
 func (ic *ContainerEngine) ContainerStart(_ context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
-	var exitCode = define.ExecErrorCodeGeneric
+	exitCode := define.ExecErrorCodeGeneric
 	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, options.All, len(options.Filters) > 0, namesOrIds, options.Filters)
 	if err != nil {
 		return nil, err

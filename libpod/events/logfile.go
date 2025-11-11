@@ -88,22 +88,22 @@ func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
 
 func (e EventLogFile) readRotateEvent(event *Event) (begin bool, end bool, err error) {
 	if event.Status != Rotate {
-		return
+		return begin, end, err
 	}
 	if event.Details.Attributes == nil {
 		// may be an old event before storing attributes in the rotate event
-		return
+		return begin, end, err
 	}
 	switch event.Details.Attributes[rotateEventAttribute] {
 	case rotateEventBegin:
 		begin = true
-		return
+		return begin, end, err
 	case rotateEventEnd:
 		end = true
-		return
+		return begin, end, err
 	default:
 		err = fmt.Errorf("unknown rotate-event attribute %q", event.Details.Attributes[rotateEventAttribute])
-		return
+		return begin, end, err
 	}
 }
 
@@ -262,8 +262,8 @@ func logNeedsRotation(logfile string, content string, limit uint64) (bool, error
 		}
 		return false, err
 	}
-	var filesize = uint64(file.Size())
-	var contentsize = uint64(len([]rune(content)))
+	filesize := uint64(file.Size())
+	contentsize := uint64(len([]rune(content)))
 	if filesize+contentsize < limit {
 		return false, nil
 	}

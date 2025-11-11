@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("Podman secret", func() {
-
 	AfterEach(func() {
 		podmanTest.CleanupSecrets()
 	})
@@ -212,7 +211,6 @@ var _ = Describe("Podman secret", func() {
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(ExitCleanly())
 		Expect(list.OutputToStringArray()).To(HaveLen(2))
-
 	})
 
 	It("podman secret ls --quiet", func() {
@@ -242,7 +240,6 @@ var _ = Describe("Podman secret", func() {
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(ExitCleanly())
 		Expect(list.OutputToString()).To(Equal(secretName))
-
 	})
 
 	It("podman secret ls with filters", func() {
@@ -473,7 +470,6 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(Equal("map[]"))
-
 	})
 
 	It("podman secret exists should return true if secret exists", func() {

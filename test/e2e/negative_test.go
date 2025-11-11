@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Podman negative command-line", func() {
-
 	It("podman snuffleupagus exits non-zero", func() {
 		session := podmanTest.Podman([]string{"snuffleupagus"})
 		session.WaitWithDefaultTimeout()

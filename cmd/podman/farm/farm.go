@@ -6,15 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// Command: podman _farm_
-	farmCmd = &cobra.Command{
-		Use:   "farm",
-		Short: "Farm out builds to remote machines",
-		Long:  "Farm out builds to remote machines that podman can connect to via podman system connection",
-		RunE:  validate.SubCommandExists,
-	}
-)
+// Command: podman _farm_
+var farmCmd = &cobra.Command{
+	Use:   "farm",
+	Short: "Farm out builds to remote machines",
+	Long:  "Farm out builds to remote machines that podman can connect to via podman system connection",
+	RunE:  validate.SubCommandExists,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

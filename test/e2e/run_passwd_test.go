@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Podman run passwd", func() {
-
 	It("podman run no user specified ", func() {
 		session := podmanTest.Podman([]string{"run", "--read-only", BB, "mount"})
 		session.WaitWithDefaultTimeout()

@@ -16,18 +16,16 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	createCmd = &cobra.Command{
-		Use:   "create [options] NAME FILE|-",
-		Short: "Create a new secret",
-		Long:  "Create a secret. Input can be a path to a file or \"-\" (read from stdin). Secret drivers \"file\" (default), \"pass\", and \"shell\" are available.",
-		RunE:  create,
-		Args:  cobra.ExactArgs(2),
-		Example: `podman secret create mysecret /path/to/secret
+var createCmd = &cobra.Command{
+	Use:   "create [options] NAME FILE|-",
+	Short: "Create a new secret",
+	Long:  "Create a secret. Input can be a path to a file or \"-\" (read from stdin). Secret drivers \"file\" (default), \"pass\", and \"shell\" are available.",
+	RunE:  create,
+	Args:  cobra.ExactArgs(2),
+	Example: `podman secret create mysecret /path/to/secret
 		printf "secretdata" | podman secret create mysecret -`,
-		ValidArgsFunction: common.AutocompleteSecretCreate,
-	}
-)
+	ValidArgsFunction: common.AutocompleteSecretCreate,
+}
 
 var (
 	createOpts = entities.SecretCreateOptions{}

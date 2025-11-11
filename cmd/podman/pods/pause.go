@@ -30,9 +30,7 @@ var (
 	}
 )
 
-var (
-	pauseOptions entities.PodPauseOptions
-)
+var pauseOptions entities.PodPauseOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -43,10 +41,9 @@ func init() {
 	flags.BoolVarP(&pauseOptions.All, "all", "a", false, "Pause all running pods")
 	validate.AddLatestFlag(pauseCommand, &pauseOptions.Latest)
 }
+
 func pause(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().PodPause(context.Background(), args, pauseOptions)
 	if err != nil {
 		return err

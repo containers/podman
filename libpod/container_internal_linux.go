@@ -30,9 +30,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var (
-	bindOptions = []string{define.TypeBind, "rprivate"}
-)
+var bindOptions = []string{define.TypeBind, "rprivate"}
 
 func (c *Container) mountSHM(shmOptions string) error {
 	contextType := "context"

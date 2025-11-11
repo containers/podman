@@ -19,6 +19,7 @@ func skipIfAppArmorEnabled() {
 		Skip("Apparmor is enabled")
 	}
 }
+
 func skipIfAppArmorDisabled() {
 	if !apparmor.IsEnabled() {
 		Skip("Apparmor is not enabled")
@@ -26,7 +27,6 @@ func skipIfAppArmorDisabled() {
 }
 
 var _ = Describe("Podman run", func() {
-
 	It("podman run apparmor default", func() {
 		skipIfAppArmorDisabled()
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})

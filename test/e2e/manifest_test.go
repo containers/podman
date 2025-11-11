@@ -72,7 +72,6 @@ func verifyInstanceCompression(descriptor []imgspecv1.Descriptor, compression st
 }
 
 var _ = Describe("Podman manifest", func() {
-
 	const (
 		imageList                      = "docker://quay.io/libpod/testimage:00000004"
 		imageListInstance              = "docker://quay.io/libpod/testimage@sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa"

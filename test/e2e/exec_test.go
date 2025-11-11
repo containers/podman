@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman exec", func() {
-
 	It("podman exec into bogus container", func() {
 		session := podmanTest.Podman([]string{"exec", "foobar", "ls"})
 		session.WaitWithDefaultTimeout()
@@ -195,7 +194,6 @@ var _ = Describe("Podman exec", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(bndPerms))
-
 	})
 
 	It("podman exec --privileged", func() {

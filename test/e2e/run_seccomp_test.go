@@ -26,7 +26,6 @@ func makeLabeledImage(seccompLabel string) string {
 }
 
 var _ = Describe("Podman run", func() {
-
 	It("podman run --seccomp-policy default", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "--seccomp-policy", "default", CITEST_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()

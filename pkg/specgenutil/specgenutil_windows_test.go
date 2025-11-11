@@ -38,7 +38,8 @@ func TestSeccompProfilePath(t *testing.T) {
 	f := func(secopt string) (*specgen.SpecGenerator, error) {
 		sg := specgen.NewSpecGenerator("nothing", false)
 		err := FillOutSpecGen(sg, &entities.ContainerCreateOptions{
-			SecurityOpt: []string{secopt}}, []string{},
+			SecurityOpt: []string{secopt},
+		}, []string{},
 		)
 		return sg, err
 	}

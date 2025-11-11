@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("APIResponse Process method", func() {
-
 	createMockResponse := func(jsonResponse []byte, statusCode int) *bindings.APIResponse {
 		response := &http.Response{
 			StatusCode: statusCode,

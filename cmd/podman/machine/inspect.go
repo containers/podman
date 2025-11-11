@@ -45,9 +45,7 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	if len(args) < 1 {
 		args = append(args, defaultMachineName)
 	}

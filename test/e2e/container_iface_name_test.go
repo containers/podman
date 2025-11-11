@@ -37,7 +37,6 @@ func createContainersConfFileWithDeviceIfaceName(pTest *PodmanTestIntegration) {
 }
 
 var _ = Describe("Podman container interface name", func() {
-
 	It("podman container interface name for bridge network", func() {
 		// Assert that the network interface name inside container for
 		// bridge network is ethX regardless of interface_name setting

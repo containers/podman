@@ -26,9 +26,7 @@ var (
 	}
 )
 
-var (
-	showTrustOptions entities.ShowTrustOptions
-)
+var showTrustOptions entities.ShowTrustOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

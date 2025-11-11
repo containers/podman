@@ -159,7 +159,6 @@ var _ = Describe("Podman artifact", func() {
 		failSession = podmanTest.Podman([]string{"artifact", "add", "--annotation", annotation3, artifact3Name, artifact1File, artifact2File})
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: duplicate layers org.opencontainers.image.title labels within an artifact not allowed"))
-
 	})
 
 	It("podman artifact add multiple", func() {

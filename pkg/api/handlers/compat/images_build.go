@@ -281,7 +281,7 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 		}
 	} else {
 		if dockerFile := query.Get("dockerfile"); dockerFile != "" {
-			var m = []string{}
+			m := []string{}
 			if err := json.Unmarshal([]byte(dockerFile), &m); err != nil {
 				// it's not json, assume just a string
 				m = []string{dockerFile}
@@ -322,8 +322,8 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 // processSecrets processes build secrets for podman-remote operations.
 // Moves secrets outside build context to prevent accidental inclusion in images.
 func processSecrets(query *BuildQuery, contextDirectory string, queryValues url.Values) ([]string, error) {
-	var secrets = []string{}
-	var m = []string{}
+	secrets := []string{}
+	m := []string{}
 	if err := utils.ParseOptionalJSONField(query.Secrets, "secrets", queryValues, &m); err != nil {
 		return nil, err
 	}
@@ -492,25 +492,25 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 	}
 
 	// Process build args
-	var buildArgs = map[string]string{}
+	buildArgs := map[string]string{}
 	if err := utils.ParseOptionalJSONField(query.BuildArgs, "buildargs", queryValues, &buildArgs); err != nil {
 		return nil, nil, utils.GetBadRequestError("buildargs", query.BuildArgs, err)
 	}
 
 	// Process excludes
-	var excludes = []string{}
+	excludes := []string{}
 	if err := utils.ParseOptionalJSONField(query.Excludes, "excludes", queryValues, &excludes); err != nil {
 		return nil, nil, utils.GetBadRequestError("excludes", query.Excludes, err)
 	}
 
 	// Process annotations
-	var annotations = []string{}
+	annotations := []string{}
 	if err := utils.ParseOptionalJSONField(query.Annotations, "annotations", queryValues, &annotations); err != nil {
 		return nil, nil, utils.GetBadRequestError("annotations", query.Annotations, err)
 	}
 
 	// Process CPP flags
-	var cppflags = []string{}
+	cppflags := []string{}
 	if err := utils.ParseOptionalJSONField(query.CPPFlags, "cppflags", queryValues, &cppflags); err != nil {
 		return nil, nil, utils.GetBadRequestError("cppflags", query.CPPFlags, err)
 	}
@@ -529,7 +529,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 	}
 
 	// Process labels
-	var labels = []string{}
+	labels := []string{}
 	if _, found := queryValues["labels"]; found {
 		makeLabels := make(map[string]string)
 		err := json.Unmarshal([]byte(query.Labels), &makeLabels)
@@ -565,7 +565,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		}
 	} else {
 		// handle security-opt
-		var securityOpts = []string{}
+		securityOpts := []string{}
 		if err := utils.ParseOptionalJSONField(query.SecurityOpt, "securityopt", queryValues, &securityOpts); err != nil {
 			return nil, nil, utils.GetBadRequestError("securityopt", query.SecurityOpt, err)
 		}
@@ -592,7 +592,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 	}
 
 	// Process ulimits
-	var ulimits = []string{}
+	ulimits := []string{}
 	if err := utils.ParseOptionalJSONField(query.Ulimits, "ulimits", queryValues, &ulimits); err != nil {
 		return nil, nil, utils.GetBadRequestError("ulimits", query.Ulimits, err)
 	}
@@ -674,7 +674,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		}
 
 		if _, found := r.URL.Query()["sbom-scanner-command"]; found {
-			var m = []string{}
+			m := []string{}
 			if err := json.Unmarshal([]byte(query.SBOMCommands), &m); err != nil {
 				return nil, cleanup, utils.GetBadRequestError("sbom-scanner-command", query.SBOMCommands, err)
 			}

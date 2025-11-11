@@ -4,7 +4,5 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/registry"
 )
 
-var (
-	// Pull in configured json library
-	json = registry.JSONLibrary()
-)
+// Pull in configured json library
+var json = registry.JSONLibrary()

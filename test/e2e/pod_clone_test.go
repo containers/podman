@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Podman pod clone", func() {
-
 	hostname, _ := os.Hostname()
 
 	BeforeEach(func() {
@@ -82,7 +81,6 @@ var _ = Describe("Podman pod clone", func() {
 		Expect(podInspect).To(ExitCleanly())
 		data := podInspect.InspectPodToJSON()
 		Expect(data.State).To(ContainSubstring("Running"))
-
 	})
 
 	It("podman pod clone destroy test", func() {
@@ -174,5 +172,4 @@ var _ = Describe("Podman pod clone", func() {
 		podJSON := podInspect.InspectPodToJSON()
 		Expect(podJSON.InfraConfig).To(HaveField("UtsNS", ns))
 	})
-
 })

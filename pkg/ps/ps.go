@@ -30,9 +30,7 @@ import (
 type ExternalContainerFilter func(*entities.ListContainer) bool
 
 func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
-	var (
-		pss = []entities.ListContainer{}
-	)
+	pss := []entities.ListContainer{}
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
 	filterExtFuncs := make([]entities.ExternalContainerFilter, 0, len(options.Filters))
 	all := options.All || options.Last > 0
@@ -122,9 +120,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 
 // GetExternalContainerLists returns list of external containers for e.g. created by buildah
 func GetExternalContainerLists(runtime *libpod.Runtime, filterExtFuncs ...entities.ExternalContainerFilter) ([]entities.ListContainer, error) {
-	var (
-		pss = []*entities.ListContainer{}
-	)
+	pss := []*entities.ListContainer{}
 
 	externCons, err := runtime.StorageContainers()
 	if err != nil {

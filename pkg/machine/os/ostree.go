@@ -15,8 +15,7 @@ import (
 )
 
 // OSTree deals with operations on ostree based os's
-type OSTree struct {
-}
+type OSTree struct{}
 
 // Apply takes an OCI image and does an rpm-ostree rebase on the image
 // If no containers-transport is specified,

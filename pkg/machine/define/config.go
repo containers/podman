@@ -12,9 +12,7 @@ const (
 // Ref: https://developer.apple.com/documentation/virtualization/running_intel_binaries_in_linux_vms_with_rosetta
 const MountTag = "rosetta"
 
-var (
-	DefaultFilePerm os.FileMode = 0644
-)
+var DefaultFilePerm os.FileMode = 0o644
 
 type CreateVMOpts struct {
 	Name               string

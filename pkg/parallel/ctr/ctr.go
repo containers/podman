@@ -19,9 +19,8 @@ func ContainerOp(ctx context.Context, ctrs []*libpod.Container, applyFunc func(*
 	// just use a lock on a normal map...
 	// The expectation is that most of the time is spent in applyFunc
 	// anyways.
-	var (
-		errMap = make(map[*libpod.Container]<-chan error)
-	)
+
+	errMap := make(map[*libpod.Container]<-chan error)
 
 	for _, ctr := range ctrs {
 		c := ctr

@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman run cpu", func() {
-
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Setting CPU not supported on cgroupv1 for rootless users")
 

@@ -37,7 +37,6 @@ func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices s
 }
 
 var _ = Describe("Podman run device", func() {
-
 	It("podman run bad device test", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/baddevice", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
@@ -168,5 +167,4 @@ var _ = Describe("Podman run device", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithErrorRegex(1, "head: /dev-host/kmsg: (Operation not permitted|Permission denied)"))
 	})
-
 })

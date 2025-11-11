@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman image|container exists", func() {
-
 	It("podman image exists in local storage by fq name", func() {
 		session := podmanTest.Podman([]string{"image", "exists", ALPINE})
 		session.WaitWithDefaultTimeout()

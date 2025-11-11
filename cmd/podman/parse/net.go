@@ -57,7 +57,7 @@ func ValidateExtraHost(val string) (string, error) {
 // validateIPAddress validates an Ip address.
 // for dns, ip, and ip6 flags also
 func validateIPAddress(val string) (string, error) {
-	var ip = net.ParseIP(strings.TrimSpace(val))
+	ip := net.ParseIP(strings.TrimSpace(val))
 	if ip != nil {
 		return ip.String(), nil
 	}

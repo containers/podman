@@ -376,7 +376,6 @@ var _ = Describe("Podman UserNS support", func() {
 			Expect(inspectGID).Should(ExitCleanly())
 			Expect(inspectGID.OutputToString()).To(Equal(tt.gid))
 		}
-
 	})
 
 	It("podman --userns= conflicts with ui[dg]map and sub[ug]idname", func() {

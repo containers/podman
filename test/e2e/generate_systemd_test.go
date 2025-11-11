@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("Podman generate systemd", func() {
-
 	It("podman generate systemd on bogus container/pod", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "foobar"})
 		session.WaitWithDefaultTimeout()
@@ -167,7 +166,8 @@ var _ = Describe("Podman generate systemd", func() {
 			"generate", "systemd",
 			"--wants", "foobar.service", "--wants", "barfoo.service",
 			"--after", "foobar.service", "--after", "barfoo.service",
-			"--requires", "foobar.service", "--requires", "barfoo.service", "nginx"})
+			"--requires", "foobar.service", "--requires", "barfoo.service", "nginx",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -285,7 +285,8 @@ var _ = Describe("Podman generate systemd", func() {
 			"generate", "systemd", "--name",
 			"--wants", "foobar.service", "--wants", "barfoo.service",
 			"--after", "foobar.service", "--after", "barfoo.service",
-			"--requires", "foobar.service", "--requires", "barfoo.service", "foo"})
+			"--requires", "foobar.service", "--requires", "barfoo.service", "foo",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -420,7 +421,6 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# con-foo.service"))
-
 	})
 
 	It("podman generate systemd --container-prefix ''", func() {
@@ -434,7 +434,6 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# foo.service"))
-
 	})
 
 	It("podman generate systemd --separator _", func() {
@@ -534,7 +533,6 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session2.OutputToString()).To(ContainSubstring("# foo-1.service"))
 		Expect(session2.OutputToString()).To(ContainSubstring("# foo-2.service"))
 		Expect(session2.OutputToString()).To(ContainSubstring("BindsTo=foo.service"))
-
 	})
 
 	It("podman generate systemd pod with containers --new", func() {

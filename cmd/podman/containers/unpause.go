@@ -88,9 +88,7 @@ func init() {
 }
 
 func unpause(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	args = utils.RemoveSlash(args)
 
 	if rootless.IsRootless() && !registry.IsRemote() {

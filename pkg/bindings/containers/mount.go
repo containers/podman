@@ -18,9 +18,7 @@ func Mount(ctx context.Context, nameOrID string, options *MountOptions) (string,
 	if err != nil {
 		return "", err
 	}
-	var (
-		path string
-	)
+	var path string
 	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/mount", nil, nil, nameOrID)
 	if err != nil {
 		return path, err

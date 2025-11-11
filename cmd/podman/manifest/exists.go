@@ -6,17 +6,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	existsCmd = &cobra.Command{
-		Use:               "exists MANIFEST",
-		Short:             "Check if a manifest list exists in local storage",
-		Long:              `If the manifest list exists in local storage, podman manifest exists exits with 0, otherwise the exit code will be 1.`,
-		Args:              cobra.ExactArgs(1),
-		RunE:              exists,
-		ValidArgsFunction: common.AutocompleteImages,
-		Example:           "podman manifest exists mylist",
-	}
-)
+var existsCmd = &cobra.Command{
+	Use:               "exists MANIFEST",
+	Short:             "Check if a manifest list exists in local storage",
+	Long:              `If the manifest list exists in local storage, podman manifest exists exits with 0, otherwise the exit code will be 1.`,
+	Args:              cobra.ExactArgs(1),
+	RunE:              exists,
+	ValidArgsFunction: common.AutocompleteImages,
+	Example:           "podman manifest exists mylist",
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

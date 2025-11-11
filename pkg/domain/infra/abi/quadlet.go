@@ -119,7 +119,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		return nil, fmt.Errorf("cannot stat Quadlet generator, Quadlet may not be installed: %w", err)
 	}
 
-	if !quadletStat.Mode().IsRegular() || quadletStat.Mode()&0100 == 0 {
+	if !quadletStat.Mode().IsRegular() || quadletStat.Mode()&0o100 == 0 {
 		return nil, fmt.Errorf("no valid Quadlet binary installed to %q, unable to use Quadlet", quadletPath)
 	}
 
@@ -274,13 +274,13 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
 	}
 
-	var osFlags = os.O_CREATE | os.O_WRONLY
+	osFlags := os.O_CREATE | os.O_WRONLY
 
 	if !replace {
 		osFlags |= os.O_EXCL
 	}
 
-	file, err := os.OpenFile(finalPath, osFlags, 0644)
+	file, err := os.OpenFile(finalPath, osFlags, 0o644)
 	if err != nil {
 		if errors.Is(err, fs.ErrExist) && !replace {
 			return "", fmt.Errorf("a Quadlet with name %s already exists, refusing to overwrite", filepath.Base(finalPath))

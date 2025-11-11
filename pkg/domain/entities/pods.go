@@ -52,11 +52,13 @@ type PodRestartOptions struct {
 	Latest bool
 }
 
-type PodRestartReport = types.PodRestartReport
-type PodStartOptions struct {
-	All    bool
-	Latest bool
-}
+type (
+	PodRestartReport = types.PodRestartReport
+	PodStartOptions  struct {
+		All    bool
+		Latest bool
+	}
+)
 
 type PodStartReport = types.PodStartReport
 

@@ -10,7 +10,6 @@ import (
 )
 
 var _ = Describe("podman machine stop", func() {
-
 	It("stop bad name", func() {
 		i := stopMachine{}
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

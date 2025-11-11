@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("podman inspect stop", func() {
-
 	It("inspect bad name", func() {
 		i := inspectMachine{}
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

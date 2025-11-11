@@ -37,7 +37,6 @@ func containerCapMatchesHost(ctrCap string, hostCap string) {
 }
 
 var _ = Describe("Podman privileged container tests", func() {
-
 	It("podman privileged make sure sys is mounted rw", func() {
 		session := podmanTest.Podman([]string{"run", "--privileged", BB, "mount"})
 		session.WaitWithDefaultTimeout()
@@ -156,5 +155,4 @@ var _ = Describe("Podman privileged container tests", func() {
 		noprivs := strings.Split(session.OutputToString(), ":")
 		Expect(privs[1]).To(Not(Equal(noprivs[1])))
 	})
-
 })

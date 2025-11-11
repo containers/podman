@@ -19,7 +19,6 @@ import (
 // rather than e2e tests.  System tests are used in RHEL gating.
 
 var _ = Describe("Podman cp", func() {
-
 	// Copy a file to the container, then back to the host and make sure
 	// that the contents match.
 	It("podman cp file", func() {

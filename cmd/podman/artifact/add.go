@@ -12,19 +12,17 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	addCmd = &cobra.Command{
-		Use:               "add [options] ARTIFACT PATH [...PATH]",
-		Short:             "Add an OCI artifact to the local store",
-		Long:              "Add an OCI artifact to the local store from the local filesystem",
-		RunE:              add,
-		Args:              cobra.MinimumNArgs(2),
-		ValidArgsFunction: common.AutocompleteArtifactAdd,
-		Example: `podman artifact add quay.io/myimage/myartifact:latest /tmp/foobar.txt
+var addCmd = &cobra.Command{
+	Use:               "add [options] ARTIFACT PATH [...PATH]",
+	Short:             "Add an OCI artifact to the local store",
+	Long:              "Add an OCI artifact to the local store from the local filesystem",
+	RunE:              add,
+	Args:              cobra.MinimumNArgs(2),
+	ValidArgsFunction: common.AutocompleteArtifactAdd,
+	Example: `podman artifact add quay.io/myimage/myartifact:latest /tmp/foobar.txt
 podman artifact add --file-type text/yaml quay.io/myimage/myartifact:latest /tmp/foobar.yaml
 podman artifact add --append quay.io/myimage/myartifact:latest /tmp/foobar.tar.gz`,
-	}
-)
+}
 
 // AddOptionsWrapper wraps entities.ArtifactsAddOptions and prevents leaking
 // CLI-only fields into the API types.

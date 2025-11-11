@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman run networking", func() {
-
 	BeforeEach(func() {
 		SkipIfCNI(podmanTest)
 	})
@@ -44,7 +43,6 @@ var _ = Describe("Podman run networking", func() {
 		Expect(revListArray).Should(HaveLen(2))
 		Expect(strings.TrimRight(revListArray[0], ".")).To(Equal("aone"))
 		Expect(strings.TrimRight(revListArray[1], ".")).To(Equal(cid[:12]))
-
 	})
 
 	It("Aardvark Test 2: Two containers, same subnet", func() {
@@ -95,7 +93,6 @@ var _ = Describe("Podman run networking", func() {
 		Expect(revListArray21).Should(HaveLen(2))
 		Expect(strings.TrimRight(revListArray21[0], ".")).To(Equal("aone"))
 		Expect(strings.TrimRight(revListArray21[1], ".")).To(Equal(cid1[:12]))
-
 	})
 
 	It("Aardvark Test 3: Two containers, same subnet w/aliases", func() {
@@ -136,7 +133,6 @@ var _ = Describe("Podman run networking", func() {
 		digShort("atwo", "alias_a1", cip1, podmanTest)
 
 		digShort("atwo", "alias_1a", cip1, podmanTest)
-
 	})
 
 	It("Aardvark Test 4: Two containers, different subnets", func() {
@@ -290,5 +286,4 @@ var _ = Describe("Podman run networking", func() {
 
 		digShort("cone", "testB1_nw", cipAB1, podmanTest)
 	})
-
 })

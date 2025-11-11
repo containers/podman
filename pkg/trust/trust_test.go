@@ -107,7 +107,8 @@ func TestPolicyDescription(t *testing.T) {
 					Type:           "signed",
 					SignatureStore: "https://registry.redhat.io/containers/sigstore",
 					GPGId:          "redhat, redhat-beta",
-				}, {
+				},
+				{
 					Transport:      "repository",
 					Name:           "registry.redhat.io",
 					RepoName:       "registry.redhat.io",
@@ -261,7 +262,8 @@ func TestDescriptionsOfPolicyRequirements(t *testing.T) {
 					GPGId:          "2, 3",
 				},
 			},
-		}, {
+		},
+		{
 			"quay.io/sigstore-signed",
 			signature.PolicyRequirements{
 				xNewPRSigstoreSignedKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),

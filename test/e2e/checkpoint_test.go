@@ -32,7 +32,6 @@ func getRunString(input []string) []string {
 }
 
 var _ = Describe("Podman checkpoint", func() {
-
 	BeforeEach(func() {
 		SkipIfRootless("checkpoint not supported in rootless mode")
 
@@ -247,7 +246,6 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-
 	})
 
 	It("podman checkpoint latest running container", func() {

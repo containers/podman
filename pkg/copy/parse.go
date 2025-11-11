@@ -31,14 +31,14 @@ func ParseSourceAndDestination(source, destination string) (string, string, stri
 // they start with a dot or slash.
 func parseUserInput(input string) (container string, path string) {
 	if len(input) == 0 {
-		return
+		return container, path
 	}
 	path = input
 
 	// If the input starts with a dot or slash, it cannot refer to a
 	// container.
 	if input[0] == '.' || input[0] == '/' {
-		return
+		return container, path
 	}
 
 	// If the input is an absolute path, it cannot refer to a container.
@@ -46,12 +46,12 @@ func parseUserInput(input string) (container string, path string) {
 	// a colon, which would cause the drive letter to be parsed as a
 	// container name.
 	if filepath.IsAbs(input) {
-		return
+		return container, path
 	}
 
 	if parsedContainer, parsedPath, ok := strings.Cut(path, ":"); ok {
 		container = parsedContainer
 		path = parsedPath
 	}
-	return
+	return container, path
 }

@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman pod stats", func() {
-
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("Tests fail with both CGv1 + required --cgroup-manager=cgroupfs")
 		if isContainerized() {

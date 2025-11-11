@@ -140,9 +140,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer ctrRows.Close()
 
 	for ctrRows.Next() {
-		var (
-			id, stateJSON string
-		)
+		var id, stateJSON string
 		if err := ctrRows.Scan(&id, &stateJSON); err != nil {
 			return fmt.Errorf("scanning container state row: %w", err)
 		}
@@ -174,9 +172,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer podRows.Close()
 
 	for podRows.Next() {
-		var (
-			id, stateJSON string
-		)
+		var id, stateJSON string
 		if err := podRows.Scan(&id, &stateJSON); err != nil {
 			return fmt.Errorf("scanning pod state row: %w", err)
 		}
@@ -208,9 +204,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer volRows.Close()
 
 	for volRows.Next() {
-		var (
-			name, stateJSON string
-		)
+		var name, stateJSON string
 
 		if err := volRows.Scan(&name, &stateJSON); err != nil {
 			return fmt.Errorf("scanning volume state row: %w", err)

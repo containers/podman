@@ -590,7 +590,6 @@ func containerStatusFromContainers(allCtrs []*Container) (map[string]define.Cont
 	status := make(map[string]define.ContainerStatus, len(allCtrs))
 	for _, ctr := range allCtrs {
 		state, err := ctr.State()
-
 		if err != nil {
 			return nil, err
 		}

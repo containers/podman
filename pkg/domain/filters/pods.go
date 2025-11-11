@@ -19,7 +19,8 @@ import (
 // and generates a libpod function that can be used to filter
 // pods
 func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runtime) (
-	func(pod *libpod.Pod) bool, error) {
+	func(pod *libpod.Pod) bool, error,
+) {
 	switch filter {
 	case "ctr-ids":
 		return func(p *libpod.Pod) bool {

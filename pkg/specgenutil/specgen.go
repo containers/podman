@@ -569,7 +569,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// SHM Size
 	if c.ShmSize != "" {
 		val, err := units.RAMInBytes(c.ShmSize)
-
 		if err != nil {
 			return fmt.Errorf("unable to translate --shm-size: %w", err)
 		}

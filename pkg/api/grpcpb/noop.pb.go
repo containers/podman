@@ -7,11 +7,12 @@
 package grpcpb
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -134,11 +135,13 @@ func file_noop_proto_rawDescGZIP() []byte {
 	return file_noop_proto_rawDescData
 }
 
-var file_noop_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_noop_proto_goTypes = []any{
-	(*NoopRequest)(nil),  // 0: io.podman.v1.NoopRequest
-	(*NoopResponse)(nil), // 1: io.podman.v1.NoopResponse
-}
+var (
+	file_noop_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_noop_proto_goTypes  = []any{
+		(*NoopRequest)(nil),  // 0: io.podman.v1.NoopRequest
+		(*NoopResponse)(nil), // 1: io.podman.v1.NoopResponse
+	}
+)
 var file_noop_proto_depIdxs = []int32{
 	0, // 0: io.podman.v1.Noop.Noop:input_type -> io.podman.v1.NoopRequest
 	1, // 1: io.podman.v1.Noop.Noop:output_type -> io.podman.v1.NoopResponse

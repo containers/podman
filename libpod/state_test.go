@@ -26,11 +26,9 @@ const (
 	tmpDirPrefix = "libpod_state_test_"
 )
 
-var (
-	testedStates = map[string]emptyStateFunc{
-		"sqlite": getEmptySqliteState,
-	}
-)
+var testedStates = map[string]emptyStateFunc{
+	"sqlite": getEmptySqliteState,
+}
 
 func getEmptySqliteState() (_ State, _ string, _ lock.Manager, retErr error) {
 	tmpDir, err := os.MkdirTemp("", tmpDirPrefix)
@@ -2452,6 +2450,7 @@ func TestGetContainerConfigEmptyIDFails(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
 func TestGetContainerConfigNonExistentIDFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.GetContainerConfig("does not exist")

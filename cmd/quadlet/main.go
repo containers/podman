@@ -39,9 +39,7 @@ var (
 	kmsgFile *os.File
 )
 
-var (
-	void struct{}
-)
+var void struct{}
 
 // We log directly to /dev/kmsg, because that is the only way to get information out
 // of the generator into the system logs.
@@ -146,7 +144,7 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 		}
 	}
 
-	var dropinPaths = make(map[string]string)
+	dropinPaths := make(map[string]string)
 	for _, dropinDir := range dropinDirs {
 		dropinFiles, err := os.ReadDir(dropinDir)
 		if err != nil {

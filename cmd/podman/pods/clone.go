@@ -26,9 +26,7 @@ var (
 	}
 )
 
-var (
-	podClone entities.PodCloneOptions
-)
+var podClone entities.PodCloneOptions
 
 func cloneFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
@@ -54,6 +52,7 @@ func cloneFlags(cmd *cobra.Command) {
 	// TODO: add support for container specific arguments/flags
 	common.DefineCreateDefaults(&podClone.PerContainerOptions)
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: podCloneCommand,

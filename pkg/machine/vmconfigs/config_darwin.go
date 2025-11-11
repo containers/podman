@@ -16,9 +16,11 @@ type LibKrunConfig struct {
 }
 
 // Stubs
-type HyperVConfig struct{}
-type WSLConfig struct{}
-type QEMUConfig struct{}
+type (
+	HyperVConfig struct{}
+	WSLConfig    struct{}
+	QEMUConfig   struct{}
+)
 
 func getHostUID() int {
 	return os.Getuid()

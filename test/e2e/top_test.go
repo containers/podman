@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman top", func() {
-
 	It("podman top without container name or id", func() {
 		result := podmanTest.Podman([]string{"top"})
 		result.WaitWithDefaultTimeout()

@@ -12,21 +12,17 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	specCmd = &cobra.Command{
-		Use:               "spec [options] {CONTAINER|POD}",
-		Short:             "Generate Specgen JSON based on containers or pods",
-		Long:              "Generate Specgen JSON based on containers or pods",
-		RunE:              spec,
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: common.AutocompleteContainersAndPods,
-		Example:           `podman generate spec ctrID`,
-	}
-)
+var specCmd = &cobra.Command{
+	Use:               "spec [options] {CONTAINER|POD}",
+	Short:             "Generate Specgen JSON based on containers or pods",
+	Long:              "Generate Specgen JSON based on containers or pods",
+	RunE:              spec,
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: common.AutocompleteContainersAndPods,
+	Example:           `podman generate spec ctrID`,
+}
 
-var (
-	opts *entities.GenerateSpecOptions
-)
+var opts *entities.GenerateSpecOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
