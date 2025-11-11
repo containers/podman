@@ -6,18 +6,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	existsCmd = &cobra.Command{
-		Use:               "exists IMAGE",
-		Short:             "Check if an image exists in local storage",
-		Long:              `If the named image exists in local storage, podman image exists exits with 0, otherwise the exit code will be 1.`,
-		Args:              cobra.ExactArgs(1),
-		RunE:              exists,
-		ValidArgsFunction: common.AutocompleteImages,
-		Example: `podman image exists ID
+var existsCmd = &cobra.Command{
+	Use:               "exists IMAGE",
+	Short:             "Check if an image exists in local storage",
+	Long:              `If the named image exists in local storage, podman image exists exits with 0, otherwise the exit code will be 1.`,
+	Args:              cobra.ExactArgs(1),
+	RunE:              exists,
+	ValidArgsFunction: common.AutocompleteImages,
+	Example: `podman image exists ID
   podman image exists IMAGE && podman pull IMAGE`,
-	}
-)
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

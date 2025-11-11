@@ -2,11 +2,10 @@ package system
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-
-	"errors"
 
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/validate"
@@ -15,18 +14,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	dialStdioCommand = &cobra.Command{
-		Use:    "dial-stdio",
-		Short:  "Proxy the stdio stream to the daemon connection. Should not be invoked manually.",
-		Args:   validate.NoArgs,
-		Hidden: true,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDialStdio()
-		},
-		Example: "podman system dial-stdio",
-	}
-)
+var dialStdioCommand = &cobra.Command{
+	Use:    "dial-stdio",
+	Short:  "Proxy the stdio stream to the daemon connection. Should not be invoked manually.",
+	Args:   validate.NoArgs,
+	Hidden: true,
+	RunE: func(_ *cobra.Command, _ []string) error {
+		return runDialStdio()
+	},
+	Example: "podman system dial-stdio",
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

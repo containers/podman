@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman systemd", func() {
-
 	It("podman run container with systemd PID1", func() {
 		ctrName := "testSystemd"
 		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", SYSTEMD_IMAGE, "/sbin/init"})

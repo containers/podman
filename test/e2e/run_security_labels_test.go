@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman generate kube", func() {
-
 	It("podman empty security labels", func() {
 		test1 := podmanTest.Podman([]string{"create", "--label", "io.containers.capabilities=", "--name", "test1", "alpine", "echo", "test1"})
 		test1.WaitWithDefaultTimeout()
@@ -119,7 +118,6 @@ var _ = Describe("Podman generate kube", func() {
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
 		Expect(caps).To(Equal("CAP_SETGID,CAP_SETUID"))
-
 	})
 
 	It("podman --privileged security labels", func() {
@@ -157,5 +155,4 @@ LABEL io.containers.capabilities=chown,kill`, ALPINE)
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
 		Expect(caps).To(Equal("CAP_CHOWN,CAP_KILL"))
 	})
-
 })

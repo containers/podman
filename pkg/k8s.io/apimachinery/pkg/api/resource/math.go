@@ -43,8 +43,10 @@ var (
 	maxAllowed = infDecAmount{inf.NewDec((1<<63)-1, 0)} // == max int64
 )
 
-const mostNegative = -(mostPositive + 1)
-const mostPositive = 1<<63 - 1
+const (
+	mostNegative = -(mostPositive + 1)
+	mostPositive = 1<<63 - 1
+)
 
 // int64Add returns a+b, or false if that would overflow int64.
 func int64Add(a, b int64) (int64, bool) {

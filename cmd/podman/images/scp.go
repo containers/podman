@@ -46,9 +46,7 @@ func scpFlags(cmd *cobra.Command) {
 }
 
 func scp(_ *cobra.Command, args []string) (finalErr error) {
-	var (
-		err error
-	)
+	var err error
 
 	containerConfig := registry.PodmanConfig()
 

@@ -12,12 +12,10 @@ import (
 )
 
 var _ = Describe("Podman rmi", func() {
-
 	It("podman rmi bogus image", func() {
 		session := podmanTest.Podman([]string{"rmi", "debian:6.0.10"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, "debian:6.0.10: image not known"))
-
 	})
 
 	It("podman rmi with fq name", func() {
@@ -25,7 +23,6 @@ var _ = Describe("Podman rmi", func() {
 		session := podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
 	})
 
 	It("podman rmi with short name", func() {
@@ -33,7 +30,6 @@ var _ = Describe("Podman rmi", func() {
 		session := podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
 	})
 
 	It("podman rmi all images", func() {
@@ -43,7 +39,6 @@ var _ = Describe("Podman rmi", func() {
 		images := podmanTest.Podman([]string{"images"})
 		images.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
 	})
 
 	It("podman rmi all images forcibly with short options", func() {
@@ -51,7 +46,6 @@ var _ = Describe("Podman rmi", func() {
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-
 	})
 
 	It("podman rmi tagged image", func() {

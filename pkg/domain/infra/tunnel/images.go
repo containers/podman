@@ -145,9 +145,7 @@ func (ir *ImageEngine) Pull(_ context.Context, rawImage string, opts entities.Im
 func (ir *ImageEngine) Tag(_ context.Context, nameOrID string, tags []string, _ entities.ImageTagOptions) error {
 	options := new(images.TagOptions)
 	for _, newTag := range tags {
-		var (
-			tag, repo string
-		)
+		var tag, repo string
 		ref, err := reference.Parse(newTag)
 		if err != nil {
 			return fmt.Errorf("parsing reference %q: %w", newTag, err)
@@ -175,9 +173,7 @@ func (ir *ImageEngine) Untag(_ context.Context, nameOrID string, tags []string, 
 	}
 
 	for _, newTag := range tags {
-		var (
-			tag, repo string
-		)
+		var tag, repo string
 		ref, err := reference.Parse(newTag)
 		if err != nil {
 			return fmt.Errorf("parsing reference %q: %w", newTag, err)

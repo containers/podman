@@ -155,5 +155,6 @@ func LocalhostSSHArgs() []string {
 		"-o", "UserKnownHostsFile=" + os.DevNull,
 		"-o", "CheckHostIP=no",
 		"-o", "LogLevel=ERROR",
-		"-o", "SetEnv=LC_ALL="}
+		"-o", "SetEnv=LC_ALL=",
+	}
 }

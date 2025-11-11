@@ -21,9 +21,7 @@ var (
 	}
 )
 
-var (
-	networkDisconnectOptions entities.NetworkDisconnectOptions
-)
+var networkDisconnectOptions entities.NetworkDisconnectOptions
 
 func networkDisconnectFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&networkDisconnectOptions.Force, "force", "f", false, "force removal of container from network")

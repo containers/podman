@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("Podman run with --ip flag", func() {
-
 	BeforeEach(func() {
 		SkipIfRootless("rootless does not support --ip without network")
 	})

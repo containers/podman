@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman create with --ip flag", func() {
-
 	It("Podman create --ip with garbage address", func() {
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "114232346", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()

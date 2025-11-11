@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Podman mount", func() {
-
 	BeforeEach(func() {
 		SkipIfNotRootless("This function is not enabled for rootful podman")
 		SkipIfRemote("Podman mount not supported for remote connections")

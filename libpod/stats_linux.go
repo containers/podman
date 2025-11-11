@@ -120,7 +120,7 @@ func calculateBlockIO(stats *runccgroup.Stats) (read uint64, write uint64) {
 			write += blkIOEntry.Value
 		}
 	}
-	return
+	return read, write
 }
 
 func getOnlineCPUs(container *Container) (int, error) {

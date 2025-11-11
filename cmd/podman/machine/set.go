@@ -11,18 +11,16 @@ import (
 	"go.podman.io/common/pkg/strongunits"
 )
 
-var (
-	setCmd = &cobra.Command{
-		Use:               "set [options] [NAME]",
-		Short:             "Set a virtual machine setting",
-		Long:              "Set an updatable virtual machine setting",
-		PersistentPreRunE: machinePreRunE,
-		RunE:              setMachine,
-		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine set --rootful=false`,
-		ValidArgsFunction: completion.AutocompleteNone,
-	}
-)
+var setCmd = &cobra.Command{
+	Use:               "set [options] [NAME]",
+	Short:             "Set a virtual machine setting",
+	Long:              "Set an updatable virtual machine setting",
+	PersistentPreRunE: machinePreRunE,
+	RunE:              setMachine,
+	Args:              cobra.MaximumNArgs(1),
+	Example:           `podman machine set --rootful=false`,
+	ValidArgsFunction: completion.AutocompleteNone,
+}
 
 var (
 	setFlags = SetFlags{}

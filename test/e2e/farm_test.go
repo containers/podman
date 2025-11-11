@@ -31,7 +31,6 @@ func setupContainersConfWithSystemConnections() {
 }
 
 var _ = Describe("podman farm", func() {
-
 	BeforeEach(setupContainersConfWithSystemConnections)
 
 	Context("without running API service", func() {

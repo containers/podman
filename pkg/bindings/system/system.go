@@ -49,7 +49,7 @@ func Events(ctx context.Context, eventChan chan types.Event, cancelChan chan boo
 		defer close(eventChan)
 		dec := json.NewDecoder(response.Body)
 		for err = (error)(nil); err == nil; {
-			var e = types.Event{}
+			e := types.Event{}
 			err = dec.Decode(&e)
 			if err == nil {
 				eventChan <- e
@@ -61,9 +61,7 @@ func Events(ctx context.Context, eventChan chan types.Event, cancelChan chan boo
 
 // Prune removes all unused system data.
 func Prune(ctx context.Context, options *PruneOptions) (*types.SystemPruneReport, error) {
-	var (
-		report types.SystemPruneReport
-	)
+	var report types.SystemPruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

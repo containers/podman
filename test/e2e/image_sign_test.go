@@ -27,7 +27,6 @@ var _ = Describe("Podman image sign", Serial, func() {
 		origGNUPGHOME = os.Getenv("GNUPGHOME")
 		err = os.Setenv("GNUPGHOME", tempGNUPGHOME)
 		Expect(err).ToNot(HaveOccurred())
-
 	})
 
 	AfterEach(func() {

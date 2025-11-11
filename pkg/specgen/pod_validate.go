@@ -5,11 +5,10 @@ import (
 	"fmt"
 )
 
-var (
-	// ErrInvalidPodSpecConfig describes an error given when the podspecgenerator is invalid
-	ErrInvalidPodSpecConfig = errors.New("invalid pod spec")
-	// containerConfig has the default configurations defined in containers.conf
-)
+// ErrInvalidPodSpecConfig describes an error given when the podspecgenerator is invalid
+var ErrInvalidPodSpecConfig = errors.New("invalid pod spec")
+
+// containerConfig has the default configurations defined in containers.conf
 
 func exclusivePodOptions(opt1, opt2 string) error {
 	return fmt.Errorf("%s and %s are mutually exclusive pod options: %w", opt1, opt2, ErrInvalidPodSpecConfig)

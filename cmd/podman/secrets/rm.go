@@ -12,15 +12,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	rmCmd = &cobra.Command{
-		Use:               "rm [options] SECRET [SECRET...]",
-		Short:             "Remove one or more secrets",
-		RunE:              rm,
-		ValidArgsFunction: common.AutocompleteSecrets,
-		Example:           "podman secret rm mysecret1 mysecret2",
-	}
-)
+var rmCmd = &cobra.Command{
+	Use:               "rm [options] SECRET [SECRET...]",
+	Short:             "Remove one or more secrets",
+	RunE:              rm,
+	ValidArgsFunction: common.AutocompleteSecrets,
+	Example:           "podman secret rm mysecret1 mysecret2",
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -32,14 +30,10 @@ func init() {
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified secret is missing")
 }
 
-var (
-	rmOptions = entities.SecretRmOptions{}
-)
+var rmOptions = entities.SecretRmOptions{}
 
 func rm(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	if (len(args) > 0 && rmOptions.All) || (len(args) < 1 && !rmOptions.All) {
 		return errors.New("`podman secret rm` requires one argument, or the --all flag")
 	}

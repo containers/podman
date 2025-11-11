@@ -69,7 +69,6 @@ func prune(_ *cobra.Command, _ []string) error {
 		return err
 	}
 	responses, err := registry.ContainerEngine().ContainerPrune(context.Background(), pruneOptions)
-
 	if err != nil {
 		return err
 	}

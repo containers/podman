@@ -34,9 +34,7 @@ var (
 	}
 )
 
-var (
-	dfOptions entities.SystemDfOptions
-)
+var dfOptions entities.SystemDfOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

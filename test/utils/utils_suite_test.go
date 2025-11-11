@@ -12,8 +12,10 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var FakeOutputs map[string][]string
-var GoechoPath = "../goecho/goecho"
+var (
+	FakeOutputs map[string][]string
+	GoechoPath  = "../goecho/goecho"
+)
 
 type FakePodmanTest struct {
 	PodmanTest

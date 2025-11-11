@@ -88,7 +88,7 @@ func GetRootlessGID() int {
 }
 
 func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) error {
-	var tool = "newuidmap"
+	tool := "newuidmap"
 	mode := os.ModeSetuid
 	cap := capability.CAP_SETUID
 	idtype := "setuid"

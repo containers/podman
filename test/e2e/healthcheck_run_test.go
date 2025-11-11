@@ -16,7 +16,6 @@ import (
 )
 
 var _ = Describe("Podman healthcheck run", func() {
-
 	It("podman healthcheck run bogus container", func() {
 		session := podmanTest.Podman([]string{"healthcheck", "run", "foobar"})
 		session.WaitWithDefaultTimeout()
@@ -57,9 +56,11 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman run healthcheck and logs should contain healthcheck output", func() {
-		session := podmanTest.Podman([]string{"run", "--name", "test-logs", "-dt", "--health-interval", "1s",
+		session := podmanTest.Podman([]string{
+			"run", "--name", "test-logs", "-dt", "--health-interval", "1s",
 			// echo -n is important for https://github.com/containers/podman/issues/23332
-			"--health-cmd", "echo -n working", ALPINE, "sleep", "3600"})
+			"--health-cmd", "echo -n working", ALPINE, "sleep", "3600",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

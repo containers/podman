@@ -63,9 +63,7 @@ func (a artifactListOutput) CreatedAt() string {
 	return a.created.String()
 }
 
-var (
-	defaultArtifactListOutputFormat = "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.Digest}}\t{{.Created}}\t{{.Size}}\n{{end -}}"
-)
+var defaultArtifactListOutputFormat = "{{range .}}{{.Repository}}\t{{.Tag}}\t{{.Digest}}\t{{.Created}}\t{{.Size}}\n{{end -}}"
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -93,9 +91,7 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 	var err error
 	artifacts := make([]artifactListOutput, 0)
 	for _, lr := range lrs {
-		var (
-			tag string
-		)
+		var tag string
 		artifactName, err := lr.Artifact.GetName()
 		if err != nil {
 			return err

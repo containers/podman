@@ -27,9 +27,7 @@ var (
 	}
 )
 
-var (
-	inspectOpts *entities.InspectOptions
-)
+var inspectOpts *entities.InspectOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

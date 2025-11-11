@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("podman machine init - windows only", func() {
-
 	It("init with user mode networking", func() {
 		if testProvider.VMType() != define.WSLVirt {
 			Skip("test is only supported by WSL")

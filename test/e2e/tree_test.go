@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman image tree", func() {
-
 	BeforeEach(func() {
 		podmanTest.AddImageToRWStore(BB)
 	})

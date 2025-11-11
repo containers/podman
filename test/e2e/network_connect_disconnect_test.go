@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman network connect and disconnect", func() {
-
 	It("bad network name in disconnect should result in error", func() {
 		dis := podmanTest.Podman([]string{"network", "disconnect", "foobar", "test"})
 		dis.WaitWithDefaultTimeout()

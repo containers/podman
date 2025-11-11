@@ -18,7 +18,6 @@ import (
 )
 
 var _ = Describe("Podman network", func() {
-
 	It("podman --cni-config-dir backwards compat", func() {
 		SkipIfRemote("--cni-config-dir only works locally")
 		netDir := filepath.Join(podmanTest.TempDir, "networks123")
@@ -211,7 +210,6 @@ var _ = Describe("Podman network", func() {
 			session := podmanTest.Podman([]string{"network", rm})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitWithError(125, "requires at least 1 arg(s), only received 0"))
-
 		})
 
 		It(fmt.Sprintf("podman network %s", rm), func() {

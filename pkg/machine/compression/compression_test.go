@@ -13,7 +13,7 @@ func Test_compressionFromFile(t *testing.T) {
 	type args struct {
 		path string
 	}
-	var tests = []struct {
+	tests := []struct {
 		name string
 		args args
 		want ImageCompression

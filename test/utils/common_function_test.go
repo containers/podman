@@ -140,5 +140,4 @@ var _ = Describe("Common functions test", func() {
 		Expect(err).ToNot(HaveOccurred(), "Cannot find the private key file after we write it.")
 		defer read.Close()
 	})
-
 })

@@ -57,9 +57,7 @@ func GetDiskArtifactReference(ctx context.Context, imgSrc types.ImageSource, opt
 		return "", fmt.Errorf("failed to parse manifest list from blob: %q", err)
 	}
 
-	var (
-		artifactDigest digest.Digest
-	)
+	var artifactDigest digest.Digest
 	for _, d := range mannyFestList.Instances() {
 		bar, err := mannyFestList.Instance(d)
 		if err != nil {

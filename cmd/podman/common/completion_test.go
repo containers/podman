@@ -180,9 +180,11 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"two variables struct field name",
 			"{{ .Car.Brand }} {{ .Car.",
-			[]string{"{{ .Car.Brand }} {{ .Car.Color}}", "{{ .Car.Brand }} {{ .Car.Struct.", "{{ .Car.Brand }} {{ .Car.Type}}",
+			[]string{
+				"{{ .Car.Brand }} {{ .Car.Color}}", "{{ .Car.Brand }} {{ .Car.Struct.", "{{ .Car.Brand }} {{ .Car.Type}}",
 				"{{ .Car.Brand }} {{ .Car.Brand}}", "{{ .Car.Brand }} {{ .Car.Stats.", "{{ .Car.Brand }} {{ .Car.Extras.",
-				"{{ .Car.Brand }} {{ .Car.Extras2."},
+				"{{ .Car.Brand }} {{ .Car.Extras2.",
+			},
 		},
 		{
 			"only dot without variable",

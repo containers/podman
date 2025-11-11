@@ -49,7 +49,6 @@ var _ = Describe("Podman images", func() {
 
 	// Test using credentials.
 	It("tag + push + pull + search (with credentials)", func() {
-
 		imageRep := "localhost:" + registry.Port + "/test"
 		imageTag := "latest"
 		imageRef := imageRep + ":" + imageTag
@@ -78,7 +77,6 @@ var _ = Describe("Podman images", func() {
 
 	// Test using authfile.
 	It("tag + push + pull + search (with authfile)", func() {
-
 		imageRep := "localhost:" + registry.Port + "/test"
 		imageTag := "latest"
 		imageRef := imageRep + ":" + imageTag
@@ -130,5 +128,4 @@ var _ = Describe("Podman images", func() {
 		_, err = images.Search(bt.conn, imageRef, searchOptions.WithSkipTLSVerify(true).WithAuthfile(authFilePath))
 		Expect(err).ToNot(HaveOccurred())
 	})
-
 })

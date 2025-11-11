@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman attach", func() {
-
 	It("podman attach to bogus container", func() {
 		session := podmanTest.Podman([]string{"attach", "foobar"})
 		session.WaitWithDefaultTimeout()

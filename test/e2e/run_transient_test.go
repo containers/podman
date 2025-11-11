@@ -87,5 +87,4 @@ var _ = Describe("Podman run with volumes", func() {
 			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(BeARegularFile())
 		}
 	})
-
 })

@@ -29,9 +29,7 @@ Allow content of volume to be exported into external tar.`
 	}
 )
 
-var (
-	targetPath string
-)
+var targetPath string
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

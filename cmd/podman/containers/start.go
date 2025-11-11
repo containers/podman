@@ -40,11 +40,9 @@ var (
 	}
 )
 
-var (
-	startOptions = entities.ContainerStartOptions{
-		Filters: make(map[string][]string),
-	}
-)
+var startOptions = entities.ContainerStartOptions{
+	Filters: make(map[string][]string),
+}
 
 func startFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
@@ -68,6 +66,7 @@ func startFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("sig-proxy")
 	}
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: startCommand,

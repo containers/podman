@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("podman rename", func() {
-
 	It("podman rename on non-existent container", func() {
 		session := podmanTest.Podman([]string{"rename", "doesNotExist", "aNewName"})
 		session.WaitWithDefaultTimeout()

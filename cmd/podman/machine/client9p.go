@@ -17,18 +17,16 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	client9pCommand = &cobra.Command{
-		Args:              cobra.ExactArgs(2),
-		Use:               "client9p PORT DIR",
-		Hidden:            true,
-		Short:             "Mount a remote directory using 9p over hvsock",
-		Long:              "Connect to the given hvsock port using 9p and mount the served filesystem at the given directory",
-		RunE:              remoteDirClient,
-		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman system client9p 55000 /mnt`,
-	}
-)
+var client9pCommand = &cobra.Command{
+	Args:              cobra.ExactArgs(2),
+	Use:               "client9p PORT DIR",
+	Hidden:            true,
+	Short:             "Mount a remote directory using 9p over hvsock",
+	Long:              "Connect to the given hvsock port using 9p and mount the served filesystem at the given directory",
+	RunE:              remoteDirClient,
+	ValidArgsFunction: completion.AutocompleteNone,
+	Example:           `podman system client9p 55000 /mnt`,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

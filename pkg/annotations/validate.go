@@ -25,9 +25,11 @@ func regexErrorMsg(msg string, fmt string, examples ...string) string {
 	return msg
 }
 
-const dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-const dns1123SubdomainFmt string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
-const dns1123SubdomainErrorMsg string = "annotations must be formatted as a valid lowercase RFC1123 subdomain of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
+const (
+	dns1123LabelFmt          string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	dns1123SubdomainFmt      string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
+	dns1123SubdomainErrorMsg string = "annotations must be formatted as a valid lowercase RFC1123 subdomain of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
+)
 
 // DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123)
 const DNS1123SubdomainMaxLength int = 253
@@ -48,11 +50,13 @@ func isDNS1123Subdomain(value string) error {
 	return nil
 }
 
-const qnameCharFmt string = "[A-Za-z0-9]"
-const qnameExtCharFmt string = "[-A-Za-z0-9_.]"
-const qualifiedNameFmt string = "(" + qnameCharFmt + qnameExtCharFmt + "*)?" + qnameCharFmt
-const qualifiedNameErrMsg string = "must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character"
-const qualifiedNameMaxLength int = 63
+const (
+	qnameCharFmt           string = "[A-Za-z0-9]"
+	qnameExtCharFmt        string = "[-A-Za-z0-9_.]"
+	qualifiedNameFmt       string = "(" + qnameCharFmt + qnameExtCharFmt + "*)?" + qnameCharFmt
+	qualifiedNameErrMsg    string = "must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character"
+	qualifiedNameMaxLength int    = 63
+)
 
 var qualifiedNameRegexp = regexp.MustCompile("^" + qualifiedNameFmt + "$")
 

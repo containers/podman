@@ -93,9 +93,7 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 }
 
 func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
-	var (
-		namesOrDigests []string
-	)
+	var namesOrDigests []string
 	artStore, err := ir.Libpod.ArtifactStore()
 	if err != nil {
 		return nil, err

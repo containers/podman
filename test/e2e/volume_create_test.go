@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman volume create", func() {
-
 	AfterEach(func() {
 		podmanTest.CleanupVolume()
 	})

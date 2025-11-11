@@ -52,9 +52,7 @@ var (
 	}
 )
 
-var (
-	unmountOpts entities.ContainerUnmountOptions
-)
+var unmountOpts entities.ContainerUnmountOptions
 
 func unmountFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Unmount all of the currently mounted containers")

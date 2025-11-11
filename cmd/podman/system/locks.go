@@ -8,18 +8,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	locksCommand = &cobra.Command{
-		Use:    "locks",
-		Short:  "Debug Libpod's use of locks, identifying any potential conflicts",
-		Args:   validate.NoArgs,
-		Hidden: true,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runLocks()
-		},
-		Example: "podman system locks",
-	}
-)
+var locksCommand = &cobra.Command{
+	Use:    "locks",
+	Short:  "Debug Libpod's use of locks, identifying any potential conflicts",
+	Args:   validate.NoArgs,
+	Hidden: true,
+	RunE: func(_ *cobra.Command, _ []string) error {
+		return runLocks()
+	},
+	Example: "podman system locks",
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -27,6 +25,7 @@ func init() {
 		Parent:  systemCmd,
 	})
 }
+
 func runLocks() error {
 	report, err := registry.ContainerEngine().Locks(registry.Context())
 	if err != nil {

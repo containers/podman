@@ -11,18 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	stopCmd = &cobra.Command{
-		Use:               "stop [MACHINE]",
-		Short:             "Stop an existing machine",
-		Long:              "Stop a managed virtual machine ",
-		PersistentPreRunE: machinePreRunE,
-		RunE:              stop,
-		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine stop podman-machine-default`,
-		ValidArgsFunction: autocompleteMachine,
-	}
-)
+var stopCmd = &cobra.Command{
+	Use:               "stop [MACHINE]",
+	Short:             "Stop an existing machine",
+	Long:              "Stop a managed virtual machine ",
+	PersistentPreRunE: machinePreRunE,
+	RunE:              stop,
+	Args:              cobra.MaximumNArgs(1),
+	Example:           `podman machine stop podman-machine-default`,
+	ValidArgsFunction: autocompleteMachine,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -33,9 +31,7 @@ func init() {
 
 // TODO  Name shouldn't be required, need to create a default vm
 func stop(_ *cobra.Command, args []string) error {
-	var (
-		err error
-	)
+	var err error
 
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {

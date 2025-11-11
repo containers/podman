@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman inspect", func() {
-
 	It("podman inspect alpine image", func() {
 		session := podmanTest.Podman([]string{"inspect", "--format=json", ALPINE})
 		session.WaitWithDefaultTimeout()
@@ -135,7 +134,6 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect with mount filters", func() {
-
 		ctrSession := podmanTest.Podman([]string{"create", "--name", "test", "-v", "/tmp:/test1", ALPINE, "top"})
 		ctrSession.WaitWithDefaultTimeout()
 		Expect(ctrSession).Should(ExitCleanly())
@@ -276,7 +274,8 @@ var _ = Describe("Podman inspect", func() {
 			"--security-opt", "seccomp=unconfined",
 			"--security-opt", "label=type:spc_t",
 			"--security-opt", "label=level:s0",
-			ALPINE, "sh"})
+			ALPINE, "sh",
+		})
 
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(ExitCleanly())
@@ -638,5 +637,4 @@ var _ = Describe("Podman inspect", func() {
 		rm.WaitWithDefaultTimeout()
 		Expect(rm).Should(ExitCleanly())
 	})
-
 })

@@ -62,8 +62,7 @@ type TreeOptions struct {
 // HistoryOptions are optional options image history
 //
 //go:generate go run ../generator/generator.go HistoryOptions
-type HistoryOptions struct {
-}
+type HistoryOptions struct{}
 
 // LoadOptions are optional options for loading an image
 //
@@ -102,14 +101,12 @@ type PruneOptions struct {
 // TagOptions are optional options for tagging images
 //
 //go:generate go run ../generator/generator.go TagOptions
-type TagOptions struct {
-}
+type TagOptions struct{}
 
 // UntagOptions are optional options for untagging images
 //
 //go:generate go run ../generator/generator.go UntagOptions
-type UntagOptions struct {
-}
+type UntagOptions struct{}
 
 // ImportOptions are optional options for importing images
 //
@@ -241,8 +238,7 @@ type BuildOptions = types.BuildOptions
 // ExistsOptions are optional options for checking if an image exists
 //
 //go:generate go run ../generator/generator.go ExistsOptions
-type ExistsOptions struct {
-}
+type ExistsOptions struct{}
 
 type ScpOptions struct {
 	Quiet       *bool

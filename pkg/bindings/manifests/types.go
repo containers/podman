@@ -26,8 +26,7 @@ type CreateOptions struct {
 // if a manifest list exists
 //
 //go:generate go run ../generator/generator.go ExistsOptions
-type ExistsOptions struct {
-}
+type ExistsOptions struct{}
 
 // AddOptions are optional options for adding manifest lists
 //
@@ -75,8 +74,7 @@ type AddArtifactOptions struct {
 // RemoveOptions are optional options for removing manifest lists
 //
 //go:generate go run ../generator/generator.go RemoveOptions
-type RemoveOptions struct {
-}
+type RemoveOptions struct{}
 
 // ModifyOptions are optional options for modifying manifest lists
 //

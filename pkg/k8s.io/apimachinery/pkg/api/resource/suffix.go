@@ -68,12 +68,12 @@ func (ls *listSuffixer) lookup(s suffix) (base, exponent int32, ok bool) {
 
 func (ls *listSuffixer) construct(base, exponent int32) (s suffix, ok bool) {
 	s, ok = ls.beToSuffix[bePair{base, exponent}]
-	return
+	return s, ok
 }
 
 func (ls *listSuffixer) constructBytes(base, exponent int32) (s []byte, ok bool) {
 	s, ok = ls.beToSuffixBytes[bePair{base, exponent}]
-	return
+	return s, ok
 }
 
 type suffixHandler struct {

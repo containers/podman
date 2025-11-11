@@ -21,7 +21,6 @@ import (
 )
 
 var _ = Describe("Podman kube generate", func() {
-
 	It("pod on bogus object", func() {
 		session := podmanTest.Podman([]string{"generate", "kube", "foobarpod"})
 		session.WaitWithDefaultTimeout()
@@ -90,7 +89,6 @@ var _ = Describe("Podman kube generate", func() {
 		err = yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(kube.OutputToString()).To(ContainSubstring("type: spc_t"))
-
 	})
 
 	It("service kube on container with --security-opt type", func() {
@@ -353,7 +351,8 @@ var _ = Describe("Podman kube generate", func() {
 	It("on pod with hostAliases", func() {
 		podName := "testHost"
 		testIP := "127.0.0.1"
-		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName,
+		podSession := podmanTest.Podman([]string{
+			"pod", "create", "--name", podName,
 			"--add-host", "test1.podman.io" + ":" + testIP,
 			"--add-host", "test2.podman.io" + ":" + testIP,
 		})
@@ -511,7 +510,7 @@ var _ = Describe("Podman kube generate", func() {
 	})
 
 	It("on pod with restartPolicy set for container in a pod", func() {
-		//TODO: v5.0 - change/remove test once we block --restart on container when it is in a pod
+		// TODO: v5.0 - change/remove test once we block --restart on container when it is in a pod
 		// podName,  set,  expect
 		testSli := [][]string{
 			{"testPod1", "", ""}, // some pod create from cmdline, so set it to an empty string and let k8s default it to Always
@@ -529,8 +528,10 @@ var _ = Describe("Podman kube generate", func() {
 			Expect(podSession).Should(ExitCleanly())
 
 			ctrName := "ctr" + strconv.Itoa(k)
-			ctr1Session := podmanTest.Podman([]string{"create", "--name", ctrName, "--pod", podName,
-				"--restart", v[1], CITEST_IMAGE, "top"})
+			ctr1Session := podmanTest.Podman([]string{
+				"create", "--name", ctrName, "--pod", podName,
+				"--restart", v[1], CITEST_IMAGE, "top",
+			})
 			ctr1Session.WaitWithDefaultTimeout()
 			Expect(ctr1Session).Should(ExitCleanly())
 
@@ -641,14 +642,18 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(podSession).Should(ExitCleanly())
 
 		ctr1Name := "ctr1"
-		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName,
-			"--cpus", "0.5", CITEST_IMAGE, "top"})
+		ctr1Session := podmanTest.Podman([]string{
+			"create", "--name", ctr1Name, "--pod", podName,
+			"--cpus", "0.5", CITEST_IMAGE, "top",
+		})
 		ctr1Session.WaitWithDefaultTimeout()
 		Expect(ctr1Session).Should(ExitCleanly())
 
 		ctr2Name := "ctr2"
-		ctr2Session := podmanTest.Podman([]string{"create", "--name", ctr2Name, "--pod", podName,
-			"--cpu-period", "100000", "--cpu-quota", "50000", CITEST_IMAGE, "top"})
+		ctr2Session := podmanTest.Podman([]string{
+			"create", "--name", ctr2Name, "--pod", podName,
+			"--cpu-period", "100000", "--cpu-quota", "50000", CITEST_IMAGE, "top",
+		})
 		ctr2Session.WaitWithDefaultTimeout()
 		Expect(ctr2Session).Should(ExitCleanly())
 
@@ -905,10 +910,12 @@ var _ = Describe("Podman kube generate", func() {
 		// Fixes https://github.com/containers/podman/issues/9764
 
 		ctrName := "mount-root-ctr"
-		session1 := podmanTest.Podman([]string{"run", "-d", "--pod", "new:mount-root-conflict", "--name", ctrName,
+		session1 := podmanTest.Podman([]string{
+			"run", "-d", "--pod", "new:mount-root-conflict", "--name", ctrName,
 			"-v", "/:/volume1/",
 			"-v", "/root:/volume2/",
-			CITEST_IMAGE, "top"})
+			CITEST_IMAGE, "top",
+		})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(ExitCleanly())
 
@@ -921,7 +928,6 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(pod.Spec.Volumes).To(HaveLen(2))
-
 	})
 
 	It("with persistent volume claim", func() {
@@ -1418,10 +1424,12 @@ USER test1`
 		ctrName := "gen-kube-env-ctr"
 		podName := "gen-kube-env"
 		// In proxy environment, this test needs to the --http-proxy=false option (#16684)
-		session1 := podmanTest.Podman([]string{"run", "-d", "--http-proxy=false", "--pod", "new:" + podName, "--name", ctrName,
+		session1 := podmanTest.Podman([]string{
+			"run", "-d", "--http-proxy=false", "--pod", "new:" + podName, "--name", ctrName,
 			"-e", "FOO=bar",
 			"-e", "HELLO=WORLD",
-			CITEST_IMAGE, "top"})
+			CITEST_IMAGE, "top",
+		})
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(ExitCleanly())
 

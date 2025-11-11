@@ -31,9 +31,7 @@ var (
 	}
 )
 
-var (
-	migrateOptions entities.SystemMigrateOptions
-)
+var migrateOptions entities.SystemMigrateOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

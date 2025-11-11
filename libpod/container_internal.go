@@ -61,7 +61,7 @@ import (
 const (
 	// name of the directory holding the artifacts
 	artifactsDir      = "artifacts"
-	execDirPermission = 0755
+	execDirPermission = 0o755
 	preCheckpointDir  = "pre-checkpoint"
 )
 
@@ -681,7 +681,7 @@ func (c *Container) refresh() error {
 		if err != nil {
 			return err
 		}
-		if err := os.Chmod(c.runtime.config.Engine.TmpDir, info.Mode()|0111); err != nil {
+		if err := os.Chmod(c.runtime.config.Engine.TmpDir, info.Mode()|0o111); err != nil {
 			return err
 		}
 		root := filepath.Join(c.runtime.config.Engine.TmpDir, "containers-root", c.ID())
@@ -1799,7 +1799,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 			return "", fmt.Errorf("unable to get host UID and host GID: %w", err)
 		}
 
-		//note: this should not be recursive, if using external rootfs users should be responsible on configuring ownership.
+		// note: this should not be recursive, if using external rootfs users should be responsible on configuring ownership.
 		if err := chown.ChangeHostPathOwnership(mountPoint, false, int(hostUID), int(hostGID)); err != nil {
 			return "", err
 		}

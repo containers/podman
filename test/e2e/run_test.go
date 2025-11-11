@@ -25,7 +25,6 @@ import (
 )
 
 var _ = Describe("Podman run", func() {
-
 	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -228,7 +227,6 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + BB_GLIBC))
 		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
-
 	})
 
 	It("podman run --tls-verify", func() {
@@ -274,8 +272,10 @@ var _ = Describe("Podman run", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Change image in predictable way to validate export
-		csession := podmanTest.Podman([]string{"run", "--name", uniqueString, ALPINE,
-			"/bin/sh", "-c", fmt.Sprintf("echo %s > %s", uniqueString, testFilePath)})
+		csession := podmanTest.Podman([]string{
+			"run", "--name", uniqueString, ALPINE,
+			"/bin/sh", "-c", fmt.Sprintf("echo %s > %s", uniqueString, testFilePath),
+		})
 		csession.WaitWithDefaultTimeout()
 		Expect(csession).Should(ExitCleanly())
 
@@ -292,8 +292,10 @@ var _ = Describe("Podman run", func() {
 		Expect(filepath.Join(rootfs, uls)).Should(BeADirectory())
 
 		// Other tests confirm SELinux types, just confirm --rootfs is working.
-		session := podmanTest.Podman([]string{"run", "-i", "--security-opt", "label=disable",
-			"--rootfs", rootfs, "cat", testFilePath})
+		session := podmanTest.Podman([]string{
+			"run", "-i", "--security-opt", "label=disable",
+			"--rootfs", rootfs, "cat", testFilePath,
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -309,15 +311,19 @@ var _ = Describe("Podman run", func() {
 		}
 		// Test --rootfs with an external overlay
 		// use --rm to remove container and confirm if we did not leak anything
-		osession := podmanTest.Podman([]string{"run", "-i", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "cat", testFilePath})
+		osession := podmanTest.Podman([]string{
+			"run", "-i", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", testFilePath,
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal(uniqueString))
 
 		// Test podman start stop with overlay
-		osession = podmanTest.Podman([]string{"run", "--name", "overlay-foo", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "echo", "hello"})
+		osession = podmanTest.Podman([]string{
+			"run", "--name", "overlay-foo", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "echo", "hello",
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal("hello"))
@@ -335,15 +341,19 @@ var _ = Describe("Podman run", func() {
 		Expect(osession).Should(ExitCleanly())
 
 		// Test --rootfs with an external overlay with --uidmap
-		osession = podmanTest.Podman([]string{"run", "--uidmap", "0:1234:5678", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map"})
+		osession = podmanTest.Podman([]string{
+			"run", "--uidmap", "0:1234:5678", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map",
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal("0 1234 5678"))
 
 		// Test --rootfs with an external overlay with --userns=auto
-		osession = podmanTest.Podman([]string{"run", "--userns=auto", "--rm", "--security-opt", "label=disable",
-			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map"})
+		osession = podmanTest.Podman([]string{
+			"run", "--userns=auto", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map",
+		})
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(ContainSubstring("1024"))
@@ -513,7 +523,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run security-opt unmask on /sys/fs/cgroup", func() {
-
 		SkipIfCgroupV1("podman umask on /sys/fs/cgroup will fail with cgroups V1")
 		SkipIfRootless("/sys/fs/cgroup rw access is needed")
 		rwOnCgroups := "/sys/fs/cgroup cgroup2 rw"
@@ -1665,7 +1674,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 			session.WaitWithDefaultTimeout()
 			Expect(session).To(ExitWithError(125, "--no-hosts and --hosts-file cannot be set together"))
 		})
-
 	})
 
 	It("podman run with restart-policy always restarts containers", func() {
@@ -1822,7 +1830,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ToNot(HaveOccurred())
-		var curCgroups = string(curCgroupsBytes)
+		curCgroups := string(curCgroupsBytes)
 		GinkgoWriter.Printf("Output:\n%s\n", curCgroups)
 		Expect(curCgroups).To(Not(Equal("")))
 
@@ -1839,7 +1847,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		ctrCgroupsBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 		Expect(err).ToNot(HaveOccurred())
-		var ctrCgroups = string(ctrCgroupsBytes)
+		ctrCgroups := string(ctrCgroupsBytes)
 		GinkgoWriter.Printf("Output\n:%s\n", ctrCgroups)
 		Expect(curCgroups).To(Not(Equal(ctrCgroups)))
 	})
@@ -1959,7 +1967,6 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		h := strconv.Itoa(t.Hour())
 		Expect(session.OutputToString()).To(ContainSubstring(z))
 		Expect(session.OutputToString()).To(ContainSubstring(h))
-
 	})
 
 	It("podman run verify pids-limit", func() {
@@ -2091,7 +2098,6 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=mount", func() {
@@ -2113,7 +2119,6 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=mount with target", func() {
@@ -2135,7 +2140,6 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret_target"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=mount with target at /tmp", func() {
@@ -2157,7 +2161,6 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("mysecret_target2"))
-
 	})
 
 	It("podman run --secret source=mysecret,type=env", func() {

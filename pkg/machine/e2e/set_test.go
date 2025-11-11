@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("podman machine set", func() {
-
 	It("set machine cpus, disk, memory", func() {
 		skipIfWSL("WSL cannot change set properties of disk, processor, or memory")
 		name := randomString()

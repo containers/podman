@@ -41,9 +41,7 @@ func (h HyperVStubber) RequireExclusiveActive() bool {
 }
 
 func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
-	var (
-		err error
-	)
+	var err error
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
@@ -169,9 +167,7 @@ func (h HyperVStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy
 }
 
 func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
-	var (
-		err error
-	)
+	var err error
 
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {
@@ -291,9 +287,7 @@ func stateConversion(s hypervctl.EnabledState) (define.Status, error) {
 }
 
 func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
-	var (
-		cpuChanged, memoryChanged bool
-	)
+	var cpuChanged, memoryChanged bool
 
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {

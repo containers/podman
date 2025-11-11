@@ -22,9 +22,7 @@ import (
 // applehcMACAddress is a pre-defined mac address that vfkit recognizes
 // and is required for network flow
 
-var (
-	vfkitCommand = "vfkit"
-)
+var vfkitCommand = "vfkit"
 
 type AppleHVStubber struct {
 	vmconfigs.AppleHVConfig

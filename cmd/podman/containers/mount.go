@@ -49,9 +49,7 @@ var (
 	}
 )
 
-var (
-	mountOpts entities.ContainerMountOptions
-)
+var mountOpts entities.ContainerMountOptions
 
 func mountFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()

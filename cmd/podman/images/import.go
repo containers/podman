@@ -47,9 +47,7 @@ var (
 	}
 )
 
-var (
-	importOpts entities.ImageImportOptions
-)
+var importOpts entities.ImageImportOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

@@ -32,7 +32,6 @@ RUN echo "Hello, World!"
 RUN RUN echo "Please use signal 9 this will never ends" && sleep 10000s`, ALPINE)
 
 var _ = Describe("Podman prune", func() {
-
 	It("podman container prune containers", func() {
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
@@ -531,7 +530,6 @@ var _ = Describe("Podman prune", func() {
 		dirents, err = os.ReadDir(containerStorageDir)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(dirents).To(HaveLen(3))
-
 	})
 
 	It("podman system prune --external removes unreferenced containers", func() {

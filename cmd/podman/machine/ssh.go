@@ -16,22 +16,18 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	sshCmd = &cobra.Command{
-		Use:               "ssh [options] [NAME] [COMMAND [ARG ...]]",
-		Short:             "SSH into an existing machine",
-		Long:              "SSH into a managed virtual machine ",
-		PersistentPreRunE: machinePreRunE,
-		RunE:              ssh,
-		Example: `podman machine ssh podman-machine-default
+var sshCmd = &cobra.Command{
+	Use:               "ssh [options] [NAME] [COMMAND [ARG ...]]",
+	Short:             "SSH into an existing machine",
+	Long:              "SSH into a managed virtual machine ",
+	PersistentPreRunE: machinePreRunE,
+	RunE:              ssh,
+	Example: `podman machine ssh podman-machine-default
   podman machine ssh myvm echo hello`,
-		ValidArgsFunction: autocompleteMachineSSH,
-	}
-)
+	ValidArgsFunction: autocompleteMachineSSH,
+}
 
-var (
-	sshOpts machine.SSHOptions
-)
+var sshOpts machine.SSHOptions
 
 func init() {
 	sshCmd.Flags().SetInterspersed(false)

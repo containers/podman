@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	mode755 = 0755
-	mode644 = 0644
+	mode755 = 0o755
+	mode644 = 0o644
 )
 
 const launchConfig = `<?xml version="1.0" encoding="UTF-8"?>

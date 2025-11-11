@@ -7,7 +7,6 @@ import (
 )
 
 var _ = Describe("podman machine reset", func() {
-
 	It("starting from scratch should not error", func() {
 		i := resetMachine{}
 		session, err := mb.setCmd(i.withForce()).run()
@@ -73,5 +72,4 @@ var _ = Describe("podman machine reset", func() {
 		Expect(afterSession).To(Exit(0))
 		Expect(afterSession.outputToStringSlice()).To(BeEmpty())
 	})
-
 })

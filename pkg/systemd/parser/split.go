@@ -55,8 +55,8 @@ func isValidUnicode(c uint32) bool {
 /* This is based on code from systemd (src/basic/escape.c), marked LGPL-2.1-or-later and is copyrighted by the systemd developers */
 
 func cUnescapeOne(p string, acceptNul bool) (int, rune, bool) {
-	var count = 1
-	var eightBit = false
+	count := 1
+	eightBit := false
 	var ret rune
 
 	// Unescapes C style. Returns the unescaped character in ret.
@@ -290,7 +290,7 @@ loop1:
 			}
 
 			if flags&(SplitCUnescape|SplitUnescapeSeparators) != 0 {
-				var r = -1
+				r := -1
 				var u rune
 
 				if flags&SplitCUnescape != 0 {

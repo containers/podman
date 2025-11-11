@@ -477,7 +477,8 @@ WantedBy=default.target
 		noHeader bool
 		wantErr  bool
 	}{
-		{"pod",
+		{
+			"pod",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -495,7 +496,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod",
+		{
+			"pod",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -509,14 +511,16 @@ WantedBy=default.target
 				Wants:            []string{"a.service", "b.service", "c.target"},
 				CreateCommand: []string{
 					"podman", "pod", "create", "--name", "foo", "--wants", "a.service",
-					"--wants", "b.service", "--wants", "c.target", "bar=arg with space"},
+					"--wants", "b.service", "--wants", "c.target", "bar=arg with space",
+				},
 			},
 			podGoodCustomWants,
 			false,
 			false,
 			false,
 		},
-		{"pod",
+		{
+			"pod",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -530,14 +534,16 @@ WantedBy=default.target
 				After:            []string{"a.service", "b.service", "c.target"},
 				CreateCommand: []string{
 					"podman", "pod", "create", "--name", "foo", "--after", "a.service",
-					"--after", "b.service", "--after", "c.target", "bar=arg with space"},
+					"--after", "b.service", "--after", "c.target", "bar=arg with space",
+				},
 			},
 			podGoodCustomAfter,
 			false,
 			false,
 			false,
 		},
-		{"pod",
+		{
+			"pod",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -551,14 +557,16 @@ WantedBy=default.target
 				Requires:         []string{"a.service", "b.service", "c.target"},
 				CreateCommand: []string{
 					"podman", "pod", "create", "--name", "foo", "--requires", "a.service",
-					"--requires", "b.service", "--requires", "c.target", "bar=arg with space"},
+					"--requires", "b.service", "--requires", "c.target", "bar=arg with space",
+				},
 			},
 			podGoodCustomRequires,
 			false,
 			false,
 			false,
 		},
-		{"pod",
+		{
+			"pod",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -576,14 +584,16 @@ WantedBy=default.target
 					"podman", "pod", "create", "--name", "foo", "--wants", "a.service",
 					"--wants", "b.service", "--wants", "c.target", "--after", "a.service",
 					"--after", "b.service", "--after", "c.target", "--requires", "a.service",
-					"--requires", "b.service", "--requires", "c.target", "bar=arg with space"},
+					"--requires", "b.service", "--requires", "c.target", "bar=arg with space",
+				},
 			},
 			podGoodCustomDependencies,
 			false,
 			false,
 			false,
 		},
-		{"pod without --name",
+		{
+			"pod without --name",
 			podInfo{
 				Executable:    "/usr/bin/podman",
 				ServiceName:   "pod-123abc",
@@ -600,7 +610,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod restartSec",
+		{
+			"pod restartSec",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -619,7 +630,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod noHeader",
+		{
+			"pod noHeader",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -637,7 +649,8 @@ WantedBy=default.target
 			true,
 			false,
 		},
-		{"pod with root args",
+		{
+			"pod with root args",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -655,7 +668,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod --new",
+		{
+			"pod --new",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -673,7 +687,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod --new with root args",
+		{
+			"pod --new with root args",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -691,7 +706,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod --new with --replace=false",
+		{
+			"pod --new with --replace=false",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -709,7 +725,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod --new with double curly braces",
+		{
+			"pod --new with double curly braces",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -727,7 +744,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod --new with ID files",
+		{
+			"pod --new with ID files",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "pod-123abc",
@@ -745,7 +763,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"pod with empty pod-prefix",
+		{
+			"pod with empty pod-prefix",
 			podInfo{
 				Executable:       "/usr/bin/podman",
 				ServiceName:      "123abc",

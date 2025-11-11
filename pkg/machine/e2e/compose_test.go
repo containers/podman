@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("podman machine compose", func() {
-
 	It("compose test environment variable setup", func() {
 		name := randomString()
 		i := new(initMachine)
@@ -44,5 +43,4 @@ var _ = Describe("podman machine compose", func() {
 		}
 		Expect(strings.TrimSuffix(lines[1], "\r")).To(Equal("0"))
 	})
-
 })

@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman start", func() {
-
 	It("podman start bogus container", func() {
 		session := podmanTest.Podman([]string{"start", "123"})
 		session.WaitWithDefaultTimeout()

@@ -40,9 +40,7 @@ var (
 	}
 )
 
-var (
-	loadOpts entities.ImageLoadOptions
-)
+var loadOpts entities.ImageLoadOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

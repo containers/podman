@@ -19,7 +19,8 @@ func Test_artifact_String(t *testing.T) {
 			name: "hyperv",
 			a:    HyperV,
 			want: "hyperv",
-		}, {
+		},
+		{
 			name: "applehv",
 			a:    AppleHV,
 			want: "applehv",

@@ -92,8 +92,10 @@ type PlayKubePod = entitiesTypes.PlayKubePod
 type PlayKubeVolume entitiesTypes.PlayKubeVolume
 
 // PlayKubeReport contains the results of running play kube.
-type PlayKubeReport = entitiesTypes.PlayKubeReport
-type KubePlayReport = entitiesTypes.KubePlayReport
+type (
+	PlayKubeReport = entitiesTypes.PlayKubeReport
+	KubePlayReport = entitiesTypes.KubePlayReport
+)
 
 // PlayKubeDownOptions are options for tearing down pods
 type PlayKubeDownOptions struct {

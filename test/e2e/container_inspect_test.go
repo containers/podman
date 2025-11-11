@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman container inspect", func() {
-
 	It("podman inspect a container for the container manager annotation", func() {
 		const testContainer = "container-inspect-test-1"
 		setup := podmanTest.RunTopContainer(testContainer)

@@ -27,17 +27,13 @@ type PullOptions struct {
 	Quiet bool
 }
 
-var (
-	// noSignaturePolicy is a default policy if policy.json is not found on
-	// the host machine.
-	noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
-)
+// noSignaturePolicy is a default policy if policy.json is not found on
+// the host machine.
+var noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
 
 // Pull `imageInput` from a container registry to `sourcePath`.
 func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *PullOptions) error {
-	var (
-		policy *signature.Policy
-	)
+	var policy *signature.Policy
 	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
 		return err

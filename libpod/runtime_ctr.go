@@ -235,7 +235,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	var err error
 
 	ctr, err = r.initContainerVariables(rSpec, nil)
-
 	if err != nil {
 		return nil, fmt.Errorf("initializing container variables: %w", err)
 	}
@@ -693,13 +692,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			// Container probably already removed
 			// Or was never in the runtime to begin with
 			removedCtrs[c.ID()] = nil
-			return
+			return removedCtrs, removedPods, retErr
 		}
 	}
 
 	if opts.RemovePod && opts.RemoveDeps {
 		retErr = fmt.Errorf("cannot remove dependencies while also removing a pod: %w", define.ErrInvalidArg)
-		return
+		return removedCtrs, removedPods, retErr
 	}
 
 	// We need to refresh container config from the DB, to ensure that any
@@ -711,7 +710,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	newConf, err := r.state.GetContainerConfig(c.ID())
 	if err != nil {
 		retErr = fmt.Errorf("retrieving container %s configuration from DB to remove: %w", c.ID(), err)
-		return
+		return removedCtrs, removedPods, retErr
 	}
 	c.config = newConf
 
@@ -738,18 +737,18 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 				// Mark this container as removed so there's no
 				// confusion, though.
 				removedCtrs[c.ID()] = nil
-				return
+				return removedCtrs, removedPods, retErr
 			}
 
 			retErr = err
-			return
+			return removedCtrs, removedPods, retErr
 		}
 
 		if !opts.RemovePod {
 			// Lock the pod while we're removing container
 			if pod.config.LockID == c.config.LockID {
 				retErr = fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
-				return
+				return removedCtrs, removedPods, retErr
 			}
 			if !opts.NoLockPod {
 				pod.lock.Lock()
@@ -760,17 +759,17 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 				// already removed.
 				if errors.Is(err, define.ErrNoSuchPod) {
 					removedCtrs[c.ID()] = nil
-					return
+					return removedCtrs, removedPods, retErr
 				}
 
 				retErr = err
-				return
+				return removedCtrs, removedPods, retErr
 			}
 
 			infraID := pod.state.InfraContainerID
 			if c.ID() == infraID && !opts.RemoveDeps {
 				retErr = fmt.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
-				return
+				return removedCtrs, removedPods, retErr
 			}
 		}
 	}
@@ -789,13 +788,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 
 	if !r.valid {
 		retErr = define.ErrRuntimeStopped
-		return
+		return removedCtrs, removedPods, retErr
 	}
 
 	// Update the container to get current state
 	if err := c.syncContainer(); err != nil {
 		retErr = err
-		return
+		return removedCtrs, removedPods, retErr
 	}
 
 	serviceForPod := false
@@ -807,11 +806,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 					continue
 				}
 				retErr = err
-				return
+				return removedCtrs, removedPods, retErr
 			}
 			if !opts.RemoveDeps {
 				retErr = fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
-				return
+				return removedCtrs, removedPods, retErr
 			}
 			// If we are the service container for the pod we are a
 			// member of: we need to remove that pod last, since
@@ -826,7 +825,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
 				removedPods[depPod.ID()] = err
 				retErr = fmt.Errorf("error removing container %s dependency pods: %w", c.ID(), err)
-				return
+				return removedCtrs, removedPods, retErr
 			}
 			removedPods[depPod.ID()] = nil
 		}
@@ -846,10 +845,10 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
 			removedPods[pod.ID()] = err
 			retErr = fmt.Errorf("error removing container %s pod: %w", c.ID(), err)
-			return
+			return removedCtrs, removedPods, retErr
 		}
 		removedPods[pod.ID()] = nil
-		return
+		return removedCtrs, removedPods, retErr
 	}
 
 	// If we're not force-removing, we need to check if we're in a good
@@ -857,7 +856,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	if !opts.Force {
 		if err := c.checkReadyForRemoval(); err != nil {
 			retErr = err
-			return
+			return removedCtrs, removedPods, retErr
 		}
 	}
 
@@ -865,23 +864,23 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		isV2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			retErr = err
-			return
+			return removedCtrs, removedPods, retErr
 		}
 		// cgroups v1 and v2 handle signals on paused processes differently
 		if !isV2 {
 			if err := c.unpause(); err != nil {
 				retErr = err
-				return
+				return removedCtrs, removedPods, retErr
 			}
 		}
 		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
 			retErr = err
-			return
+			return removedCtrs, removedPods, retErr
 		}
 		// Need to update container state to make sure we know it's stopped
 		if err := c.waitForExitFileAndSync(); err != nil {
 			retErr = err
-			return
+			return removedCtrs, removedPods, retErr
 		}
 	}
 
@@ -892,20 +891,20 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		deps, err := r.state.ContainerInUse(c)
 		if err != nil {
 			retErr = err
-			return
+			return removedCtrs, removedPods, retErr
 		}
 		if !opts.RemoveDeps {
 			if len(deps) != 0 {
 				depsStr := strings.Join(deps, ", ")
 				retErr = fmt.Errorf("container %s has dependent containers which must be removed before it: %s: %w", c.ID(), depsStr, define.ErrCtrExists)
-				return
+				return removedCtrs, removedPods, retErr
 			}
 		}
 		for _, depCtr := range deps {
 			dep, err := r.GetContainer(depCtr)
 			if err != nil {
 				retErr = err
-				return
+				return removedCtrs, removedPods, retErr
 			}
 			logrus.Infof("Removing container %s (dependency of container %s)", dep.ID(), c.ID())
 			recursiveOpts := ctrRmOpts{
@@ -926,7 +925,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			maps.Copy(removedPods, pods)
 			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrRemoved) {
 				retErr = err
-				return
+				return removedCtrs, removedPods, retErr
 			}
 		}
 	}
@@ -941,7 +940,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		// exit code properly, but it's still stopped.
 		if err := c.stop(time); err != nil && !errors.Is(err, define.ErrConmonDead) {
 			retErr = fmt.Errorf("cannot remove container %s as it could not be stopped: %w", c.ID(), err)
-			return
+			return removedCtrs, removedPods, retErr
 		}
 
 		// We unlocked as part of stop() above - there's a chance someone
@@ -953,11 +952,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			// When the container has already been removed, the OCI runtime directory remains.
 			if err := c.cleanupRuntime(ctx); err != nil {
 				retErr = fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
-				return
+				return removedCtrs, removedPods, retErr
 			}
 			// Do not add to removed containers, someone else
 			// removed it.
-			return
+			return removedCtrs, removedPods, retErr
 		}
 	}
 
@@ -1025,7 +1024,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	c.newContainerEvent(events.Remove)
 
 	if !opts.RemoveVolume {
-		return
+		return removedCtrs, removedPods, retErr
 	}
 
 	for _, v := range c.config.NamedVolumes {
@@ -1048,7 +1047,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 	}
 
 	//nolint:nakedret
-	return
+	return removedCtrs, removedPods, retErr
 }
 
 // EvictContainer removes the given container partial or full ID or name, and

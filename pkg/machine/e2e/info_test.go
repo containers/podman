@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("podman machine info", func() {
-
 	It("machine info", func() {
 		info := new(infoMachine)
 		infoSession, err := mb.setCmd(info).run()

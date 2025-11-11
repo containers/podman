@@ -15,7 +15,6 @@ import (
 // TODO: we need to check the output. Currently, we only check the exit codes
 // which is not enough.
 var _ = Describe("Podman stats", func() {
-
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
 		if isContainerized() {

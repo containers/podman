@@ -28,7 +28,6 @@ var _ = Describe("Podman manifests", func() {
 		time.Sleep(1 * time.Second)
 		err := bt.NewConnection()
 		Expect(err).ToNot(HaveOccurred())
-
 	})
 
 	AfterEach(func() {

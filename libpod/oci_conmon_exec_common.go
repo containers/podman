@@ -87,7 +87,8 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 // ExecContainerHTTP executes a new command in an existing container and
 // forwards its standard streams over an attach
 func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize) (int, chan error, error) {
+	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize,
+) (int, chan error, error) {
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
 			return -1, nil, fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)

@@ -8,8 +8,7 @@ import (
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory
 // segment.
-type SHMLocks struct {
-}
+type SHMLocks struct{}
 
 // CreateSHMLock sets up a shared-memory segment holding a given number of POSIX
 // semaphores, and returns a struct that can be used to operate on those locks.

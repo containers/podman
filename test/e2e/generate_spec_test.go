@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman generate spec", func() {
-
 	BeforeEach(func() {
 		SkipIfRemote("podman generate spec is not supported on the remote client")
 	})
@@ -50,7 +49,6 @@ var _ = Describe("Podman generate spec", func() {
 		exec.WaitWithDefaultTimeout()
 		Expect(exec.OutputToString()).Should(ContainSubstring("specgen-clone"))
 		Expect(exec.OutputToString()).Should(ContainSubstring("500000"))
-
 	})
 
 	It("generate spec pod", func() {

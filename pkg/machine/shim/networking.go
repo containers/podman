@@ -158,7 +158,7 @@ func conductVMReadinessCheck(mc *vmconfigs.MachineConfig, maxBackoffs int, backo
 		sshError = nil
 		break
 	}
-	return
+	return connected, sshError, err
 }
 
 func reassignSSHPort(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider) error {

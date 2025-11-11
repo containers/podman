@@ -38,9 +38,7 @@ var (
 	}
 )
 
-var (
-	mountOpts entities.ImageMountOptions
-)
+var mountOpts entities.ImageMountOptions
 
 func mountFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()

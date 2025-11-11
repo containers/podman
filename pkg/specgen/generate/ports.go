@@ -25,7 +25,8 @@ const (
 
 // joinTwoPortsToRangePortIfPossible will expect two ports the previous port one must have a lower or equal hostPort than the current port.
 func joinTwoPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts, allContainerPorts, currentHostPorts *[65536]bool,
-	previousPort *types.PortMapping, port types.PortMapping) (*types.PortMapping, error) {
+	previousPort *types.PortMapping, port types.PortMapping,
+) (*types.PortMapping, error) {
 	// no previous port just return the current one
 	if previousPort == nil {
 		return &port, nil
@@ -59,7 +60,8 @@ func joinTwoPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts,
 //
 //	the previous port one must have a lower or equal containerPort than the current port.
 func joinTwoContainerPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts, allContainerPorts, currentHostPorts *[65536]bool,
-	previousPort *types.PortMapping, port types.PortMapping) (*types.PortMapping, error) {
+	previousPort *types.PortMapping, port types.PortMapping,
+) (*types.PortMapping, error) {
 	// no previous port just return the current one
 	if previousPort == nil {
 		return &port, nil

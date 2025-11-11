@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,8 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"errors"
 
 	buildahCopiah "github.com/containers/buildah/copier"
 	"github.com/containers/podman/v6/cmd/podman/common"
@@ -466,16 +465,16 @@ func resolvePathOnDestinationContainer(container string, containerPath string, i
 	containerInfo, err = registry.ContainerEngine().ContainerStat(registry.Context(), container, containerPath)
 	if err == nil {
 		baseName = path.Base(containerInfo.LinkTarget)
-		return //nolint: nilerr
+		return baseName, containerInfo, resolvedToParentDir, err //nolint: nilerr
 	}
 
 	if strings.HasSuffix(containerPath, "/") {
 		err = fmt.Errorf("%q could not be found on container %s: %w", containerPath, container, err)
-		return
+		return baseName, containerInfo, resolvedToParentDir, err
 	}
 	if isStdin {
 		err = errors.New("destination must be a directory when copying from stdin")
-		return
+		return baseName, containerInfo, resolvedToParentDir, err
 	}
 
 	// NOTE: containerInfo may actually be set.  That happens when
@@ -492,13 +491,13 @@ func resolvePathOnDestinationContainer(container string, containerPath string, i
 	parentDir, err := containerParentDir(container, parentPath)
 	if err != nil {
 		err = fmt.Errorf("could not determine parent dir of %q on container %s: %w", parentPath, container, err)
-		return
+		return baseName, containerInfo, resolvedToParentDir, err
 	}
 
 	containerInfo, err = registry.ContainerEngine().ContainerStat(registry.Context(), container, parentDir)
 	if err != nil {
 		err = fmt.Errorf("%q could not be found on container %s: %w", containerPath, container, err)
-		return
+		return baseName, containerInfo, resolvedToParentDir, err
 	}
 
 	resolvedToParentDir = true

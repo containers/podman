@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman rm", func() {
-
 	It("podman rm stopped container", func() {
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))

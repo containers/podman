@@ -8,22 +8,18 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	extractCmd = &cobra.Command{
-		Use:               "extract [options] ARTIFACT PATH",
-		Short:             "Extract an OCI artifact to a local path",
-		Long:              "Extract the blobs of an OCI artifact to a local file or directory",
-		RunE:              extract,
-		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: common.AutocompleteArtifactAdd,
-		Example: `podman artifact Extract quay.io/myimage/myartifact:latest /tmp/foobar.txt
+var extractCmd = &cobra.Command{
+	Use:               "extract [options] ARTIFACT PATH",
+	Short:             "Extract an OCI artifact to a local path",
+	Long:              "Extract the blobs of an OCI artifact to a local file or directory",
+	RunE:              extract,
+	Args:              cobra.ExactArgs(2),
+	ValidArgsFunction: common.AutocompleteArtifactAdd,
+	Example: `podman artifact Extract quay.io/myimage/myartifact:latest /tmp/foobar.txt
 podman artifact Extract quay.io/myimage/myartifact:latest /home/paul/mydir`,
-	}
-)
+}
 
-var (
-	extractOpts entities.ArtifactExtractOptions
-)
+var extractOpts entities.ArtifactExtractOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

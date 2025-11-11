@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman container cleanup", func() {
-
 	BeforeEach(func() {
 		SkipIfRemote("podman container cleanup is not supported in remote")
 	})

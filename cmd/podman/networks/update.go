@@ -23,9 +23,7 @@ var (
 	}
 )
 
-var (
-	networkUpdateOptions entities.NetworkUpdateOptions
-)
+var networkUpdateOptions entities.NetworkUpdateOptions
 
 func networkUpdateFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
@@ -37,6 +35,7 @@ func networkUpdateFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(addDNSServerFlagName, completion.AutocompleteNone)
 	_ = cmd.RegisterFlagCompletionFunc(removeDNSServerFlagName, completion.AutocompleteNone)
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: networkUpdateCommand,

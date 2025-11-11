@@ -17,11 +17,12 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const sigCatch = "trap \"echo FOO >> /h/fifo \" 8; echo READY >> /h/fifo; while :; do sleep 0.25; done"
-const sigCatch2 = "trap \"echo Received\" SIGFPE; while :; do sleep 0.25; done"
+const (
+	sigCatch  = "trap \"echo FOO >> /h/fifo \" 8; echo READY >> /h/fifo; while :; do sleep 0.25; done"
+	sigCatch2 = "trap \"echo Received\" SIGFPE; while :; do sleep 0.25; done"
+)
 
 var _ = Describe("Podman run with --sig-proxy", func() {
-
 	Specify("signals are forwarded to container using sig-proxy", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("Doesn't work on ppc64le")
@@ -115,5 +116,4 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		Expect(session).To(Or(ExitWithError(2, errorMsg), ExitWithError(134, errorMsg)))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("Received")))
 	})
-
 })

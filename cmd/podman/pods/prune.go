@@ -15,9 +15,7 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	pruneOptions = entities.PodPruneOptions{}
-)
+var pruneOptions = entities.PodPruneOptions{}
 
 var (
 	pruneDescription = `podman pod prune Removes all exited pods`

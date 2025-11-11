@@ -1348,7 +1348,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 	sc := v1.SecurityContext{
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
-		//RunAsNonRoot:             &nonRoot,
+		// RunAsNonRoot:             &nonRoot,
 	}
 	if capabilities != nil {
 		scHasData = true
@@ -1441,7 +1441,7 @@ func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) []v1.V
 	for _, d := range devices {
 		vd := v1.VolumeDevice{
 			// TBD How are we going to sync up these names
-			//Name:
+			// Name:
 			DevicePath: d.Path,
 		}
 		volumeDevices = append(volumeDevices, vd)

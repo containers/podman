@@ -8,15 +8,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	OSCmd = &cobra.Command{
-		Use:               "os",
-		Short:             "Manage a Podman virtual machine's OS",
-		Long:              "Manage a Podman virtual machine's operating system",
-		PersistentPreRunE: validate.NoOp,
-		RunE:              validate.SubCommandExists,
-	}
-)
+var OSCmd = &cobra.Command{
+	Use:               "os",
+	Short:             "Manage a Podman virtual machine's OS",
+	Long:              "Manage a Podman virtual machine's operating system",
+	PersistentPreRunE: validate.NoOp,
+	RunE:              validate.SubCommandExists,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

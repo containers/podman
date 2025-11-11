@@ -51,9 +51,7 @@ func init() {
 }
 
 func rm(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	if (len(args) > 0 && rmOptions.All) || (len(args) < 1 && !rmOptions.All) {
 		return errors.New("choose either one or more volumes or all")
 	}
