@@ -5,11 +5,13 @@ Go** implementation of the core bits of [libpathrs][]. This is not intended to
 be a complete replacement for libpathrs, instead it is mainly intended to be
 useful as a transition tool for existing Go projects.
 
-The long-term plan for `pathrs-lite` is to provide a build tag that will cause
-all `pathrs-lite` operations to call into libpathrs directly, thus removing
-code duplication for projects that wish to make use of libpathrs (and providing
-the ability for software packagers to opt-in to libpathrs support without
-needing to patch upstream).
+`pathrs-lite` also provides a very easy way to switch to `libpathrs` (even for
+downstreams where `pathrs-lite` is being used in a third-party package and is
+not interested in using CGo). At build time, if you use the `libpathrs` build
+tag then `pathrs-lite` will use `libpathrs` directly instead of the pure Go
+implementation. The two backends are functionally equivalent (and we have
+integration tests to verify this), so this migration should be very easy with
+no user-visible impact.
 
 [libpathrs]: https://github.com/cyphar/libpathrs
 

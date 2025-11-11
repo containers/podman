@@ -18,7 +18,7 @@ import (
 	"syscall"
 
 	"github.com/containerd/stargz-snapshotter/estargz"
-	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/cyphar/filepath-securejoin/pathrs-lite"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/klauspost/pgzip"
@@ -2040,10 +2040,10 @@ func (fg *stagedFileGetter) Get(filename string) (io.ReadCloser, error) {
 		}
 		filename = path
 	}
-	pathFD, err := securejoin.OpenatInRoot(fg.rootDir, filename)
+	pathFD, err := pathrs.OpenatInRoot(fg.rootDir, filename)
 	if err != nil {
 		return nil, err
 	}
 	defer pathFD.Close()
-	return securejoin.Reopen(pathFD, unix.O_RDONLY)
+	return pathrs.Reopen(pathFD, unix.O_RDONLY)
 }

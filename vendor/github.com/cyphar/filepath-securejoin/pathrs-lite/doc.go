@@ -11,4 +11,6 @@
 
 // Package pathrs (pathrs-lite) is a less complete pure Go implementation of
 // some of the APIs provided by [libpathrs].
+//
+// [libpathrs]: https://github.com/cyphar/libpathrs
 package pathrs

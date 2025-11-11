@@ -248,6 +248,7 @@ type ContainersConfig struct {
 	UserNS string `toml:"userns,omitempty"`
 
 	// UserNSSize how many UIDs to allocate for automatically created UserNS
+	//
 	// Deprecated: no user of this field is known.
 	UserNSSize int `toml:"userns_size,omitempty,omitzero"`
 }
@@ -558,6 +559,7 @@ type EngineConfig struct {
 	// PodmanshTimeout is the number of seconds to wait for podmansh logins.
 	// In other words, the timeout for the `podmansh` container to be in running
 	// state.
+	//
 	// Deprecated: Use podmansh.Timeout instead. podmansh.Timeout has precedence.
 	PodmanshTimeout uint `toml:"podmansh_timeout,omitempty,omitzero"`
 }
