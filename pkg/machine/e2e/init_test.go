@@ -54,7 +54,7 @@ var _ = Describe("podman machine init", func() {
 
 		bi := new(initMachine)
 		want := fmt.Sprintf("system connection \"%s\" already exists", badName)
-		badInit, berr := mb.setName(badName).setCmd(bi.withImage(mb.imagePath)).run()
+		badInit, berr := mb.setName(badName).setCmd(bi.withFakeImage(mb)).run()
 		Expect(berr).ToNot(HaveOccurred())
 		Expect(badInit).To(Exit(125))
 		Expect(badInit.errorToString()).To(ContainSubstring(want))
@@ -88,7 +88,7 @@ var _ = Describe("podman machine init", func() {
 		// Check that mounting to certain target directories like /tmp at the / level is NOT ok
 		tmpVol := initMachine{}
 		targetMount := "/tmp"
-		tmpVolSession, err := mb.setCmd(tmpVol.withImage(mb.imagePath).withVolume(fmt.Sprintf("/whatever:%s", targetMount))).run()
+		tmpVolSession, err := mb.setCmd(tmpVol.withFakeImage(mb).withVolume(fmt.Sprintf("/whatever:%s", targetMount))).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tmpVolSession).To(Exit(125))
 		Expect(tmpVolSession.errorToString()).To(ContainSubstring(fmt.Sprintf("Error: machine mount destination cannot be %q: consider another location or a subdirectory of an existing location", targetMount)))
@@ -102,7 +102,7 @@ var _ = Describe("podman machine init", func() {
 
 	It("simple init", func() {
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -118,7 +118,7 @@ var _ = Describe("podman machine init", func() {
 			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
 		}
 		// creating a new VM with the same name must fail
-		repeatSession, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		repeatSession, err := mb.setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(repeatSession).To(Exit(125))
 		Expect(repeatSession.errorToString()).To(ContainSubstring(fmt.Sprintf("Error: machine %q already exists", mb.names[0])))
@@ -379,7 +379,7 @@ var _ = Describe("podman machine init", func() {
 
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withIgnitionPath(tmpFile.Name())).run()
+		session, err := mb.setName(name).setCmd(i.withFakeImage(mb).withIgnitionPath(tmpFile.Name())).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -455,7 +455,7 @@ var _ = Describe("podman machine init", func() {
 	It("init should cleanup on failure", func() {
 		i := new(initMachine)
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
@@ -482,7 +482,7 @@ var _ = Describe("podman machine init", func() {
 			// Bad ignition path - init fails
 			i = new(initMachine)
 			i.ignitionPath = "/bad/path"
-			session, err = mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+			session, err = mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session).To(Exit(125))
 
@@ -534,7 +534,7 @@ var _ = Describe("podman machine init", func() {
 		// We should be able to init with a bad config present
 		i := new(initMachine)
 		name := randomString()
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -657,7 +657,7 @@ var _ = Describe("podman machine init", func() {
 
 		i := initMachine{}
 		machineName := randomString()
-		session, err := mb.setName(machineName).setCmd(i.withImage(mb.imagePath).withProvider(providerOverride)).run()
+		session, err := mb.setName(machineName).setCmd(i.withFakeImage(mb).withProvider(providerOverride)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session.errorToString()).To(ContainSubstring(fmt.Sprintf("unsupported provider %q", providerOverride)))
 	})
@@ -678,7 +678,7 @@ var _ = Describe("podman machine init", func() {
 		// --provider
 		for name, p := range verify {
 			i := initMachine{}
-			session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withProvider(p)).run()
+			session, err := mb.setName(name).setCmd(i.withFakeImage(mb).withProvider(p)).run()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).To(Equal(0))
 		}

@@ -40,3 +40,8 @@ func runWslCommand(cmdArgs []string) (*machineSession, error) {
 	ms.waitWithTimeout(defaultTimeout)
 	return &ms, nil
 }
+
+func (i *initMachine) withFakeImage(_ *machineTestBuilder) *initMachine {
+	i.image = mb.imagePath
+	return i
+}

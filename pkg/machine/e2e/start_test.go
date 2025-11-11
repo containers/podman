@@ -143,7 +143,7 @@ var _ = Describe("podman machine start", func() {
 
 		j := initMachine{}
 		dontstartme := randomString()
-		session2, err := mb.setName(dontstartme).setCmd(j.withImage(mb.imagePath)).run()
+		session2, err := mb.setName(dontstartme).setCmd(j.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
 
