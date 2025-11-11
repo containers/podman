@@ -1,6 +1,9 @@
 # Release Notes
 
 ## 5.7.0
+### Security
+- This release addresses CVE-2025-52881, where arbitrary write gadgets and procfs write redirects allowed runc container escape and denial of service.
+
 ### Features
 - The remote Podman client and `podman system service` API server now support encrypting connections with TLS and mTLS, including client authentication by certificate ([#24583](https://github.com/containers/podman/issues/24583)).
 - The `podman system connection add` command can now create connections to TCP sockets with TLS and mTLS encryption.
