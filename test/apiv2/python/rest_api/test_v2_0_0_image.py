@@ -4,7 +4,7 @@ from multiprocessing import Process
 
 import requests
 from dateutil.parser import parse
-from .fixtures import APITestCase
+from .fixtures import APITestCase, set_start_method
 
 
 class ImageTestCase(APITestCase):
@@ -168,6 +168,9 @@ class ImageTestCase(APITestCase):
             self.assertEqual(r.status_code, 400, f"#5: {r.text}")
 
         i = 1
+        # Need to explicitely set start method
+        # https://docs.python.org/dev/library/multiprocessing.html#contexts-and-start-methods
+        set_start_method('fork')
         for fn in [do_search1, do_search2, do_search3, do_search4, do_search5]:
             with self.subTest(i=i):
                 search = Process(target=fn)
