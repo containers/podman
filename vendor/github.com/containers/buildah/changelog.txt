@@ -1,3 +1,7 @@
+- Changelog for v1.42.1 (2025-11-06)
+  * [release-1.42] bump runc to v1.3.3 - CVE-2025-52881
+  * RPM: build with sequoia on F43+
+
 - Changelog for v1.42.0 (2025-10-17)
   * Bump to storage v1.61.0, image v5.38.0, common v0.66.0
   * fix(deps): update module github.com/openshift/imagebuilder to v1.2.19
