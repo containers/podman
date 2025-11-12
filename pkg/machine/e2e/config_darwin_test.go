@@ -4,9 +4,7 @@ import "os"
 
 const podmanBinary = "../../../bin/darwin/podman"
 
-var (
-	fakeImagePath string = os.DevNull
-)
+var fakeImagePath string = os.DevNull
 
 func (i *initMachine) withFakeImage(_ *machineTestBuilder) *initMachine {
 	i.image = fakeImagePath
