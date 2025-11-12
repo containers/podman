@@ -6,16 +6,19 @@
 
 set -exo pipefail
 
-. .packit-rpm-git-commit.sh
+TOP_GIT_DIR=$(git rev-parse --show-toplevel)
+
+. "$TOP_GIT_DIR"/contrib/packit-tmt/packit-rpm-git-commit.sh
 
 # Get Version from HEAD
 VERSION=$(grep '^const RawVersion' version/rawversion/version.go | cut -d\" -f2)
 
 # RPM Version can't take "-"
-RPM_VERSION=$(echo $VERSION | sed -e 's/-/~/')
+# shellcheck disable=SC2001
+RPM_VERSION=$(echo "$VERSION" | sed -e 's/-/~/')
 
 # Generate source tarball from HEAD
-git-archive-all -C $(git rev-parse --show-toplevel) --prefix=$PACKAGE-$VERSION/ rpm/$PACKAGE-$VERSION.tar.gz
+git-archive-all -C "$TOP_GIT_DIR" --prefix="$PACKAGE-$VERSION/" "$TOP_GIT_DIR/rpm/$PACKAGE-$VERSION.tar.gz"
 
 # RPM Spec modifications
 
