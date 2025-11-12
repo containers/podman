@@ -79,6 +79,13 @@ type podNotFound struct {
 	Body errorhandling.ErrorModel
 }
 
+// No such quadlet
+// swagger:response
+type quadletNotFound struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
 // No such manifest
 // swagger:response
 type manifestNotFound struct {
