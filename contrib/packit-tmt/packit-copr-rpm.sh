@@ -6,9 +6,9 @@
 
 set -exo pipefail
 
-TOP_GIT_DIR=$(git rev-parse --show-toplevel)
+GIT_TOPDIR=$(git rev-parse --show-toplevel)
 
-. "$TOP_GIT_DIR"/contrib/packit-tmt/packit-rpm-git-commit.sh
+. "$GIT_TOPDIR"/contrib/packit-tmt/packit-rpm-git-commit.sh
 
 # Get Version from HEAD
 VERSION=$(grep '^const RawVersion' version/rawversion/version.go | cut -d\" -f2)
@@ -18,7 +18,7 @@ VERSION=$(grep '^const RawVersion' version/rawversion/version.go | cut -d\" -f2)
 RPM_VERSION=$(echo "$VERSION" | sed -e 's/-/~/')
 
 # Generate source tarball from HEAD
-git-archive-all -C "$TOP_GIT_DIR" --prefix="$PACKAGE-$VERSION/" "$TOP_GIT_DIR/rpm/$PACKAGE-$VERSION.tar.gz"
+git-archive-all -C "$GIT_TOPDIR" --prefix="$PACKAGE-$VERSION/" "$GIT_TOPDIR/rpm/$PACKAGE-$VERSION.tar.gz"
 
 # RPM Spec modifications
 
