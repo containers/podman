@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/hyperv"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/containers/podman/v6/pkg/machine/wsl"
 	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
 	"github.com/sirupsen/logrus"
@@ -38,9 +39,6 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
-		if !wsl.HasAdminRights() {
-			return nil, fmt.Errorf("hyperv machines require admin authority")
-		}
 		return new(hyperv.HyperVStubber), nil
 	default:
 	}
@@ -85,7 +83,7 @@ func HasPermsForProvider(provider define.VMType) bool {
 	case define.AppleHvVirt:
 		return false
 	case define.HyperVVirt:
-		return wsl.HasAdminRights()
+		return windows.HasAdminRights()
 	}
 
 	return true

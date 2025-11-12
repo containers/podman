@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/ignition"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +50,7 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 			// or Wsl/Service/RegisterDistro/CreateVm/HCS/HCS_E_SERVICE_NOT_AVAILABLE
 			// it means WSL's VM creation failed, likely due to virtualization features not being enabled.
 			// Relaunching 'podman machine init' in elevated mode will attempt to reconfigure the WSL machine.
-			admin := HasAdminRights()
+			admin := windows.HasAdminRights()
 
 			return attemptFeatureInstall(opts.ReExec, admin)
 		}
