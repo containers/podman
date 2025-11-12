@@ -16,7 +16,6 @@ import (
 )
 
 var _ = Describe("Podman save", func() {
-
 	It("podman save output flag", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
@@ -109,7 +108,6 @@ var _ = Describe("Podman save", func() {
 		save = podmanTest.Podman([]string{"save", "-q", "--compress", "--format", "oci-archive", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
 		Expect(save).To(ExitWithError(125, "--compress can only be set when --format is 'docker-dir'"))
-
 	})
 
 	It("podman save bad filename", func() {

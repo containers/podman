@@ -17,7 +17,6 @@ import (
 )
 
 var _ = Describe("Podman ps", func() {
-
 	It("podman ps no containers", func() {
 		session := podmanTest.Podman([]string{"ps"})
 		session.WaitWithDefaultTimeout()
@@ -226,8 +225,10 @@ var _ = Describe("Podman ps", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format",
-			"{{with .Namespaces}}{{.Cgroup}}:{{.IPC}}:{{.MNT}}:{{.NET}}:{{.PIDNS}}:{{.User}}:{{.UTS}}{{end}}"})
+		result := podmanTest.Podman([]string{
+			"ps", "-a", "--ns", "--format",
+			"{{with .Namespaces}}{{.Cgroup}}:{{.IPC}}:{{.MNT}}:{{.NET}}:{{.PIDNS}}:{{.User}}:{{.UTS}}{{end}}",
+		})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 		// it must contains `::` when some ns is null. If it works normally, it should be "$num1:$num2:$num3"
@@ -505,7 +506,6 @@ var _ = Describe("Podman ps", func() {
 			size2, _ := units.FromHumanSize(matches2[1])
 			return size1 < size2
 		})).To(BeTrue(), "slice is sorted")
-
 	})
 
 	It("podman --sort by command", func() {
@@ -597,7 +597,8 @@ var _ = Describe("Podman ps", func() {
 			"-p", "30080:30080",
 			"-p", "30443:30443",
 			"-p", "8000:8080",
-			ALPINE, "top"},
+			ALPINE, "top",
+		},
 		)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -702,14 +703,18 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps filter test", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", "--label", "foo=1",
-			"--label", "bar=2", "--volume", "volume1:/test", ALPINE, "top"})
+		session := podmanTest.Podman([]string{
+			"run", "-d", "--name", "test1", "--label", "foo=1",
+			"--label", "bar=2", "--volume", "volume1:/test", ALPINE, "top",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		cid1 := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"run", "--name", "test2", "--label", "foo=1",
-			ALPINE, "ls", "/fail"})
+		session = podmanTest.Podman([]string{
+			"run", "--name", "test2", "--label", "foo=1",
+			ALPINE, "ls", "/fail",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, "ls: /fail: No such file or directory"))
 
@@ -717,8 +722,10 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "test4", "--volume", "volume1:/test1",
-			"--volume", "/:/test2", ALPINE, "ls"})
+		session = podmanTest.Podman([]string{
+			"run", "--name", "test4", "--volume", "volume1:/test1",
+			"--volume", "/:/test2", ALPINE, "ls",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -870,7 +877,6 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(4))
 		Expect(session.OutputToStringArray()).To(ContainElement(con1.OutputToString()))
 		Expect(session.OutputToStringArray()).To(ContainElement(con2.OutputToString()))
-
 	})
 
 	It("podman ps filter network", func() {
@@ -972,7 +978,6 @@ var _ = Describe("Podman ps", func() {
 
 		output := session.OutputToStringArray()
 		Expect(output).To(HaveLen(1))
-
 	})
 
 	// This test checks ps filtering of external container by container id
@@ -1046,5 +1051,4 @@ var _ = Describe("Podman ps", func() {
 		Expect(output).To(HaveLen(1))
 		Expect(output).Should(ContainElement(ContainSubstring("late")))
 	})
-
 })

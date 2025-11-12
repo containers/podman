@@ -399,6 +399,7 @@ spec:
   shareProcessNamespace: true
 status: {}
 `
+
 var livenessProbePodYaml = `
 apiVersion: apps/v1
 kind: Deployment
@@ -431,6 +432,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
 `
+
 var livenessProbeUnhealthyPodYaml = `
 apiVersion: apps/v1
 kind: Deployment
@@ -966,6 +968,7 @@ spec:
     {{ end }}
 {{ end }}
 `
+
 var deploymentYamlTemplate = `
 apiVersion: v1
 kind: Deployment
@@ -3638,7 +3641,6 @@ spec:
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
-
 	})
 
 	It("job sanity", func() {
@@ -3701,7 +3703,6 @@ spec:
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(Equal(macs[i]))
-
 	})
 
 	It("with multiple networks", func() {
@@ -3965,7 +3966,6 @@ VOLUME %s`, CITEST_IMAGE, hostPathDir+"/")
 		ctrJSON := inspect.InspectContainerToJSON()
 		Expect(ctrJSON[0].Mounts).To(HaveLen(1))
 		Expect(ctrJSON[0].Mounts[0]).To(HaveField("Type", define.TypeBind))
-
 	})
 
 	It("test with PersistentVolumeClaim volume", func() {
@@ -4223,7 +4223,6 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`)
 		Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCPUQuota)))
 		Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
 		Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
-
 	})
 
 	It("allows setting resource limits with --cpus 1", func() {
@@ -4231,9 +4230,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`)
 		SkipIfRootless("CPU limits require root")
 		podmanTest.CgroupManager = "systemd"
 
-		var (
-			expectedCPULimit = "1"
-		)
+		expectedCPULimit := "1"
 
 		deployment := getDeployment(
 			withPod(getPod(withCtr(getCtr(
@@ -4250,7 +4247,6 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`)
 		Expect(parts).To(HaveLen(2))
 
 		Expect(parts[0]).To(Equal(parts[1]))
-
 	})
 
 	It("reports invalid image name", func() {
@@ -4505,7 +4501,8 @@ spec:
 			// add services
 			yamlDocs = append([]string{
 				fmt.Sprintf(serviceTemplate, podName, podName),
-				fmt.Sprintf(serviceTemplate, deploymentPodName, deploymentPodName)}, yamlDocs...)
+				fmt.Sprintf(serviceTemplate, deploymentPodName, deploymentPodName),
+			}, yamlDocs...)
 
 			// add pods
 			k, err := getKubeYaml("pod", pod)
@@ -4669,7 +4666,6 @@ invalid kube kind
 	})
 
 	It("teardown volume --force", func() {
-
 		volName := RandomString(12)
 		volDevice := define.TypeTmpfs
 		volType := define.TypeTmpfs
@@ -4699,7 +4695,6 @@ invalid kube kind
 	})
 
 	It("after teardown with volume reuse", func() {
-
 		volName := RandomString(12)
 		volDevice := define.TypeTmpfs
 		volType := define.TypeTmpfs
@@ -4939,7 +4934,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 			inspect := podmanTest.PodmanExitCleanly("inspect", fmt.Sprintf("%s-%s-%s", deployment.Name, "pod", defaultCtrName), "--format", "'{{ .Config }}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
-
 		})
 
 		It("uses env value from configmap for HTTP API client", func() {
@@ -5355,7 +5349,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		exec = podmanTest.PodmanExitCleanly("exec", "mypod2-myctr", "cat", "/etc/baz/plain_note")
 		Expect(exec.OutputToString()).Should(ContainSubstring("This is a test"))
-
 	})
 
 	It("secret as volume support - optional field", func() {
@@ -5413,7 +5406,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		secretData = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
 		secretData.WaitWithDefaultTimeout()
 		Expect(secretData).Should(Not(ExitCleanly()))
-
 	})
 
 	It("secret as volume with defaultMode set", func() {
@@ -5601,7 +5593,6 @@ spec:
 	})
 
 	It("with graceful shutdown", func() {
-
 		podmanTest.PodmanExitCleanly("volume", "create", "testvol")
 		err = writeYaml(signalTest, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -6071,7 +6062,6 @@ spec:
 		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
 		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.ContainerIDFile }}", ctrNameInKubePod)
 		Expect(inspect.OutputToString()).To(Equal(cidFile))
-
 	})
 
 	It("test with reserved Seccomp annotation in yaml", func() {
@@ -6333,7 +6323,6 @@ spec:
 	})
 
 	It("test Lifecycle stopSignal", func() {
-
 		// Default StopSignal SIGTERM
 		err = writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())

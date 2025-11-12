@@ -43,9 +43,7 @@ func setupLogging(name string) (*eventlog.Log, error) {
 
 func installWslKernel() error {
 	logrus.Info("Installing WSL Kernel update")
-	var (
-		err error
-	)
+	var err error
 	backoff := 500 * time.Millisecond
 	for i := 1; i < 6; i++ {
 		err = wutil.SilentExec("--update")

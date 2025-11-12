@@ -882,7 +882,6 @@ RUN echo hello`, CITEST_IMAGE)
 		inspect = podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Os }}", "test"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Equal("bar"))
-
 	})
 
 	It("podman build --os windows flag", func() {
@@ -901,7 +900,6 @@ RUN echo hello`, CITEST_IMAGE)
 		inspect = podmanTest.Podman([]string{"image", "inspect", "--format", "{{ .Os }}", "test"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Equal("windows"))
-
 	})
 
 	It("podman build device test", func() {

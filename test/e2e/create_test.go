@@ -18,7 +18,6 @@ import (
 )
 
 var _ = Describe("Podman create", func() {
-
 	It("podman create container based on a local image", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "local_image_test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -687,7 +686,6 @@ var _ = Describe("Podman create", func() {
 		create.WaitWithDefaultTimeout()
 		Expect(create).ShouldNot(ExitCleanly())
 		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
-
 	})
 
 	It("podman create --chrootdirs inspection test", func() {

@@ -44,9 +44,7 @@ var (
 	}
 )
 
-var (
-	portOpts entities.ContainerPortOptions
-)
+var portOpts entities.ContainerPortOptions
 
 func portFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&portOpts.All, "all", "a", false, "Display port information for all containers")

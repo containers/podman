@@ -140,7 +140,6 @@ var _ = Describe("Podman container clone", func() {
 		Expect(cloneInspect).To(ExitCleanly())
 		cloneData = cloneInspect.InspectContainerToJSON()
 		Expect(cloneData[0].HostConfig).To(HaveField("MemorySwappiness", int64(0)))
-
 	})
 
 	It("podman container clone in a pod", func() {
@@ -248,7 +247,6 @@ var _ = Describe("Podman container clone", func() {
 		clone = podmanTest.Podman([]string{"container", "clone", "-f", run.OutputToString()})
 		clone.WaitWithDefaultTimeout()
 		Expect(clone).ToNot(ExitCleanly())
-
 	})
 
 	It("podman container clone network passing", func() {
@@ -302,7 +300,6 @@ var _ = Describe("Podman container clone", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("12=3"))
-
 	})
 
 	It("podman container clone container with healthcheck", func() {
@@ -331,6 +328,5 @@ var _ = Describe("Podman container clone", func() {
 		Expect(parentData.Config.HealthLogDestination).To(Equal(cloneData.Config.HealthLogDestination))
 		Expect(parentData.Config.HealthMaxLogCount).To(Equal(cloneData.Config.HealthMaxLogCount))
 		Expect(parentData.Config.HealthMaxLogSize).To(Equal(cloneData.Config.HealthMaxLogSize))
-
 	})
 })

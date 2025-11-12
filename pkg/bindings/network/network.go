@@ -220,9 +220,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entitiesTypes.Network
 	if err != nil {
 		return nil, err
 	}
-	var (
-		prunedNetworks []*entitiesTypes.NetworkPruneReport
-	)
+	var prunedNetworks []*entitiesTypes.NetworkPruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

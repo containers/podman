@@ -40,9 +40,7 @@ var (
 	}
 )
 
-var (
-	initOptions entities.ContainerInitOptions
-)
+var initOptions entities.ContainerInitOptions
 
 func initFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&initOptions.All, "all", "a", false, "Initialize all containers")

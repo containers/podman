@@ -208,7 +208,7 @@ func getFdCount() (count int) {
 	if entries, err := os.ReadDir("/proc/self/fd"); err == nil {
 		count = len(entries)
 	}
-	return
+	return count
 }
 
 // Just ignoring Container errors here...

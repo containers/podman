@@ -768,7 +768,6 @@ ENTRYPOINT ["sleep","99999"]
 		// Too complicated to differentiate in test context, so we ignore the first part
 		// and just check for the "no container" substring, which is common to both.
 		Expect(podCreate).Should(ExitWithError(125, `no container with name or ID "randomfakeid" found: no such container`))
-
 	})
 
 	It("podman pod create with --userns=keep-id", func() {
@@ -1045,7 +1044,6 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("1:3"))
-
 	})
 
 	It("podman pod create --volumes-from", func() {
@@ -1154,7 +1152,6 @@ ENTRYPOINT ["sleep","99999"]
 
 		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
 		Expect(inspect[0]).To(HaveField("AppArmorProfile", apparmor.Profile))
-
 	})
 
 	It("podman pod create --sysctl test", func() {
@@ -1192,7 +1189,6 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).NotTo(ContainSubstring("kernel.msgmax = 65535"))
-
 	})
 
 	It("podman pod create --share-parent test", func() {
@@ -1236,7 +1232,6 @@ ENTRYPOINT ["sleep","99999"]
 		podCreate3 := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup"})
 		podCreate3.WaitWithDefaultTimeout()
 		Expect(podCreate3).ShouldNot(ExitCleanly())
-
 	})
 
 	It("podman pod create infra inheritance test", func() {

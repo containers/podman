@@ -115,8 +115,7 @@ type ExecInspectOptions struct{}
 // exec sessions
 //
 //go:generate go run ../generator/generator.go ExecStartOptions
-type ExecStartOptions struct {
-}
+type ExecStartOptions struct{}
 
 // HealthCheckOptions are optional options for checking
 // the health of a container

@@ -146,7 +146,8 @@ It is not necessary to test a single change in multiple places.
 
 ### Go Format and lint
 
-All code changes must pass ``make validatepr``.
+All code changes must pass `make validatepr`.
+We are using the [`gofumpt`](https://github.com/mvdan/gofumpt) formatter for our go code, you can either use it directly or format via `golangci-lint fmt`. The `validatepr`/`validate` make targets will fail if the code is not formatted correctly.
 
 ### Integration Tests
 

@@ -20,7 +20,6 @@ import (
 )
 
 var _ = Describe("Verify podman containers.conf usage", func() {
-
 	BeforeEach(func() {
 		confPath, err := filepath.Abs("config/containers.conf")
 		Expect(err).ToNot(HaveOccurred())
@@ -28,7 +27,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-
 	})
 
 	It("limits test", func() {
@@ -55,7 +53,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		} else {
 			Expect(session.OutputToString()).To(Not(Equal("500")))
 		}
-
 	})
 
 	It("oom-score-adj", func() {
@@ -85,9 +82,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			} else {
 				Expect(session.OutputToString()).To(ContainSubstring("0"))
 			}
-
 		}
-
 	})
 
 	It("cgroup_conf in containers.conf", func() {
@@ -812,7 +807,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	}
 
 	It("podman containers.conf container_name_as_hostname", func() {
-
 		// With default containers.conf
 
 		// Start container with no options

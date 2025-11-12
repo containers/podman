@@ -24,7 +24,6 @@ import (
 )
 
 var _ = Describe("Podman run networking", func() {
-
 	hostname, _ := os.Hostname()
 
 	It("podman verify network scoped DNS server and also verify updating network dns server", func() {
@@ -106,8 +105,10 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("Non-authoritative answer: Name: google.com Address:"))
 
 		// Update DNS server
-		session = podmanTest.Podman([]string{"network", "update", net, "--dns-drop=1.1.1.1,8.8.8.8",
-			"--dns-drop", "8.4.4.8", "--dns-add", "127.0.0.253,127.0.0.254", "--dns-add", "127.0.0.255"})
+		session = podmanTest.Podman([]string{
+			"network", "update", net, "--dns-drop=1.1.1.1,8.8.8.8",
+			"--dns-drop", "8.4.4.8", "--dns-add", "127.0.0.253,127.0.0.254", "--dns-add", "127.0.0.255",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -928,7 +929,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.AdditionalMacAddresses).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.AdditionalMacAddresses[0]).To(Equal("56:6e:35:5d:3e:a8"))
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("Gateway", "10.25.40.0"))
-
 	}
 
 	It("podman run network inspect fails gracefully on non-reachable network ns", func() {
@@ -1227,8 +1227,10 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 
 		// use options and search to make sure we get the same resolv.conf everywhere
-		run := podmanTest.Podman([]string{"run", "--network", net, "--dns", "127.0.0.128",
-			"--dns-option", "ndots:1", "--dns-search", ".", ALPINE, "cat", "/etc/resolv.conf"})
+		run := podmanTest.Podman([]string{
+			"run", "--network", net, "--dns", "127.0.0.128",
+			"--dns-option", "ndots:1", "--dns-search", ".", ALPINE, "cat", "/etc/resolv.conf",
+		})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(ExitCleanly())
 		Expect(string(run.Out.Contents())).To(Equal(`nameserver 127.0.0.128

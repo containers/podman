@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman port", func() {
-
 	It("podman port all and latest", func() {
 		result := podmanTest.Podman([]string{"port", "-a", "-l"})
 		result.WaitWithDefaultTimeout()

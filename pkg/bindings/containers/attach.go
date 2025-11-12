@@ -237,17 +237,17 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
 	_, err = io.ReadFull(r, buffer[0:8])
 	if err != nil {
-		return
+		return fd, sz, err
 	}
 
 	fd = int(buffer[0])
 	if fd < 0 || fd > 3 {
 		err = fmt.Errorf(`channel "%d" found, 0-3 supported: %w`, fd, ErrLostSync)
-		return
+		return fd, sz, err
 	}
 
 	sz = int(binary.BigEndian.Uint32(buffer[4:8]))
-	return
+	return fd, sz, err
 }
 
 // DemuxFrame reads contents for frame from server multiplexed stdin/stdout/stderr/2nd error channel

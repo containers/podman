@@ -29,9 +29,7 @@ var (
 	}
 )
 
-var (
-	reloadOptions entities.NetworkReloadOptions
-)
+var reloadOptions entities.NetworkReloadOptions
 
 func reloadFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&reloadOptions.All, "all", "a", false, "Reload network configuration of all containers")

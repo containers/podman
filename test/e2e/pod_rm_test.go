@@ -16,7 +16,6 @@ import (
 )
 
 var _ = Describe("Podman pod rm", func() {
-
 	It("podman pod rm empty pod", func() {
 		_, ec, podid := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
@@ -211,7 +210,6 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman rm --ignore bogus pod and a running pod", func() {
-
 		_, ec, podid1 := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))
 

@@ -6,9 +6,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
 )
 
-var (
-	engineMode = entities.TunnelMode
-)
+var engineMode = entities.TunnelMode
 
 func storeBefore() error {
 	return nil

@@ -27,7 +27,6 @@ func (e *endpoint) Address() string {
 }
 
 var _ = Describe("Podman search", func() {
-
 	const regFileContents = `
 [registries.search]
 registries = ['{{.Host}}:{{.Port}}']
@@ -49,9 +48,11 @@ registries = []`
 			Skip("No registry image for ppc64le")
 		}
 		port := GetPort()
-		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", name,
+		fakereg := podmanTest.Podman([]string{
+			"run", "-d", "--name", name,
 			"-p", fmt.Sprintf("%d:5000", port),
-			REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+			REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml",
+		})
 		fakereg.WaitWithDefaultTimeout()
 		Expect(fakereg).Should(ExitCleanly())
 
@@ -224,7 +225,6 @@ registries = []`
 			search := podmanTest.PodmanExitCleanly("search", "--limit", "100", "--tls-verify=false", registryAddress+"/podman")
 			Expect(len(search.OutputToStringArray())).To(BeNumerically("<=", 101))
 		})
-
 	})
 
 	Context("podman search with container-based registries", func() {

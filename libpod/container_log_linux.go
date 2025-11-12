@@ -31,7 +31,8 @@ func init() {
 }
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions,
-	logChannel chan *logs.LogLine, colorID int64, passthroughUnit string) error {
+	logChannel chan *logs.LogLine, colorID int64, passthroughUnit string,
+) error {
 	// We need the container's events in the same journal to guarantee
 	// consistency, see #10323.
 	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {

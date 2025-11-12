@@ -217,8 +217,8 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func waitExitOnFirst(ctx context.Context, containers []containerWrapper, options entities.WaitOptions) entities.WaitReport {
-	var waitChannel = make(chan entities.WaitReport, 1)
-	var waitFunction = func(ctx context.Context, container containerWrapper, options entities.WaitOptions, waitChannel chan<- entities.WaitReport) {
+	waitChannel := make(chan entities.WaitReport, 1)
+	waitFunction := func(ctx context.Context, container containerWrapper, options entities.WaitOptions, waitChannel chan<- entities.WaitReport) {
 		response := entities.WaitReport{}
 		var conditions []string
 		if len(options.Conditions) == 0 {
@@ -294,6 +294,7 @@ func (ic *ContainerEngine) ContainerUnpause(_ context.Context, namesOrIds []stri
 	}
 	return reports, nil
 }
+
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	containers, err := getContainers(ic.Libpod,
 		getContainersOptions{
@@ -627,9 +628,7 @@ func (ic *ContainerEngine) ContainerTop(_ context.Context, options entities.TopO
 }
 
 func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string, options entities.CommitOptions) (*entities.CommitReport, error) {
-	var (
-		mimeType string
-	)
+	var mimeType string
 	ctr, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil {
 		return nil, err
@@ -993,7 +992,7 @@ func (ic *ContainerEngine) ContainerExecDetached(_ context.Context, nameOrID str
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
-	var exitCode = define.ExecErrorCodeGeneric
+	exitCode := define.ExecErrorCodeGeneric
 	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil {
 		return nil, err

@@ -19,21 +19,17 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	resetCmd = &cobra.Command{
-		Use:               "reset [options]",
-		Short:             "Remove all machines",
-		Long:              "Remove all machines, configurations, data, and cached images",
-		RunE:              reset,
-		Args:              validate.NoArgs,
-		Example:           `podman machine reset`,
-		ValidArgsFunction: completion.AutocompleteNone,
-	}
-)
+var resetCmd = &cobra.Command{
+	Use:               "reset [options]",
+	Short:             "Remove all machines",
+	Long:              "Remove all machines, configurations, data, and cached images",
+	RunE:              reset,
+	Args:              validate.NoArgs,
+	Example:           `podman machine reset`,
+	ValidArgsFunction: completion.AutocompleteNone,
+}
 
-var (
-	resetOptions machine.ResetOptions
-)
+var resetOptions machine.ResetOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

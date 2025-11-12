@@ -273,7 +273,8 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		return nil, err
 	}
 
-	command := []string{podmanPath,
+	command := []string{
+		podmanPath,
 		"--root", storageConfig.GraphRoot,
 		"--runroot", storageConfig.RunRoot,
 		"--log-level", logrus.GetLevel().String(),

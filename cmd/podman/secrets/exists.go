@@ -6,18 +6,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	existsCmd = &cobra.Command{
-		Use:               "exists SECRET",
-		Short:             "Check if a secret exists in local storage",
-		Long:              `If the named secret exists in local storage, podman secret exists exits with 0, otherwise the exit code will be 1.`,
-		Args:              cobra.ExactArgs(1),
-		RunE:              exists,
-		ValidArgsFunction: common.AutocompleteSecrets,
-		Example: `podman secret exists ID
+var existsCmd = &cobra.Command{
+	Use:               "exists SECRET",
+	Short:             "Check if a secret exists in local storage",
+	Long:              `If the named secret exists in local storage, podman secret exists exits with 0, otherwise the exit code will be 1.`,
+	Args:              cobra.ExactArgs(1),
+	RunE:              exists,
+	ValidArgsFunction: common.AutocompleteSecrets,
+	Example: `podman secret exists ID
   podman secret exists SECRET || podman secret create SECRET <secret source>`,
-	}
-)
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

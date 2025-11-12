@@ -11,18 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	applyCmd = &cobra.Command{
-		Use:               "apply [options] IMAGE [NAME]",
-		Short:             "Apply an OCI image to a Podman Machine's OS",
-		Long:              "Apply custom layers from a containerized Fedora CoreOS OCI image on top of an existing VM",
-		PersistentPreRunE: validate.NoOp,
-		Args:              cobra.RangeArgs(1, 2),
-		RunE:              apply,
-		ValidArgsFunction: common.AutocompleteImages,
-		Example:           `podman machine os apply myimage`,
-	}
-)
+var applyCmd = &cobra.Command{
+	Use:               "apply [options] IMAGE [NAME]",
+	Short:             "Apply an OCI image to a Podman Machine's OS",
+	Long:              "Apply custom layers from a containerized Fedora CoreOS OCI image on top of an existing VM",
+	PersistentPreRunE: validate.NoOp,
+	Args:              cobra.RangeArgs(1, 2),
+	RunE:              apply,
+	ValidArgsFunction: common.AutocompleteImages,
+	Example:           `podman machine os apply myimage`,
+}
 
 var restart bool
 

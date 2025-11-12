@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("podman image scp", func() {
-
 	BeforeEach(setupConnectionsConf)
 
 	It("podman image scp bogus image", func() {
@@ -31,7 +30,8 @@ var _ = Describe("podman image scp", func() {
 		ensureImage.WaitWithDefaultTimeout()
 		Expect(ensureImage).Should(ExitCleanly())
 
-		cmd := []string{"system", "connection", "add",
+		cmd := []string{
+			"system", "connection", "add",
 			"--default",
 			"QA",
 			"ssh://root@podman.test:2222/run/podman/podman.sock",
@@ -47,5 +47,4 @@ var _ = Describe("podman image scp", func() {
 		// The error given should either be a missing image (due to testing suite complications) or a no such host timeout on ssh
 		Expect(scp).Should(ExitWithError(125, "failed to connect: dial tcp: lookup "))
 	})
-
 })

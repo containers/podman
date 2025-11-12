@@ -4,12 +4,11 @@ package compat
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
-
-	"errors"
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"

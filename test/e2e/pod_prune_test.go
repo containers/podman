@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman pod prune", func() {
-
 	It("podman pod prune empty pod", func() {
 		_, ec, _ := podmanTest.CreatePod(nil)
 		Expect(ec).To(Equal(0))

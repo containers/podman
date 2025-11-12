@@ -14,7 +14,6 @@ import (
 
 // Without Ordered, tests flake with "Getting key identity" (#18358)
 var _ = Describe("Podman trust", Ordered, func() {
-
 	BeforeEach(func() {
 		SkipIfRemote("podman-remote does not support image trust")
 	})

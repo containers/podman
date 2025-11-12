@@ -35,6 +35,7 @@ func rmFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all artifacts")
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore error if artifact does not exist")
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: rmCmd,

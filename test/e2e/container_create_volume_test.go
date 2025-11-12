@@ -70,7 +70,6 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 }
 
 var _ = Describe("Podman create data volume", func() {
-
 	It("podman create with volume data copy turned off", func() {
 		imgName, volData, volDest := "dataimg", "dummy", "/test"
 

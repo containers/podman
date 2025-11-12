@@ -6,7 +6,7 @@ func TestNormalizeMachineArch(t *testing.T) {
 	type args struct {
 		arch string
 	}
-	var tests = []struct {
+	tests := []struct {
 		name    string
 		args    args
 		want    string

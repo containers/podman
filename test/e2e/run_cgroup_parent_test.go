@@ -16,7 +16,6 @@ import (
 const cgroupRoot = "/sys/fs/cgroup"
 
 var _ = Describe("Podman run with --cgroup-parent", func() {
-
 	BeforeEach(func() {
 		SkipIfRootlessCgroupsV1("cgroup parent is not supported in cgroups v1")
 	})

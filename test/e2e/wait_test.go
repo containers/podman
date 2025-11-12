@@ -9,12 +9,10 @@ import (
 )
 
 var _ = Describe("Podman wait", func() {
-
 	It("podman wait on bogus container", func() {
 		session := podmanTest.Podman([]string{"wait", "1234"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, `no container with name or ID "1234" found: no such container`))
-
 	})
 
 	It("podman wait on a stopped container", func() {

@@ -1044,8 +1044,10 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 // returns a time format and error.  The input is compared to known time formats
 // or a duration which implies no-duration
 func ParseInputTime(inputTime string, since bool) (time.Time, error) {
-	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
-		"2006-01-02Z07:00", "2006-01-02"}
+	timeFormats := []string{
+		time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
+		"2006-01-02Z07:00", "2006-01-02",
+	}
 	// iterate the supported time formats
 	for _, tf := range timeFormats {
 		t, err := time.Parse(tf, inputTime)

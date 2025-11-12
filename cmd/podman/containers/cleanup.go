@@ -35,9 +35,7 @@ var (
 	}
 )
 
-var (
-	cleanupOptions entities.ContainerCleanupOptions
-)
+var cleanupOptions entities.ContainerCleanupOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -62,9 +60,7 @@ func init() {
 }
 
 func cleanup(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 
 	if cleanupOptions.Exec != "" {
 		switch {

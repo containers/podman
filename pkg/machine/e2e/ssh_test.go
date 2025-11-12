@@ -8,7 +8,6 @@ import (
 )
 
 var _ = Describe("podman machine ssh", func() {
-
 	It("bad machine name", func() {
 		name := randomString()
 		ssh := &sshMachine{}

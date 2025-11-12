@@ -27,8 +27,10 @@ type QEMUConfig struct {
 }
 
 // Stubs
-type AppleHVConfig struct{}
-type LibKrunConfig struct{}
+type (
+	AppleHVConfig struct{}
+	LibKrunConfig struct{}
+)
 
 func getHostUID() int {
 	return 1000

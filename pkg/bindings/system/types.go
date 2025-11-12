@@ -24,21 +24,18 @@ type PruneOptions struct {
 // VersionOptions are optional options for getting version info
 //
 //go:generate go run ../generator/generator.go VersionOptions
-type VersionOptions struct {
-}
+type VersionOptions struct{}
 
 // DiskOptions are optional options for getting storage consumption
 //
 //go:generate go run ../generator/generator.go DiskOptions
-type DiskOptions struct {
-}
+type DiskOptions struct{}
 
 // InfoOptions are optional options for getting info
 // about libpod
 //
 //go:generate go run ../generator/generator.go InfoOptions
-type InfoOptions struct {
-}
+type InfoOptions struct{}
 
 // CheckOptions are optional options for storage consistency check/repair
 //

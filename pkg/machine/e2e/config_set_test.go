@@ -40,6 +40,7 @@ func (i *setMachine) withCPUs(num uint) *setMachine {
 	i.cpus = &num
 	return i
 }
+
 func (i *setMachine) withDiskSize(size uint) *setMachine {
 	i.diskSize = &size
 	return i

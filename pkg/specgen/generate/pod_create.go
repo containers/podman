@@ -115,9 +115,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 }
 
 func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, error) {
-	var (
-		options []libpod.PodCreateOption
-	)
+	var options []libpod.PodCreateOption
 
 	if p.ShareParent == nil || (p.ShareParent != nil && *p.ShareParent) {
 		options = append(options, libpod.WithPodParent())

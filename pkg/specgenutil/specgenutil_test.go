@@ -46,7 +46,8 @@ func TestWinPath(t *testing.T) {
 		sg := specgen.NewSpecGenerator("nothing", false)
 		err := FillOutSpecGen(sg, &entities.ContainerCreateOptions{
 			ImageVolume: "ignore",
-			Volume:      []string{vol}}, []string{},
+			Volume:      []string{vol},
+		}, []string{},
 		)
 		machine.Enabled, machine.Type = oldEnable, oldType
 		return sg, err

@@ -11,9 +11,7 @@ import (
 	logrusImport "github.com/sirupsen/logrus"
 )
 
-var (
-	ErrHandlerExists = errors.New("handler with given name already exists")
-)
+var ErrHandlerExists = errors.New("handler with given name already exists")
 
 var (
 	stopped    bool

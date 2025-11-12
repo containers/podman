@@ -24,7 +24,6 @@ import (
 const dest = "/unique/path"
 
 var _ = Describe("Podman run with volumes", func() {
-
 	// Returns the /proc/self/mountinfo line for a given mount point
 	getMountInfo := func(volume string) []string {
 		containerDir := strings.SplitN(volume, ":", 3)[1]
@@ -283,7 +282,6 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(ContainSubstring("overlay")))
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
-
 	})
 
 	It("podman support overlay on named volume with custom upperdir and workdir", func() {
@@ -332,7 +330,6 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(session.OutputToString()).To(Not(ContainSubstring("overlay")))
 		// this should be there since `test` was written on actual volume not on any overlay
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
-
 	})
 
 	It("podman support overlay volume with custom upperdir and workdir", func() {
@@ -372,7 +369,6 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		// must not contain `overlay` file which was on custom upper and workdir since we have not specified any upper or workdir
 		Expect(session.OutputToString()).To(Not(ContainSubstring("overlay")))
-
 	})
 
 	It("podman run with noexec can't exec", func() {
@@ -916,7 +912,6 @@ USER testuser`, CITEST_IMAGE)
 		test2.WaitWithDefaultTimeout()
 		Expect(test2).Should(ExitCleanly())
 		Expect(test2.OutputToString()).To(ContainSubstring(testString))
-
 	})
 
 	It("podman run with named volume check if we honor permission of target dir", func() {

@@ -80,7 +80,6 @@ type BuildReport struct {
 
 // swagger:model
 type IDResponse struct {
-
 	// The id of the newly created object.
 	// Required: true
 	ID string `json:"Id"`

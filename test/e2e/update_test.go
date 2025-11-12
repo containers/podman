@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman update", func() {
-
 	It("podman update container all options v1", func() {
 		SkipIfCgroupV2("testing flags that only work in cgroup v1")
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
@@ -32,7 +31,8 @@ var _ = Describe("Podman update", func() {
 			"--memory-swap", "2G",
 			"--memory-reservation", "2G",
 			"--memory-swappiness", "50",
-			"--pids-limit", "123", ctrID}
+			"--pids-limit", "123", ctrID,
+		}
 
 		session = podmanTest.Podman(commonArgs)
 		session.WaitWithDefaultTimeout()
@@ -72,7 +72,8 @@ var _ = Describe("Podman update", func() {
 		commonArgs := []string{
 			"update",
 			"--cpus", "5",
-			ctrID}
+			ctrID,
+		}
 
 		session = podmanTest.Podman(commonArgs)
 		session.WaitWithDefaultTimeout()
@@ -109,7 +110,8 @@ var _ = Describe("Podman update", func() {
 			"--device-read-iops", "/dev/nullb0:1000",
 			"--device-write-iops", "/dev/nullb0:1000",
 			"--pids-limit", "123",
-			ctrID}
+			ctrID,
+		}
 
 		session = podmanTest.Podman(commonArgs)
 		session.WaitWithDefaultTimeout()

@@ -127,9 +127,11 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, string, erro
 	return systemdPath, systemdPath, nil
 }
 
-var lvpRelabel = label.Relabel
-var lvpInitLabels = label.InitLabels
-var lvpReleaseLabel = selinux.ReleaseLabel
+var (
+	lvpRelabel      = label.Relabel
+	lvpInitLabels   = label.InitLabels
+	lvpReleaseLabel = selinux.ReleaseLabel
+)
 
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not

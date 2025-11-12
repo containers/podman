@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman init containers", func() {
-
 	It("podman create init container without --pod should fail", func() {
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -104,7 +103,6 @@ var _ = Describe("Podman init containers", func() {
 		doubleCheck := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		doubleCheck.WaitWithDefaultTimeout()
 		Expect(doubleCheck).Should(ExitWithError(1, fmt.Sprintf("cat: can't open '%s': No such file or directory", filename)))
-
 	})
 
 	It("podman ensure always init containers always run", func() {
@@ -141,5 +139,4 @@ var _ = Describe("Podman init containers", func() {
 		// Dates should not match
 		Expect(firstResult).ToNot(Equal(secondCheckLog.OutputToString()))
 	})
-
 })

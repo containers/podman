@@ -11,17 +11,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	runCmd = &cobra.Command{
-		Use:               "run CONTAINER",
-		Short:             "Run the health check of a container",
-		Long:              "Run the health check of a container",
-		Example:           `podman healthcheck run mywebapp`,
-		RunE:              run,
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: common.AutocompleteContainersRunning,
-	}
-)
+var runCmd = &cobra.Command{
+	Use:               "run CONTAINER",
+	Short:             "Run the health check of a container",
+	Long:              "Run the health check of a container",
+	Example:           `podman healthcheck run mywebapp`,
+	RunE:              run,
+	Args:              cobra.ExactArgs(1),
+	ValidArgsFunction: common.AutocompleteContainersRunning,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

@@ -24,9 +24,7 @@ var (
 	}
 )
 
-var (
-	ctrClone entities.ContainerCloneOptions
-)
+var ctrClone entities.ContainerCloneOptions
 
 func cloneFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
@@ -43,6 +41,7 @@ func cloneFlags(cmd *cobra.Command) {
 	common.DefineCreateDefaults(&ctrClone.CreateOpts)
 	common.DefineCreateFlags(cmd, &ctrClone.CreateOpts, entities.CloneMode)
 }
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: containerCloneCommand,

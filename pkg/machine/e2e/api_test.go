@@ -19,7 +19,6 @@ const (
 )
 
 var _ = Describe("run podman API test calls", func() {
-
 	It("client connect to machine socket", func() {
 		if runtime.GOOS == "windows" {
 			Skip("Go docker client doesn't support unix socket on Windows")

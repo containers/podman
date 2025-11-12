@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("Podman run", func() {
-
 	It("podman run environment test", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "HOME"})
 		session.WaitWithDefaultTimeout()

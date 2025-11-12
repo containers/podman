@@ -15,8 +15,7 @@ import (
 )
 
 var _ = Describe("Podman play kube with build", func() {
-
-	var testYAML = `
+	testYAML := `
 apiVersion: v1
 kind: Pod
 metadata:
@@ -49,17 +48,17 @@ spec:
 status: {}
 `
 
-	var playBuildFile = `
+	playBuildFile := `
 FROM ` + CITEST_IMAGE + `
 LABEL homer=dad
 COPY copyfile /copyfile
 `
-	var prebuiltImage = `
+	prebuiltImage := `
 FROM ` + CITEST_IMAGE + `
 LABEL marge=mom
 `
 
-	var copyFile = `just a text file
+	copyFile := `just a text file
 `
 
 	It("Check that image is built using Dockerfile", func() {
@@ -286,7 +285,7 @@ LABEL marge=mom
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("marge")))
 	})
 
-	var testYAMLForEnvExpand = `
+	testYAMLForEnvExpand := `
 apiVersion: v1
 kind: Pod
 metadata:

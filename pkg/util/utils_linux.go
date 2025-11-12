@@ -19,9 +19,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var (
-	errNotADevice = errors.New("not a device node")
-)
+var errNotADevice = errors.New("not a device node")
 
 // GetContainerPidInformationDescriptors returns a string slice of all supported
 // format descriptors of GetContainerPidInformation.

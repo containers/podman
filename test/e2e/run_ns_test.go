@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman run ns", func() {
-
 	It("podman run pidns test", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"run", fedoraMinimal, "bash", "-c", "echo $$"})
@@ -121,5 +120,4 @@ var _ = Describe("Podman run ns", func() {
 		Expect(hostPidNS).To(Equal(ctrPidNS))
 		Expect(hostIpcNS).To(Equal(ctrIpcNS))
 	})
-
 })

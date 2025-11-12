@@ -141,9 +141,7 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 
 // StartGenericAppleVM is wrapped by apple provider methods and starts the vm
 func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootloader vfConfig.Bootloader, endpoint string) (func() error, func() error, error) {
-	var (
-		ignitionSocket *define.VMFile
-	)
+	var ignitionSocket *define.VMFile
 
 	// Add networking
 	netDevice, err := vfConfig.VirtioNetNew(applehvMACAddress)

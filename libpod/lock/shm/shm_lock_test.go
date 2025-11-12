@@ -20,10 +20,8 @@ import (
 // to test without actually having multiple processes...
 // We can at least verify that the locks work within the local process.
 
-var (
-	// 4 * BITMAP_SIZE to ensure we have to traverse bitmaps
-	numLocks = 4 * BitmapSize
-)
+// 4 * BITMAP_SIZE to ensure we have to traverse bitmaps
+var numLocks = 4 * BitmapSize
 
 const lockPath = "/libpod_test"
 

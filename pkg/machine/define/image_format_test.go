@@ -58,7 +58,8 @@ func TestImageFormat_KindWithCompression(t *testing.T) {
 			name: "raw",
 			imf:  Raw,
 			want: "raw.zst",
-		}, {
+		},
+		{
 			name: "tar.zst",
 			imf:  Tar,
 			want: "tar.zst",

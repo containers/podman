@@ -38,7 +38,6 @@ var _ = Describe("PodmanSession test", func() {
 		match, backStr = session.GrepString("I am not here")
 		Expect(match).To(Not(BeTrue()))
 		Expect(backStr).To(BeNil())
-
 	})
 
 	It("Test ErrorGrepString", func() {
@@ -49,7 +48,6 @@ var _ = Describe("PodmanSession test", func() {
 		match, backStr = session.ErrorGrepString("I am not here")
 		Expect(match).To(Not(BeTrue()))
 		Expect(backStr).To(BeNil())
-
 	})
 
 	It("Test LineInOutputStartsWith", func() {
@@ -86,5 +84,4 @@ var _ = Describe("PodmanSession test", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).Should(Equal(0))
 	})
-
 })

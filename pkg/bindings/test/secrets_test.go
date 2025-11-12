@@ -31,7 +31,6 @@ var _ = Describe("Podman secrets", func() {
 	})
 
 	AfterEach(func() {
-
 		s.Kill()
 		bt.cleanup()
 	})
@@ -129,5 +128,4 @@ var _ = Describe("Podman secrets", func() {
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})
-
 })

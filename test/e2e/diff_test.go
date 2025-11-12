@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman diff", func() {
-
 	It("podman diff of image", func() {
 		session := podmanTest.Podman([]string{"diff", ALPINE})
 		session.WaitWithDefaultTimeout()

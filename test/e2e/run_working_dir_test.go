@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman run", func() {
-
 	It("podman run a container without workdir", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()

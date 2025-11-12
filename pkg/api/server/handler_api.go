@@ -99,6 +99,7 @@ func (w *BufferedResponseWriter) Flush() {
 		wrapped.Flush()
 	}
 }
+
 func newBufferedResponseWriter(rw http.ResponseWriter) *BufferedResponseWriter {
 	return &BufferedResponseWriter{
 		bufio.NewWriterSize(rw, 8192),

@@ -79,9 +79,7 @@ func (ign *DynamicIgnition) Write() error {
 }
 
 func (ign *DynamicIgnition) getUsers() []PasswdUser {
-	var (
-		users []PasswdUser
-	)
+	var users []PasswdUser
 
 	isCoreUser := ign.Name == DefaultIgnitionUserName
 
@@ -109,7 +107,8 @@ func (ign *DynamicIgnition) getUsers() []PasswdUser {
 			Group("sudo"),
 			Group("adm"),
 			Group("wheel"),
-			Group("systemd-journal")}
+			Group("systemd-journal"),
+		}
 	}
 
 	// set root SSH key
@@ -232,9 +231,7 @@ func getDirs(usrName string) []Directory {
 		"/home/" + usrName + "/.config/systemd",
 		"/home/" + usrName + "/.config/systemd/user",
 	}
-	var (
-		dirs = make([]Directory, len(newDirs))
-	)
+	dirs := make([]Directory, len(newDirs))
 	for i, d := range newDirs {
 		newDir := Directory{
 			Node: Node{
@@ -411,9 +408,7 @@ pids_limit=0
 }
 
 func getCerts(certsDir string, isDir bool) []File {
-	var (
-		files []File
-	)
+	var files []File
 
 	if isDir {
 		err := filepath.WalkDir(certsDir, func(path string, d fs.DirEntry, err error) error {
