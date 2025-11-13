@@ -91,7 +91,7 @@ func generateFixedLiteralEncoding() *huffmanEncoder {
 	h := newHuffmanEncoder(literalCount)
 	codes := h.codes
 	var ch uint16
-	for ch = 0; ch < literalCount; ch++ {
+	for ch = range uint16(literalCount) {
 		var bits uint16
 		var size uint8
 		switch {

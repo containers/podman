@@ -15,19 +15,7 @@ import (
 	"os"
 
 	"golang.org/x/sys/unix"
-
-	"github.com/cyphar/filepath-securejoin/pathrs-lite/internal/procfs"
 )
-
-// OpenatInRoot is equivalent to [OpenInRoot], except that the root is provided
-// using an *[os.File] handle, to ensure that the correct root directory is used.
-func OpenatInRoot(root *os.File, unsafePath string) (*os.File, error) {
-	handle, err := completeLookupInRoot(root, unsafePath)
-	if err != nil {
-		return nil, &os.PathError{Op: "securejoin.OpenInRoot", Path: unsafePath, Err: err}
-	}
-	return handle, nil
-}
 
 // OpenInRoot safely opens the provided unsafePath within the root.
 // Effectively, OpenInRoot(root, unsafePath) is equivalent to
@@ -54,21 +42,4 @@ func OpenInRoot(root, unsafePath string) (*os.File, error) {
 	}
 	defer rootDir.Close() //nolint:errcheck // close failures aren't critical here
 	return OpenatInRoot(rootDir, unsafePath)
-}
-
-// Reopen takes an *[os.File] handle and re-opens it through /proc/self/fd.
-// Reopen(file, flags) is effectively equivalent to
-//
-//	fdPath := fmt.Sprintf("/proc/self/fd/%d", file.Fd())
-//	os.OpenFile(fdPath, flags|unix.O_CLOEXEC)
-//
-// But with some extra hardenings to ensure that we are not tricked by a
-// maliciously-configured /proc mount. While this attack scenario is not
-// common, in container runtimes it is possible for higher-level runtimes to be
-// tricked into configuring an unsafe /proc that can be used to attack file
-// operations. See [CVE-2019-19921] for more details.
-//
-// [CVE-2019-19921]: https://github.com/advisories/GHSA-fh74-hm69-rqjw
-func Reopen(handle *os.File, flags int) (*os.File, error) {
-	return procfs.ReopenFd(handle, flags)
 }
