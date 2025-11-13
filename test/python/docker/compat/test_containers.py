@@ -191,8 +191,7 @@ class TestContainers(common.DockerTestCase):
             ret, out = ctr.exec_run(["stat", "-c", "%u:%g", "/tmp/a.txt"])
 
             self.assertEqual(ret, 0)
-            # Docker-py implementation of put_archive dont do request with copyUIDGID=true
-            self.assertEqual(out.rstrip(), b"0:0", "UID/GID of copied file")
+            self.assertEqual(out.rstrip(), b"1042:1043", "UID/GID of copied file")
 
             ret, out = ctr.exec_run(["cat", "/tmp/a.txt"])
             self.assertEqual(ret, 0)
