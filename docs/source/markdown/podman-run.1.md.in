@@ -937,12 +937,12 @@ be installed. The **shadow-utils** package must include the **newuidmap**(1) and
 
 In order for users to run rootless, there must be an entry for their username in _/etc/subuid_ and _/etc/subgid_ which lists the UIDs for their user namespace.
 
-Rootless Podman works better if the fuse-overlayfs and slirp4netns packages are installed.
+Rootless Podman works better if the fuse-overlayfs package is installed.
 The **fuse-overlayfs** package provides a userspace overlay storage driver, otherwise users need to use
 the **vfs** storage driver, which can be disk space expensive and less
 performant than other drivers.
 
-To enable VPN on the container, slirp4netns or pasta needs to be specified;
+To enable VPN on the container, pasta needs to be specified;
 without either, containers need to be run with the --network=host flag.
 
 ## ENVIRONMENT
@@ -990,7 +990,7 @@ page.
 NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-save(1)](podman-save.1.md)**, **[podman-ps(1)](podman-ps.1.md)**, **[podman-attach(1)](podman-attach.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**, **[podman-port(1)](podman-port.1.md)**, **[podman-start(1)](podman-start.1.md)**, **[podman-kill(1)](podman-kill.1.md)**, **[podman-stop(1)](podman-stop.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-rm(1)](podman-rm.1.md)**, **[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[podman-systemd.unit(5)](podman-systemd.unit.5.md)**, **[setsebool(8)](https://man7.org/linux/man-pages/man8/setsebool.8.html)**, **[slirp4netns(1)](https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md)**, **[pasta(1)](https://passt.top/builds/latest/web/passt.1.html)**, **[fuse-overlayfs(1)](https://github.com/containers/fuse-overlayfs/blob/main/fuse-overlayfs.1.md)**, **proc(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**, **personality(2)**
+**[podman(1)](podman.1.md)**, **[podman-save(1)](podman-save.1.md)**, **[podman-ps(1)](podman-ps.1.md)**, **[podman-attach(1)](podman-attach.1.md)**, **[podman-pod-create(1)](podman-pod-create.1.md)**, **[podman-port(1)](podman-port.1.md)**, **[podman-start(1)](podman-start.1.md)**, **[podman-kill(1)](podman-kill.1.md)**, **[podman-stop(1)](podman-stop.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-rm(1)](podman-rm.1.md)**, **[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[podman-systemd.unit(5)](podman-systemd.unit.5.md)**, **[setsebool(8)](https://man7.org/linux/man-pages/man8/setsebool.8.html)**, **[pasta(1)](https://passt.top/builds/latest/web/passt.1.html)**, **[fuse-overlayfs(1)](https://github.com/containers/fuse-overlayfs/blob/main/fuse-overlayfs.1.md)**, **proc(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**, **personality(2)**
 
 ### Troubleshooting
 

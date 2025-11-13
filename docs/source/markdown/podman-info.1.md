@@ -119,15 +119,6 @@ host:
     seccompProfilePath: /usr/share/containers/seccomp.json
     selinuxEnabled: true
   serviceIsRemote: false
-  slirp4netns:
-    executable: /bin/slirp4netns
-    package: slirp4netns-1.1.12-2.fc34.x86_64
-    version: |-
-      slirp4netns version 1.1.12
-      commit: 7a104a101aa3278a2152351a082a6df71f57c9a3
-      libslirp: 4.4.0
-      SLIRP_CONFIG_VERSION_MAX: 3
-      libseccomp: 2.5.0
   swapFree: 15687475200
   swapTotal: 16886259712
   uptime: 47h 15m 9.91s (Approximately 1.96 days)
@@ -261,11 +252,6 @@ $ podman info --format json
       "seccompEnabled": true,
       "seccompProfilePath": "/usr/share/containers/seccomp.json",
       "selinuxEnabled": true
-    },
-    "slirp4netns": {
-      "executable": "/bin/slirp4netns",
-      "package": "slirp4netns-1.1.12-2.fc34.x86_64",
-      "version": "slirp4netns version 1.1.12\ncommit: 7a104a101aa3278a2152351a082a6df71f57c9a3\nlibslirp: 4.4.0\nSLIRP_CONFIG_VERSION_MAX: 3\nlibseccomp: 2.5.0"
     },
     "pasta": {
       "executable": "/usr/bin/passt",
