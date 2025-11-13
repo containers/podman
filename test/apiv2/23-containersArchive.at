@@ -40,7 +40,7 @@ t HEAD "containers/${CTR}/archive?path=%2Fnon%2Fexistent%2Fpath" 404
 t HEAD "containers/${CTR}/archive?path=%2Fetc%2Fpasswd" 200
 
 # Send tarfile to container...
-t PUT "/containers/${CTR}/archive?path=%2Ftmp%2F&copyUIDGID=true" ${HELLO_TAR} 200 ''
+t PUT "/containers/${CTR}/archive?path=%2Ftmp%2F" ${HELLO_TAR} 200 ''
 
 # ...and 'exec cat file' to confirm that it got extracted into place.
 cat >$TMPD/exec.json <<EOF
@@ -80,44 +80,6 @@ EOF
 
 t POST containers/${CTR}/exec $TMPD/exec.json 201 .Id~[0-9a-f]\\{64\\}
 eid=$(jq -r '.Id' <<<"$output")
-t POST exec/$eid/start 200
-
-output_uidgid=$(grep -o '[0-9]*:[0-9]*' <<<"$output")
-is "$output_uidgid" "1042:1043" "UID:GID preserved with copyUIDGID=true"
-
-
-FILE_NAME=test1
-TAR_PATH="${TMPD}/${FILE_NAME}.tar"
-echo "Hello2_$(random_string 8)" > ${TMPD}/${FILE_NAME}.txt
-tar --owner=2001 --group=2002 --format=posix -C $TMPD -cvf ${TAR_PATH} ${FILE_NAME}.txt &> /dev/null
-
-t PUT "/containers/${CTR}/archive?path=%2Ftmp%2F" ${TAR_PATH} 200 ''
-
-cat >$TMPD/exec.json <<EOF
-{ "AttachStdout":true,"Cmd":["stat","-c","%u:%g","/tmp/${FILE_NAME}.txt"]}
-EOF
-t POST containers/${CTR}/exec $TMPD/exec.json 201 .Id~[0-9a-f]\\{64\\}
-eid=$(jq -r '.Id' <<<"$output")
-t POST exec/$eid/start 200
-
-output_uidgid=$(grep -o '[0-9]*:[0-9]*' <<<"$output")
-is "$output_uidgid" "0:0" "UID:GID chowned to container user without copyUIDGID"
-
-# --- libpod
-FILE_NAME=test3
-TAR_PATH="${TMPD}/${FILE_NAME}.tar"
-echo "test3_$(random_string 8)" > ${TMPD}/${FILE_NAME}.txt
-tar --owner=4001 --group=4002 --format=posix -C $TMPD -cvf ${TAR_PATH} ${FILE_NAME}.txt &> /dev/null
-t PUT "libpod/containers/${CTR}/archive?path=%2Ftmp%2F" ${TAR_PATH} 200 ''
-
-cat >$TMPD/exec.json <<EOF
-{ "AttachStdout":true,"Cmd":["stat","-c","%u:%g","/tmp/${FILE_NAME}.txt"]}
-EOF
-t POST containers/${CTR}/exec $TMPD/exec.json 201 .Id~[0-9a-f]\\{64\\}
-eid=$(jq -r '.Id' <<<"$output")
-t POST exec/$eid/start 200
-
-output_uidgid=$(grep -o '[0-9]*:[0-9]*' <<<"$output")
-is "$output_uidgid" "0:0" "libpod API: UID:GID chowned to container user"
+t POST exec/$eid/start 200 $'\001\012'1042:1043
 
 cleanUpArchiveTest
