@@ -122,14 +122,6 @@ type PodNetworkConfig struct {
 	// If the map is empty and the bridge network mode is set the container
 	// will be joined to the default network.
 	Networks map[string]types.PerNetworkOptions
-	// CNINetworks is a list of CNI networks to join the container to.
-	// If this list is empty, the default CNI network will be joined
-	// instead. If at least one entry is present, we will not join the
-	// default network (unless it is part of this list).
-	// Only available if NetNS is set to bridge.
-	// Optional.
-	// Deprecated: as of podman 4.0 use "Networks" instead.
-	CNINetworks []string `json:"cni_networks,omitempty"`
 	// NoManageResolvConf indicates that /etc/resolv.conf should not be
 	// managed by the pod. Instead, each container will create and manage a
 	// separate resolv.conf as if they had not joined a pod.
