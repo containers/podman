@@ -244,7 +244,7 @@ func formatPAXTime(ts time.Time) (s string) {
 	if secs < 0 {
 		sign = "-"             // Remember sign
 		secs = -(secs + 1)     // Add a second to secs
-		nsecs = -(nsecs - 1E9) // Take that second away from nsecs
+		nsecs = -(nsecs - 1e9) // Take that second away from nsecs
 	}
 	return strings.TrimRight(fmt.Sprintf("%s%d.%09d", sign, secs, nsecs), "0")
 }
@@ -306,6 +306,7 @@ func formatPAXRecord(k, v string) (string, error) {
 
 // validPAXRecord reports whether the key-value pair is valid where each
 // record is formatted as:
+//
 //	"%d %s=%s\n" % (size, key, value)
 //
 // Keys and values should be UTF-8, but the number of bad writers out there

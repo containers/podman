@@ -31,8 +31,8 @@ of Go as described below.
 
 This package provides two approaches for encoding and decoding XDR data:
 
-	1) Marshal/Unmarshal functions which automatically map between XDR and Go types
-	2) Individual Encoder/Decoder objects to manually work with XDR primitives
+ 1. Marshal/Unmarshal functions which automatically map between XDR and Go types
+ 2. Individual Encoder/Decoder objects to manually work with XDR primitives
 
 For the Marshal/Unmarshal functions, Go reflection capabilities are used to
 choose the type of the underlying XDR data based upon the Go type to encode or
@@ -45,7 +45,7 @@ automatically encode / decode the XDR data thereby eliminating the need to write
 a lot of boilerplate code to encode/decode and error check each piece of XDR
 data as is typically required with C based XDR libraries.
 
-Go Type to XDR Type Mappings
+# Go Type to XDR Type Mappings
 
 The following chart shows an overview of how Go types are mapped to XDR types
 for automatic marshalling and unmarshalling.  The documentation for the Marshal
@@ -72,22 +72,22 @@ and Unmarshal functions has specific details of how the mapping proceeds.
 
 Notes and Limitations:
 
-	* Automatic marshalling and unmarshalling of variable and fixed-length
-	  arrays of uint8s require a special struct tag `xdropaque:"false"`
-	  since byte slices and byte arrays are assumed to be opaque data and
-	  byte is a Go alias for uint8 thus indistinguishable under reflection
-	* Channel, complex, and function types cannot be encoded
-	* Interfaces without a concrete value cannot be encoded
-	* Cyclic data structures are not supported and will result in infinite
-	  loops
-	* Strings are marshalled and unmarshalled with UTF-8 character encoding
-	  which differs from the XDR specification of ASCII, however UTF-8 is
-	  backwards compatible with ASCII so this should rarely cause issues
+  - Automatic marshalling and unmarshalling of variable and fixed-length
+    arrays of uint8s require a special struct tag `xdropaque:"false"`
+    since byte slices and byte arrays are assumed to be opaque data and
+    byte is a Go alias for uint8 thus indistinguishable under reflection
+  - Channel, complex, and function types cannot be encoded
+  - Interfaces without a concrete value cannot be encoded
+  - Cyclic data structures are not supported and will result in infinite
+    loops
+  - Strings are marshalled and unmarshalled with UTF-8 character encoding
+    which differs from the XDR specification of ASCII, however UTF-8 is
+    backwards compatible with ASCII so this should rarely cause issues
 
-
-Encoding
+# Encoding
 
 To encode XDR data, use the Marshal function.
+
 	func Marshal(w io.Writer, v interface{}) (int, error)
 
 For example, given the following code snippet:
@@ -112,17 +112,16 @@ sequence:
 	0x00, 0x00, 0x00, 0x01,
 	0x00, 0x00, 0x00, 0x0A
 
-
 In addition, while the automatic marshalling discussed above will work for the
 vast majority of cases, an Encoder object is provided that can be used to
 manually encode XDR primitives for complex scenarios where automatic
 reflection-based encoding won't work.  The included examples provide a sample of
 manual usage via an Encoder.
 
-
-Decoding
+# Decoding
 
 To decode XDR data, use the Unmarshal function.
+
 	func Unmarshal(r io.Reader, v interface{}) (int, error)
 
 For example, given the following code snippet:
@@ -159,7 +158,7 @@ manually decode XDR primitives for complex scenarios where automatic
 reflection-based decoding won't work.  The included examples provide a sample of
 manual usage via a Decoder.
 
-Errors
+# Errors
 
 All errors are either of type UnmarshalError or MarshalError.  Both provide
 human-readable output as well as an ErrorCode field which can be inspected by

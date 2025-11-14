@@ -84,6 +84,7 @@ func (rpc *LibvirtRPCMonitor) Events(ctx context.Context) (<-chan Event, error) 
 
 // Run executes the given QAPI command against a domain's QEMU instance.
 // For a list of available QAPI commands, see:
+//
 //	http://git.qemu.org/?p=qemu.git;a=blob;f=qapi-schema.json;hb=HEAD
 func (rpc *LibvirtRPCMonitor) Run(cmd []byte) ([]byte, error) {
 	return rpc.l.Run(rpc.Domain, cmd)

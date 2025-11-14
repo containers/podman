@@ -64,10 +64,10 @@ func MatchAllFields(fields Fields) types.GomegaMatcher {
 //	}))
 func MatchFields(options Options, fields Fields) types.GomegaMatcher {
 	return &FieldsMatcher{
-		Fields:        fields,
-		IgnoreExtras:  options&IgnoreExtras != 0,
+		Fields:                 fields,
+		IgnoreExtras:           options&IgnoreExtras != 0,
 		IgnoreUnexportedExtras: options&IgnoreUnexportedExtras != 0,
-		IgnoreMissing: options&IgnoreMissing != 0,
+		IgnoreMissing:          options&IgnoreMissing != 0,
 	}
 }
 
@@ -138,8 +138,8 @@ func (m *FieldsMatcher) matchFields(actual any) (errs []error) {
 			}
 
 			var field any
-			if _, isIgnoreMatcher := matcher.(*IgnoreMatcher) ; isIgnoreMatcher {
-				field = struct {}{} // the matcher does not care about the actual value
+			if _, isIgnoreMatcher := matcher.(*IgnoreMatcher); isIgnoreMatcher {
+				field = struct{}{} // the matcher does not care about the actual value
 			} else {
 				field = val.Field(i).Interface()
 			}

@@ -32,9 +32,11 @@ RandomNonAlphaNumeric creates a random string whose length is the number of char
 Characters will be chosen from the set of all characters (ASCII/Unicode values between 0 to 2,147,483,647 (math.MaxInt32)).
 
 Parameter:
+
 	count - the length of random string to create
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -47,9 +49,11 @@ RandomAscii creates a random string whose length is the number of characters spe
 Characters will be chosen from the set of characters whose ASCII value is between 32 and 126 (inclusive).
 
 Parameter:
+
 	count - the length of random string to create
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -62,9 +66,11 @@ RandomNumeric creates a random string whose length is the number of characters s
 Characters will be chosen from the set of numeric characters.
 
 Parameter:
+
 	count - the length of random string to create
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -77,9 +83,11 @@ RandomAlphabetic creates a random string whose length is the number of character
 Characters will be chosen from the set of alphabetic characters.
 
 Parameters:
+
 	count - the length of random string to create
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -92,9 +100,11 @@ RandomAlphaNumeric creates a random string whose length is the number of charact
 Characters will be chosen from the set of alpha-numeric characters.
 
 Parameter:
+
 	count - the length of random string to create
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -107,11 +117,13 @@ RandomAlphaNumericCustom creates a random string whose length is the number of c
 Characters will be chosen from the set of alpha-numeric characters as indicated by the arguments.
 
 Parameters:
+
 	count - the length of random string to create
 	letters - if true, generated string may include alphabetic characters
 	numbers - if true, generated string may include numeric characters
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -125,6 +137,7 @@ This method has exactly the same semantics as RandomSeed(int, int, int, bool, bo
 instead of using an externally supplied source of randomness, it uses the internal *rand.Rand instance.
 
 Parameters:
+
 	count - the length of random string to create
 	start - the position in set of chars (ASCII/Unicode int) to start at
 	end - the position in set of chars (ASCII/Unicode int) to end before
@@ -133,6 +146,7 @@ Parameters:
 	chars - the set of chars to choose randoms from. If nil, then it will use the set of all chars.
 
 Returns:
+
 	string - the random string
 	error - an error stemming from an invalid parameter within underlying function, RandomSeed(...)
 */
@@ -149,6 +163,7 @@ This method accepts a user-supplied *rand.Rand instance to use as a source of ra
 with a fixed seed and using it for each call, the same random sequence of strings can be generated repeatedly and predictably.
 
 Parameters:
+
 	count - the length of random string to create
 	start - the position in set of chars (ASCII/Unicode decimals) to start at
 	end - the position in set of chars (ASCII/Unicode decimals) to end before
@@ -158,6 +173,7 @@ Parameters:
 	random - a source of randomness.
 
 Returns:
+
 	string - the random string
 	error - an error stemming from invalid parameters: if count < 0; or the provided chars array is empty; or end <= start; or end > len(chars)
 */

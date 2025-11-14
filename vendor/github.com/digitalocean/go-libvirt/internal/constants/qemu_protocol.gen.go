@@ -38,7 +38,6 @@ const (
 	// QEMUProcDomainMonitorEvent is libvirt's QEMU_PROC_DOMAIN_MONITOR_EVENT
 	QEMUProcDomainMonitorEvent = 6
 
-
 	// From consts:
 	// QEMUProgram is libvirt's QEMU_PROGRAM
 	QEMUProgram = 0x20008087

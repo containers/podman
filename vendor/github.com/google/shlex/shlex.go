@@ -20,22 +20,21 @@ shell-style rules for quoting and commenting.
 
 The basic use case uses the default ASCII lexer to split a string into sub-strings:
 
-  shlex.Split("one \"two three\" four") -> []string{"one", "two three", "four"}
+	shlex.Split("one \"two three\" four") -> []string{"one", "two three", "four"}
 
 To process a stream of strings:
 
-  l := NewLexer(os.Stdin)
-  for ; token, err := l.Next(); err != nil {
-  	// process token
-  }
+	l := NewLexer(os.Stdin)
+	for ; token, err := l.Next(); err != nil {
+		// process token
+	}
 
 To access the raw token stream (which includes tokens for comments):
 
-  t := NewTokenizer(os.Stdin)
-  for ; token, err := t.Next(); err != nil {
-	// process token
-  }
-
+	  t := NewTokenizer(os.Stdin)
+	  for ; token, err := t.Next(); err != nil {
+		// process token
+	  }
 */
 package shlex
 

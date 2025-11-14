@@ -13,7 +13,7 @@ import (
 
 	"github.com/nxadm/tail/util"
 
-    "github.com/fsnotify/fsnotify"
+	"github.com/fsnotify/fsnotify"
 )
 
 type InotifyTracker struct {
