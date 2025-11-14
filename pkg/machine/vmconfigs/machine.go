@@ -287,6 +287,14 @@ func (mc *MachineConfig) GVProxySocket() (*define.VMFile, error) {
 	return gvProxySocket(mc.Name, machineRuntimeDir)
 }
 
+func (mc *MachineConfig) GVProxyServiceSocket() (*define.VMFile, error) {
+	machineRuntimeDir, err := mc.RuntimeDir()
+	if err != nil {
+		return nil, err
+	}
+	return gvProxyServicesSocket(mc.Name, machineRuntimeDir)
+}
+
 func (mc *MachineConfig) APISocket() (*define.VMFile, error) {
 	machineRuntimeDir, err := mc.RuntimeDir()
 	if err != nil {
