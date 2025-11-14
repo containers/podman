@@ -4,17 +4,31 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/containers/podman/v6/pkg/bindings"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 )
 
 func Add(ctx context.Context, artifactName string, blobName string, artifactBlob io.Reader, options *AddOptions) (*entitiesTypes.ArtifactAddReport, error) {
-	conn, err := bindings.GetClient(ctx)
+	params, err := prepareParams(artifactName, blobName, options)
 	if err != nil {
 		return nil, err
 	}
+	return helperAdd(ctx, "/artifacts/add", params, artifactBlob)
+}
 
+func AddLocal(ctx context.Context, artifactName string, blobName string, blobPath string, options *AddOptions) (*entitiesTypes.ArtifactAddReport, error) {
+	params, err := prepareParams(artifactName, blobName, options)
+	if err != nil {
+		return nil, err
+	}
+	params.Set("path", blobPath)
+	return helperAdd(ctx, "/artifacts/local/add", params, nil)
+}
+
+func prepareParams(name string, fileName string, options *AddOptions) (url.Values, error) {
 	if options == nil {
 		options = new(AddOptions)
 	}
@@ -24,16 +38,25 @@ func Add(ctx context.Context, artifactName string, blobName string, artifactBlob
 		return nil, err
 	}
 
-	params.Set("name", artifactName)
-	params.Set("fileName", blobName)
+	params.Set("name", name)
+	params.Set("fileName", fileName)
 
-	response, err := conn.DoRequest(ctx, artifactBlob, http.MethodPost, "/artifacts/add", params, nil)
+	return params, nil
+}
+
+func helperAdd(ctx context.Context, endpoint string, params url.Values, artifactBlob io.Reader) (*entities.ArtifactAddReport, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(ctx, artifactBlob, http.MethodPost, endpoint, params, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
-	var artifactAddReport entitiesTypes.ArtifactAddReport
+	var artifactAddReport entities.ArtifactAddReport
 	if err := response.Process(&artifactAddReport); err != nil {
 		return nil, err
 	}
