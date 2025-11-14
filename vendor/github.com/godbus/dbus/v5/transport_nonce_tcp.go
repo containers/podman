@@ -30,10 +30,12 @@ func newNonceTcpTransport(keys string) (transport, error) {
 	}
 	b, err := os.ReadFile(noncefile)
 	if err != nil {
+		socket.Close()
 		return nil, err
 	}
 	_, err = socket.Write(b)
 	if err != nil {
+		socket.Close()
 		return nil, err
 	}
 	return NewConn(socket)

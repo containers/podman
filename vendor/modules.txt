@@ -318,7 +318,7 @@ github.com/go-ole/go-ole/oleutil
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
-# github.com/godbus/dbus/v5 v5.1.1-0.20241109141217-c266b19b28e9
+# github.com/godbus/dbus/v5 v5.2.0
 ## explicit; go 1.20
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
