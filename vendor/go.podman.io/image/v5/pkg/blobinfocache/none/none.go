@@ -8,8 +8,7 @@ import (
 )
 
 // noCache implements a dummy BlobInfoCache which records no data.
-type noCache struct {
-}
+type noCache struct{}
 
 // NoCache implements BlobInfoCache by not recording any data.
 //

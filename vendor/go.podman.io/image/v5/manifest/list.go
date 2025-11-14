@@ -5,14 +5,12 @@ import (
 	"go.podman.io/image/v5/internal/manifest"
 )
 
-var (
-	// SupportedListMIMETypes is a list of the manifest list types that we know how to
-	// read/manipulate/write.
-	SupportedListMIMETypes = []string{
-		DockerV2ListMediaType,
-		imgspecv1.MediaTypeImageIndex,
-	}
-)
+// SupportedListMIMETypes is a list of the manifest list types that we know how to
+// read/manipulate/write.
+var SupportedListMIMETypes = []string{
+	DockerV2ListMediaType,
+	imgspecv1.MediaTypeImageIndex,
+}
 
 // List is an interface for parsing, modifying lists of image manifests.
 // Callers can either use this abstract interface without understanding the details of the formats,

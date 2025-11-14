@@ -99,10 +99,10 @@ func writeInjectedScript(extractedRootPath string, injectedScript []byte) error 
 	}
 	filePath := filepath.Join(extractedRootPath, injectedScriptTargetPath)
 	parentDirPath := filepath.Dir(filePath)
-	if err := os.MkdirAll(parentDirPath, 0755); err != nil {
+	if err := os.MkdirAll(parentDirPath, 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", parentDirPath, err)
 	}
-	if err := os.WriteFile(filePath, injectedScript, 0755); err != nil {
+	if err := os.WriteFile(filePath, injectedScript, 0o755); err != nil {
 		return fmt.Errorf("writing %s to %s: %w", injectedScriptTargetPath, filePath, err)
 	}
 	return nil
@@ -120,7 +120,7 @@ func createTarFromSIFInputs(ctx context.Context, tarPath, squashFSPath string, i
 	conversionCommand := fmt.Sprintf("unsquashfs -d %s -f %s && tar --acls --xattrs -C %s -cpf %s ./",
 		extractedRootPath, squashFSPath, extractedRootPath, tarPath)
 	script := "#!/bin/sh\n" + conversionCommand + "\n"
-	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(scriptPath, []byte(script), 0o755); err != nil {
 		return err
 	}
 	defer os.Remove(scriptPath)

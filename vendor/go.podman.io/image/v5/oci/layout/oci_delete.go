@@ -124,7 +124,7 @@ func (ref ociReference) getBlobsToDelete(blobsUsedByDescriptorToDelete map[diges
 // So, NOTE: the blobPath() call below hard-codes "" even in calls where OCISharedBlobDirPath is set
 func (ref ociReference) deleteBlobs(blobsToDelete *set.Set[digest.Digest]) error {
 	for digest := range blobsToDelete.All() {
-		blobPath, err := ref.blobPath(digest, "") //Only delete in the local directory, see comment above
+		blobPath, err := ref.blobPath(digest, "") // Only delete in the local directory, see comment above
 		if err != nil {
 			return err
 		}
@@ -167,7 +167,7 @@ func saveJSON(path string, content any) (retErr error) {
 		if !os.IsNotExist(err) {
 			return err
 		} else { // File does not exist, use default mode
-			mode = 0644
+			mode = 0o644
 		}
 	} else {
 		mode = existingfi.Mode()

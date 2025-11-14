@@ -267,7 +267,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 
 	// Set up to digest the blob if necessary, and count its size while saving it to a file.
 	filename := s.computeNextBlobCacheFile()
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0600)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY|os.O_EXCL, 0o600)
 	if err != nil {
 		return private.UploadedBlob{}, fmt.Errorf("creating temporary file %q: %w", filename, err)
 	}
@@ -285,7 +285,6 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 		decompressed, err := archive.DecompressStream(stream)
 		if err != nil {
 			return "", "", 0, fmt.Errorf("setting up to decompress blob: %w", err)
-
 		}
 		defer decompressed.Close()
 
@@ -348,7 +347,6 @@ func (f *zstdFetcher) GetBlobAt(chunks []chunked.ImageSourceChunk) (chan io.Read
 		err = chunked.ErrBadRequest{}
 	}
 	return rc, errs, err
-
 }
 
 // PutBlobPartial attempts to create a blob using the data that is already present

@@ -394,7 +394,7 @@ var _ json.Unmarshaler = (*prSignedBy)(nil)
 func (pr *prSignedBy) UnmarshalJSON(data []byte) error {
 	*pr = prSignedBy{}
 	var tmp prSignedBy
-	var gotKeyPath, gotKeyPaths, gotKeyData = false, false, false
+	gotKeyPath, gotKeyPaths, gotKeyData := false, false, false
 	var signedIdentity json.RawMessage
 	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) any {
 		switch key {

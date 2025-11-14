@@ -4,7 +4,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased 0.5.z] ##
+## [Unreleased] ##
+
+## [0.6.0] - 2025-11-03 ##
+
+> By the Power of Greyskull!
+
+While quite small code-wise, this release marks a very key point in the
+development of filepath-securejoin.
+
+filepath-securejoin was originally intended (back in 2017) to simply be a
+single-purpose library that would take some common code used in container
+runtimes (specifically, Docker's `FollowSymlinksInScope`) and make it more
+general-purpose (with the eventual goals of it ending up in the Go stdlib).
+
+Of course, I quickly discovered that this problem was actually far more
+complicated to solve when dealing with racing attackers, which lead to me
+developing `openat2(2)` and [libpathrs][]. I had originally planned for
+libpathrs to completely replace filepath-securejoin "once it was ready" but in
+the interim we needed to fix several race attacks in runc as part of security
+advisories. Obviously we couldn't require the usage of a pre-0.1 Rust library
+in runc so it was necessary to port bits of libpathrs into filepath-securejoin.
+(Ironically the first prototypes of libpathrs were originally written in Go and
+then rewritten to Rust, so the code in filepath-securejoin is actually Go code
+that was rewritten to Rust then re-rewritten to Go.)
+
+It then became clear that pure-Go libraries will likely not be willing to
+require CGo for all of their builds, so it was necessary to accept that
+filepath-securejoin will need to stay. As such, in v0.5.0 we provided more
+pure-Go implementations of features from libpathrs but moved them into
+`pathrs-lite` subpackage to clarify what purpose these helpers serve.
+
+This release finally closes the loop and makes it so that pathrs-lite can
+transparently use libpathrs (via a `libpathrs` build-tag). This means that
+upstream libraries can use the pure Go version if they prefer, but downstreams
+(either downstream library users or even downstream distributions) are able to
+migrate to libpathrs for all usages of pathrs-lite in an entire Go binary.
+
+I should make it clear that I do not plan to port the rest of libpathrs to Go,
+as I do not wish to maintain two copies of the same codebase. pathrs-lite
+already provides the core essentials necessary to operate on paths safely for
+most modern systems. Users who want additional hardening or more ergonomic APIs
+are free to use [`cyphar.com/go-pathrs`][go-pathrs] (libpathrs's Go bindings).
+
+[libpathrs]: https://github.com/cyphar/libpathrs
+[go-pathrs]: https://cyphar.com/go-pathrs
+
+### Breaking ###
+- The deprecated `MkdirAll`, `MkdirAllHandle`, `OpenInRoot`, `OpenatInRoot` and
+  `Reopen` wrappers have been removed. Please switch to using `pathrs-lite`
+  directly.
+
+### Added ###
+- `pathrs-lite` now has support for using [libpathrs][libpathrs] as a backend.
+  This is opt-in and can be enabled at build time with the `libpathrs` build
+  tag. The intention is to allow for downstream libraries and other projects to
+  make use of the pure-Go `github.com/cyphar/filepath-securejoin/pathrs-lite`
+  package and distributors can then opt-in to using `libpathrs` for the entire
+  binary if they wish.
 
 ## [0.5.1] - 2025-10-31 ##
 
@@ -383,7 +440,8 @@ This is our first release of `github.com/cyphar/filepath-securejoin`,
 containing a full implementation with a coverage of 93.5% (the only missing
 cases are the error cases, which are hard to mocktest at the moment).
 
-[Unreleased 0.5.z]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.1...release-0.5
+[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.0...v0.4.1

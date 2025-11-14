@@ -200,7 +200,8 @@ func parseLeafCertFromPEM(untrustedCertificateBytes []byte) (*x509.Certificate, 
 
 func verifyRekorFulcio(rekorPublicKeys []*ecdsa.PublicKey, fulcioTrustRoot *fulcioTrustRoot, untrustedRekorSET []byte,
 	untrustedCertificateBytes []byte, untrustedIntermediateChainBytes []byte, untrustedBase64Signature string,
-	untrustedPayloadBytes []byte) (crypto.PublicKey, error) {
+	untrustedPayloadBytes []byte,
+) (crypto.PublicKey, error) {
 	rekorSETTime, err := internal.VerifyRekorSET(rekorPublicKeys, untrustedRekorSET, untrustedCertificateBytes,
 		untrustedBase64Signature, untrustedPayloadBytes)
 	if err != nil {

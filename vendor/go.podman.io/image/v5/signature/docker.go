@@ -49,7 +49,8 @@ func SignDockerManifest(m []byte, dockerReference string, mech SigningMechanism,
 // VerifyDockerManifestSignature checks that unverifiedSignature uses expectedKeyIdentity to sign unverifiedManifest as expectedDockerReference,
 // using mech.
 func VerifyDockerManifestSignature(unverifiedSignature, unverifiedManifest []byte,
-	expectedDockerReference string, mech SigningMechanism, expectedKeyIdentity string) (*Signature, error) {
+	expectedDockerReference string, mech SigningMechanism, expectedKeyIdentity string,
+) (*Signature, error) {
 	sig, _, err := VerifyImageManifestSignatureUsingKeyIdentityList(unverifiedSignature, unverifiedManifest, expectedDockerReference, mech, []string{expectedKeyIdentity})
 	return sig, err
 }
@@ -58,7 +59,8 @@ func VerifyDockerManifestSignature(unverifiedSignature, unverifiedManifest []byt
 // to sign unverifiedManifest as expectedDockerReference, using mech. Returns the verified signature and the key identity that
 // was used to verify it.
 func VerifyImageManifestSignatureUsingKeyIdentityList(unverifiedSignature, unverifiedManifest []byte,
-	expectedDockerReference string, mech SigningMechanism, expectedKeyIdentities []string) (*Signature, string, error) {
+	expectedDockerReference string, mech SigningMechanism, expectedKeyIdentities []string,
+) (*Signature, string, error) {
 	expectedRef, err := reference.ParseNormalizedNamed(expectedDockerReference)
 	if err != nil {
 		return nil, "", err

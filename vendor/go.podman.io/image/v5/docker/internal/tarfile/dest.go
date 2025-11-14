@@ -39,7 +39,8 @@ type Destination struct {
 // NewDestination returns a tarfile.Destination adding images to the specified Writer.
 // commitWithOptions implements ImageDestination.CommitWithOptions.
 func NewDestination(sys *types.SystemContext, archive *Writer, transportName string, ref reference.NamedTagged,
-	commitWithOptions func(ctx context.Context, options private.CommitOptions) error) *Destination {
+	commitWithOptions func(ctx context.Context, options private.CommitOptions) error,
+) *Destination {
 	repoTags := []reference.NamedTagged{}
 	if ref != nil {
 		repoTags = append(repoTags, ref)

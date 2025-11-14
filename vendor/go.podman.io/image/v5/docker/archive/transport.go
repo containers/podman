@@ -110,7 +110,8 @@ func NewIndexReference(path string, sourceIndex int) (types.ImageReference, erro
 // newReference returns a docker archive reference for a path, an optional reference or sourceIndex,
 // and optionally a tarfile.Reader and/or a tarfile.Writer matching path.
 func newReference(path string, ref reference.NamedTagged, sourceIndex int,
-	archiveReader *tarfile.Reader, writer *Writer) (types.ImageReference, error) {
+	archiveReader *tarfile.Reader, writer *Writer,
+) (types.ImageReference, error) {
 	if strings.Contains(path, ":") {
 		return nil, fmt.Errorf("Invalid docker-archive: reference: colon in path %q is not supported", path)
 	}

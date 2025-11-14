@@ -438,8 +438,8 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 				return err
 			}
 
-			//FIXME: unqualifiedSearchRegistries now also accepts empty values
-			//and shouldn't
+			// FIXME: unqualifiedSearchRegistries now also accepts empty values
+			// and shouldn't
 			// https://github.com/containers/image/pull/1191#discussion_r610623216
 			if mir.Location == "" {
 				return &InvalidRegistries{s: "invalid condition: mirror location is unset"}
