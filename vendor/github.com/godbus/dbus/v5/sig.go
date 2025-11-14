@@ -31,7 +31,7 @@ type Signature struct {
 
 // SignatureOf returns the concatenation of all the signatures of the given
 // values. It panics if one of them is not representable in D-Bus.
-func SignatureOf(vs ...interface{}) Signature {
+func SignatureOf(vs ...any) Signature {
 	var s string
 	for _, v := range vs {
 		s += getSignature(reflect.TypeOf(v), &depthCounter{})
