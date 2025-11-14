@@ -61,13 +61,8 @@ func tryDiscoverDbusSessionBusAddress() string {
 			// DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-E1c73yNqrG
 
 			if f, err := os.ReadFile(runUserSessionDbusFile); err == nil {
-				fileContent := string(f)
-
-				prefix := "DBUS_SESSION_BUS_ADDRESS="
-
-				if strings.HasPrefix(fileContent, prefix) {
-					address := strings.TrimRight(strings.TrimPrefix(fileContent, prefix), "\n\r")
-					return address
+				if addr, ok := strings.CutPrefix(string(f), "DBUS_SESSION_BUS_ADDRESS="); ok {
+					return strings.TrimRight(addr, "\n\r")
 				}
 			}
 		}

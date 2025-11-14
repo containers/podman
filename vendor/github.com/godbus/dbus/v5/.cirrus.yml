@@ -1,5 +1,6 @@
+# See https://cirrus-ci.org/guide/FreeBSD/
 freebsd_instance:
-  image_family: freebsd-14-0
+  image_family: freebsd-14-2
 
 task:
   name: Test on FreeBSD
