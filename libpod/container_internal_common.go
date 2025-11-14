@@ -3044,7 +3044,7 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 	}
 	// only relabel on initial creation of container
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateUnknown) {
-		label, err := label.FileLabel(src)
+		label, err := selinux.FileLabel(src)
 		if err != nil {
 			return err
 		}
