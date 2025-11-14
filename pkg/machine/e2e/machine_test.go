@@ -72,6 +72,9 @@ var _ = BeforeSuite(func() {
 	if pullError != nil {
 		Fail(fmt.Sprintf("failed to pull disk: %q", pullError))
 	}
+
+	fmt.Println("Running platform specific set-up")
+	initPlatform()
 })
 
 type timing struct {
@@ -96,6 +99,8 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 	for _, t := range timings {
 		GinkgoWriter.Printf("%s\t\t%f seconds\n", t.name, t.length.Seconds())
 	}
+	fmt.Println("Running platform specific cleanup")
+	cleanupPlatform()
 })
 
 // The config does not matter to much for our testing, however we
