@@ -10,10 +10,8 @@ import (
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/parallel"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/pkg/cgroups"
 )
 
 // startInitContainers starts a pod's init containers.
@@ -339,16 +337,6 @@ func (p *Pod) Pause(ctx context.Context) (map[string]error, error) {
 
 	if !p.valid {
 		return nil, define.ErrPodRemoved
-	}
-
-	if rootless.IsRootless() {
-		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine cgroupversion: %w", err)
-		}
-		if !cgroupv2 {
-			return nil, fmt.Errorf("can not pause pods containing rootless containers with cgroup V1: %w", define.ErrNoCgroups)
-		}
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)

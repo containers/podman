@@ -9,8 +9,6 @@ load helpers
 @test "podman run, preserves initial --cgroup-manager" {
     skip_if_remote "podman-remote does not support --cgroup-manager"
 
-    skip_if_rootless_cgroupsv1
-
     # Find out our default cgroup manager, and from that, get the non-default
     run_podman info --format '{{.Host.CgroupManager}}'
     case "$output" in
@@ -41,7 +39,6 @@ load helpers
 # bats test_tags=ci:parallel
 @test "podman run --cgroups=disabled keeps the current cgroup" {
     skip_if_remote "podman-remote does not support --cgroups=disabled"
-    skip_if_rootless_cgroupsv1
     runtime=$(podman_runtime)
     if [[ $runtime != "crun" ]]; then
         skip "runtime is $runtime; --cgroups=disabled requires crun"

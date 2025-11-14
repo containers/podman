@@ -18,7 +18,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"golang.org/x/sys/unix"
 )
@@ -51,7 +50,7 @@ func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
 	}
 	if isNewUserns {
 		switch s.NetNS.NSMode {
-		case specgen.Slirp, specgen.Pasta, specgen.Private, specgen.NoNetwork, specgen.Bridge:
+		case specgen.Pasta, specgen.Private, specgen.NoNetwork, specgen.Bridge:
 			return true
 		default:
 			return false
@@ -64,11 +63,6 @@ func getCgroupPermissions(unmask []string) string {
 	ro := "ro"
 	rw := "rw"
 	cgroup := "/sys/fs/cgroup"
-
-	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
-	if !cgroupv2 {
-		return ro
-	}
 
 	if len(unmask) != 0 && unmask[0] == "ALL" {
 		return rw

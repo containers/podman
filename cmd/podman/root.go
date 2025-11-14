@@ -248,6 +248,8 @@ func setupRemoteConnection(podmanConfig *entities.PodmanConfig) string {
 func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	logrus.Debugf("Called %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
+	checkSupportedCgroups()
+
 	// Help, completion and commands with subcommands are special cases, no need for more setup
 	// Completion cmd is used to generate the shell scripts
 	if cmd.Name() == "help" || cmd.Name() == "completion" || cmd.HasSubCommands() {
@@ -579,12 +581,6 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		conmonFlagName := "conmon"
 		pFlags.StringVar(&podmanConfig.ConmonPath, conmonFlagName, "", "Path of the conmon binary")
 		_ = cmd.RegisterFlagCompletionFunc(conmonFlagName, completion.AutocompleteDefault)
-
-		// TODO (6.0): --network-cmd-path is deprecated, remove this option with the next major release
-		// We need to find all the places that use r.config.Engine.NetworkCmdPath and remove it
-		networkCmdPathFlagName := "network-cmd-path"
-		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.NetworkCmdPath, networkCmdPathFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.NetworkCmdPath, "Path to the command for configuring the network")
-		_ = cmd.RegisterFlagCompletionFunc(networkCmdPathFlagName, completion.AutocompleteDefault)
 
 		networkConfigDirFlagName := "network-config-dir"
 		pFlags.StringVar(&podmanConfig.ContainersConf.Network.NetworkConfigDir, networkConfigDirFlagName, podmanConfig.ContainersConfDefaultsRO.Network.NetworkConfigDir, "Path of the configuration directory for networks")

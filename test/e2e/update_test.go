@@ -7,61 +7,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	"go.podman.io/common/pkg/cgroupv2"
 	"go.podman.io/storage/pkg/fileutils"
 )
 
 var _ = Describe("Podman update", func() {
-	It("podman update container all options v1", func() {
-		SkipIfCgroupV2("testing flags that only work in cgroup v1")
-		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
-		session := podmanTest.Podman([]string{"run", "-dt", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		ctrID := session.OutputToString()
-
-		commonArgs := []string{
-			"update",
-			"--cpus", "5",
-			"--cpuset-cpus", "0",
-			"--cpu-shares", "123",
-			"--cpuset-mems", "0",
-			"--memory", "1G",
-			"--memory-swap", "2G",
-			"--memory-reservation", "2G",
-			"--memory-swappiness", "50",
-			"--pids-limit", "123", ctrID,
-		}
-
-		session = podmanTest.Podman(commonArgs)
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		// checking cpu quota from --cpus
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/cpu/cpu.cfs_quota_us", "500000")
-
-		// checking cpuset-cpus
-		podmanTest.CheckFileInContainer(ctrID, "/sys/fs/cgroup/cpuset/cpuset.cpus", "0")
-
-		// checking cpuset-mems
-		podmanTest.CheckFileInContainer(ctrID, "/sys/fs/cgroup/cpuset/cpuset.mems", "0")
-
-		// checking memory limit
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/memory/memory.limit_in_bytes", "1073741824")
-
-		// checking memory-swap
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes", "2147483648")
-
-		// checking cpu-shares
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/cpu/cpu.shares", "123")
-
-		// checking pids-limit
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/pids/pids.max", "123")
-	})
-
 	It("podman update container unspecified pid limit", func() {
-		SkipIfCgroupV1("testing flags that only work in cgroup v2")
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 		session := podmanTest.Podman([]string{"run", "-dt", "--pids-limit", "-1", ALPINE})
 		session.WaitWithDefaultTimeout()
@@ -86,7 +36,6 @@ var _ = Describe("Podman update", func() {
 	})
 
 	It("podman update container all options v2", func() {
-		SkipIfCgroupV1("testing flags that only work in cgroup v2")
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 		skipWithoutDevNullb0()
 		session := podmanTest.Podman([]string{"run", "-dt", ALPINE})
@@ -167,16 +116,10 @@ var _ = Describe("Podman update", func() {
 
 		ctrID := session.OutputToString()
 
-		path := "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"
-		if v2, _ := cgroupv2.Enabled(); v2 {
-			path = "/sys/fs/cgroup/cpu.max"
-		}
-
-		podmanTest.CheckFileInContainerSubstring(ctrID, path, "500000")
+		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/cpu.max", "500000")
 	})
 
 	It("podman update persists changes", func() {
-		SkipIfCgroupV1("testing flags that only work in cgroup v2")
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
 
 		memoryInspect := ".HostConfig.Memory"

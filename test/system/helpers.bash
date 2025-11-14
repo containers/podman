@@ -938,36 +938,6 @@ function skip_if_no_selinux() {
     fi
 }
 
-#######################
-#  skip_if_cgroupsv1  #  ...with an optional message
-#######################
-function skip_if_cgroupsv1() {
-    if ! is_cgroupsv2; then
-        skip "${1:-test requires cgroupsv2}"
-    fi
-}
-
-#######################
-#  skip_if_cgroupsv2  #  ...with an optional message
-#######################
-function skip_if_cgroupsv2() {
-    if is_cgroupsv2; then
-        skip "${1:-test requires cgroupsv1}"
-    fi
-}
-
-######################
-#  skip_if_rootless_cgroupsv1  #  ...with an optional message
-######################
-function skip_if_rootless_cgroupsv1() {
-    if is_rootless; then
-        if ! is_cgroupsv2; then
-            local msg=$(_add_label_if_missing "$1" "rootless cgroupvs1")
-            skip "${msg:-not supported as rootless under cgroupsv1}"
-        fi
-    fi
-}
-
 ##################################
 #  skip_if_journald_unavailable  #  rhbz#1895105: rootless journald permissions
 ##################################

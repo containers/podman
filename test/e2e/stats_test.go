@@ -15,13 +15,6 @@ import (
 // TODO: we need to check the output. Currently, we only check the exit codes
 // which is not enough.
 var _ = Describe("Podman stats", func() {
-	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("stats not supported on cgroupv1 for rootless users")
-		if isContainerized() {
-			SkipIfCgroupV1("stats not supported inside cgroupv1 container environment")
-		}
-	})
-
 	It("podman stats with bogus container", func() {
 		session := podmanTest.Podman([]string{"stats", "--no-stream", "123"})
 		session.WaitWithDefaultTimeout()
@@ -154,29 +147,6 @@ var _ = Describe("Podman stats", func() {
 		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-	})
-
-	It("podman stats on container with forced slirp4netns", func() {
-		// This will force the slirp4netns net mode to be tested as root
-		session := podmanTest.Podman([]string{"run", "-d", "--net", "slirp4netns", ALPINE, "top"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-	})
-
-	It("podman reads slirp4netns network stats", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "--network", "slirp4netns", ALPINE, "top"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		cid := session.OutputToString()
-
-		stats := podmanTest.Podman([]string{"stats", "--format", "'{{.NetIO}}'", "--no-stream", cid})
-		stats.WaitWithDefaultTimeout()
-		Expect(stats).Should(ExitCleanly())
-		Expect(stats.OutputToString()).To(Not(ContainSubstring("-- / --")))
 	})
 
 	// Regression test for #8265

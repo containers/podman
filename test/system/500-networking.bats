@@ -114,7 +114,6 @@ load helpers.network
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 # FIXME: random_rfc1918_subnet is not parallel-safe
 @test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -123,13 +122,8 @@ load helpers.network
             # force bridge networking also for rootless
             # this ensures that rootless + bridge + userns + ports works
             network_arg="--network bridge"
-        elif has_slirp4netns; then
-            # Issue #9828 make sure a custom slirp4netns cidr also works
-            network_arg="--network slirp4netns:cidr=$cidr"
-            # slirp4netns interface ip is always .100
-            match="${cidr%.*}.100"
         else
-            echo "# [skipping subtest of $cidr - slirp4netns unavailable]" >&3
+            echo "# [skipping subtest of $cidr]" >&3
             continue
         fi
 
@@ -207,57 +201,6 @@ load helpers.network
 
     run_podman pod rm -f -t0 $pod_name
     is "$output" "$pid" "Only ID in output (no extra errors)"
-}
-
-# FIXME: random_rfc1918_subnet is not parallel-safe
-@test "podman run with slirp4ns assigns correct addresses to /etc/hosts" {
-    has_slirp4netns || skip "slirp4netns unavailable"
-
-    CIDR="$(random_rfc1918_subnet)"
-    IP=$(hostname -I | cut -f 1 -d " ")
-    local conname=con-$(safename)
-    run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
-                --name $conname --hostname $conname $IMAGE cat /etc/hosts
-    is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be host address"
-    is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
-
-    if is_rootless; then
-    # check the slirp ip also works correct with userns
-        run_podman run --rm --userns keep-id --network slirp4netns:cidr="${CIDR}.0/24" \
-                --name $conname --hostname $conname $IMAGE cat /etc/hosts
-        is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be host address"
-        is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
-    fi
-}
-
-# FIXME: random_rfc1918_subnet is not parallel-safe
-@test "podman run with slirp4ns adds correct dns address to resolv.conf" {
-    has_slirp4netns || skip "slirp4netns unavailable"
-
-    CIDR="$(random_rfc1918_subnet)"
-    run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
-                $IMAGE cat /etc/resolv.conf
-    assert "$output" =~ "nameserver ${CIDR}.3" "resolv.conf should have slirp4netns cidr+3 as first nameserver"
-    no_userns_out="$output"
-
-    if is_rootless; then
-    # check the slirp ip also works correct with userns
-        run_podman run --rm --userns keep-id --network slirp4netns:cidr="${CIDR}.0/24" \
-                $IMAGE cat /etc/resolv.conf
-        assert "$output" =~ "nameserver ${CIDR}.3" "resolv.conf should have slirp4netns cidr+3 as first nameserver with userns"
-        assert "$output" == "$no_userns_out" "resolv.conf should look the same for userns"
-    fi
-
-}
-
-# FIXME: random_rfc1918_subnet is not parallel-safe
-@test "podman run with slirp4ns assigns correct ip address container" {
-    has_slirp4netns || skip "slirp4netns unavailable"
-
-    CIDR="$(random_rfc1918_subnet)"
-    run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
-                $IMAGE sh -c "ip address | grep ${CIDR}"
-    is "$output"   ".*inet ${CIDR}.100/24 \+"   "container should have slirp4netns cidr+100 assigned to interface"
 }
 
 # "network create" now works rootless, with the help of a special container
@@ -467,16 +410,6 @@ load helpers.network
         skip "This test needs an ipv6 nameserver in $resolve_file"
     fi
 
-    if has_slirp4netns; then
-        # ipv4 slirp
-        run_podman run --rm --network slirp4netns:enable_ipv6=false $IMAGE cat /etc/resolv.conf
-        assert "$output" !~ "$ipv6_regex" "resolv.conf should not contain ipv6 nameserver"
-
-        # ipv6 slirp
-        run_podman run --rm --network slirp4netns:enable_ipv6=true $IMAGE cat /etc/resolv.conf
-        assert "$output" =~ "$ipv6_regex" "resolv.conf should contain ipv6 nameserver"
-    fi
-
     # ipv4 cni
     local mysubnet=$(random_rfc1918_subnet)
     local netname=testnet1-$(safename)
@@ -642,9 +575,6 @@ load helpers.network
     is "$output" "$netname" "output of 'network create'"
 
     local -a networks=("$netname")
-    if has_slirp4netns; then
-        networks+=("slirp4netns")
-    fi
     for network in "${networks[@]}"; do
         # Start container with the restart always policy
         local cname=c-$(safename)
@@ -783,10 +713,6 @@ nameserver 8.8.8.8" "nameserver order is correct"
     defer-assertion-failures
 
     local -a netmodes=("bridge")
-    # As of podman 5.0, slirp4netns is optional
-    if has_slirp4netns; then
-        netmodes+=("slirp4netns:port_handler=slirp4netns" "slirp4netns:port_handler=rootlesskit")
-    fi
     # pasta only works rootless
     if is_rootless; then
         netmodes+=("pasta")
@@ -878,7 +804,6 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run /etc/* permissions" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     userns="--userns=keep-id"
     if ! is_rootless; then
         userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
@@ -992,8 +917,6 @@ EOF
 # Test for https://github.com/containers/podman/issues/18615
 # CANNOT BE PARALLELIZED due to strict checking of /run/netns
 @test "podman network cleanup --userns + --restart" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
-
     local net1=net-a-$(safename)
     # use /29 subnet to limit available ip space, a 29 gives 5 usable addresses (6 - 1 for the gw)
     local subnet="$(random_rfc1918_subnet).0/29"
@@ -1016,16 +939,9 @@ EOF
     # Now make sure we can still run a container with free ips.
     run_podman run --rm --network $net1 $IMAGE true
 
-    # And now because of all the fun we have to check the same with slirp4netns and pasta because
+    # And now because of all the fun we have to check the same with pasta because
     # that uses slightly different code paths. Note this would deadlock before the fix.
     # https://github.com/containers/podman/issues/21477
-    if has_slirp4netns; then
-        cname2=con2-$(safename)
-        run_podman 1 run --name $cname2 --network slirp4netns --restart on-failure:2 --userns keep-id $IMAGE false
-        wait_for_restart_count $cname2 2 "slirp4netns"
-        run_podman wait $cname2
-    fi
-
     if is_rootless; then
         # pasta can only run rootless
         cname3=con3-$(safename)
