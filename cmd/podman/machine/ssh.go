@@ -60,14 +60,15 @@ func ssh(_ *cobra.Command, args []string) error {
 		// it implies podman cannot read its machine files, which is bad
 		mc, vmProvider, err = shim.VMExists(args[0])
 		if err != nil {
-			return err
-		}
-		if errors.Is(err, &define.ErrVMDoesNotExist{}) {
-			vmName = args[0]
-		} else {
+			var vmNotExistsErr *define.ErrVMDoesNotExist
+			if !errors.As(err, &vmNotExistsErr) {
+				return err
+			}
 			sshOpts.Args = append(sshOpts.Args, args[0])
+		} else {
+			vmName = args[0]
+			exists = true
 		}
-		exists = true
 	}
 
 	// If len is greater than 1, it means we might have been
