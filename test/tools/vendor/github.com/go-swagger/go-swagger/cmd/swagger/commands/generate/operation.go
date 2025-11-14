@@ -83,8 +83,7 @@ func (o *Operation) generate(opts *generator.GenOpts) error {
 	return generator.GenerateServerOperation(append(o.Name, o.Operations.Operations...), opts)
 }
 
-func (o Operation) log(rp string) {
-
+func (o Operation) log(_ string) {
 	log.Println(`Generation completed!
 
 For this generation to compile you need to have some packages in your go.mod:
@@ -95,7 +94,7 @@ You can get these now with: go mod tidy`)
 }
 
 // Execute generates a model file
-func (o *Operation) Execute(args []string) error {
+func (o *Operation) Execute(_ []string) error {
 	if o.Shared.DumpData && len(append(o.Name, o.Operations.Operations...)) > 1 {
 		return errors.New("only 1 operation at a time is supported for dumping data")
 	}

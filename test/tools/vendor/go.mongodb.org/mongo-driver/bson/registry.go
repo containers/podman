@@ -10,15 +10,27 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 )
 
-// DefaultRegistry is the default bsoncodec.Registry. It contains the default codecs and the
-// primitive codecs.
+// DefaultRegistry is the default bsoncodec.Registry. It contains the default
+// codecs and the primitive codecs.
+//
+// Deprecated: Use [NewRegistry] to construct a new default registry. To use a
+// custom registry when marshaling or unmarshaling, use the "SetRegistry" method
+// on an [Encoder] or [Decoder] instead:
+//
+//	dec, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
+//	if err != nil {
+//	    panic(err)
+//	}
+//	dec.SetRegistry(reg)
+//
+// See [Encoder] and [Decoder] for more examples.
 var DefaultRegistry = NewRegistry()
 
 // NewRegistryBuilder creates a new RegistryBuilder configured with the default encoders and
 // decoders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
 //
-// Deprecated: Use NewRegistry instead.
+// Deprecated: Use [NewRegistry] instead.
 func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 	rb := bsoncodec.NewRegistryBuilder()
 	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)

@@ -389,8 +389,13 @@ func (hasher) hashTypeName(tname *types.TypeName) uint32 {
 	// path, and whether or not it is a package-level typename. It
 	// is rare for a package to define multiple local types with
 	// the same name.)
-	hash := uintptr(unsafe.Pointer(tname))
-	return uint32(hash ^ (hash >> 32))
+	ptr := uintptr(unsafe.Pointer(tname))
+	if unsafe.Sizeof(ptr) == 8 {
+		hash := uint64(ptr)
+		return uint32(hash ^ (hash >> 32))
+	} else {
+		return uint32(ptr)
+	}
 }
 
 // shallowHash computes a hash of t without looking at any of its
