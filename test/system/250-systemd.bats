@@ -316,13 +316,6 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman rm $cname
 }
 
-@test "podman --systemd fails on cgroup v1 with a private cgroupns" {
-    skip_if_cgroupsv2
-
-    run_podman 126 run --systemd=always --cgroupns=private $IMAGE true
-    assert "$output" =~ ".*cgroup namespace is not supported with cgroup v1 and systemd mode"
-}
-
 # https://github.com/containers/podman/issues/13153
 @test "podman rootless-netns processes should be in different cgroup" {
     is_rootless || skip "only meaningful for rootless"

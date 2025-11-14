@@ -26352,16 +26352,9 @@ msgstr ""
 msgid "Display a live stream of one or more containers' resource usage statistics"
 msgstr ""
 
-#: ../../source/markdown/podman-stats.1.md:15
-msgid ""
-"Note:  Podman stats does not work in rootless environments that use "
-"CGroups V1. Podman stats relies on CGroup information for statistics, and"
-" CGroup v1 is not supported for rootless use cases."
-msgstr ""
-
 #: ../../source/markdown/podman-stats.1.md:19
 msgid ""
-"Note: Rootless environments that use CGroups V2 are not able to report "
+"Note: Rootless environments are not able to report "
 "statistics about their networking usage."
 msgstr ""
 
@@ -26482,10 +26475,6 @@ msgid "Network Output"
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:1
-msgid ".PerCPU"
-msgstr ""
-
-#: ../../source/markdown/podman-stats.1.md:1
 msgid "CPU time consumed by all tasks [1]"
 msgstr ""
 
@@ -26519,10 +26508,6 @@ msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:1
 msgid "Same as UpTime"
-msgstr ""
-
-#: ../../source/markdown/podman-stats.1.md:64
-msgid "[1] Cgroups V1 only"
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:68

@@ -97,7 +97,6 @@ var _ = Describe("Podman container cleanup", func() {
 	})
 
 	It("podman cleanup paused container", func() {
-		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
 		session := podmanTest.RunTopContainer("paused")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

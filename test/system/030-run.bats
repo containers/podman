@@ -122,7 +122,6 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run - uidmapping has no /sys/kernel mounts" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     skip_if_rootless "cannot umount as rootless"
 
     run_podman run --rm --uidmap 0:100:10000 $IMAGE mount
@@ -1081,7 +1080,6 @@ EOF
 # rhbz#1902979 : podman run fails to update /etc/hosts when --uidmap is provided
 # bats test_tags=ci:parallel
 @test "podman run update /etc/hosts" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     HOST=$(random_string 25)
     run_podman run --uidmap 0:10001:10002 --rm --hostname ${HOST} $IMAGE grep ${HOST} /etc/hosts
     is "${lines[0]}" ".*${HOST}.*"
@@ -1451,21 +1449,13 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run --net=host --cgroupns=host with read only cgroupfs" {
-    skip_if_rootless_cgroupsv1
+    # verify that the last /sys/fs/cgroup mount is read-only
+    run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
+    assert "$output" =~ "/sys/fs/cgroup ro"
 
-    if is_cgroupsv1; then
-        # verify that the memory controller is mounted read-only
-        run_podman run --net=host --cgroupns=host --rm $IMAGE cat /proc/self/mountinfo
-        assert "$output" =~ "/sys/fs/cgroup/memory ro.* cgroup cgroup"
-    else
-        # verify that the last /sys/fs/cgroup mount is read-only
-        run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
-        assert "$output" =~ "/sys/fs/cgroup ro"
-
-        # verify that it works also with a cgroupns
-        run_podman run --net=host --cgroupns=private --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
-        assert "$output" =~ "/sys/fs/cgroup ro"
-    fi
+    # verify that it works also with a cgroupns
+    run_podman run --net=host --cgroupns=private --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
+    assert "$output" =~ "/sys/fs/cgroup ro"
 }
 
 # bats test_tags=ci:parallel

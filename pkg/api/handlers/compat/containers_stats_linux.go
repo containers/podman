@@ -20,7 +20,6 @@ func getPreCPUStats(stats *define.ContainerStats) CPUStats {
 	return CPUStats{
 		CPUUsage: container.CPUUsage{
 			TotalUsage:        stats.CPUNano,
-			PercpuUsage:       stats.PerCPU,
 			UsageInKernelmode: stats.CPUSystemNano,
 			UsageInUsermode:   stats.CPUNano - stats.CPUSystemNano,
 		},
