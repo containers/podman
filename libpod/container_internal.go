@@ -2773,6 +2773,7 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 	}
 	oldRestart := c.config.RestartPolicy
 	oldRetries := c.config.RestartRetries
+	oldRlimits := c.config.Spec.Process.Rlimits
 
 	if updateOptions.RestartPolicy != nil {
 		if err := define.ValidateRestartPolicy(*updateOptions.RestartPolicy); err != nil {
@@ -2820,16 +2821,33 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 		c.config.Spec.Process.Env = envLib.Slice(envMap)
 	}
 
+	if updateOptions.Rlimits != nil {
+		c.config.Spec.Process.Rlimits = util.FormatRlimits(updateOptions.Rlimits)
+	}
+
+	if updateOptions.Rlimits != nil {
+		formattedRlimits := make([]spec.POSIXRlimit, len(updateOptions.Rlimits))
+		for i, rlimit := range updateOptions.Rlimits {
+			formattedRlimits[i] = spec.POSIXRlimit{
+				Type: "RLIMIT_" + strings.ToUpper(rlimit.Type),
+				Hard: rlimit.Hard,
+				Soft: rlimit.Soft,
+			}
+		}
+		c.config.Spec.Process.Rlimits = formattedRlimits
+	}
+
 	if err := c.runtime.state.RewriteContainerConfig(c, c.config); err != nil {
 		// Assume DB write failed, revert to old resources block
 		c.config.Spec.Linux.Resources = oldResources
 		c.config.RestartPolicy = oldRestart
 		c.config.RestartRetries = oldRetries
+		c.config.Spec.Process.Rlimits = oldRlimits
 		return err
 	}
 
 	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused) &&
-		(updateOptions.Resources != nil || updateOptions.Env != nil || updateOptions.UnsetEnv != nil) {
+		(updateOptions.Resources != nil || updateOptions.Env != nil || updateOptions.UnsetEnv != nil || updateOptions.Rlimits != nil) {
 		// So `podman inspect` on running containers sources its OCI spec from disk.
 		// To keep inspect accurate we need to update the on-disk OCI spec.
 		onDiskSpec, err := c.specFromState()
@@ -2844,6 +2862,9 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 		}
 		if len(updateOptions.Env) != 0 || len(updateOptions.UnsetEnv) != 0 {
 			onDiskSpec.Process.Env = c.config.Spec.Process.Env
+		}
+		if updateOptions.Rlimits != nil {
+			onDiskSpec.Process.Rlimits = util.FormatRlimits(updateOptions.Rlimits)
 		}
 		if err := c.saveSpec(onDiskSpec); err != nil {
 			logrus.Errorf("Unable to update container %s OCI spec - `podman inspect` may not be accurate until container is restarted: %v", c.ID(), err)
