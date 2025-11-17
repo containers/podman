@@ -216,12 +216,8 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to systemd sandbox cgroup: %v", err)
 			}
 		} else {
-			control, err := cgroups.New(cgroupPath, &cgroupResources)
+			_, err := cgroups.New(cgroupPath, &cgroupResources)
 			if err != nil {
-				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			} else if err := control.AddPid(cmd.Process.Pid); err != nil {
-				// we need to remove this defer and delete the cgroup once conmon exits
-				// maybe need a conmon monitor?
 				logrus.StandardLogger().Logf(logLevel, "Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}

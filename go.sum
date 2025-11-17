@@ -239,6 +239,8 @@ github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec h1:2tTW6cDth2T
 github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec/go.mod h1:TmwEoGCwIti7BCeJ9hescZgRtatxRE+A72pCoPfmcfk=
 github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422 h1:XvRuyDDRvi+UDxHN/M4MW4HxjmNVMmUKQj/+AbgsYgk=
 github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422/go.mod h1:JLgfq4XMVbvfNlAXla/41lZnp21O72a/wWHGJefAvgQ=
+github.com/lsm5/container-libs/common v0.0.0-20251117194759-eef88fc173c9 h1:50qNXd+OHTiRBJMADHmnZZbQ0gTTqNSW8GhSe0TEH/0=
+github.com/lsm5/container-libs/common v0.0.0-20251117194759-eef88fc173c9/go.mod h1:bWMkqGUJlUwDYe29T0L191jJY0XQZSRVzL+85kI/nd8=
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 h1:7UMa6KCCMjZEMDtTVdcGu0B1GmmC7QJKiCCjyTAWQy0=
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683/go.mod h1:ilwx/Dta8jXAgpFYFvSWEMwxmbWXyiUHkd5FwyKhb5k=
 github.com/manifoldco/promptui v0.9.0 h1:3V4HzJk1TtXW1MTZMP7mdlwbBpIinw3HztaIlYthEiA=
