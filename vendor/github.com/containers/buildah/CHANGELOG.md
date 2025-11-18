@@ -2,6 +2,11 @@
 
 # Changelog
 
+## v1.39.5 (2025-11-06)
+
+    [release-1.39] Bump runc to v1.2.8 - CVE-2025-52881
+    Builder.sbomScan(): don't break non-root scanners
+
 ## v1.39.4 (2025-03-27)
 
     [release-1.39] Bump c/image to v5.34.3, c/common v0.62.3

@@ -4,7 +4,197 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased] ##
+## [Unreleased 0.5.z] ##
+
+## [0.5.1] - 2025-10-31 ##
+
+> Spooky scary skeletons send shivers down your spine!
+
+### Changed ###
+- `openat2` can return `-EAGAIN` if it detects a possible attack in certain
+  scenarios (namely if there was a rename or mount while walking a path with a
+  `..` component). While this is necessary to avoid a denial-of-service in the
+  kernel, it does require retry loops in userspace.
+
+  In previous versions, `pathrs-lite` would retry `openat2` 32 times before
+  returning an error, but we've received user reports that this limit can be
+  hit on systems with very heavy load. In some synthetic benchmarks (testing
+  the worst-case of an attacker doing renames in a tight loop on every core of
+  a 16-core machine) we managed to get a ~3% failure rate in runc. We have
+  improved this situation in two ways:
+
+  * We have now increased this limit to 128, which should be good enough for
+    most use-cases without becoming a denial-of-service vector (the number of
+    syscalls called by the `O_PATH` resolver in a typical case is within the
+    same ballpark). The same benchmarks show a failure rate of ~0.12% which
+    (while not zero) is probably sufficient for most users.
+
+  * In addition, we now return a `unix.EAGAIN` error that is bubbled up and can
+    be detected by callers. This means that callers with stricter requirements
+    to avoid spurious errors can choose to do their own infinite `EAGAIN` retry
+    loop (though we would strongly recommend users use time-based deadlines in
+    such retry loops to avoid potentially unbounded denials-of-service).
+
+## [0.5.0] - 2025-09-26 ##
+
+> Let the past die. Kill it if you have to.
+
+> **NOTE**: With this release, some parts of
+> `github.com/cyphar/filepath-securejoin` are now licensed under the Mozilla
+> Public License (version 2). Please see [COPYING.md][] as well as the the
+> license header in each file for more details.
+
+[COPYING.md]: ./COPYING.md
+
+### Breaking ###
+- The new API introduced in the [0.3.0][] release has been moved to a new
+  subpackage called `pathrs-lite`. This was primarily done to better indicate
+  the split between the new and old APIs, as well as indicate to users the
+  purpose of this subpackage (it is a less complete version of [libpathrs][]).
+
+  We have added some wrappers to the top-level package to ease the transition,
+  but those are deprecated and will be removed in the next minor release of
+  filepath-securejoin. Users should update their import paths.
+
+  This new subpackage has also been relicensed under the Mozilla Public License
+  (version 2), please see [COPYING.md][] for more details.
+
+### Added ###
+- Most of the key bits the safe `procfs` API have now been exported and are
+  available in `github.com/cyphar/filepath-securejoin/pathrs-lite/procfs`. At
+  the moment this primarily consists of a new `procfs.Handle` API:
+
+   * `OpenProcRoot` returns a new handle to `/proc`, endeavouring to make it
+     safe if possible (`subset=pid` to protect against mistaken write attacks
+     and leaks, as well as using `fsopen(2)` to avoid racing mount attacks).
+
+     `OpenUnsafeProcRoot` returns a handle without attempting to create one
+     with `subset=pid`, which makes it more dangerous to leak. Most users
+     should use `OpenProcRoot` (even if you need to use `ProcRoot` as the base
+     of an operation, as filepath-securejoin will internally open a handle when
+     necessary).
+
+   * The `(*procfs.Handle).Open*` family of methods lets you get a safe
+     `O_PATH` handle to subpaths within `/proc` for certain subpaths.
+
+     For `OpenThreadSelf`, the returned `ProcThreadSelfCloser` needs to be
+     called after you completely finish using the handle (this is necessary
+     because Go is multi-threaded and `ProcThreadSelf` references
+     `/proc/thread-self` which may disappear if we do not
+     `runtime.LockOSThread` -- `ProcThreadSelfCloser` is currently equivalent
+     to `runtime.UnlockOSThread`).
+
+     Note that you cannot open any `procfs` symlinks (most notably magic-links)
+     using this API. At the moment, filepath-securejoin does not support this
+     feature (but [libpathrs][] does).
+
+   * `ProcSelfFdReadlink` lets you get the in-kernel path representation of a
+     file descriptor (think `readlink("/proc/self/fd/...")`), except that we
+     verify that there aren't any tricky overmounts that could fool the
+     process.
+
+     Please be aware that the returned string is simply a snapshot at that
+     particular moment, and an attacker could move the file being pointed to.
+     In addition, complex namespace configurations could result in non-sensical
+     or confusing paths to be returned. The value received from this function
+     should only be used as secondary verification of some security property,
+     not as proof that a particular handle has a particular path.
+
+  The procfs handle used internally by the API is the same as the rest of
+  `filepath-securejoin` (for privileged programs this is usually a private
+  in-process `procfs` instance created with `fsopen(2)`).
+
+  As before, this is intended as a stop-gap before users migrate to
+  [libpathrs][], which provides a far more extensive safe `procfs` API and is
+  generally more robust.
+
+- Previously, the hardened procfs implementation (used internally within
+  `Reopen` and `Open(at)InRoot`) only protected against overmount attacks on
+  systems with `openat2(2)` (Linux 5.6) or systems with `fsopen(2)` or
+  `open_tree(2)` (Linux 5.2) and programs with privileges to use them (with
+  some caveats about locked mounts that probably affect very few users). For
+  other users, an attacker with the ability to create malicious mounts (on most
+  systems, a sysadmin) could trick you into operating on files you didn't
+  expect. This attack only really makes sense in the context of container
+  runtime implementations.
+
+  This was considered a reasonable trade-off, as the long-term intention was to
+  get all users to just switch to [libpathrs][] if they wanted to use the safe
+  `procfs` API (which had more extensive protections, and is what these new
+  protections in `filepath-securejoin` are based on). However, as the API
+  is now being exported it seems unwise to advertise the API as "safe" if we do
+  not protect against known attacks.
+
+  The procfs API is now more protected against attackers on systems lacking the
+  aforementioned protections. However, the most comprehensive of these
+  protections effectively rely on [`statx(STATX_MNT_ID)`][statx.2] (Linux 5.8).
+  On older kernel versions, there is no effective protection (there is some
+  minimal protection against non-`procfs` filesystem components but a
+  sufficiently clever attacker can work around those). In addition,
+  `STATX_MNT_ID` is vulnerable to mount ID reuse attacks by sufficiently
+  motivated and privileged attackers -- this problem is mitigated with
+  `STATX_MNT_ID_UNIQUE` (Linux 6.8) but that raises the minimum kernel version
+  for more protection.
+
+  The fact that these protections are quite limited despite needing a fair bit
+  of extra code to handle was one of the primary reasons we did not initially
+  implement this in `filepath-securejoin` ([libpathrs][] supports all of this,
+  of course).
+
+### Fixed ###
+- RHEL 8 kernels have backports of `fsopen(2)` but in some testing we've found
+  that it has very bad (and very difficult to debug) performance issues, and so
+  we will explicitly refuse to use `fsopen(2)` if the running kernel version is
+  pre-5.2 and will instead fallback to `open("/proc")`.
+
+[CVE-2024-21626]: https://github.com/opencontainers/runc/security/advisories/GHSA-xr7r-f8xq-vfvv
+[libpathrs]: https://github.com/cyphar/libpathrs
+[statx.2]: https://www.man7.org/linux/man-pages/man2/statx.2.html
+
+## [0.4.1] - 2025-01-28 ##
+
+### Fixed ###
+- The restrictions added for `root` paths passed to `SecureJoin` in 0.4.0 was
+  found to be too strict and caused some regressions when folks tried to
+  update, so this restriction has been relaxed to only return an error if the
+  path contains a `..` component. We still recommend users use `filepath.Clean`
+  (and even `filepath.EvalSymlinks`) on the `root` path they are using, but at
+  least you will no longer be punished for "trivial" unclean paths.
+
+## [0.4.0] - 2025-01-13 ##
+
+### Breaking ####
+- `SecureJoin(VFS)` will now return an error if the provided `root` is not a
+  `filepath.Clean`'d path.
+
+  While it is ultimately the responsibility of the caller to ensure the root is
+  a safe path to use, passing a path like `/symlink/..` as a root would result
+  in the `SecureJoin`'d path being placed in `/` even though `/symlink/..`
+  might be a different directory, and so we should more strongly discourage
+  such usage.
+
+  All major users of `securejoin.SecureJoin` already ensure that the paths they
+  provide are safe (and this is ultimately a question of user error), but
+  removing this foot-gun is probably a good idea. Of course, this is
+  necessarily a breaking API change (though we expect no real users to be
+  affected by it).
+
+  Thanks to [Erik Sjölund](https://github.com/eriksjolund), who initially
+  reported this issue as a possible security issue.
+
+- `MkdirAll` and `MkdirHandle` now take an `os.FileMode`-style mode argument
+  instead of a raw `unix.S_*`-style mode argument, which may cause compile-time
+  type errors depending on how you use `filepath-securejoin`. For most users,
+  there will be no change in behaviour aside from the type change (as the
+  bottom `0o777` bits are the same in both formats, and most users are probably
+  only using those bits).
+
+  However, if you were using `unix.S_ISVTX` to set the sticky bit with
+  `MkdirAll(Handle)` you will need to switch to `os.ModeSticky` otherwise you
+  will get a runtime error with this update. In addition, the error message you
+  will get from passing `unix.S_ISUID` and `unix.S_ISGID` will be different as
+  they are treated as invalid bits now (note that previously passing said bits
+  was also an error).
 
 ## [0.3.6] - 2024-12-17 ##
 
@@ -128,7 +318,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   safe to start migrating to as we have extensive tests ensuring they behave
   correctly and are safe against various races and other attacks.
 
-[libpathrs]: https://github.com/openSUSE/libpathrs
+[libpathrs]: https://github.com/cyphar/libpathrs
 [open.2]: https://www.man7.org/linux/man-pages/man2/open.2.html
 
 ## [0.2.5] - 2024-05-03 ##
@@ -193,7 +383,11 @@ This is our first release of `github.com/cyphar/filepath-securejoin`,
 containing a full implementation with a coverage of 93.5% (the only missing
 cases are the error cases, which are hard to mocktest at the moment).
 
-[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.6...HEAD
+[Unreleased 0.5.z]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.1...release-0.5
+[0.5.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.3...v0.3.4
