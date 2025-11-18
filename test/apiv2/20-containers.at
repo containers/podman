@@ -841,6 +841,10 @@ t POST containers/create \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 
+t POST containers/$cid/update \
+  Ulimits='[{"Name":"memlock","Soft":-1,"Hard":-1}]' \
+  200
+
 t DELETE containers/$cid 204
 
 # Libpod API
@@ -850,6 +854,10 @@ t POST libpod/containers/create \
   201                    \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
+
+t POST libpod/containers/$cid/update \
+  r_limits='[{"type":"memlock","soft":-1,"hard":-1}]' \
+  201
 
 t DELETE containers/$cid 204
 
