@@ -40,11 +40,12 @@ import (
 	"google.golang.org/grpc/internal/grpcsync"
 	"google.golang.org/grpc/internal/idle"
 	iresolver "google.golang.org/grpc/internal/resolver"
-	"google.golang.org/grpc/internal/stats"
+	istats "google.golang.org/grpc/internal/stats"
 	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/serviceconfig"
+	"google.golang.org/grpc/stats"
 	"google.golang.org/grpc/status"
 
 	_ "google.golang.org/grpc/balancer/roundrobin"           // To register roundrobin.
@@ -210,7 +211,8 @@ func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) 
 	cc.csMgr = newConnectivityStateManager(cc.ctx, cc.channelz)
 	cc.pickerWrapper = newPickerWrapper()
 
-	cc.metricsRecorderList = stats.NewMetricsRecorderList(cc.dopts.copts.StatsHandlers)
+	cc.metricsRecorderList = istats.NewMetricsRecorderList(cc.dopts.copts.StatsHandlers)
+	cc.statsHandler = istats.NewCombinedHandler(cc.dopts.copts.StatsHandlers...)
 
 	cc.initIdleStateLocked() // Safe to call without the lock, since nothing else has a reference to cc.
 	cc.idlenessMgr = idle.NewManager((*idler)(cc), cc.dopts.idleTimeout)
@@ -621,7 +623,8 @@ type ClientConn struct {
 	channelz            *channelz.Channel // Channelz object.
 	resolverBuilder     resolver.Builder  // See initParsedTargetAndResolverBuilder().
 	idlenessMgr         *idle.Manager
-	metricsRecorderList *stats.MetricsRecorderList
+	metricsRecorderList *istats.MetricsRecorderList
+	statsHandler        stats.Handler
 
 	// The following provide their own synchronization, and therefore don't
 	// require cc.mu to be held to access them.
