@@ -1090,7 +1090,9 @@ upgrade_test_task:
     depends_on: *build
     matrix:
         - env:
-              PODMAN_UPGRADE_FROM: v4.8.0
+              PODMAN_UPGRADE_FROM: v5.3.1
+        - env:
+              PODMAN_UPGRADE_FROM: v5.6.2
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
