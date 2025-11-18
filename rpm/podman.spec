@@ -349,12 +349,6 @@ ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
 %{_tmpfilesdir}/%{name}.conf
 %{_systemdgeneratordir}/%{name}-system-generator
 %{_systemdusergeneratordir}/%{name}-user-generator
-# iptables modules are only needed with iptables-legacy,
-# as of f41 netavark will default to nftables so do not load unessary modules
-# https://fedoraproject.org/wiki/Changes/NetavarkNftablesDefault
-%if %{defined fedora} && 0%{?fedora} < 41
-%{_modulesloaddir}/%{name}-iptables.conf
-%endif
 
 %files docker
 %{_bindir}/docker
