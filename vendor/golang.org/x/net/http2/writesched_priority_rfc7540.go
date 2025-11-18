@@ -302,7 +302,6 @@ func (ws *priorityWriteSchedulerRFC7540) CloseStream(streamID uint32) {
 
 	q := n.q
 	ws.queuePool.put(&q)
-	n.q.s = nil
 	if ws.maxClosedNodesInTree > 0 {
 		ws.addClosedOrIdleNode(&ws.closedNodes, ws.maxClosedNodesInTree, n)
 	} else {
