@@ -49,9 +49,9 @@ setup() {
     # the default c/storage behavior is to make the mount propagation private.
     export _PODMAN_TEST_OPTS="--storage-opt=skip_mount_home=true --cgroup-manager=cgroupfs --root=$PODMAN_UPGRADE_WORKDIR/root --runroot=$PODMAN_UPGRADE_WORKDIR/runroot --tmpdir=$PODMAN_UPGRADE_WORKDIR/tmp"
 
-    # Old netavark used iptables but newer versions might uses nftables.
-    # Networking can only work correctly if both use the same firewall driver so force iptables.
-    printf "[network]\nfirewall_driver=\"iptables\"\n" > $PODMAN_UPGRADE_WORKDIR/containers.conf
+
+    # Starting with v6.0.0 we only test upgrade from versions that support nftables.
+    printf "[network]\nfirewall_driver=\"nftables\"\n" > $PODMAN_UPGRADE_WORKDIR/containers.conf
     export CONTAINERS_CONF_OVERRIDE=$PODMAN_UPGRADE_WORKDIR/containers.conf
 }
 
@@ -63,21 +63,6 @@ setup() {
 
     OLD_PODMAN=quay.io/podman/stable:$PODMAN_UPGRADE_FROM
     $PODMAN pull $OLD_PODMAN
-
-    # Can't mix-and-match iptables.
-    # This can only fail when we bring in new CI VMs. If/when it does fail,
-    # we'll need to figure out how to solve it. Until then, punt.
-    iptables_old_version=$($PODMAN run --rm $OLD_PODMAN iptables -V)
-    run -0 expr "$iptables_old_version" : ".*(\(.*\))"
-    iptables_old_which="$output"
-
-    iptables_new_version=$(iptables -V)
-    run -0 expr "$iptables_new_version" : ".*(\(.*\))"
-    iptables_new_which="$output"
-
-    if [[ "$iptables_new_which" != "$iptables_old_which" ]]; then
-        die "Cannot mix iptables; $PODMAN_UPGRADE_FROM container uses $iptables_old_which, host uses $iptables_new_which"
-    fi
 
     # Shortcut name, because we're referencing it a lot
     pmroot=$PODMAN_UPGRADE_WORKDIR
@@ -223,8 +208,10 @@ EOF
 
 @test "images" {
     run_podman images -a --format '{{.Names}}'
-    assert "${lines[0]}" =~ "\[localhost/podman-pause:${PODMAN_UPGRADE_FROM##v}-.*\]" "podman images, line 0"
-    assert "${lines[1]}" = "[$IMAGE]" "podman images, line 1"
+    # Filter out the podman-pause image which isn't present for
+    # versions >= 5.5.0
+    run -0 grep -v "localhost/podman-pause" <<< "$output"
+    assert "${lines[0]}" = "[$IMAGE]" "podman images, line 0"
 }
 
 @test "ps : one container running" {
