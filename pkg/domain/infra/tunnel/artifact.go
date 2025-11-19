@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v6/pkg/bindings/artifacts"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/errorhandling"
+	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
 )
 
@@ -107,21 +108,26 @@ func (ir *ImageEngine) ArtifactAdd(_ context.Context, name string, artifactBlob 
 			options.WithAppend(true)
 		}
 
-		var err error
-		if localMap, ok := localapi.CheckPathOnRunningMachine(ir.ClientCtx, blob.BlobFilePath); ok {
-			artifactAddReport, err = artifacts.AddLocal(ir.ClientCtx, name, blob.FileName, localMap.RemotePath, &options)
-			if err == nil {
-				continue
-			}
-			var errModel *errorhandling.ErrorModel
-			if errors.As(err, &errModel) {
-				switch errModel.ResponseCode {
-				case http.StatusNotFound, http.StatusMethodNotAllowed:
-				default:
+		isWSL, err := localapi.IsWSLProvider(ir.ClientCtx)
+		if err != nil {
+			logrus.Debugf("IsWSLProvider check failed: %v", err)
+		}
+		if !isWSL {
+			if localMap, ok := localapi.CheckPathOnRunningMachine(ir.ClientCtx, blob.BlobFilePath); ok {
+				artifactAddReport, err = artifacts.AddLocal(ir.ClientCtx, name, blob.FileName, localMap.RemotePath, &options)
+				if err == nil {
+					continue
+				}
+				var errModel *errorhandling.ErrorModel
+				if errors.As(err, &errModel) {
+					switch errModel.ResponseCode {
+					case http.StatusNotFound, http.StatusMethodNotAllowed:
+					default:
+						return nil, artifactAddErrorCleanup(ir.ClientCtx, i, name, err)
+					}
+				} else {
 					return nil, artifactAddErrorCleanup(ir.ClientCtx, i, name, err)
 				}
-			} else {
-				return nil, artifactAddErrorCleanup(ir.ClientCtx, i, name, err)
 			}
 		}
 

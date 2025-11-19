@@ -237,22 +237,34 @@ func CheckIfImageBuildPathsOnRunningMachine(ctx context.Context, containerFiles 
 	return translatedContainerFiles, options, true
 }
 
-// IsHyperVProvider checks if the current machine provider is Hyper-V.
-// It returns true if the provider is Hyper-V, false otherwise, or an error if the check fails.
-func IsHyperVProvider(ctx context.Context) (bool, error) {
+func getVmProviderType(ctx context.Context) (define.VMType, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		logrus.Debugf("Failed to get client connection: %v", err)
-		return false, err
+		return define.UnknownVirt, err
 	}
 
 	_, vmProvider, err := FindMachineByPort(conn.URI.String(), conn.URI)
 	if err != nil {
 		logrus.Debugf("Failed to get machine hypervisor type: %v", err)
-		return false, err
+		return define.UnknownVirt, err
 	}
 
-	return vmProvider.VMType() == define.HyperVVirt, nil
+	return vmProvider.VMType(), nil
+}
+
+// IsHyperVProvider checks if the current machine provider is Hyper-V.
+// It returns true if the provider is Hyper-V, false otherwise, or an error if the check fails.
+func IsHyperVProvider(ctx context.Context) (bool, error) {
+	providerType, err := getVmProviderType(ctx)
+	return providerType == define.HyperVVirt, err
+}
+
+// IsWSLProvider checks if the current machine provider is WSL.
+// It returns true if the provider is WSL, false otherwise, or an error if the check fails.
+func IsWSLProvider(ctx context.Context) (bool, error) {
+	providerType, err := getVmProviderType(ctx)
+	return providerType == define.WSLVirt, err
 }
 
 // ValidatePathForLocalAPI checks if the provided path satisfies requirements for local API usage.
