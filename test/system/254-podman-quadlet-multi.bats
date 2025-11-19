@@ -8,7 +8,6 @@ load helpers.systemd
 
 function setup() {
     skip_if_remote "podman quadlet is not implemented for remote setup yet"
-    skip_if_rootless_cgroupsv1 "Can't use --cgroups=split w/ CGv1 (issue 17456, wontfix)"
     skip_if_journald_unavailable "Needed for RHEL. FIXME: we might be able to re-enable a subset of tests."
 
     basic_setup
