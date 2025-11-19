@@ -372,18 +372,22 @@ function nrand() {
     assert "$output" =~ "nofile: 2048" "nofile ulimit updated to 2048 in main process"
     assert "$output" =~ "nproc: 512" "nproc ulimit updated to 512 in main process"
 
-    # Update with -1 for unlimited
-    run_podman update --ulimit nproc=-1:-1 $ctrname
-    run_podman restart $ctrname
-    run_podman logs $ctrname
-    assert "$output" =~ "nproc: unlimited" "nproc ulimit should be unlimited after restart with -1"
-
-    # Update with --ulimit host option
-    # First, capture the actual host values that will be applied by running a temporary container
+    # Capture host values by running a temporary container with --ulimit host option
     run_podman run --rm --ulimit host $IMAGE sh -c "echo 'nofile:' \$(ulimit -n); echo 'nproc:' \$(ulimit -u)"
     local host_nofile=$(echo "$output" | awk '/^nofile:/ {print $2}')
     local host_nproc=$(echo "$output" | awk '/^nproc:/ {print $2}')
 
+    # Update with -1 for unlimited
+    run_podman update --ulimit nproc=-1:-1 $ctrname
+    run_podman restart $ctrname
+    run_podman logs $ctrname
+    if is_rootless; then
+        assert "$output" =~ "nproc: $host_nproc" "rootless ulimit should clamp to host limit after restart with -1"
+    else
+        assert "$output" =~ "nproc: unlimited" "ulimit should be unlimited after restart with -1"
+    fi
+
+    # Update with --ulimit host option
     run_podman update --ulimit host $ctrname
     run_podman restart $ctrname
     run_podman logs $ctrname
