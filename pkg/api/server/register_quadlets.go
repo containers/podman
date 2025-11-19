@@ -54,5 +54,60 @@ func (s *APIServer) registerQuadletHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/quadlets/{name}/file"), s.APIHandler(libpod.GetQuadletPrint)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/quadlets libpod QuadletInstallLibpod
+	// ---
+	// tags:
+	//   - quadlets
+	// summary: Install quadlet files
+	// description: |
+	//   Install one or more files for a quadlet application. Each request should contain a single quadlet file
+	//   and optionally more files such as containerfile, kube yaml or configuration files. Supports both tar
+	//   archives and multipart form data uploads.
+	// consumes:
+	// - application/x-tar
+	// - multipart/form-data
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: query
+	//    name: replace
+	//    type: boolean
+	//    default: false
+	//    description: Replace the installation files even if the files already exists
+	//  - in: query
+	//    name: reload-systemd
+	//    type: boolean
+	//    default: true
+	//    description: Reload systemd after installing quadlets
+	//  - in: body
+	//    name: request
+	//    description: |
+	//      Quadlet files to install. Can be provided as:
+	//      - application/x-tar: A tar archive containing one quadlet file and optionally additional files
+	//      - multipart/form-data: One quadlet file as form data and optionally additional files
+	//    schema:
+	//      type: string
+	//      format: binary
+	// responses:
+	//   200:
+	//     description: Quadlet installation report
+	//     schema:
+	//       type: object
+	//       properties:
+	//         InstalledQuadlets:
+	//           type: object
+	//           additionalProperties:
+	//             type: string
+	//           description: Map of source path to installed path for successfully installed quadlets
+	//         QuadletErrors:
+	//           type: object
+	//           additionalProperties:
+	//             type: string
+	//           description: Map of source path to error message for failed installations
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/quadlets"), s.APIHandler(libpod.InstallQuadlets)).Methods(http.MethodPost)
 	return nil
 }
