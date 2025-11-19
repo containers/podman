@@ -5,6 +5,7 @@ package utils
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,6 +35,34 @@ func IsLibpodRequest(r *http.Request) bool {
 // (e.g., /v2/libpod/local...).
 func IsLibpodLocalRequest(r *http.Request) bool {
 	return apiutil.IsLibpodLocalRequest(r)
+}
+
+// ValidateContentType validates the Content-Type header and determines if multipart processing is needed.
+func ValidateContentType(r *http.Request) (bool, error) {
+	multipart := false
+	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
+		contentType, _, err := mime.ParseMediaType(hdr[0])
+		if err != nil {
+			return false, GetBadRequestError("Content-Type", hdr[0], err)
+		}
+
+		switch contentType {
+		case "application/tar":
+			logrus.Infof("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
+		case "application/x-tar":
+			break
+		case "multipart/form-data":
+			logrus.Infof("Received %s", hdr[0])
+			multipart = true
+		default:
+			if IsLibpodRequest(r) && !IsLibpodLocalRequest(r) {
+				return false, GetBadRequestError("Content-Type", hdr[0],
+					fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
+			}
+			logrus.Infof("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
+		}
+	}
+	return multipart, nil
 }
 
 // SupportedVersion validates that the version provided by client is included in the given condition
