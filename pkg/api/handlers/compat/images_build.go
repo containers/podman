@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -200,34 +199,6 @@ func processCacheFrom(query *BuildQuery, queryValues url.Values) ([]reference.Na
 // processCacheTo processes the cacheto query parameter for build cache export.
 func processCacheTo(query *BuildQuery, queryValues url.Values) ([]reference.Named, error) {
 	return processCacheReferences(query.CacheTo, "cacheto", queryValues)
-}
-
-// validateContentType validates the Content-Type header and determines if multipart processing is needed.
-func validateContentType(r *http.Request) (bool, error) {
-	multipart := false
-	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
-		contentType, _, err := mime.ParseMediaType(hdr[0])
-		if err != nil {
-			return false, utils.GetBadRequestError("Content-Type", hdr[0], err)
-		}
-
-		switch contentType {
-		case "application/tar":
-			logrus.Infof("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
-		case "application/x-tar":
-			break
-		case "multipart/form-data":
-			logrus.Infof("Received %s", hdr[0])
-			multipart = true
-		default:
-			if utils.IsLibpodRequest(r) && !utils.IsLibpodLocalRequest(r) {
-				return false, utils.GetBadRequestError("Content-Type", hdr[0],
-					fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
-			}
-			logrus.Infof("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
-		}
-	}
-	return multipart, nil
 }
 
 // parseBuildQuery parses HTTP query parameters into a BuildQuery struct with defaults.
@@ -1039,7 +1010,7 @@ func buildImage(w http.ResponseWriter, r *http.Request, getBuildContextFunc getB
 
 	// If we have a multipart we use the operations, if not default extraction for main context
 	// Validate content type
-	multipart, err := validateContentType(r)
+	multipart, err := utils.ValidateContentType(r)
 	if err != nil {
 		utils.ProcessBuildError(w, err)
 		return
