@@ -24,6 +24,11 @@ func IsHyperVProvider(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
+func IsWSLProvider(ctx context.Context) (bool, error) {
+	logrus.Debug("IsWSLProvider is not supported")
+	return false, nil
+}
+
 func ValidatePathForLocalAPI(path string) error {
 	logrus.Debug("ValidatePathForLocalAPI is not supported")
 	return nil
