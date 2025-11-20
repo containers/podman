@@ -65,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: >-
             steps.getversion.outputs.notRC == 'true' &&
             steps.checkpr.outputs.prexists == 'false'
