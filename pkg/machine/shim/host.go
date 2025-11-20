@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
+	"golang.org/x/term"
 )
 
 // List is done at the host level to allow for a *possible* future where
@@ -501,8 +502,11 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 	// Do not do anything with the system connection if its already
 	// the default system connection.
 	if !conn.Default {
-		// Prompt for system connection update
-		if updateSystemConn == nil {
+		if updateSystemConn != nil {
+			updateDefaultConnection = *updateSystemConn
+		} else if term.IsTerminal(int(os.Stdin.Fd())) {
+			// Prompt for system connection update if there is a terminal
+			// on stdin
 			response, err := promptUpdateSystemConn()
 			if err != nil {
 				return err
@@ -517,8 +521,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 				fmt.Println("Default system connection will remain unchanged")
 			}
 			updateDefaultConnection = response
-		} else {
-			updateDefaultConnection = *updateSystemConn
 		}
 	}
 
