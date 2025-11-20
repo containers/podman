@@ -335,6 +335,7 @@ validatepr: ## Go Format and lint, which all code changes must pass
 	$(PODMANCMD) run --rm \
 		-v $(CURDIR):/go/src/github.com/containers/podman \
 		--security-opt label=disable \
+		--network=host \
 		-it \
 		-w /go/src/github.com/containers/podman \
 		quay.io/libpod/validatepr:latest  \
