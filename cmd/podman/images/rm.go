@@ -87,7 +87,7 @@ func rm(_ *cobra.Command, args []string) error {
 			}
 		}
 	}
-	if len(rmErrors) > 0 {
+	if len(rmErrors) > 0 && report != nil {
 		registry.SetExitCode(report.ExitCode)
 	}
 
