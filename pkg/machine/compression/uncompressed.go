@@ -10,6 +10,9 @@ type uncompressedDecompressor struct {
 
 func newUncompressedDecompressor(compressedFilePath string) (*uncompressedDecompressor, error) {
 	d, err := newGenericDecompressor(compressedFilePath)
+	if err != nil {
+		return nil, err
+	}
 	return &uncompressedDecompressor{*d}, err
 }
 
