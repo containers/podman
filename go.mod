@@ -67,8 +67,8 @@ require (
 	go.podman.io/common v0.66.1-0.20251112195944-4afce3558e66
 	go.podman.io/image/v5 v5.38.1-0.20251112195944-4afce3558e66
 	go.podman.io/storage v1.61.1-0.20251112195944-4afce3558e66
-	golang.org/x/crypto v0.44.0
-	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82
+	golang.org/x/crypto v0.45.0
+	golang.org/x/net v0.47.0
 	golang.org/x/sync v0.18.0
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0
