@@ -51,7 +51,8 @@ The Podman generator reads the search paths above and reads files with the exten
 `.volume`, `.network`, `.build`, `.pod`, `.kube`, and `.artifact`, and for each file generates a similarly named `.service` file. Be aware that
 existing vendor services (i.e., in `/usr/`) are replaced if they have the same name. The generated unit files can
 be started and managed with `systemctl` like any other systemd service. `systemctl {--user} list-unit-files`
-lists existing unit files on the system.
+lists existing unit files on the system. To list unit files of a user who has `/sbin/nologin` as a login shell,
+run `sudo systemctl --machine username@ --user list-unit-files`.
 
 The Podman files use the same format as [regular systemd unit files](https://www.freedesktop.org/software/systemd/man/systemd.syntax.html).
 Each file type has a custom section (for example, `[Container]`) that is handled by Podman, and all
