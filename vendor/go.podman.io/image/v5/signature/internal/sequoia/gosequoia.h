@@ -1,8 +1,12 @@
 /*
- * Copying and distribution of this file, with or without modification,
- * are permitted in any medium without royalty provided the copyright
- * notice and this notice are preserved.  This file is offered as-is,
- * without any warranty.
+ * SPDX-License-Identifier: Apache-2.0 OR FSFAP
+ * SPDX-FileCopyrightText: 2025 Daiki Ueno
+ *
+ * You can redistribute and/or modify this file under the terms of either
+ * Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0.html), or
+ * FSF All Permissive License
+ * (https://www.gnu.org/prep/maintain/html_node/License-Notices-for-Other-Files.html),
+ * or both in parallel, as here.
  */
 
 #ifndef GO_SEQUOIA_H_

@@ -20,7 +20,7 @@ require (
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/crc-org/vfkit v0.6.1
-	github.com/cyphar/filepath-securejoin v0.6.0
+	github.com/cyphar/filepath-securejoin v0.6.1
 	github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v28.5.2+incompatible
@@ -52,8 +52,8 @@ require (
 	github.com/opencontainers/cgroups v0.0.6
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
-	github.com/opencontainers/runtime-spec v1.2.1
-	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
+	github.com/opencontainers/runtime-spec v1.3.0
+	github.com/opencontainers/runtime-tools v0.9.1-0.20251114084447-edf4cb3d2116
 	github.com/opencontainers/selinux v1.13.1
 	github.com/openshift/imagebuilder v1.2.19
 	github.com/rootless-containers/rootlesskit/v2 v2.3.5
@@ -64,11 +64,11 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vbauerster/mpb/v8 v8.11.2
 	github.com/vishvananda/netlink v1.3.1
-	go.podman.io/common v0.66.1-0.20251112195944-4afce3558e66
-	go.podman.io/image/v5 v5.38.1-0.20251112195944-4afce3558e66
-	go.podman.io/storage v1.61.1-0.20251112195944-4afce3558e66
-	golang.org/x/crypto v0.44.0
-	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82
+	go.podman.io/common v0.66.1-0.20251120131032-23712697ddda
+	go.podman.io/image/v5 v5.38.1-0.20251120131032-23712697ddda
+	go.podman.io/storage v1.61.1-0.20251120131032-23712697ddda
+	golang.org/x/crypto v0.45.0
+	golang.org/x/net v0.47.0
 	golang.org/x/sync v0.18.0
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0

@@ -1189,7 +1189,7 @@ var defaultRFC9218Priority = PriorityParam{
 // PriorityParam struct below is a superset of both schemes. The exported
 // symbols are from RFC 7540 and the non-exported ones are from RFC 9218.
 
-// PriorityParam are the stream prioritzation parameters.
+// PriorityParam are the stream prioritization parameters.
 type PriorityParam struct {
 	// StreamDep is a 31-bit stream identifier for the
 	// stream that this stream depends on. Zero means no
