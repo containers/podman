@@ -2,7 +2,6 @@ package provider
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -27,7 +26,7 @@ func Get() (vmconfigs.VMProvider, error) {
 	if providerOverride, found := os.LookupEnv("CONTAINERS_MACHINE_PROVIDER"); found {
 		provider = providerOverride
 	}
-	resolvedVMType, err := define.ParseVMType(provider, define.AppleHvVirt)
+	resolvedVMType, err := define.ParseVMType(provider, define.LibKrun)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +42,6 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	case define.AppleHvVirt:
 		return new(applehv.AppleHVStubber), nil
 	case define.LibKrun:
-		if runtime.GOARCH == "amd64" {
-			return nil, errors.New("libkrun is not supported on Intel based machines. Please revert to the applehv provider")
-		}
 		return new(libkrun.LibKrunStubber), nil
 	default:
 	}
@@ -53,20 +49,12 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 }
 
 func GetAll() []vmconfigs.VMProvider {
-	configs := []vmconfigs.VMProvider{new(applehv.AppleHVStubber)}
-	if runtime.GOARCH == "arm64" {
-		configs = append(configs, new(libkrun.LibKrunStubber))
-	}
-	return configs
+	return []vmconfigs.VMProvider{new(libkrun.LibKrunStubber), new(applehv.AppleHVStubber)}
 }
 
 // SupportedProviders returns the providers that are supported on the host operating system
 func SupportedProviders() []define.VMType {
-	supported := []define.VMType{define.AppleHvVirt}
-	if runtime.GOARCH == "arm64" {
-		return append(supported, define.LibKrun)
-	}
-	return supported
+	return []define.VMType{define.AppleHvVirt, define.LibKrun}
 }
 
 func IsInstalled(provider define.VMType) (bool, error) {
