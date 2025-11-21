@@ -11,7 +11,7 @@ from .fixtures.api_testcase import Artifact, ArtifactFile
 
 class ArtifactTestCase(APITestCase):
     def test_add(self):
-        ARTIFACT_NAME = "quay.io/myimage/myartifact:latest"
+        ARTIFACT_NAME = "quay.io/myimage/myartifact"
         file = ArtifactFile()
         parameters: dict[str, str | list[str]] = {
             "name": ARTIFACT_NAME,
@@ -42,6 +42,10 @@ class ArtifactTestCase(APITestCase):
 
         # Assert blob media type fallback detection is working
         self.assertEqual(artifact_layer["mediaType"], "application/octet-stream")
+
+        # Assert latest tag was added by default
+        self.assertEqual(inspect_response_json["Name"], "quay.io/myimage/myartifact:latest")
+
 
     def test_add_with_replace(self):
         ARTIFACT_NAME = "quay.io/myimage/newartifact:latest"
@@ -128,7 +132,7 @@ class ArtifactTestCase(APITestCase):
         self.assertEqual(len(artifact_layers), 2)
 
     def test_add_with_artifactMIMEType_override(self):
-        ARTIFACT_NAME = "quay.io/myimage/myartifact_artifactType:latest"
+        ARTIFACT_NAME = "quay.io/myimage/myartifact_artifact_type:latest"
         file = ArtifactFile()
         parameters: dict[str, str | list[str]] = {
             "name": ARTIFACT_NAME,
@@ -672,7 +676,7 @@ class ArtifactTestCase(APITestCase):
 
         # Assert return error response is json and contains correct message
         self.assertIn(
-            "no descriptor found for reference",
+            "artifact does not exist",
             rjson["cause"],
         )
 

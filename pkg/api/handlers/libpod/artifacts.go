@@ -347,6 +347,11 @@ func PushArtifact(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
+			utils.ArtifactNotFound(w, name, err)
+			return
+		}
+
 		utils.InternalServerError(w, err)
 		return
 	}
