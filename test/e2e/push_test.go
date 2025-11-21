@@ -21,7 +21,6 @@ import (
 const testSequoiaKeyFingerprint = "50DDE898DF4E48755C8C2B7AF6F908B6FA48A229"
 
 var _ = Describe("Podman push", func() {
-
 	BeforeEach(func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 	})
@@ -40,14 +39,18 @@ var _ = Describe("Podman push", func() {
 	It("podman push to dir", func() {
 		SkipIfRemote("Remote push does not support dir transport")
 		bbdir := filepath.Join(podmanTest.TempDir, "busybox")
-		session := podmanTest.Podman([]string{"push", "-q", "--remove-signatures", ALPINE,
-			fmt.Sprintf("dir:%s", bbdir)})
+		session := podmanTest.Podman([]string{
+			"push", "-q", "--remove-signatures", ALPINE,
+			fmt.Sprintf("dir:%s", bbdir),
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
 		bbdir = filepath.Join(podmanTest.TempDir, "busybox")
-		session = podmanTest.Podman([]string{"push", "-q", "--format", "oci", ALPINE,
-			fmt.Sprintf("dir:%s", bbdir)})
+		session = podmanTest.Podman([]string{
+			"push", "-q", "--format", "oci", ALPINE,
+			fmt.Sprintf("dir:%s", bbdir),
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
@@ -61,8 +64,10 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, "writing blob: happened during read: gzip: invalid compression level: 40"))
 
-		session = podmanTest.Podman([]string{"push", "-q", "--compression-format=zstd", "--remove-signatures", ALPINE,
-			fmt.Sprintf("oci:%s", bbdir)})
+		session = podmanTest.Podman([]string{
+			"push", "-q", "--compression-format=zstd", "--remove-signatures", ALPINE,
+			fmt.Sprintf("oci:%s", bbdir),
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -248,7 +253,7 @@ var _ = Describe("Podman push", func() {
 			registriesDFragment, err := os.ReadFile("testdata/sigstore-registries.d-fragment.yaml")
 			Expect(err).ToNot(HaveOccurred())
 			registriesDFragment = bytes.ReplaceAll(registriesDFragment, []byte("@lookasideDir@"), []byte(lookasideDir))
-			err = os.WriteFile(systemRegistriesDAddition, registriesDFragment, 0644)
+			err = os.WriteFile(systemRegistriesDAddition, registriesDFragment, 0o644)
 			if err != nil {
 				GinkgoWriter.Printf("Skipping sigstore tests because /etc/containers/registries.d isn’t writable: %s\n", err)
 			} else {
@@ -380,11 +385,13 @@ var _ = Describe("Podman push", func() {
 		err = f.Sync()
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "-d", "-p", "5004:5000", "--name", "registry", "-v",
+		session := podmanTest.Podman([]string{
+			"run", "-d", "-p", "5004:5000", "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth", "z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs", "z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE,
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -453,8 +460,10 @@ var _ = Describe("Podman push", func() {
 	It("podman push to docker-archive", func() {
 		SkipIfRemote("Remote push does not support docker-archive transport")
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
-		session := podmanTest.Podman([]string{"push", "-q", ALPINE,
-			fmt.Sprintf("docker-archive:%s:latest", tarfn)})
+		session := podmanTest.Podman([]string{
+			"push", "-q", ALPINE,
+			fmt.Sprintf("docker-archive:%s:latest", tarfn),
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
@@ -490,8 +499,10 @@ var _ = Describe("Podman push", func() {
 	It("podman push to oci-archive", func() {
 		SkipIfRemote("Remote push does not support oci-archive transport")
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
-		session := podmanTest.Podman([]string{"push", "-q", ALPINE,
-			fmt.Sprintf("oci-archive:%s:latest", tarfn)})
+		session := podmanTest.Podman([]string{
+			"push", "-q", ALPINE,
+			fmt.Sprintf("oci-archive:%s:latest", tarfn),
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
@@ -499,8 +510,10 @@ var _ = Describe("Podman push", func() {
 	It("podman push to docker-archive no reference", func() {
 		SkipIfRemote("Remote push does not support docker-archive transport")
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
-		session := podmanTest.Podman([]string{"push", "-q", ALPINE,
-			fmt.Sprintf("docker-archive:%s", tarfn)})
+		session := podmanTest.Podman([]string{
+			"push", "-q", ALPINE,
+			fmt.Sprintf("docker-archive:%s", tarfn),
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
@@ -508,11 +521,12 @@ var _ = Describe("Podman push", func() {
 	It("podman push to oci-archive no reference", func() {
 		SkipIfRemote("Remote push does not support oci-archive transport")
 		ociarc := filepath.Join(podmanTest.TempDir, "alp-oci")
-		session := podmanTest.Podman([]string{"push", "-q", ALPINE,
-			fmt.Sprintf("oci-archive:%s", ociarc)})
+		session := podmanTest.Podman([]string{
+			"push", "-q", ALPINE,
+			fmt.Sprintf("oci-archive:%s", ociarc),
+		})
 
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
-
 })

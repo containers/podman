@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman pull", func() {
-
 	It("podman pull multiple images with/without tag/digest", func() {
 		session := podmanTest.Podman([]string{"pull", "-q", "busybox:musl", "alpine", "alpine:latest", "quay.io/libpod/cirros", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
@@ -124,8 +123,10 @@ var _ = Describe("Podman pull", func() {
 		err = os.WriteFile(configPath, storageConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
-		session = podmanTest.Podman([]string{"run", "--name", "test", "--rm",
-			imgName, "echo", "helloworld"})
+		session = podmanTest.Podman([]string{
+			"run", "--name", "test", "--rm",
+			imgName, "echo", "helloworld",
+		})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("helloworld"))
@@ -602,7 +603,6 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	Describe("podman pull and decrypt", func() {
-
 		decryptionTestHelper := func(imgPath string) *PodmanSessionIntegration {
 			bitSize := 1024
 			keyFileName := filepath.Join(podmanTest.TempDir, "key,withcomma")
@@ -688,5 +688,4 @@ var _ = Describe("Podman pull", func() {
 			Expect(session.LineInOutputContainsTag(imgPath, "latest")).To(BeTrue())
 		})
 	})
-
 })

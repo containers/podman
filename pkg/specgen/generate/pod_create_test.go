@@ -4,13 +4,12 @@ package generate
 
 import (
 	"net"
+	"testing"
 
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.podman.io/common/libnetwork/types"
-
-	"testing"
 )
 
 var (
@@ -32,11 +31,14 @@ func TestMapSpecCopyPodSpecToInfraContainerSpec(t *testing.T) {
 	infraImage := "someimage"
 	conmonPidFile := "/var/run/conmon.pid"
 	podSpec := specgen.PodSpecGenerator{
-		PodBasicConfig: specgen.PodBasicConfig{InfraCommand: infraCommand, InfraImage: infraImage,
-			InfraConmonPidFile: conmonPidFile},
+		PodBasicConfig: specgen.PodBasicConfig{
+			InfraCommand: infraCommand, InfraImage: infraImage,
+			InfraConmonPidFile: conmonPidFile,
+		},
 		PodNetworkConfig: specgen.PodNetworkConfig{
 			PortMappings: portMappings, HostAdd: addedHosts, DNSServer: dnsServers, DNSOption: dnsOptions, DNSSearch: dnsSearch,
-			Networks: networks, NoManageResolvConf: true, NoManageHosts: true},
+			Networks: networks, NoManageResolvConf: true, NoManageHosts: true,
+		},
 		PodCgroupConfig:    specgen.PodCgroupConfig{},
 		PodResourceConfig:  specgen.PodResourceConfig{},
 		PodStorageConfig:   specgen.PodStorageConfig{},
@@ -114,7 +116,8 @@ func TestMapSpecNetworkOptions(t *testing.T) {
 			name:           "Private",
 			podSpec:        createPodSpec(specgen.Private),
 			expectedNSMode: specgen.Private,
-		}, {
+		},
+		{
 			name:           "Host",
 			podSpec:        createPodSpec(specgen.Host),
 			expectedNSMode: specgen.Host,
@@ -123,7 +126,8 @@ func TestMapSpecNetworkOptions(t *testing.T) {
 			name:      "Host but with port mappings",
 			podSpec:   createPodSpecWithPortMapping(specgen.Host),
 			mustError: true,
-		}, {
+		},
+		{
 			name:      "Host but with networks",
 			podSpec:   createPodSpecWithNetworks(specgen.Host),
 			mustError: true,
@@ -170,7 +174,8 @@ func TestMapSpecNetworkOptions(t *testing.T) {
 			name:      "FromContainer",
 			podSpec:   createPodSpec(specgen.FromContainer),
 			mustError: true,
-		}, {
+		},
+		{
 			name:      "FromPod",
 			podSpec:   createPodSpec(specgen.FromPod),
 			mustError: true,

@@ -54,7 +54,8 @@ func (c *copier) setupSigners() error {
 // and verifies that they can be used (to avoid copying a large image when we
 // can tell in advance that it would ultimately fail)
 func (c *copier) sourceSignatures(ctx context.Context, unparsed private.UnparsedImage,
-	gettingSignaturesMessage, checkingDestMessage string) ([]internalsig.Signature, error) {
+	gettingSignaturesMessage, checkingDestMessage string,
+) ([]internalsig.Signature, error) {
 	var sigs []internalsig.Signature
 	if c.options.RemoveSignatures {
 		sigs = []internalsig.Signature{}

@@ -37,8 +37,7 @@ type CreateOptions struct {
 // InspectOptions are optional options for inspecting networks
 //
 //go:generate go run ../generator/generator.go InspectOptions
-type InspectOptions struct {
-}
+type InspectOptions struct{}
 
 // RemoveOptions are optional options for inspecting networks
 //
@@ -80,8 +79,7 @@ type DisconnectOptions struct {
 // if a network exists
 //
 //go:generate go run ../generator/generator.go ExistsOptions
-type ExistsOptions struct {
-}
+type ExistsOptions struct{}
 
 // PruneOptions are optional options for removing unused
 // networks

@@ -71,9 +71,7 @@ func init() {
 }
 
 func create(cmd *cobra.Command, args []string) error {
-	var (
-		err error
-	)
+	var err error
 	if len(args) > 0 {
 		createOpts.Name = args[0]
 	}

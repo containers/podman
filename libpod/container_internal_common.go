@@ -338,7 +338,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				return nil, nil, err
 			}
 
-			overlayOpts = &overlay.Options{RootUID: c.RootUID(),
+			overlayOpts = &overlay.Options{
+				RootUID:                c.RootUID(),
 				RootGID:                c.RootGID(),
 				UpperDirOptionFragment: upperDir,
 				WorkDirOptionFragment:  workDir,
@@ -471,7 +472,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		if err != nil {
 			return nil, nil, err
 		}
-		overlayOpts := &overlay.Options{RootUID: c.RootUID(),
+		overlayOpts := &overlay.Options{
+			RootUID:                c.RootUID(),
 			RootGID:                c.RootGID(),
 			UpperDirOptionFragment: upperDir,
 			WorkDirOptionFragment:  workDir,
@@ -1267,7 +1269,6 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		IncludeSourceDir: true,
 		IncludeFiles:     includeFiles,
 	})
-
 	if err != nil {
 		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
 	}
@@ -2023,7 +2024,6 @@ func (c *Container) makeBindMounts() error {
 			resolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]
 			if !c.config.UseImageResolvConf && exists {
 				err := c.mountIntoRootDirs(resolvconf.DefaultResolvConf, resolvPath)
-
 				if err != nil {
 					return fmt.Errorf("assigning mounts to container %s: %w", c.ID(), err)
 				}

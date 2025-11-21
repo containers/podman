@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman artifact created timestamp", func() {
-
 	createArtifactFile := func(size int) (string, error) {
 		artifactFile := filepath.Join(podmanTest.TempDir, RandomString(12))
 		f, err := os.Create(artifactFile)

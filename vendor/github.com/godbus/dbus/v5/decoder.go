@@ -53,13 +53,13 @@ func (dec *decoder) align(n int) {
 }
 
 // Calls binary.Read(dec.in, dec.order, v) and panics on read errors.
-func (dec *decoder) binread(v interface{}) {
+func (dec *decoder) binread(v any) {
 	if err := binary.Read(dec.in, dec.order, v); err != nil {
 		panic(err)
 	}
 }
 
-func (dec *decoder) Decode(sig Signature) (vs []interface{}, err error) {
+func (dec *decoder) Decode(sig Signature) (vs []any, err error) {
 	defer func() {
 		var ok bool
 		v := recover()
@@ -69,7 +69,7 @@ func (dec *decoder) Decode(sig Signature) (vs []interface{}, err error) {
 			}
 		}
 	}()
-	vs = make([]interface{}, 0)
+	vs = make([]any, 0)
 	s := sig.str
 	for s != "" {
 		err, rem := validSingle(s, &depthCounter{})
@@ -106,7 +106,7 @@ func (dec *decoder) decodeU() uint32 {
 	return dec.order.Uint32(dec.buf)
 }
 
-func (dec *decoder) decode(s string, depth int) interface{} {
+func (dec *decoder) decode(s string, depth int) any {
 	dec.align(alignment(typeFor(s)))
 	switch s[0] {
 	case 'y':
@@ -249,7 +249,7 @@ func (dec *decoder) decode(s string, depth int) interface{} {
 			panic(FormatError("input exceeds container depth limit"))
 		}
 		dec.align(8)
-		v := make([]interface{}, 0)
+		v := make([]any, 0)
 		s = s[1 : len(s)-1]
 		for s != "" {
 			err, rem := validSingle(s, &depthCounter{})

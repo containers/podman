@@ -82,5 +82,7 @@ type NetworkPruneOptions struct {
 	Filters map[string][]string
 }
 
-type NetworkInspectReport = entitiesTypes.NetworkInspectReport
-type NetworkContainerInfo = entitiesTypes.NetworkContainerInfo
+type (
+	NetworkInspectReport = entitiesTypes.NetworkInspectReport
+	NetworkContainerInfo = entitiesTypes.NetworkContainerInfo
+)

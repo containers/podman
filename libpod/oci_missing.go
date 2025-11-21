@@ -136,7 +136,8 @@ func (r *MissingRuntime) ExecContainer(_ *Container, _ string, _ *ExecOptions, _
 
 // ExecContainerHTTP is not available as the runtime is missing
 func (r *MissingRuntime) ExecContainerHTTP(_ *Container, _ string, _ *ExecOptions, _ *http.Request, _ http.ResponseWriter,
-	_ *HTTPAttachStreams, _ <-chan bool, _ chan<- bool, _ <-chan bool, _ *resize.TerminalSize) (int, chan error, error) {
+	_ *HTTPAttachStreams, _ <-chan bool, _ chan<- bool, _ <-chan bool, _ *resize.TerminalSize,
+) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 

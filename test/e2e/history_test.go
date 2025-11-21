@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman history", func() {
-
 	It("podman history output flag", func() {
 		session := podmanTest.Podman([]string{"history", ALPINE})
 		session.WaitWithDefaultTimeout()

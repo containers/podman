@@ -27,7 +27,6 @@ func isEventBackendJournald(podmanTest *PodmanTestIntegration) bool {
 }
 
 var _ = Describe("Podman logs", func() {
-
 	It("podman logs on not existent container", func() {
 		results := podmanTest.Podman([]string{"logs", "notexist"})
 		results.WaitWithDefaultTimeout()

@@ -337,8 +337,10 @@ func ValidateIntelRdt(i *cdi.IntelRdt) error {
 
 // Validate validates the IntelRdt configuration.
 func (i *IntelRdt) Validate() error {
-	// ClosID must be a valid Linux filename
-	if len(i.ClosID) >= 4096 || i.ClosID == "." || i.ClosID == ".." || strings.ContainsAny(i.ClosID, "/\n") {
+	// ClosID must be a valid Linux filename. Exception: "/" refers to the root CLOS.
+	switch c := i.ClosID; {
+	case c == "/":
+	case len(c) >= 4096, c == ".", c == "..", strings.ContainsAny(c, "/\n"):
 		return errors.New("invalid ClosID")
 	}
 	return nil

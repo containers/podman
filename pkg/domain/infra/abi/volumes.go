@@ -17,9 +17,7 @@ import (
 )
 
 func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
-	var (
-		volumeOptions []libpod.VolumeCreateOption
-	)
+	var volumeOptions []libpod.VolumeCreateOption
 	if len(opts.Name) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeName(opts.Name))
 	}

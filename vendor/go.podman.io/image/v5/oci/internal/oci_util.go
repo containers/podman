@@ -17,8 +17,10 @@ const (
 	component = `(?:` + alphanum + `(?:` + separator + alphanum + `)*)`
 )
 
-var refRegexp = regexp.MustCompile(`^` + component + `(?:/` + component + `)*$`)
-var windowsRefRegexp = regexp.MustCompile(`^([a-zA-Z]:\\.+?):(.*)$`)
+var (
+	refRegexp        = regexp.MustCompile(`^` + component + `(?:/` + component + `)*$`)
+	windowsRefRegexp = regexp.MustCompile(`^([a-zA-Z]:\\.+?):(.*)$`)
+)
 
 // ValidateImageName returns nil if the image name is empty or matches the open-containers image name specs.
 // In any other case an error is returned.

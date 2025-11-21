@@ -16,22 +16,18 @@ import (
 	"go.podman.io/common/pkg/completion"
 )
 
-var (
-	sshCmd = &cobra.Command{
-		Use:               "ssh [options] [NAME] [COMMAND [ARG ...]]",
-		Short:             "SSH into an existing machine",
-		Long:              "SSH into a managed virtual machine ",
-		PersistentPreRunE: machinePreRunE,
-		RunE:              ssh,
-		Example: `podman machine ssh podman-machine-default
+var sshCmd = &cobra.Command{
+	Use:               "ssh [options] [NAME] [COMMAND [ARG ...]]",
+	Short:             "SSH into an existing machine",
+	Long:              "SSH into a managed virtual machine ",
+	PersistentPreRunE: machinePreRunE,
+	RunE:              ssh,
+	Example: `podman machine ssh podman-machine-default
   podman machine ssh myvm echo hello`,
-		ValidArgsFunction: autocompleteMachineSSH,
-	}
-)
+	ValidArgsFunction: autocompleteMachineSSH,
+}
 
-var (
-	sshOpts machine.SSHOptions
-)
+var sshOpts machine.SSHOptions
 
 func init() {
 	sshCmd.Flags().SetInterspersed(false)
@@ -64,14 +60,15 @@ func ssh(_ *cobra.Command, args []string) error {
 		// it implies podman cannot read its machine files, which is bad
 		mc, vmProvider, err = shim.VMExists(args[0])
 		if err != nil {
-			return err
-		}
-		if errors.Is(err, &define.ErrVMDoesNotExist{}) {
-			vmName = args[0]
-		} else {
+			var vmNotExistsErr *define.ErrVMDoesNotExist
+			if !errors.As(err, &vmNotExistsErr) {
+				return err
+			}
 			sshOpts.Args = append(sshOpts.Args, args[0])
+		} else {
+			vmName = args[0]
+			exists = true
 		}
-		exists = true
 	}
 
 	// If len is greater than 1, it means we might have been

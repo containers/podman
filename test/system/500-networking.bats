@@ -114,7 +114,6 @@ load helpers.network
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 # FIXME: random_rfc1918_subnet is not parallel-safe
 @test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -321,7 +320,7 @@ load helpers.network
     run_podman 1 network rm $mynetname
 }
 
-# CANNOT BE PARALLELIZED due to iptables/nft commands
+# CANNOT BE PARALLELIZED due to nft commands
 @test "podman network reload" {
     skip_if_remote "podman network reload does not have remote support"
 
@@ -357,12 +356,9 @@ load helpers.network
     # rootless cannot modify the host firewall
     if ! is_rootless; then
         # for debugging only
-        iptables -t nat -nvL || true
         nft list ruleset     || true
 
         # flush the firewall rule here to break port forwarding
-        # netavark can use either iptables or nftables, so try flushing both
-        iptables -t nat -F "NETAVARK-HOSTPORT-DNAT" || true
         nft delete table inet netavark              || true
 
         # check that we cannot curl (timeout after 1 sec)
@@ -370,7 +366,7 @@ load helpers.network
         assert $status -eq 28 "curl did not time out"
     fi
 
-    # reload the network to recreate the iptables rules
+    # reload the network to recreate the nftables rules
     run_podman network reload $cid
     is "$output" "$cid" "Output does match container ID"
 
@@ -401,7 +397,7 @@ load helpers.network
     mac2="${lines[2]}"
 
     # make sure --all is working and that this
-    # cmd also works if the iptables still exists
+    # cmd also works if the nftables still exists
     run_podman network reload --all
     is "$output" "$cid" "Output does match container ID"
 
@@ -878,7 +874,6 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run /etc/* permissions" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     userns="--userns=keep-id"
     if ! is_rootless; then
         userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
@@ -992,8 +987,6 @@ EOF
 # Test for https://github.com/containers/podman/issues/18615
 # CANNOT BE PARALLELIZED due to strict checking of /run/netns
 @test "podman network cleanup --userns + --restart" {
-    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
-
     local net1=net-a-$(safename)
     # use /29 subnet to limit available ip space, a 29 gives 5 usable addresses (6 - 1 for the gw)
     local subnet="$(random_rfc1918_subnet).0/29"

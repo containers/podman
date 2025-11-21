@@ -52,9 +52,11 @@ type BuildFlagsWrapper struct {
 
 // FarmBuildHiddenFlags are the flags hidden from the farm build command because they are either not
 // supported or don't make sense in the farm build use case
-var FarmBuildHiddenFlags = []string{"arch", "all-platforms", "compress", "cw", "disable-content-trust",
+var FarmBuildHiddenFlags = []string{
+	"arch", "all-platforms", "compress", "cw", "disable-content-trust",
 	"logsplit", "manifest", "os", "output", "platform", "sign-by", "signature-policy", "stdin",
-	"variant"}
+	"variant",
+}
 
 func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBuild bool) {
 	flags := cmd.Flags()

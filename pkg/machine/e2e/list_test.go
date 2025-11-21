@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("podman machine list", func() {
-
 	It("list machine", func() {
 		list := new(listMachine)
 		firstList, err := mb.setCmd(list).run()

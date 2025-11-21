@@ -33,9 +33,7 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 }
 
 func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, getDefaultMountOptions getDefaultMountOptionsFn) ([]string, error) {
-	var (
-		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference bool
-	)
+	var foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference bool
 
 	recursiveBind := true
 

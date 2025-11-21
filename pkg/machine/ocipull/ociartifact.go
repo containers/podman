@@ -24,9 +24,6 @@ import (
 )
 
 const (
-	artifactRegistry     = "quay.io"
-	artifactRepo         = "podman"
-	artifactImageName    = "machine-os"
 	artifactOriginalName = specV1.AnnotationTitle
 	machineOS            = "linux"
 )
@@ -92,9 +89,25 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 
 	cache := false
 	if endpoint == "" {
-		imageName := artifactImageName
-		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, imageName, artifactVersion.majorMinor())
-		cache = true
+		return nil, fmt.Errorf("no machine image endpoint provided")
+	}
+
+	// Automatically append the current version as a tag if endpoint has no tag.
+	// This allows endpoints in containers.conf to be version-agnostic: they won't need to be
+	// updated on each version bump, while still pulling the correct version-specific image.
+	if image, ok := strings.CutPrefix(endpoint, "docker://"); ok {
+		ref, err := reference.ParseNormalizedNamed(image)
+		if err == nil {
+			// Only add version tag if no tag is specified (digest-only refs are left alone)
+			if _, hasTag := ref.(reference.Tagged); !hasTag {
+				taggedRef, err := reference.WithTag(ref, artifactVersion.majorMinor())
+				if err != nil {
+					return nil, fmt.Errorf("failed to add version tag to %q: %w", endpoint, err)
+				}
+				endpoint = "docker://" + taggedRef.String()
+			}
+		}
+		// If parsing failed, just continue with the original endpoint
 	}
 
 	ociDisk := OCIArtifactDisk{

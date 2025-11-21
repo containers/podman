@@ -23,22 +23,18 @@ import (
 
 var infoDescription = `Display information pertaining to the machine host.`
 
-var (
-	infoCmd = &cobra.Command{
-		Use:               "info [options]",
-		Short:             "Display machine host info",
-		Long:              infoDescription,
-		PersistentPreRunE: machinePreRunE,
-		RunE:              info,
-		Args:              validate.NoArgs,
-		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman machine info`,
-	}
-)
+var infoCmd = &cobra.Command{
+	Use:               "info [options]",
+	Short:             "Display machine host info",
+	Long:              infoDescription,
+	PersistentPreRunE: machinePreRunE,
+	RunE:              info,
+	Args:              validate.NoArgs,
+	ValidArgsFunction: completion.AutocompleteNone,
+	Example:           `podman machine info`,
+}
 
-var (
-	inFormat string
-)
+var inFormat string
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

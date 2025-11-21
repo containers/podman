@@ -10,22 +10,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	rmCmd = &cobra.Command{
-		Use:               "rm [options] [MACHINE]",
-		Short:             "Remove an existing machine",
-		Long:              "Remove a managed virtual machine ",
-		PersistentPreRunE: machinePreRunE,
-		RunE:              rm,
-		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine rm podman-machine-default`,
-		ValidArgsFunction: autocompleteMachine,
-	}
-)
+var rmCmd = &cobra.Command{
+	Use:               "rm [options] [MACHINE]",
+	Short:             "Remove an existing machine",
+	Long:              "Remove a managed virtual machine ",
+	PersistentPreRunE: machinePreRunE,
+	RunE:              rm,
+	Args:              cobra.MaximumNArgs(1),
+	Example:           `podman machine rm podman-machine-default`,
+	ValidArgsFunction: autocompleteMachine,
+}
 
-var (
-	destroyOptions machine.RemoveOptions
-)
+var destroyOptions machine.RemoveOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -45,9 +41,7 @@ func init() {
 }
 
 func rm(_ *cobra.Command, args []string) error {
-	var (
-		err error
-	)
+	var err error
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]

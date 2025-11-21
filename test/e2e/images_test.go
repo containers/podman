@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman images", func() {
-
 	It("podman images", func() {
 		session := podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
@@ -474,7 +473,6 @@ RUN > file2
 		// check if really abc is removed
 		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})
 		Expect(result.OutputToStringArray()).To(BeEmpty())
-
 	})
 
 	It("podman builder prune", func() {
@@ -495,7 +493,6 @@ RUN > file2
 		// check if really abc is removed
 		result = podmanTest.Podman([]string{"image", "list", "--filter", "label=abc"})
 		Expect(result.OutputToStringArray()).To(BeEmpty())
-
 	})
 
 	It("podman images filter should be AND logic", func() {
@@ -546,5 +543,4 @@ LABEL xyz="bar"
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
 		Expect(session.OutputToString()).To(ContainSubstring("test-abc-xyz"))
 	})
-
 })

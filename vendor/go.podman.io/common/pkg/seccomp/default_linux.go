@@ -616,6 +616,7 @@ func DefaultProfile() *Seccomp {
 			Names: []string{
 				"bpf",
 				"lookup_dcookie",
+				"perf_event_open",
 				"quotactl",
 				"quotactl_fd",
 				"setdomainname",
@@ -631,7 +632,6 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"lookup_dcookie",
-				"perf_event_open",
 				"quotactl",
 				"quotactl_fd",
 				"setdomainname",
@@ -927,7 +927,7 @@ func DefaultProfile() *Seccomp {
 			ErrnoRet: &eperm,
 			Args:     []*Arg{},
 			Excludes: Filter{
-				Caps: []string{"CAP_SYS_ADMIN", "CAP_BPF"},
+				Caps: []string{"CAP_SYS_ADMIN", "CAP_PERFMON"},
 			},
 		},
 		{

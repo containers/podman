@@ -66,7 +66,7 @@ func (ic *ContainerEngine) Info(_ context.Context) (*define.Info, error) {
 
 // SystemPrune removes unused data from the system. Pruning pods, containers, build container, networks, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
-	var systemPruneReport = new(entities.SystemPruneReport)
+	systemPruneReport := new(entities.SystemPruneReport)
 
 	if options.External {
 		if options.All || options.Volume || len(options.Filters) > 0 || options.Build {
@@ -179,9 +179,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 }
 
 func (ic *ContainerEngine) SystemDf(ctx context.Context, _ entities.SystemDfOptions) (*entities.SystemDfReport, error) {
-	var (
-		dfImages = []*entities.SystemDfImageReport{}
-	)
+	dfImages := []*entities.SystemDfImageReport{}
 
 	imageStats, totalImageSize, err := ic.Libpod.LibimageRuntime().DiskUsage(ctx)
 	if err != nil {

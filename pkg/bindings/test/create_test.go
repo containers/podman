@@ -47,5 +47,4 @@ var _ = Describe("Create containers ", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(data.State.Status).To(Equal("running"))
 	})
-
 })

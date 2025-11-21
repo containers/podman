@@ -18,7 +18,6 @@ import (
 )
 
 var _ = Describe("Podman create", func() {
-
 	It("podman create container based on a local image", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "local_image_test", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -427,7 +426,6 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create with -m 1000000 sets swap to 2000000", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		numMem := 1000000
 		ctrName := "testCtr"
 		session := podmanTest.Podman([]string{"create", "-t", "-m", fmt.Sprintf("%db", numMem), "--name", ctrName, ALPINE, "/bin/sh"})
@@ -442,7 +440,6 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create --cpus 5 sets nanocpus", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		numCpus := 5
 		nanoCPUs := numCpus * 1000000000
 		ctrName := "testCtr"
@@ -687,7 +684,6 @@ var _ = Describe("Podman create", func() {
 		create.WaitWithDefaultTimeout()
 		Expect(create).ShouldNot(ExitCleanly())
 		Expect(create.ErrorToString()).To(ContainSubstring("cannot specify a new uid/gid map when entering a pod with an infra container"))
-
 	})
 
 	It("podman create --chrootdirs inspection test", func() {

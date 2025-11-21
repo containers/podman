@@ -51,6 +51,7 @@ var (
 	execOpts          entities.ExecOptions
 	execDetach        bool
 	execCidFile       string
+	execNoSession     bool
 )
 
 func execFlags(cmd *cobra.Command) {
@@ -100,6 +101,10 @@ func execFlags(cmd *cobra.Command) {
 	flags.Int32(waitFlagName, 0, "Total seconds to wait for container to start")
 	_ = flags.MarkHidden(waitFlagName)
 
+	if !registry.IsRemote() {
+		flags.BoolVar(&execNoSession, "no-session", false, "Do not create a database session for the exec process")
+	}
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
 	}
@@ -121,6 +126,12 @@ func init() {
 }
 
 func exec(cmd *cobra.Command, args []string) error {
+	if execNoSession {
+		if execDetach || cmd.Flags().Changed("detach-keys") {
+			return errors.New("--no-session cannot be used with --detach or --detach-keys")
+		}
+	}
+
 	nameOrID, command, err := determineTargetCtrAndCmd(args, execOpts.Latest, execCidFile != "")
 	if err != nil {
 		return err
@@ -168,17 +179,21 @@ func exec(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if !execDetach {
-		streams := define.AttachStreams{}
-		streams.OutputStream = os.Stdout
-		streams.ErrorStream = os.Stderr
-		if execOpts.Interactive {
-			streams.InputStream = bufio.NewReader(os.Stdin)
-			streams.AttachInput = true
-		}
-		streams.AttachOutput = true
-		streams.AttachError = true
+	streams := define.AttachStreams{}
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	if execOpts.Interactive {
+		streams.InputStream = bufio.NewReader(os.Stdin)
+		streams.AttachInput = true
+	}
+	streams.AttachOutput = true
+	streams.AttachError = true
 
+	if execNoSession {
+		exitCode, err := registry.ContainerEngine().ContainerExecNoSession(registry.Context(), nameOrID, execOpts, streams)
+		registry.SetExitCode(exitCode)
+		return err
+	} else if !execDetach {
 		exitCode, err := registry.ContainerEngine().ContainerExec(registry.Context(), nameOrID, execOpts, streams)
 		registry.SetExitCode(exitCode)
 		return err

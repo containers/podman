@@ -58,5 +58,4 @@ var _ = Describe("PodmanTest test", func() {
 		FakeOutputs["logs testimage"] = []string{"I am ready"}
 		Expect(WaitContainerReady(podmanTest, "testimage", "", 2, 1)).To(BeTrue())
 	})
-
 })

@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"net/url"
@@ -135,22 +136,28 @@ var _ = Describe("podman machine start", func() {
 	})
 
 	It("start only starts specified machine", func() {
-		i := initMachine{}
-		startme := randomString()
-		session, err := mb.setName(startme).setCmd(i.withImage(mb.imagePath)).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
 		j := initMachine{}
 		dontstartme := randomString()
 		session2, err := mb.setName(dontstartme).setCmd(j.withFakeImage(mb)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
 
+		i := initMachine{}
+		startme := randomString()
+		session, err := mb.setName(startme).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
 		s := &startMachine{}
-		session3, err := mb.setName(startme).setCmd(s).setTimeout(time.Minute * 10).run()
+		// Provide a buffer as stdin to simulate non-tty input (e.g., piped or redirected stdin)
+		// When stdin is not a tty, the command should not prompt for connection updates
+		stdinBuf := bytes.NewBufferString("n\n")
+		session3, err := mb.setName(startme).setCmd(s).setTimeout(time.Minute * 10).setStdin(stdinBuf).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session3).Should(Exit(0))
+		// Verify that the prompt message did not appear (no prompting when stdin is not a tty)
+		combinedOutput := session3.outputToString() + session3.errorToString()
+		Expect(combinedOutput).ToNot(ContainSubstring("Set the default Podman connection to this machine"), "should not prompt when stdin is not a tty")
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.State}}")

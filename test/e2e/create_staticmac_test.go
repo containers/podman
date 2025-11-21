@@ -10,7 +10,6 @@ import (
 )
 
 var _ = Describe("Podman run with --mac-address flag", func() {
-
 	It("Podman run --mac-address", func() {
 		result := podmanTest.Podman([]string{"run", "--mac-address", "92:d0:c6:0a:29:34", ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()

@@ -267,9 +267,7 @@ func generateRunEnvironment(options entities.ContainerRunlabelOptions) []string 
 }
 
 func substituteCommand(cmd string) (string, error) {
-	var (
-		newCommand string
-	)
+	var newCommand string
 
 	// Replace cmd with "/proc/self/exe" if "podman" or "docker" is being
 	// used. If "/usr/bin/docker" is provided, we also sub in podman.

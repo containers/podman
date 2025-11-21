@@ -27,9 +27,7 @@ var (
 	}
 )
 
-var (
-	signOptions entities.SignOptions
-)
+var signOptions entities.SignOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

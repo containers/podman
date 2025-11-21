@@ -15,7 +15,6 @@ import (
 )
 
 var _ = Describe("Podman checkpoint", func() {
-
 	BeforeEach(func() {
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		// Check if the runtime implements checkpointing. Currently only

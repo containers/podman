@@ -397,7 +397,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			s.ResourceLimits = &spec.LinuxResources{}
 		}
 		s.ResourceLimits.Pids = &spec.LinuxPids{
-			Limit: pidslimitAsInt,
+			Limit: &pidslimitAsInt,
 		}
 	}
 

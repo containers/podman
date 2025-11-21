@@ -120,7 +120,7 @@ func main() {
 				composite = true
 			}
 
-			//sub := "*"
+			// sub := "*"
 			typeExpr := field.Type
 			start := typeExpr.Pos() - 1
 			end := typeExpr.End() - 1

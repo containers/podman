@@ -527,7 +527,7 @@ func setupWslProxyEnv() (hasProxy bool) {
 	if hasProxy {
 		os.Setenv("WSLENV", current)
 	}
-	return
+	return hasProxy
 }
 
 //nolint:unused
@@ -651,7 +651,6 @@ func isRunning(name string) (bool, error) {
 	sysd := false
 	if wsl {
 		sysd, err = isSystemdRunning(dist)
-
 		if err != nil {
 			return false, err
 		}
@@ -754,5 +753,5 @@ func getResources(mc *vmconfigs.MachineConfig) (resources vmconfigs.ResourceConf
 	resources.CPUs, _ = getCPUs(mc.Name)
 	resources.Memory, _ = getMem(mc.Name)
 	resources.DiskSize = getDiskSize(mc.Name)
-	return
+	return resources
 }

@@ -566,7 +566,7 @@ type SecretVolumeSource struct {
 }
 
 const (
-	SecretVolumeSourceDefaultMode int32 = 0644
+	SecretVolumeSourceDefaultMode int32 = 0o644
 )
 
 // Adapts a secret into a projected volume.
@@ -623,7 +623,7 @@ type ConfigMapVolumeSource struct {
 }
 
 const (
-	ConfigMapVolumeSourceDefaultMode int32 = 0644
+	ConfigMapVolumeSourceDefaultMode int32 = 0o644
 )
 
 // Adapts a ConfigMap into a projected volume.
@@ -707,7 +707,7 @@ type VolumeProjection struct {
 }
 
 const (
-	ProjectedVolumeSourceDefaultMode int32 = 0644
+	ProjectedVolumeSourceDefaultMode int32 = 0o644
 )
 
 // Maps a string key to a path within a volume.
@@ -1463,6 +1463,7 @@ const (
 	PodFailed PodPhase = "Failed"
 	// PodUnknown means that for some reason the state of the pod could not be obtained, typically due
 	// to an error in communicating with the host of the pod.
+	//
 	// Deprecated: It isn't being set since 2015 (74da3b14b0c0f658b3bb8d2def5094686d0e9095)
 	PodUnknown PodPhase = "Unknown"
 )
@@ -1882,6 +1883,7 @@ type PodSpec struct {
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 	// DeprecatedServiceAccount is a depreciated alias for ServiceAccountName.
+	//
 	// Deprecated: Use serviceAccountName instead.
 	// +k8s:conversion-gen=false
 	// +optional
@@ -4272,6 +4274,7 @@ type ComponentCondition struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ComponentStatus (and ComponentStatusList) holds the cluster validation info.
+//
 // Deprecated: This API is deprecated in v1.19+
 type ComponentStatus struct {
 	metav1.TypeMeta `json:",inline"`
@@ -4290,6 +4293,7 @@ type ComponentStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Status of all the conditions for the component as a list of ComponentStatus objects.
+//
 // Deprecated: This API is deprecated in v1.19+
 type ComponentStatusList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -4321,7 +4325,7 @@ type DownwardAPIVolumeSource struct {
 }
 
 const (
-	DownwardAPIVolumeSourceDefaultMode int32 = 0644
+	DownwardAPIVolumeSourceDefaultMode int32 = 0o644
 )
 
 // DownwardAPIVolumeFile represents information to create the file containing the pod field
@@ -5456,7 +5460,6 @@ type SuccessPolicyRule struct {
 
 // JobSpec describes how the job execution will look like.
 type JobSpec struct {
-
 	// Specifies the maximum desired number of pods the job should
 	// run at any given time. The actual number of pods running in steady state will
 	// be less than this number when ((.spec.completions - .status.successful) < .spec.parallelism),

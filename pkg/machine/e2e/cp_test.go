@@ -169,7 +169,7 @@ var _ = Describe("run cp commands", func() {
 		// Write a directory header to the tar
 		err = tw.WriteHeader(&tar.Header{
 			Name:       stdinDirectory,
-			Mode:       int64(0640 | fs.ModeDir),
+			Mode:       int64(0o640 | fs.ModeDir),
 			Gid:        1000,
 			ModTime:    now,
 			ChangeTime: now,

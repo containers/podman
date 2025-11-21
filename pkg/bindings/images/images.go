@@ -191,9 +191,7 @@ func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *Expor
 // Prune removes unused images from local storage.  The optional filters can be used to further
 // define which images should be pruned.
 func Prune(ctx context.Context, options *PruneOptions) ([]*reports.PruneReport, error) {
-	var (
-		deleted []*reports.PruneReport
-	)
+	var deleted []*reports.PruneReport
 	if options == nil {
 		options = new(PruneOptions)
 	}

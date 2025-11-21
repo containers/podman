@@ -4,7 +4,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased 0.5.z] ##
+## [Unreleased] ##
+
+## [0.6.1] - 2025-11-19 ##
+
+> At last up jumped the cunning spider, and fiercely held her fast.
+
+### Fixed ###
+- Our logic for deciding whether to use `openat2(2)` or fallback to an `O_PATH`
+  resolver would cache the result to avoid doing needless test runs of
+  `openat2(2)`. However, this causes issues when `pathrs-lite` is being used by
+  a program that applies new seccomp-bpf filters onto itself -- if the filter
+  denies `openat2(2)` then we would return that error rather than falling back
+  to the `O_PATH` resolver. To resolve this issue, we no longer cache the
+  result if `openat2(2)` was successful, only if there was an error.
+- A file descriptor leak in our `openat2` wrapper (when doing the necessary
+  `dup` for `RESOLVE_IN_ROOT`) has been removed.
+
+## [0.5.2] - 2025-11-19 ##
+
+> "Will you walk into my parlour?" said a spider to a fly.
+
+### Fixed ###
+- Our logic for deciding whether to use `openat2(2)` or fallback to an `O_PATH`
+  resolver would cache the result to avoid doing needless test runs of
+  `openat2(2)`. However, this causes issues when `pathrs-lite` is being used by
+  a program that applies new seccomp-bpf filters onto itself -- if the filter
+  denies `openat2(2)` then we would return that error rather than falling back
+  to the `O_PATH` resolver. To resolve this issue, we no longer cache the
+  result if `openat2(2)` was successful, only if there was an error.
+- A file descriptor leak in our `openat2` wrapper (when doing the necessary
+  `dup` for `RESOLVE_IN_ROOT`) has been removed.
+
+## [0.6.0] - 2025-11-03 ##
+
+> By the Power of Greyskull!
+
+### Breaking ###
+- The deprecated `MkdirAll`, `MkdirAllHandle`, `OpenInRoot`, `OpenatInRoot` and
+  `Reopen` wrappers have been removed. Please switch to using `pathrs-lite`
+  directly.
+
+### Added ###
+- `pathrs-lite` now has support for using libpathrs as a backend. This is
+  opt-in and can be enabled at build time with the `libpathrs` build tag. The
+  intention is to allow for downstream libraries and other projects to make use
+  of the pure-Go `github.com/cyphar/filepath-securejoin/pathrs-lite` package
+  and distributors can then opt-in to using `libpathrs` for the entire binary
+  if they wish.
 
 ## [0.5.1] - 2025-10-31 ##
 
@@ -383,7 +430,10 @@ This is our first release of `github.com/cyphar/filepath-securejoin`,
 containing a full implementation with a coverage of 93.5% (the only missing
 cases are the error cases, which are hard to mocktest at the moment).
 
-[Unreleased 0.5.z]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.1...release-0.5
+[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.0...v0.6.0
+[0.5.2]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.0...v0.4.1

@@ -375,7 +375,7 @@ func GetLimits(resource *spec.LinuxResources) (runcconfig.Resources, error) {
 
 	// Pids
 	if resource.Pids != nil {
-		final.PidsLimit = &resource.Pids.Limit
+		final.PidsLimit = resource.Pids.Limit
 	}
 
 	// Networking

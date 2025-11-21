@@ -13,17 +13,15 @@ import (
 	"go.podman.io/common/pkg/report"
 )
 
-var (
-	inspectCmd = &cobra.Command{
-		Use:               "inspect [options] SECRET [SECRET...]",
-		Short:             "Inspect a secret",
-		Long:              "Display detail information on one or more secrets",
-		RunE:              inspect,
-		Example:           "podman secret inspect MYSECRET",
-		Args:              cobra.MinimumNArgs(1),
-		ValidArgsFunction: common.AutocompleteSecrets,
-	}
-)
+var inspectCmd = &cobra.Command{
+	Use:               "inspect [options] SECRET [SECRET...]",
+	Short:             "Inspect a secret",
+	Long:              "Display detail information on one or more secrets",
+	RunE:              inspect,
+	Example:           "podman secret inspect MYSECRET",
+	Args:              cobra.MinimumNArgs(1),
+	ValidArgsFunction: common.AutocompleteSecrets,
+}
 
 var (
 	format string

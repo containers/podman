@@ -99,7 +99,7 @@ jobs:
             fi
 
       - name: Checkout Version
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{steps.getversion.outputs.version}}
 

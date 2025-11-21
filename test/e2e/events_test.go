@@ -17,7 +17,6 @@ import (
 )
 
 var _ = Describe("Podman events", func() {
-
 	// For most, all, of these tests we do not "live" test following a log because it may make a fragile test
 	// system more complex.  Instead we run the "events" and then verify that the events are processed correctly.
 	// Perhaps a future version of this test would put events in a go func and send output back over a channel
@@ -308,5 +307,4 @@ var _ = Describe("Podman events", func() {
 		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToStringArray()).ToNot(BeEmpty(), "Number of health_status events")
 	})
-
 })

@@ -87,9 +87,7 @@ func init() {
 }
 
 func pause(_ *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	args = utils.RemoveSlash(args)
 
 	for _, cidFile := range pauseCidFiles {

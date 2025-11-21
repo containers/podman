@@ -35,7 +35,7 @@ var _ = Describe("Systemd activate", func() {
 		switch {
 		case errors.Is(err, fs.ErrNotExist):
 			Skip(activate + " required for systemd activation tests")
-		case stat.Mode()&0111 == 0:
+		case stat.Mode()&0o111 == 0:
 			Skip("Unable to execute " + activate)
 		case err != nil:
 			Skip(err.Error())
@@ -56,7 +56,8 @@ var _ = Describe("Systemd activate", func() {
 			"-E", "HTTP_PROXY", "-E", "HTTPS_PROXY", "-E", "NO_PROXY",
 			"-E", "XDG_RUNTIME_DIR",
 			"--listen", addr,
-			podmanTest.PodmanBinary}
+			podmanTest.PodmanBinary,
+		}
 		systemdArgs = append(systemdArgs, podmanOptions...)
 		systemdArgs = append(systemdArgs, "system", "service", "--time=0")
 

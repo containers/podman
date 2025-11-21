@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
-	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/go-connections/tlsconfig"
+	dockerclient "github.com/moby/moby/client"
 	"go.podman.io/image/v5/types"
 )
 
@@ -60,7 +60,7 @@ func newDockerClient(sys *types.SystemContext) (*dockerclient.Client, error) {
 		opts = append(opts, dockerclient.WithHTTPClient(hc))
 	}
 
-	return dockerclient.NewClientWithOpts(opts...)
+	return dockerclient.New(opts...)
 }
 
 func tlsConfig(sys *types.SystemContext) (*http.Client, error) {

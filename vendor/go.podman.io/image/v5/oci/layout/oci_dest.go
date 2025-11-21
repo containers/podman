@@ -165,7 +165,7 @@ func (d *ociImageDestination) blobFileSyncAndRename(blobFile *os.File, blobDiges
 	// ignored and the file is already readable; besides, blobFile.Chmod, i.e. syscall.Fchmod,
 	// always fails on Windows.
 	if runtime.GOOS != "windows" {
-		if err := blobFile.Chmod(0644); err != nil {
+		if err := blobFile.Chmod(0o644); err != nil {
 			return err
 		}
 	}
@@ -248,7 +248,7 @@ func (d *ociImageDestination) PutManifest(ctx context.Context, m []byte, instanc
 	if err := ensureParentDirectoryExists(blobPath); err != nil {
 		return err
 	}
-	if err := os.WriteFile(blobPath, m, 0644); err != nil {
+	if err := os.WriteFile(blobPath, m, 0o644); err != nil {
 		return err
 	}
 
@@ -312,14 +312,14 @@ func (d *ociImageDestination) CommitWithOptions(ctx context.Context, options pri
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(d.ref.ociLayoutPath(), layoutBytes, 0644); err != nil {
+	if err := os.WriteFile(d.ref.ociLayoutPath(), layoutBytes, 0o644); err != nil {
 		return err
 	}
 	indexJSON, err := json.Marshal(d.index)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(d.ref.indexPath(), indexJSON, 0644)
+	return os.WriteFile(d.ref.indexPath(), indexJSON, 0o644)
 }
 
 // PutBlobFromLocalFileOption is unused but may receive functionality in the future.
@@ -388,7 +388,7 @@ func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file
 
 func ensureDirectoryExists(path string) error {
 	if err := fileutils.Exists(path); err != nil && errors.Is(err, fs.ErrNotExist) {
-		if err := os.MkdirAll(path, 0755); err != nil {
+		if err := os.MkdirAll(path, 0o755); err != nil {
 			return err
 		}
 	}

@@ -23,7 +23,6 @@ import (
 const TESTIMAGE = "quay.io/libpod/testimage:20241011"
 
 var _ = Describe("run basic podman commands", func() {
-
 	It("Basic ops", func() {
 		name := randomString()
 		i := new(initMachine)
@@ -189,9 +188,11 @@ var _ = Describe("run basic podman commands", func() {
 
 		ctrName := "test"
 		bm := basicMachine{}
-		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-dt", "--name", ctrName, "-p", "62544:80",
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{
+			"run", "-dt", "--name", ctrName, "-p", "62544:80",
 			"--stop-signal", "SIGKILL", TESTIMAGE,
-			"/bin/busybox-extras", "httpd", "-f", "-p", "80"})).run()
+			"/bin/busybox-extras", "httpd", "-f", "-p", "80",
+		})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 		_, id, _ := strings.Cut(TESTIMAGE, ":")

@@ -175,7 +175,7 @@ Zeroes:
 		if i >= end {
 			num = "0"
 			value = num
-			return
+			return positive, value, num, denom, suffix, err
 		}
 		switch str[i] {
 		case '0':
@@ -191,7 +191,7 @@ Num:
 		if i >= end {
 			num = str[pos:end]
 			value = str[0:end]
-			return
+			return positive, value, num, denom, suffix, err
 		}
 		switch str[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -215,7 +215,7 @@ Num:
 			if i >= end {
 				denom = str[pos:end]
 				value = str[0:end]
-				return
+				return positive, value, num, denom, suffix, err
 			}
 			switch str[i] {
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -238,7 +238,7 @@ Num:
 	for i := pos; ; i++ {
 		if i >= end {
 			suffix = str[suffixStart:end]
-			return
+			return positive, value, num, denom, suffix, err
 		}
 		if !strings.ContainsAny(str[i:i+1], "eEinumkKMGTP") {
 			pos = i
@@ -255,7 +255,7 @@ Suffix:
 	for i := pos; ; i++ {
 		if i >= end {
 			suffix = str[suffixStart:end]
-			return
+			return positive, value, num, denom, suffix, err
 		}
 		switch str[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -267,7 +267,7 @@ Suffix:
 	// was not a valid exponent
 	err = ErrFormatWrong
 	//nolint:nakedret
-	return
+	return positive, value, num, denom, suffix, err
 }
 
 // ParseQuantity turns str into a Quantity, or returns an error.

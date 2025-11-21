@@ -133,7 +133,6 @@ type ContainerStats struct {
 	AvgCPU        float64
 	ContainerID   string
 	Name          string
-	PerCPU        []uint64
 	CPU           float64
 	CPUNano       uint64
 	CPUSystemNano uint64

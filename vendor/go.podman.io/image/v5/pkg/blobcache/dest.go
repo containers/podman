@@ -127,10 +127,10 @@ func (d *blobCacheDestination) saveStream(wg *sync.WaitGroup, decompressReader i
 	succeeded = true
 	*alternateDigest = digester.Digest()
 	// Note the relationship between the two files.
-	if err := ioutils.AtomicWriteFile(decompressedFilename+compressedNote, []byte(compressedDigest.String()), 0600); err != nil {
+	if err := ioutils.AtomicWriteFile(decompressedFilename+compressedNote, []byte(compressedDigest.String()), 0o600); err != nil {
 		logrus.Debugf("error noting that the compressed version of %q is %q: %v", digester.Digest().String(), compressedDigest.String(), err)
 	}
-	if err := ioutils.AtomicWriteFile(compressedFilename+decompressedNote, []byte(digester.Digest().String()), 0600); err != nil {
+	if err := ioutils.AtomicWriteFile(compressedFilename+decompressedNote, []byte(digester.Digest().String()), 0o600); err != nil {
 		logrus.Debugf("error noting that the decompressed version of %q is %q: %v", compressedDigest.String(), digester.Digest().String(), err)
 	}
 }
@@ -301,7 +301,7 @@ func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []
 		if err != nil {
 			return err
 		}
-		if err = ioutils.AtomicWriteFile(filename, manifestBytes, 0600); err != nil {
+		if err = ioutils.AtomicWriteFile(filename, manifestBytes, 0o600); err != nil {
 			logrus.Warnf("error saving manifest as %q: %v", filename, err)
 		}
 	}

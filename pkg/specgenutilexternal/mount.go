@@ -32,5 +32,5 @@ func FindMountType(input string) (mountType string, tokens []string, err error) 
 	if !found {
 		mountType = "volume"
 	}
-	return
+	return mountType, tokens, err
 }

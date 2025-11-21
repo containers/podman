@@ -22,7 +22,7 @@ func getPortCheckListenConfig() *net.ListenConfig {
 			}); err != nil {
 				cerr = err
 			}
-			return
+			return cerr
 		},
 	}
 }

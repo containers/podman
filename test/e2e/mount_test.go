@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman mount", func() {
-
 	BeforeEach(func() {
 		SkipIfRemote("Podman mount not supported for remote connections")
 		SkipIfRootless("Podman mount requires podman unshare first to work")
@@ -169,7 +168,6 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman list running container", func() {
-
 		setup := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
@@ -189,7 +187,6 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman list multiple mounted containers", func() {
-
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
@@ -229,11 +226,9 @@ var _ = Describe("Podman mount", func() {
 		lmount.WaitWithDefaultTimeout()
 		Expect(lmount).Should(ExitCleanly())
 		Expect(lmount.OutputToString()).To(Equal(""))
-
 	})
 
 	It("podman list mounted container", func() {
-
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())

@@ -50,7 +50,7 @@ additionalimagestores = [
 # Auto-userns-min-size is the minimum size for a user namespace created automatically.
 # auto-userns-min-size=1024
 #
-# Auto-userns-max-size is the minimum size for a user namespace created automatically.
+# Auto-userns-max-size is the maximum size for a user namespace created automatically.
 # auto-userns-max-size=65536
 
 [storage.options.overlay]

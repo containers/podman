@@ -3,14 +3,12 @@ package pods
 // CreateOptions are optional options for creating pods
 //
 //go:generate go run ../generator/generator.go CreateOptions
-type CreateOptions struct {
-}
+type CreateOptions struct{}
 
 // InspectOptions are optional options for inspecting pods
 //
 //go:generate go run ../generator/generator.go InspectOptions
-type InspectOptions struct {
-}
+type InspectOptions struct{}
 
 // KillOptions are optional options for killing pods
 //
@@ -22,14 +20,12 @@ type KillOptions struct {
 // PauseOptions are optional options for pausing pods
 //
 //go:generate go run ../generator/generator.go PauseOptions
-type PauseOptions struct {
-}
+type PauseOptions struct{}
 
 // PruneOptions are optional options for pruning pods
 //
 //go:generate go run ../generator/generator.go PruneOptions
-type PruneOptions struct {
-}
+type PruneOptions struct{}
 
 // ListOptions are optional options for listing pods
 //
@@ -41,14 +37,12 @@ type ListOptions struct {
 // RestartOptions are optional options for restarting pods
 //
 //go:generate go run ../generator/generator.go RestartOptions
-type RestartOptions struct {
-}
+type RestartOptions struct{}
 
 // StartOptions are optional options for starting pods
 //
 //go:generate go run ../generator/generator.go StartOptions
-type StartOptions struct {
-}
+type StartOptions struct{}
 
 // StopOptions are optional options for stopping pods
 //
@@ -67,8 +61,7 @@ type TopOptions struct {
 // UnpauseOptions are optional options for unpausinging pods
 //
 //go:generate go run ../generator/generator.go UnpauseOptions
-type UnpauseOptions struct {
-}
+type UnpauseOptions struct{}
 
 // StatsOptions are optional options for getting stats of pods
 //
@@ -88,5 +81,4 @@ type RemoveOptions struct {
 // ExistsOptions are optional options for checking if a pod exists
 //
 //go:generate go run ../generator/generator.go ExistsOptions
-type ExistsOptions struct {
-}
+type ExistsOptions struct{}

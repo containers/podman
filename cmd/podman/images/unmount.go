@@ -33,9 +33,7 @@ var (
 	}
 )
 
-var (
-	unmountOpts entities.ImageUnmountOptions
-)
+var unmountOpts entities.ImageUnmountOptions
 
 func unmountFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&unmountOpts.All, "all", "a", false, "Unmount all of the currently mounted images")

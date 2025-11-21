@@ -13,7 +13,6 @@ import (
 )
 
 var _ = Describe("Podman version", func() {
-
 	It("podman version", func() {
 		session := podmanTest.Podman([]string{"version"})
 		session.WaitWithDefaultTimeout()

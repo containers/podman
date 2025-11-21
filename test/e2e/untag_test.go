@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman untag", func() {
-
 	It("podman untag all", func() {
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		tags := []string{CIRROS_IMAGE, "registry.com/foo:bar", "localhost/foo:bar"}
@@ -72,5 +71,4 @@ var _ = Describe("Podman untag", func() {
 			Expect(session).Should(ExitWithError(1, ""))
 		}
 	})
-
 })

@@ -1035,8 +1035,8 @@ WantedBy=default.target
 		wantErr  bool
 		template bool
 	}{
-
-		{"good with id",
+		{
+			"good with id",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
@@ -1054,7 +1054,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with noHeader",
+		{
+			"good with noHeader",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
@@ -1072,7 +1073,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name",
+		{
+			"good with name",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
@@ -1090,7 +1092,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and wants",
+		{
+			"good with name and wants",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
@@ -1109,7 +1112,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and after",
+		{
+			"good with name and after",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
@@ -1128,7 +1132,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and requires",
+		{
+			"good with name and requires",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
@@ -1147,7 +1152,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and dependencies",
+		{
+			"good with name and dependencies",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
@@ -1168,7 +1174,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and bound to",
+		{
+			"good with name and bound to",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",
@@ -1187,7 +1194,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and generic",
+		{
+			"good with name and generic",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1206,7 +1214,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and --sdnotify=container",
+		{
+			"good with name and --sdnotify=container",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1225,7 +1234,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and --sdnotify container",
+		{
+			"good with name and --sdnotify container",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1244,7 +1254,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and --sdnotify=ignore",
+		{
+			"good with name and --sdnotify=ignore",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1263,7 +1274,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with name and --sdnotify ignore",
+		{
+			"good with name and --sdnotify ignore",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1282,7 +1294,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with explicit short detach param",
+		{
+			"good with explicit short detach param",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1301,7 +1314,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with explicit short detach param and podInfo",
+		{
+			"good with explicit short detach param and podInfo",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1323,7 +1337,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with explicit full detach param",
+		{
+			"good with explicit full detach param",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1342,7 +1357,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with id and no param",
+		{
+			"good with id and no param",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
@@ -1361,7 +1377,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with explicit detach=true param",
+		{
+			"good with explicit detach=true param",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1380,7 +1397,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with explicit detach=false param",
+		{
+			"good with explicit detach=false param",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1399,7 +1417,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with explicit detach=false param",
+		{
+			"good with explicit detach=false param",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1418,7 +1437,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with multiple detach=false params",
+		{
+			"good with multiple detach=false params",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1437,7 +1457,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with multiple shorthand params detach first",
+		{
+			"good with multiple shorthand params detach first",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1456,7 +1477,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with multiple shorthand params detach last",
+		{
+			"good with multiple shorthand params detach last",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1475,7 +1497,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with container create",
+		{
+			"good with container create",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1494,7 +1517,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with journald log tag (see #9034)",
+		{
+			"good with journald log tag (see #9034)",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1513,7 +1537,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with special chars",
+		{
+			"good with special chars",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1532,7 +1557,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with ID files",
+		{
+			"good with ID files",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1551,7 +1577,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with pod ID files",
+		{
+			"good with pod ID files",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1573,7 +1600,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with container environment variables",
+		{
+			"good with container environment variables",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1593,7 +1621,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with systemd environment variables",
+		{
+			"good with systemd environment variables",
 			containerInfo{
 				Executable:             "/usr/bin/podman",
 				ServiceName:            "container-foobar",
@@ -1612,7 +1641,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with restart policy",
+		{
+			"good with restart policy",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1631,7 +1661,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with -h hostname",
+		{
+			"good with -h hostname",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "jadda-jadda",
@@ -1650,7 +1681,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good template",
+		{
+			"good template",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foo",
@@ -1668,7 +1700,8 @@ WantedBy=default.target
 			false,
 			true,
 		},
-		{"good with name and empty container-prefix",
+		{
+			"good with name and empty container-prefix",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "foobar",
@@ -1686,7 +1719,8 @@ WantedBy=default.target
 			false,
 			false,
 		},
-		{"good with RestartSec",
+		{
+			"good with RestartSec",
 			containerInfo{
 				Executable:        "/usr/bin/podman",
 				ServiceName:       "container-foobar",

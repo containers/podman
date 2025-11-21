@@ -41,7 +41,6 @@ The test currently depend on:
  - xz
  - htpasswd
  - iproute2
- - iptables
  - util-linux
  - tar
  - docker

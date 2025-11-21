@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman pod create", func() {
-
 	It("podman pod container share Namespaces", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
@@ -82,5 +81,4 @@ var _ = Describe("Podman pod create", func() {
 		GinkgoWriter.Println("NAMESPACE2:", NAMESPACE2)
 		Expect(NAMESPACE1).To(Not(Equal(NAMESPACE2)))
 	})
-
 })

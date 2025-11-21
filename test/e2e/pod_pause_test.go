@@ -11,10 +11,6 @@ import (
 var _ = Describe("Podman pod pause", func() {
 	pausedState := "Paused"
 
-	BeforeEach(func() {
-		SkipIfRootlessCgroupsV1("Pause is not supported in cgroups v1")
-	})
-
 	It("podman pod pause bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "pause", "foobar"})
 		session.WaitWithDefaultTimeout()

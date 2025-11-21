@@ -18,9 +18,7 @@ import (
 	"golang.org/x/term"
 )
 
-var (
-	containerConfig = registry.PodmanConfig()
-)
+var containerConfig = registry.PodmanConfig()
 
 var (
 	saveDescription = `Save an image to docker-archive or oci-archive on the local machine. Default is docker-archive.`
@@ -62,9 +60,7 @@ var (
 	}
 )
 
-var (
-	saveOpts entities.ImageSaveOptions
-)
+var saveOpts entities.ImageSaveOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

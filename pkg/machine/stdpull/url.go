@@ -26,9 +26,7 @@ type DiskFromURL struct {
 }
 
 func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile, optionalTempFileName *string, cache bool) (*DiskFromURL, error) {
-	var (
-		err error
-	)
+	var err error
 	u, err := url2.Parse(inputPath)
 	if err != nil {
 		return nil, err

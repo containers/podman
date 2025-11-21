@@ -67,6 +67,10 @@ func TestSplitVolumeString(t *testing.T) {
 		},
 	}
 
+	t.Run("shouldResolveWinPaths() returns true", func(t *testing.T) {
+		assert.True(t, shouldResolveWinPaths())
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			parts := SplitVolumeString(tt.volume)

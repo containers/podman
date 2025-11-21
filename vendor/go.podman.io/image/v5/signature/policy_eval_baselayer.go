@@ -18,3 +18,7 @@ func (pr *prSignedBaseLayer) isRunningImageAllowed(ctx context.Context, image pr
 	logrus.Errorf("signedBaseLayer not implemented yet!")
 	return false, PolicyRequirementError("signedBaseLayer not implemented yet!")
 }
+
+func (pr *prSignedBaseLayer) verifiesSignatures() bool {
+	return false
+}

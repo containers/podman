@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman run exit", func() {
-
 	It("podman run exit define.ExecErrorCodeGeneric", func() {
 		result := podmanTest.Podman([]string{"run", "--foobar", ALPINE, "ls", "$tmp"})
 		result.WaitWithDefaultTimeout()

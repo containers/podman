@@ -108,7 +108,7 @@ type Message struct {
 	Type
 	Flags
 	Headers map[HeaderField]Variant
-	Body    []interface{}
+	Body    []any
 
 	serial uint32
 }
@@ -232,7 +232,7 @@ func (msg *Message) EncodeToWithFDs(out io.Writer, order binary.ByteOrder) (fds 
 	if err := msg.validateHeader(); err != nil {
 		return nil, err
 	}
-	var vs [7]interface{}
+	var vs [7]any
 	switch order {
 	case binary.LittleEndian:
 		vs[0] = byte('l')

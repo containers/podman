@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -30,9 +29,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var (
-	bindOptions = []string{define.TypeBind, "rprivate"}
-)
+var bindOptions = []string{define.TypeBind, "rprivate"}
 
 func (c *Container) mountSHM(shmOptions string) error {
 	contextType := "context"
@@ -224,7 +221,7 @@ func (c *Container) reloadNetwork() error {
 
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
-func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
+func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) {
 	var containerUUIDSet bool
 	for _, s := range c.config.Spec.Process.Env {
 		if strings.HasPrefix(s, "container_uuid=") {
@@ -267,11 +264,6 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		g.AddMount(tmpfsMnt)
 	}
 
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return err
-	}
-
 	hasCgroupNs := false
 	for _, ns := range c.config.Spec.Linux.Namespaces {
 		if ns.Type == spec.CgroupNamespace {
@@ -280,71 +272,25 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		}
 	}
 
-	if unified {
-		g.RemoveMount("/sys/fs/cgroup")
+	g.RemoveMount("/sys/fs/cgroup")
 
-		var systemdMnt spec.Mount
-		if hasCgroupNs {
-			systemdMnt = spec.Mount{
-				Destination: "/sys/fs/cgroup",
-				Type:        "cgroup",
-				Source:      "cgroup",
-				Options:     []string{"private", "rw"},
-			}
-		} else {
-			systemdMnt = spec.Mount{
-				Destination: "/sys/fs/cgroup",
-				Type:        define.TypeBind,
-				Source:      "/sys/fs/cgroup",
-				Options:     []string{define.TypeBind, "private", "rw"},
-			}
+	var systemdMnt spec.Mount
+	if hasCgroupNs {
+		systemdMnt = spec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"private", "rw"},
 		}
-		g.AddMount(systemdMnt)
 	} else {
-		hasSystemdMount := MountExists(mounts, "/sys/fs/cgroup/systemd")
-		if hasCgroupNs && !hasSystemdMount {
-			return errors.New("cgroup namespace is not supported with cgroup v1 and systemd mode")
-		}
-		mountOptions := []string{define.TypeBind, "rprivate"}
-
-		if !hasSystemdMount {
-			skipMount := hasSystemdMount
-			var statfs unix.Statfs_t
-			if err := unix.Statfs("/sys/fs/cgroup/systemd", &statfs); err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					// If the mount is missing on the host, we cannot bind mount it so
-					// just skip it.
-					skipMount = true
-				}
-				mountOptions = append(mountOptions, "nodev", "noexec", "nosuid")
-			} else {
-				if statfs.Flags&unix.MS_NODEV == unix.MS_NODEV {
-					mountOptions = append(mountOptions, "nodev")
-				}
-				if statfs.Flags&unix.MS_NOEXEC == unix.MS_NOEXEC {
-					mountOptions = append(mountOptions, "noexec")
-				}
-				if statfs.Flags&unix.MS_NOSUID == unix.MS_NOSUID {
-					mountOptions = append(mountOptions, "nosuid")
-				}
-				if statfs.Flags&unix.MS_RDONLY == unix.MS_RDONLY {
-					mountOptions = append(mountOptions, "ro")
-				}
-			}
-			if !skipMount {
-				systemdMnt := spec.Mount{
-					Destination: "/sys/fs/cgroup/systemd",
-					Type:        define.TypeBind,
-					Source:      "/sys/fs/cgroup/systemd",
-					Options:     mountOptions,
-				}
-				g.AddMount(systemdMnt)
-				g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
-			}
+		systemdMnt = spec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        define.TypeBind,
+			Source:      "/sys/fs/cgroup",
+			Options:     []string{define.TypeBind, "private", "rw"},
 		}
 	}
-
-	return nil
+	g.AddMount(systemdMnt)
 }
 
 // Add an existing container's namespace to the spec
@@ -385,16 +331,12 @@ func isRootlessCgroupSet(cgroup string) bool {
 }
 
 func (c *Container) expectPodCgroup() (bool, error) {
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return false, err
-	}
 	cgroupManager := c.CgroupManager()
 	switch {
 	case c.config.NoCgroups:
 		return false, nil
 	case cgroupManager == config.SystemdCgroupsManager:
-		return !rootless.IsRootless() || unified, nil
+		return true, nil
 	case cgroupManager == config.CgroupfsCgroupsManager:
 		return !rootless.IsRootless(), nil
 	default:
@@ -404,10 +346,6 @@ func (c *Container) expectPodCgroup() (bool, error) {
 
 // Get cgroup path in a format suitable for the OCI spec
 func (c *Container) getOCICgroupPath() (string, error) {
-	unified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return "", err
-	}
 	cgroupManager := c.CgroupManager()
 	switch {
 	case c.config.NoCgroups:
@@ -425,7 +363,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting Cgroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
-	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
+	case (rootless.IsRootless() && cgroupManager == config.CgroupfsCgroupsManager):
 		if c.config.CgroupParent == "" || !isRootlessCgroupSet(c.config.CgroupParent) {
 			return "", nil
 		}
@@ -460,9 +398,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 
 func (c *Container) addSystemdMounts(g *generate.Generator) error {
 	if c.Systemd() {
-		if err := c.setupSystemd(g.Mounts(), *g); err != nil {
-			return err
-		}
+		c.setupSystemd(g.Mounts(), *g)
 	}
 	return nil
 }

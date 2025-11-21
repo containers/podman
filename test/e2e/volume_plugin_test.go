@@ -207,8 +207,10 @@ testvol5 = "/run/docker/plugins/testvol5.sock"`), 0o644)
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
 		pluginName := "testvol5"
 		ctrName := "pluginCtr"
-		plugin := podmanTest.Podman([]string{"run", "--name", ctrName, "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins",
-			"-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
+		plugin := podmanTest.Podman([]string{
+			"run", "--name", ctrName, "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins",
+			"-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath,
+		})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(ExitCleanly())
 

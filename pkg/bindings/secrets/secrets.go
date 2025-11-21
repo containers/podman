@@ -11,9 +11,7 @@ import (
 
 // List returns information about existing secrets in the form of a slice.
 func List(ctx context.Context, options *ListOptions) ([]*entitiesTypes.SecretInfoReport, error) {
-	var (
-		secrs []*entitiesTypes.SecretInfoReport
-	)
+	var secrs []*entitiesTypes.SecretInfoReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -36,9 +34,7 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 	if options == nil {
 		options = new(InspectOptions)
 	}
-	var (
-		inspect *entitiesTypes.SecretInfoReport
-	)
+	var inspect *entitiesTypes.SecretInfoReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -73,9 +69,7 @@ func Remove(ctx context.Context, nameOrID string) error {
 
 // Create creates a secret given some data
 func Create(ctx context.Context, reader io.Reader, options *CreateOptions) (*entitiesTypes.SecretCreateReport, error) {
-	var (
-		create *entitiesTypes.SecretCreateReport
-	)
+	var create *entitiesTypes.SecretCreateReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

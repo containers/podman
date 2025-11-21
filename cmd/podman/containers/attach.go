@@ -39,9 +39,7 @@ var (
 	}
 )
 
-var (
-	attachOpts entities.AttachOptions
-)
+var attachOpts entities.AttachOptions
 
 func attachFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()

@@ -1186,8 +1186,10 @@ func AutocompletePullOption(_ *cobra.Command, _ []string, _ string) ([]string, c
 // AutocompleteRestartOption - Autocomplete restart options for create and run command.
 // -> "always", "no", "on-failure", "unless-stopped"
 func AutocompleteRestartOption(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	restartOptions := []string{define.RestartPolicyAlways, define.RestartPolicyNo,
-		define.RestartPolicyOnFailure, define.RestartPolicyUnlessStopped}
+	restartOptions := []string{
+		define.RestartPolicyAlways, define.RestartPolicyNo,
+		define.RestartPolicyOnFailure, define.RestartPolicyUnlessStopped,
+	}
 	return restartOptions, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1595,7 +1597,8 @@ func getMethodNames(f reflect.Value, prefix string) []formatSuggestion {
 // -> "container=", "event=", "image=", "pod=", "volume=", "type="
 func AutocompleteEventFilter(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	event := func(_ string) ([]string, cobra.ShellCompDirective) {
-		return []string{events.Attach.String(), events.AutoUpdate.String(), events.Checkpoint.String(), events.Cleanup.String(),
+		return []string{
+			events.Attach.String(), events.AutoUpdate.String(), events.Checkpoint.String(), events.Cleanup.String(),
 			events.Commit.String(), events.Create.String(), events.Exec.String(), events.ExecDied.String(),
 			events.Exited.String(), events.Export.String(), events.Import.String(), events.Init.String(), events.Kill.String(),
 			events.LoadFromArchive.String(), events.Mount.String(), events.NetworkConnect.String(),
@@ -1607,7 +1610,8 @@ func AutocompleteEventFilter(cmd *cobra.Command, _ []string, toComplete string) 
 		}, cobra.ShellCompDirectiveNoFileComp
 	}
 	eventTypes := func(_ string) ([]string, cobra.ShellCompDirective) {
-		return []string{events.Container.String(), events.Image.String(), events.Network.String(),
+		return []string{
+			events.Container.String(), events.Image.String(), events.Network.String(),
 			events.Pod.String(), events.System.String(), events.Volume.String(), events.Secret.String(),
 		}, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -1710,9 +1714,11 @@ func AutocompleteImageSaveFormat(_ *cobra.Command, _ []string, _ string) ([]stri
 // AutocompleteWaitCondition - Autocomplete wait condition options.
 // -> "unknown", "configured", "created", "running", "stopped", "paused", "exited", "removing"
 func AutocompleteWaitCondition(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	states := []string{"unknown", "configured", "created", "exited",
+	states := []string{
+		"unknown", "configured", "created", "exited",
 		"healthy", "initialized", "paused", "removing", "running",
-		"stopped", "stopping", "unhealthy"}
+		"stopped", "stopping", "unhealthy",
+	}
 	return states, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1792,8 +1798,10 @@ func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([
 		"command=":  func(s string) ([]string, cobra.ShellCompDirective) { return getCommands(cmd, s) },
 		"exited=":   nil,
 		"health=": func(_ string) ([]string, cobra.ShellCompDirective) {
-			return []string{define.HealthCheckHealthy,
-				define.HealthCheckUnhealthy}, cobra.ShellCompDirectiveNoFileComp
+			return []string{
+				define.HealthCheckHealthy,
+				define.HealthCheckUnhealthy,
+			}, cobra.ShellCompDirectiveNoFileComp
 		},
 		"id=":      func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeIDs) },
 		"label=":   nil,
@@ -1832,8 +1840,10 @@ func AutocompletePodPsFilters(cmd *cobra.Command, _ []string, toComplete string)
 		"name=":    func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeNames) },
 		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeDefault) },
 		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
-			return []string{"stopped", "running",
-				"paused", "exited", "dead", "created", "degraded"}, cobra.ShellCompDirectiveNoFileComp
+			return []string{
+				"stopped", "running",
+				"paused", "exited", "dead", "created", "degraded",
+			}, cobra.ShellCompDirectiveNoFileComp
 		},
 		"until=": nil,
 	}
@@ -2002,7 +2012,6 @@ func AutocompleteSysctl(_ *cobra.Command, _ []string, toComplete string) ([]stri
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}

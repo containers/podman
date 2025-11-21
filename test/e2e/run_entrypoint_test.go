@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("Podman run entrypoint", func() {
-
 	It("podman run no command, entrypoint, or cmd", func() {
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 ENTRYPOINT []

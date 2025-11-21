@@ -12,11 +12,6 @@ const containersConf = `[containers]
 
 [engine]
 cgroup_manager = "cgroupfs"
-
-# Using iptables until we fix nftables on WSL:
-# https://github.com/containers/podman/issues/25201
-[network]
-firewall_driver="iptables"
 `
 
 const registriesConf = `unqualified-search-registries=["docker.io"]
@@ -142,6 +137,7 @@ ExecStop=umount /mnt/wsl/podman-sockets/%[1]s/podman-user.sock
 
 const bindMountFsTab = `/run/user/1000/podman/podman.sock /mnt/wsl/podman-sockets/%s/podman-user.sock none noauto,user,bind,defaults 0 0
 `
+
 const (
 	defaultTargetWants     = "default.target.wants"
 	userSystemdPath        = "/home/%[1]s/.config/systemd/user"

@@ -87,7 +87,6 @@ func FromBlob(blob []byte) (Signature, error) {
 	default:
 		return nil, fmt.Errorf("unrecognized signature format, starting with binary %#x", blob[0])
 	}
-
 }
 
 // UnsupportedFormatError returns an error complaining about sig having an unsupported format.

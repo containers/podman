@@ -15,8 +15,7 @@ import (
 )
 
 // RawTtyFormatter ...
-type RawTtyFormatter struct {
-}
+type RawTtyFormatter struct{}
 
 // getResize returns a TerminalSize command matching stdin's current
 // size on success, and nil on errors.

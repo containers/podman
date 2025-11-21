@@ -657,8 +657,20 @@ type streamReader interface {
 	Read(n int) (mem.BufferSlice, error)
 }
 
+// noCopy may be embedded into structs which must not be copied
+// after the first use.
+//
+// See https://golang.org/issues/8005#issuecomment-190753527
+// for details.
+type noCopy struct {
+}
+
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
+
 // parser reads complete gRPC messages from the underlying reader.
 type parser struct {
+	_ noCopy
 	// r is the underlying reader.
 	// See the comment on recvMsg for the permissible
 	// error types.
@@ -949,7 +961,7 @@ func recv(p *parser, c baseCodec, s recvCompressor, dc Decompressor, m any, maxR
 // Information about RPC
 type rpcInfo struct {
 	failfast      bool
-	preloaderInfo *compressorInfo
+	preloaderInfo compressorInfo
 }
 
 // Information about Preloader
@@ -968,7 +980,7 @@ type rpcInfoContextKey struct{}
 func newContextWithRPCInfo(ctx context.Context, failfast bool, codec baseCodec, cp Compressor, comp encoding.Compressor) context.Context {
 	return context.WithValue(ctx, rpcInfoContextKey{}, &rpcInfo{
 		failfast: failfast,
-		preloaderInfo: &compressorInfo{
+		preloaderInfo: compressorInfo{
 			codec: codec,
 			cp:    cp,
 			comp:  comp,

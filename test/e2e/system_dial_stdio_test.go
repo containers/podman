@@ -9,7 +9,6 @@ import (
 )
 
 var _ = Describe("podman system dial-stdio", func() {
-
 	It("podman system dial-stdio help", func() {
 		session := podmanTest.Podman([]string{"system", "dial-stdio", "--help"})
 		session.WaitWithDefaultTimeout()

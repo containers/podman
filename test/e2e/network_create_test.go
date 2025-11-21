@@ -22,7 +22,6 @@ func removeNetworkDevice(name string) {
 }
 
 var _ = Describe("Podman network create", func() {
-
 	It("podman network create with name and subnet", func() {
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ip-range", "10.11.12.0/26", netName})
@@ -104,7 +103,6 @@ var _ = Describe("Podman network create", func() {
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
 		defer removeNetworkDevice(result.NetworkInterface)
-
 	})
 
 	It("podman network create with name and subnet and static route and metric", func() {
@@ -145,7 +143,6 @@ var _ = Describe("Podman network create", func() {
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
 		defer removeNetworkDevice(result.NetworkInterface)
-
 	})
 
 	It("podman network create with name and subnet and two static routes", func() {
@@ -192,7 +189,6 @@ var _ = Describe("Podman network create", func() {
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
 		defer removeNetworkDevice(result.NetworkInterface)
-
 	})
 
 	It("podman network create with name and subnet and static route (ipv6)", func() {
@@ -233,7 +229,6 @@ var _ = Describe("Podman network create", func() {
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
 		defer removeNetworkDevice(result.NetworkInterface)
-
 	})
 
 	It("podman network create with name and subnet with --opt no_default_route=1", func() {
@@ -272,7 +267,6 @@ var _ = Describe("Podman network create", func() {
 		// Once a container executes a new network, the nic will be created. We should clean those up
 		// best we can
 		defer removeNetworkDevice(result.NetworkInterface)
-
 	})
 
 	It("podman network create with name and IPv6 subnet", func() {
@@ -441,7 +435,6 @@ var _ = Describe("Podman network create", func() {
 		nc = podmanTest.Podman([]string{"network", "create", "--gateway", "10.11.12.256"})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError(125, `invalid argument "10.11.12.256" for "--gateway" flag: invalid string being converted to IP address: 10.11.12.256`))
-
 	})
 
 	It("podman network create with invalid gateway for subnet", func() {

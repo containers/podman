@@ -3,14 +3,12 @@ package volumes
 // CreateOptions are optional options for creating volumes
 //
 //go:generate go run ../generator/generator.go CreateOptions
-type CreateOptions struct {
-}
+type CreateOptions struct{}
 
 // InspectOptions are optional options for inspecting volumes
 //
 //go:generate go run ../generator/generator.go InspectOptions
-type InspectOptions struct {
-}
+type InspectOptions struct{}
 
 // ListOptions are optional options for listing volumes
 //
@@ -41,5 +39,4 @@ type RemoveOptions struct {
 // if a volume exists
 //
 //go:generate go run ../generator/generator.go ExistsOptions
-type ExistsOptions struct {
-}
+type ExistsOptions struct{}

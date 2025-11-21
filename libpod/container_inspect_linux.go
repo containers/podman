@@ -70,8 +70,8 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 					hostConfig.OomKillDisable = *ctrSpec.Linux.Resources.Memory.DisableOOMKiller
 				}
 			}
-			if ctrSpec.Linux.Resources.Pids != nil {
-				hostConfig.PidsLimit = ctrSpec.Linux.Resources.Pids.Limit
+			if ctrSpec.Linux.Resources.Pids != nil && ctrSpec.Linux.Resources.Pids.Limit != nil {
+				hostConfig.PidsLimit = *ctrSpec.Linux.Resources.Pids.Limit
 			}
 			hostConfig.CgroupConf = ctrSpec.Linux.Resources.Unified
 			if ctrSpec.Linux.Resources.BlockIO != nil {

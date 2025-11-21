@@ -312,6 +312,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	return runtimeSpec, s, options, err
 }
+
 func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *specs.Spec, s *specgen.SpecGenerator, infra bool, options ...libpod.CtrCreateOption) (*libpod.Container, error) {
 	ctr, err := rt.NewContainer(ctx, runtimeSpec, s, infra, options...)
 	if err != nil {

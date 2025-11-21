@@ -25,7 +25,6 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
-	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/unshare"
@@ -1044,8 +1043,10 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 // returns a time format and error.  The input is compared to known time formats
 // or a duration which implies no-duration
 func ParseInputTime(inputTime string, since bool) (time.Time, error) {
-	timeFormats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
-		"2006-01-02Z07:00", "2006-01-02"}
+	timeFormats := []string{
+		time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04:05.999999999",
+		"2006-01-02Z07:00", "2006-01-02",
+	}
 	// iterate the supported time formats
 	for _, tf := range timeFormats {
 		t, err := time.Parse(tf, inputTime)
@@ -1196,14 +1197,6 @@ func LookupUser(name string) (*user.User, error) {
 		return u, nil
 	}
 	return user.Lookup(name)
-}
-
-// SizeOfPath determines the file usage of a given path. it was called volumeSize in v1
-// and now is made to be generic and take a path instead of a libpod volume
-// Deprecated: use github.com/containers/storage/pkg/directory.Size() instead.
-func SizeOfPath(path string) (uint64, error) {
-	size, err := directory.Size(path)
-	return uint64(size), err
 }
 
 // ParseRestartPolicy parses the value given to the --restart flag and returns the policy

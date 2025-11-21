@@ -115,9 +115,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 }
 
 func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, error) {
-	var (
-		options []libpod.PodCreateOption
-	)
+	var options []libpod.PodCreateOption
 
 	if p.ShareParent == nil || (p.ShareParent != nil && *p.ShareParent) {
 		options = append(options, libpod.WithPodParent())
@@ -261,10 +259,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	}
 	if len(p.Networks) > 0 {
 		spec.Networks = p.Networks
-	}
-	// deprecated cni networks for api users
-	if len(p.CNINetworks) > 0 {
-		spec.CNINetworks = p.CNINetworks
 	}
 	if p.NoManageHosts {
 		spec.UseImageHosts = &p.NoManageHosts

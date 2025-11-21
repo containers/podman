@@ -16,9 +16,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
 )
 
-var (
-	ErrLostSync = errors.New("lost synchronization with multiplexed stream")
-)
+var ErrLostSync = errors.New("lost synchronization with multiplexed stream")
 
 // List obtains a list of containers in local storage.  All parameters to this method are optional.
 // The filters are used to determine which containers are listed. The last parameter indicates to only return

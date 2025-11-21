@@ -50,28 +50,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddAnnotation(key, val)
 	}
 
-	// Devices
-	var userDevices []spec.LinuxDevice
-	if !s.IsPrivileged() {
-		// add default devices from containers.conf
-		for _, device := range rtc.Containers.Devices.Get() {
-			if err = DevicesFromPath(&g, device, rtc); err != nil {
-				return nil, err
-			}
-		}
-		if len(compatibleOptions.HostDeviceList) > 0 && len(s.Devices) == 0 {
-			userDevices = compatibleOptions.HostDeviceList
-		} else {
-			userDevices = s.Devices
-		}
-		// add default devices specified by caller
-		for _, device := range userDevices {
-			if err = DevicesFromPath(&g, device.Path, rtc); err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	g.ClearProcessEnv()
 	for name, val := range s.Env {
 		g.AddProcessEnv(name, val)
@@ -132,6 +110,28 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			},
 		)
 		configSpec.Mounts = mounts
+	}
+
+	// Devices
+	var userDevices []spec.LinuxDevice
+	if !s.IsPrivileged() {
+		// add default devices from containers.conf
+		for _, device := range rtc.Containers.Devices.Get() {
+			if err = DevicesFromPath(&g, device, rtc); err != nil {
+				return nil, err
+			}
+		}
+		if len(compatibleOptions.HostDeviceList) > 0 && len(s.Devices) == 0 {
+			userDevices = compatibleOptions.HostDeviceList
+		} else {
+			userDevices = s.Devices
+		}
+		// add default devices specified by caller
+		for _, device := range userDevices {
+			if err = DevicesFromPath(&g, device.Path, rtc); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// BIND MOUNTS

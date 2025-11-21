@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Podman pod create", func() {
-
 	It("podman create infra container", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
@@ -127,7 +126,6 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(Equal("''")) // no network path... host
-
 	})
 
 	It("podman pod correctly sets up IPCNS", func() {
@@ -227,7 +225,6 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container can override pod pid NS", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"pod", "create", "--share", "pid"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -428,5 +425,4 @@ var _ = Describe("Podman pod create", func() {
 			Expect(session.OutputToString()).Should(Equal("0"))
 		})
 	}
-
 })

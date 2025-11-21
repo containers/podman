@@ -209,7 +209,7 @@ func makeInspectPortBindings(bindings []types.PortMapping) map[string][]define.I
 			for i := uint16(0); i < port.Range; i++ {
 				key := fmt.Sprintf("%d/%s", port.ContainerPort+i, protocol)
 				hostPorts := portBindings[key]
-				var hostIP = port.HostIP
+				hostIP := port.HostIP
 				if len(port.HostIP) == 0 {
 					hostIP = "0.0.0.0"
 				}

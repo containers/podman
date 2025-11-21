@@ -34,7 +34,6 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/storage"
@@ -217,8 +216,8 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func waitExitOnFirst(ctx context.Context, containers []containerWrapper, options entities.WaitOptions) entities.WaitReport {
-	var waitChannel = make(chan entities.WaitReport, 1)
-	var waitFunction = func(ctx context.Context, container containerWrapper, options entities.WaitOptions, waitChannel chan<- entities.WaitReport) {
+	waitChannel := make(chan entities.WaitReport, 1)
+	waitFunction := func(ctx context.Context, container containerWrapper, options entities.WaitOptions, waitChannel chan<- entities.WaitReport) {
 		response := entities.WaitReport{}
 		var conditions []string
 		if len(options.Conditions) == 0 {
@@ -294,6 +293,7 @@ func (ic *ContainerEngine) ContainerUnpause(_ context.Context, namesOrIds []stri
 	}
 	return reports, nil
 }
+
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	containers, err := getContainers(ic.Libpod,
 		getContainersOptions{
@@ -627,9 +627,7 @@ func (ic *ContainerEngine) ContainerTop(_ context.Context, options entities.TopO
 }
 
 func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string, options entities.CommitOptions) (*entities.CommitReport, error) {
-	var (
-		mimeType string
-	)
+	var mimeType string
 	ctr, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil {
 		return nil, err
@@ -874,7 +872,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	return nil
 }
 
-func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.ExecConfig, error) {
+func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime, noSession bool) (*libpod.ExecConfig, error) {
 	execConfig := new(libpod.ExecConfig)
 	execConfig.Command = options.Cmd
 	execConfig.Terminal = options.Tty
@@ -887,18 +885,21 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 	execConfig.PreserveFD = options.PreserveFD
 	execConfig.AttachStdin = options.Interactive
 
-	// Make an exit command
-	storageConfig := rt.StorageConfig()
-	runtimeConfig, err := rt.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("retrieving Libpod configuration to build exec exit command: %w", err)
+	// Only set up exit command for regular exec sessions, not no-session mode
+	if !noSession {
+		// Make an exit command
+		storageConfig := rt.StorageConfig()
+		runtimeConfig, err := rt.GetConfig()
+		if err != nil {
+			return nil, fmt.Errorf("retrieving Libpod configuration to build exec exit command: %w", err)
+		}
+		// TODO: Add some ability to toggle syslog
+		exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false, true)
+		if err != nil {
+			return nil, fmt.Errorf("constructing exit command for exec session: %w", err)
+		}
+		execConfig.ExitCommand = exitCommandArgs
 	}
-	// TODO: Add some ability to toggle syslog
-	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false, true)
-	if err != nil {
-		return nil, fmt.Errorf("constructing exit command for exec session: %w", err)
-	}
-	execConfig.ExitCommand = exitCommandArgs
 
 	return execConfig, nil
 }
@@ -948,12 +949,42 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 		util.ExecAddTERM(ctr.Env(), options.Envs)
 	}
 
-	execConfig, err := makeExecConfig(options, ic.Libpod)
+	execConfig, err := makeExecConfig(options, ic.Libpod, false)
 	if err != nil {
 		return ec, err
 	}
 
 	ec, err = terminal.ExecAttachCtr(ctx, ctr.Container, execConfig, &streams)
+	return define.TranslateExecErrorToExitCode(ec, err), err
+}
+
+func (ic *ContainerEngine) ContainerExecNoSession(_ context.Context, nameOrID string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
+	ec := define.ExecErrorCodeGeneric
+	err := checkExecPreserveFDs(options)
+	if err != nil {
+		return ec, err
+	}
+
+	containers, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: []string{nameOrID}})
+	if err != nil {
+		return ec, err
+	}
+	if len(containers) != 1 {
+		return ec, fmt.Errorf("%w: expected to find exactly one container but got %d", define.ErrInternal, len(containers))
+	}
+	ctr := containers[0]
+
+	if options.Tty {
+		util.ExecAddTERM(ctr.Env(), options.Envs)
+	}
+
+	execConfig, err := makeExecConfig(options, ic.Libpod, true)
+	if err != nil {
+		return ec, err
+	}
+
+	ec, err = ctr.ExecNoSession(execConfig, &streams, nil)
+	// Translate exit codes for consistency with regular exec
 	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 
@@ -972,7 +1003,7 @@ func (ic *ContainerEngine) ContainerExecDetached(_ context.Context, nameOrID str
 	}
 	ctr := containers[0]
 
-	execConfig, err := makeExecConfig(options, ic.Libpod)
+	execConfig, err := makeExecConfig(options, ic.Libpod, false)
 	if err != nil {
 		return "", err
 	}
@@ -993,7 +1024,7 @@ func (ic *ContainerEngine) ContainerExecDetached(_ context.Context, nameOrID str
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
-	var exitCode = define.ExecErrorCodeGeneric
+	exitCode := define.ExecErrorCodeGeneric
 	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil {
 		return nil, err
@@ -1620,15 +1651,6 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
 	if options.Interval < 1 {
 		return nil, errors.New("invalid interval, must be a positive number greater zero")
-	}
-	if rootless.IsRootless() {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return nil, err
-		}
-		if !unified {
-			return nil, errors.New("stats is not supported in rootless mode without cgroups v2")
-		}
 	}
 	statsChan = make(chan entities.ContainerStatsReport, 1)
 

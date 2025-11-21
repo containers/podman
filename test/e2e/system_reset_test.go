@@ -12,7 +12,6 @@ import (
 
 // system reset must run serial: https://github.com/containers/podman/issues/17903
 var _ = Describe("podman system reset", Serial, func() {
-
 	It("podman system reset", func() {
 		SkipIfRemote("system reset not supported on podman --remote")
 		// system reset will not remove additional store images, so need to grab length

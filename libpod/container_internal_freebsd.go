@@ -21,9 +21,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var (
-	bindOptions = []string{}
-)
+var bindOptions = []string{}
 
 func (c *Container) mountSHM(_ string) error {
 	return nil

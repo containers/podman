@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("podman system df", func() {
-
 	It("podman system df", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE})
 		session.WaitWithDefaultTimeout()
@@ -58,7 +57,6 @@ var _ = Describe("podman system df", func() {
 		volumes = strings.Fields(session.OutputToStringArray()[3])
 		// percentages on volumes were being calculated incorrectly. Make sure we only report 100% and not above
 		Expect(volumes[6]).To(Equal("(100%)"), "percentage usage expected")
-
 	})
 
 	It("podman system df image with no tag", func() {
@@ -91,7 +89,6 @@ var _ = Describe("podman system df", func() {
 		for i, out := range session.OutputToStringArray() {
 			Expect(out).To(BeValidJSON(), "line %d failed to be parsed", i)
 		}
-
 	})
 
 	It("podman system df --format with --verbose", func() {
@@ -112,5 +109,4 @@ var _ = Describe("podman system df", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("Reclaimable"))
 		Expect(session.OutputToString()).To(BeValidJSON())
 	})
-
 })

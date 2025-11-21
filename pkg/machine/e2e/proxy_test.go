@@ -11,7 +11,6 @@ import (
 )
 
 var _ = Describe("podman machine proxy settings propagation", func() {
-
 	It("ssh to running machine and check proxy settings", func() {
 		defer func() {
 			os.Unsetenv("HTTP_PROXY")

@@ -174,7 +174,7 @@ func editShortNameAlias(ctx *types.SystemContext, name string, value *string) (r
 		delete(conf.Aliases, name)
 	}
 
-	f, err := os.OpenFile(confPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(confPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -343,7 +343,7 @@ func shortNameAliasesConfPathAndLock(ctx *types.SystemContext) (string, *lockfil
 		return "", nil, err
 	}
 	// Make sure the path to file exists.
-	if err := os.MkdirAll(filepath.Dir(shortNameAliasesConfPath), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(shortNameAliasesConfPath), 0o700); err != nil {
 		return "", nil, err
 	}
 

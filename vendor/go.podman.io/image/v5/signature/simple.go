@@ -74,8 +74,10 @@ func newUntrustedSignature(dockerManifestDigest digest.Digest, dockerReference s
 }
 
 // A compile-time check that untrustedSignature  and *untrustedSignature implements json.Marshaler
-var _ json.Marshaler = untrustedSignature{}
-var _ json.Marshaler = (*untrustedSignature)(nil)
+var (
+	_ json.Marshaler = untrustedSignature{}
+	_ json.Marshaler = (*untrustedSignature)(nil)
+)
 
 // MarshalJSON implements the json.Marshaler interface.
 func (s untrustedSignature) MarshalJSON() ([]byte, error) {
@@ -122,7 +124,7 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 
 	var creatorID string
 	var timestamp float64
-	var gotCreatorID, gotTimestamp = false, false
+	gotCreatorID, gotTimestamp := false, false
 	if err := internal.ParanoidUnmarshalJSONObject(optional, func(key string) any {
 		switch key {
 		case "creator":

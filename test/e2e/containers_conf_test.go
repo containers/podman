@@ -20,7 +20,6 @@ import (
 )
 
 var _ = Describe("Verify podman containers.conf usage", func() {
-
 	BeforeEach(func() {
 		confPath, err := filepath.Abs("config/containers.conf")
 		Expect(err).ToNot(HaveOccurred())
@@ -28,11 +27,9 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
-
 	})
 
 	It("limits test", func() {
-		SkipIfRootlessCgroupsV1("Setting limits not supported on cgroupv1 for rootless users")
 		// containers.conf is set to "nofile=500:500"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
@@ -55,11 +52,9 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		} else {
 			Expect(session.OutputToString()).To(Not(Equal("500")))
 		}
-
 	})
 
 	It("oom-score-adj", func() {
-		SkipIfRootlessCgroupsV1("Setting limits not supported on cgroupv1 for rootless users")
 		// containers.conf is set to "oom_score_adj=999"
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
@@ -85,15 +80,10 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			} else {
 				Expect(session.OutputToString()).To(ContainSubstring("0"))
 			}
-
 		}
-
 	})
 
 	It("cgroup_conf in containers.conf", func() {
-		if isCgroupsV1() {
-			Skip("Setting cgroup_confs not supported on cgroupv1")
-		}
 		// FIXME: Needs crun-1.8.2-2 to allow this with --cgroup-manager=cgroupfs, once this is available remove the skip below.
 		SkipIfRootless("--cgroup-manager=cgoupfs and --cgroup-conf not supported in rootless mode with crun")
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
@@ -152,7 +142,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	It("add capabilities", func() {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CGroupsV1")
 		cap := podmanTest.Podman([]string{"run", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		cap.WaitWithDefaultTimeout()
 		Expect(cap).Should(ExitCleanly())
@@ -198,7 +187,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	verifyNSHandling := func(nspath, option string) {
-		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		os.Setenv("CONTAINERS_CONF", "config/containers-ns.conf")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
@@ -812,7 +800,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	}
 
 	It("podman containers.conf container_name_as_hostname", func() {
-
 		// With default containers.conf
 
 		// Start container with no options

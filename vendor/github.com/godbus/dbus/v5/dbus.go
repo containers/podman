@@ -21,8 +21,8 @@ var (
 	signatureType   = reflect.TypeOf(Signature{""})
 	objectPathType  = reflect.TypeOf(ObjectPath(""))
 	variantType     = reflect.TypeOf(Variant{Signature{""}, nil})
-	interfacesType  = reflect.TypeOf([]interface{}{})
-	interfaceType   = reflect.TypeOf((*interface{})(nil)).Elem()
+	interfacesType  = reflect.TypeOf([]any{})
+	interfaceType   = reflect.TypeOf((*any)(nil)).Elem()
 	unixFDType      = reflect.TypeOf(UnixFD(0))
 	unixFDIndexType = reflect.TypeOf(UnixFDIndex(0))
 	errType         = reflect.TypeOf((*error)(nil)).Elem()
@@ -42,7 +42,7 @@ func (e InvalidTypeError) Error() string {
 // pointers. It converts slices of interfaces from src to corresponding structs
 // in dest. An error is returned if the lengths of src and dest or the types of
 // their elements don't match.
-func Store(src []interface{}, dest ...interface{}) error {
+func Store(src []any, dest ...any) error {
 	if len(src) != len(dest) {
 		return errors.New("dbus.Store: length mismatch")
 	}
@@ -55,7 +55,7 @@ func Store(src []interface{}, dest ...interface{}) error {
 	return nil
 }
 
-func storeInterfaces(src, dest interface{}) error {
+func storeInterfaces(src, dest any) error {
 	return store(reflect.ValueOf(dest), reflect.ValueOf(src))
 }
 
@@ -222,7 +222,7 @@ func storeStruct(dest, src reflect.Value) error {
 	if isVariant(dest.Type()) {
 		return storeBase(dest, src)
 	}
-	dval := make([]interface{}, 0, dest.NumField())
+	dval := make([]any, 0, dest.NumField())
 	dtype := dest.Type()
 	for i := 0; i < dest.NumField(); i++ {
 		field := dest.Field(i)
@@ -242,7 +242,7 @@ func storeStruct(dest, src reflect.Value) error {
 				"enough fields need: %d have: %d",
 			src.Len(), len(dval))
 	}
-	return Store(src.Interface().([]interface{}), dval...)
+	return Store(src.Interface().([]any), dval...)
 }
 
 func storeSliceIntoVariant(dest, src reflect.Value) error {

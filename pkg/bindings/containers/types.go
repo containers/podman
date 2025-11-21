@@ -115,8 +115,7 @@ type ExecInspectOptions struct{}
 // exec sessions
 //
 //go:generate go run ../generator/generator.go ExecStartOptions
-type ExecStartOptions struct {
-}
+type ExecStartOptions struct{}
 
 // HealthCheckOptions are optional options for checking
 // the health of a container
@@ -239,6 +238,7 @@ type WaitOptions struct {
 	// Time interval to wait before polling for completion.
 	Interval *string
 	// Container status to wait on.
+	//
 	// Deprecated: use Conditions instead.
 	Condition []define.ContainerStatus
 }

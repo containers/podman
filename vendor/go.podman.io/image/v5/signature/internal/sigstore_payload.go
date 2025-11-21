@@ -48,8 +48,10 @@ func NewUntrustedSigstorePayload(dockerManifestDigest digest.Digest, dockerRefer
 }
 
 // A compile-time check that UntrustedSigstorePayload and *UntrustedSigstorePayload implements json.Marshaler
-var _ json.Marshaler = UntrustedSigstorePayload{}
-var _ json.Marshaler = (*UntrustedSigstorePayload)(nil)
+var (
+	_ json.Marshaler = UntrustedSigstorePayload{}
+	_ json.Marshaler = (*UntrustedSigstorePayload)(nil)
+)
 
 // MarshalJSON implements the json.Marshaler interface.
 func (s UntrustedSigstorePayload) MarshalJSON() ([]byte, error) {
@@ -96,7 +98,7 @@ func (s *UntrustedSigstorePayload) strictUnmarshalJSON(data []byte) error {
 
 	var creatorID string
 	var timestamp float64
-	var gotCreatorID, gotTimestamp = false, false
+	gotCreatorID, gotTimestamp := false, false
 	// /usr/bin/cosign generates "optional": null if there are no user-specified annotations.
 	if !bytes.Equal(optional, []byte("null")) {
 		if err := ParanoidUnmarshalJSONObject(optional, func(key string) any {

@@ -14,7 +14,7 @@ func (s *SpecGenerator) InitResourceLimits(rtc *config.Config) {
 					s.ResourceLimits = &spec.LinuxResources{}
 				}
 				s.ResourceLimits.Pids = &spec.LinuxPids{
-					Limit: limit,
+					Limit: &limit,
 				}
 			}
 		}

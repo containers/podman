@@ -30,9 +30,7 @@ var (
 	stopTimeout int
 )
 
-var (
-	networkRmOptions entities.NetworkRmOptions
-)
+var networkRmOptions entities.NetworkRmOptions
 
 func networkRmFlags(flags *pflag.FlagSet) {
 	flags.BoolVarP(&networkRmOptions.Force, "force", "f", false, "remove any containers using network")
@@ -51,9 +49,7 @@ func init() {
 }
 
 func networkRm(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 
 	if cmd.Flag("time").Changed {
 		if !networkRmOptions.Force {

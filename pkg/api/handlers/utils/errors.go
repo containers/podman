@@ -13,9 +13,7 @@ import (
 	"go.podman.io/storage"
 )
 
-var (
-	ErrLinkNotSupport = errors.New("link is not supported")
-)
+var ErrLinkNotSupport = errors.New("link is not supported")
 
 // TODO: document the exported functions in this file and make them more
 // generic (e.g., not tied to one ctr/pod).

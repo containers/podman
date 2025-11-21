@@ -37,7 +37,8 @@ func InitializeSeccompPaths(annotations map[string]string, profileRoot string) (
 		for annKeyValue, seccomp := range annotations {
 			// check if it is prefaced with container.seccomp.security.alpha.kubernetes.io/
 			prefixAndCtr := strings.Split(annKeyValue, "/")
-			if prefixAndCtr[0]+"/" != v1.SeccompContainerAnnotationKeyPrefix {
+			// FIXME: Rework for deprecation removal https://github.com/containers/podman/issues/27501
+			if prefixAndCtr[0]+"/" != v1.SeccompContainerAnnotationKeyPrefix { //nolint:staticcheck
 				continue
 			} else if len(prefixAndCtr) != 2 {
 				// this could be caused by a user inputting either of
@@ -52,8 +53,8 @@ func InitializeSeccompPaths(annotations map[string]string, profileRoot string) (
 			}
 			seccompPaths.containerPaths[prefixAndCtr[1]] = path
 		}
-
-		podSeccomp, ok := annotations[v1.SeccompPodAnnotationKey]
+		// FIXME: Rework for deprecation removal https://github.com/containers/podman/issues/27501
+		podSeccomp, ok := annotations[v1.SeccompPodAnnotationKey] //nolint:staticcheck
 		if ok {
 			seccompPaths.podPath, err = verifySeccompPath(podSeccomp, profileRoot)
 		} else {
@@ -70,9 +71,11 @@ func InitializeSeccompPaths(annotations map[string]string, profileRoot string) (
 // the available options are parsed as defined in https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
 func verifySeccompPath(path string, profileRoot string) (string, error) {
 	switch path {
-	case v1.DeprecatedSeccompProfileDockerDefault:
+	// FIXME: Rework for deprecation removal https://github.com/containers/podman/issues/27501
+	case v1.DeprecatedSeccompProfileDockerDefault: //nolint:staticcheck
 		fallthrough
-	case v1.SeccompProfileRuntimeDefault:
+	// FIXME: Rework for deprecation removal https://github.com/containers/podman/issues/27501
+	case v1.SeccompProfileRuntimeDefault: //nolint:staticcheck
 		return libpod.DefaultSeccompPath()
 	case "unconfined":
 		return path, nil

@@ -11,23 +11,11 @@ import (
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/docker/go-units"
-	"go.podman.io/common/pkg/cgroups"
 )
 
 // PodStats implements printing stats about pods.
 func (ic *ContainerEngine) PodStats(_ context.Context, namesOrIds []string, options entities.PodStatsOptions) ([]*entities.PodStatsReport, error) {
-	// Cgroups v2 check for rootless.
-	if rootless.IsRootless() {
-		unified, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return nil, err
-		}
-		if !unified {
-			return nil, errors.New("pod stats is not supported in rootless mode without cgroups v2")
-		}
-	}
 	// Get the (running) pods and convert them to the entities format.
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
