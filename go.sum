@@ -239,8 +239,8 @@ github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec h1:2tTW6cDth2T
 github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec/go.mod h1:TmwEoGCwIti7BCeJ9hescZgRtatxRE+A72pCoPfmcfk=
 github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422 h1:XvRuyDDRvi+UDxHN/M4MW4HxjmNVMmUKQj/+AbgsYgk=
 github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422/go.mod h1:JLgfq4XMVbvfNlAXla/41lZnp21O72a/wWHGJefAvgQ=
-github.com/lsm5/container-libs/common v0.0.0-20251117194759-eef88fc173c9 h1:50qNXd+OHTiRBJMADHmnZZbQ0gTTqNSW8GhSe0TEH/0=
-github.com/lsm5/container-libs/common v0.0.0-20251117194759-eef88fc173c9/go.mod h1:bWMkqGUJlUwDYe29T0L191jJY0XQZSRVzL+85kI/nd8=
+github.com/lsm5/container-libs/common v0.0.0-20251121154210-570673aac356 h1:/KewkTGaJsJG1PL5f4ELiKeEViQR0euTkkHizkKDo+4=
+github.com/lsm5/container-libs/common v0.0.0-20251121154210-570673aac356/go.mod h1:8qbjUhjwp4i5u1O19vzwYW2qwIuPdFXIuv4nl3Z8px8=
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 h1:7UMa6KCCMjZEMDtTVdcGu0B1GmmC7QJKiCCjyTAWQy0=
 github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683/go.mod h1:ilwx/Dta8jXAgpFYFvSWEMwxmbWXyiUHkd5FwyKhb5k=
 github.com/manifoldco/promptui v0.9.0 h1:3V4HzJk1TtXW1MTZMP7mdlwbBpIinw3HztaIlYthEiA=
@@ -473,8 +473,6 @@ go.opentelemetry.io/otel/trace v1.38.0 h1:Fxk5bKrDZJUH+AMyyIXGcFAPah0oRcT+LuNtJr
 go.opentelemetry.io/otel/trace v1.38.0/go.mod h1:j1P9ivuFsTceSWe1oY+EeW3sc+Pp42sO++GHkg4wwhs=
 go.opentelemetry.io/proto/otlp v1.5.0 h1:xJvq7gMzB31/d406fB8U5CBdyQGw4P399D1aQWU/3i4=
 go.opentelemetry.io/proto/otlp v1.5.0/go.mod h1:keN8WnHxOy8PG0rQZjJJ5A2ebUoafqWp0eVQ4yIXvJ4=
-go.podman.io/common v0.66.1-0.20251120131032-23712697ddda h1:Ib1vIEYB5eCSz3G09sROyY/j09jztFlWRm4G52vWj3k=
-go.podman.io/common v0.66.1-0.20251120131032-23712697ddda/go.mod h1:8qbjUhjwp4i5u1O19vzwYW2qwIuPdFXIuv4nl3Z8px8=
 go.podman.io/image/v5 v5.38.1-0.20251120131032-23712697ddda h1:YySc/E4bpD5b5y4kFN/7ZDo5JcXnOpPfwU78kH9D+EU=
 go.podman.io/image/v5 v5.38.1-0.20251120131032-23712697ddda/go.mod h1:9DniP9NaGH03kzwNKYEtOXgRJwO+cQHENH+G4sOwLNc=
 go.podman.io/storage v1.61.1-0.20251120131032-23712697ddda h1:bC4fEguil4pwVp2U2zKWUC5ouqIwRDdtyJxtX1bPY+0=

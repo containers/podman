@@ -7,7 +7,6 @@ import (
 
 	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/cgroups/fs"
-	"github.com/opencontainers/cgroups/fs2"
 )
 
 type linuxMemHandler struct {
@@ -16,15 +15,6 @@ type linuxMemHandler struct {
 
 func getMemoryHandler() *linuxMemHandler {
 	return &linuxMemHandler{}
-}
-
-// Apply set the specified constraints.
-func (c *linuxMemHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
-	man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
-	if err != nil {
-		return err
-	}
-	return man.Set(res)
 }
 
 // Stat fills a metrics structure with usage stats for the controller.

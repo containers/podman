@@ -20,6 +20,7 @@ import (
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/fs2"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
@@ -42,7 +43,6 @@ type CgroupControl struct {
 }
 
 type controllerHandler interface {
-	Apply(*CgroupControl, *cgroups.Resources) error
 	Stat(*CgroupControl, *cgroups.Stats) error
 }
 
@@ -301,12 +301,11 @@ func (c *CgroupControl) DeleteByPath(path string) error {
 
 // Update updates the cgroups.
 func (c *CgroupControl) Update(resources *cgroups.Resources) error {
-	for _, h := range handlers {
-		if err := h.Apply(c, resources); err != nil {
-			return err
-		}
+	man, err := fs2.NewManager(c.config, filepath.Join(cgroupRoot, c.config.Path))
+	if err != nil {
+		return err
 	}
-	return nil
+	return man.Set(resources)
 }
 
 // Stat returns usage statistics for the cgroup.

@@ -787,7 +787,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.1-0.20251120131032-23712697ddda
+# go.podman.io/common v0.66.1-0.20251120131032-23712697ddda => github.com/lsm5/container-libs/common v0.0.0-20251121154210-570673aac356
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -1233,4 +1233,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.1-0.20251120202831-139ffec09210
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20251117194759-eef88fc173c9
+# go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20251121154210-570673aac356
