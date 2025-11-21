@@ -9,11 +9,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
 
 	"golang.org/x/tools/go/packages"
-
-	"github.com/go-openapi/spec"
 )
 
 const pkgLoadMode = packages.NeedName | packages.NeedFiles | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo
@@ -53,6 +52,7 @@ type Options struct {
 	IncludeTags             []string
 	ExcludeTags             []string
 	SetXNullableForPointers bool
+	RefAliases              bool // aliases result in $ref, otherwise aliases are expanded
 }
 
 type scanCtx struct {
@@ -93,9 +93,15 @@ func newScanCtx(opts *Options) (*scanCtx, error) {
 		return nil, err
 	}
 
-	app, err := newTypeIndex(pkgs, opts.ExcludeDeps,
-		sliceToSet(opts.IncludeTags), sliceToSet(opts.ExcludeTags),
-		opts.Include, opts.Exclude, opts.SetXNullableForPointers)
+	app, err := newTypeIndex(pkgs,
+		withExcludeDeps(opts.ExcludeDeps),
+		withIncludeTags(sliceToSet(opts.IncludeTags)),
+		withExcludeTags(sliceToSet(opts.ExcludeTags)),
+		withIncludePkgs(opts.Include),
+		withExcludePkgs(opts.Exclude),
+		withXNullableForPointers(opts.SetXNullableForPointers),
+		withRefAliases(opts.RefAliases),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +115,7 @@ func newScanCtx(opts *Options) (*scanCtx, error) {
 type entityDecl struct {
 	Comments               *ast.CommentGroup
 	Type                   *types.Named
+	Alias                  *types.Alias // added to supplement Named, after go1.22
 	Ident                  *ast.Ident
 	Spec                   *ast.TypeSpec
 	File                   *ast.File
@@ -116,6 +123,29 @@ type entityDecl struct {
 	hasModelAnnotation     bool
 	hasResponseAnnotation  bool
 	hasParameterAnnotation bool
+}
+
+// Obj returns the type name for the declaration defining the named type or alias t.
+func (d *entityDecl) Obj() *types.TypeName {
+	if d.Type != nil {
+		return d.Type.Obj()
+	}
+	if d.Alias != nil {
+		return d.Alias.Obj()
+	}
+
+	panic("invalid entityDecl: Type and Alias are both nil")
+}
+
+func (d *entityDecl) ObjType() types.Type {
+	if d.Type != nil {
+		return d.Type
+	}
+	if d.Alias != nil {
+		return d.Alias
+	}
+
+	panic("invalid entityDecl: Type and Alias are both nil")
 }
 
 func (d *entityDecl) Names() (name, goName string) {
@@ -138,6 +168,7 @@ DECLS:
 			}
 		}
 	}
+
 	return
 }
 
@@ -259,11 +290,15 @@ func (s *scanCtx) FindDecl(pkgPath, name string) (*entityDecl, bool) {
 						def, ok := pkg.TypesInfo.Defs[ts.Name]
 						if !ok {
 							debugLog("couldn't find type info for %s", ts.Name)
+
 							continue
 						}
+
 						nt, isNamed := def.Type().(*types.Named)
-						if !isNamed {
-							debugLog("%s is not a named type but a %T", ts.Name, def.Type())
+						at, isAliased := def.Type().(*types.Alias)
+						if !isNamed && !isAliased {
+							debugLog("%s is not a named or an aliased type but a %T", ts.Name, def.Type())
+
 							continue
 						}
 
@@ -275,31 +310,36 @@ func (s *scanCtx) FindDecl(pkgPath, name string) (*entityDecl, bool) {
 						decl := &entityDecl{
 							Comments: comments,
 							Type:     nt,
+							Alias:    at,
 							Ident:    ts.Name,
 							Spec:     ts,
 							File:     file,
 							Pkg:      pkg,
 						}
+
 						return decl, true
 					}
 				}
 			}
 		}
 	}
+
 	return nil, false
 }
 
 func (s *scanCtx) FindModel(pkgPath, name string) (*entityDecl, bool) {
 	for _, cand := range s.app.Models {
-		ct := cand.Type.Obj()
+		ct := cand.Obj()
 		if ct.Name() == name && ct.Pkg().Path() == pkgPath {
 			return cand, true
 		}
 	}
+
 	if decl, found := s.FindDecl(pkgPath, name); found {
 		s.app.ExtraModels[decl.Ident] = decl
 		return decl, true
 	}
+
 	return nil, false
 }
 
@@ -314,9 +354,12 @@ func (s *scanCtx) DeclForType(t types.Type) (*entityDecl, bool) {
 		return s.DeclForType(tpe.Elem())
 	case *types.Named:
 		return s.FindDecl(tpe.Obj().Pkg().Path(), tpe.Obj().Name())
+	case *types.Alias:
+		return s.FindDecl(tpe.Obj().Pkg().Path(), tpe.Obj().Name())
 
 	default:
-		log.Printf("unknown type to find the package for [%T]: %s", t, t.String())
+		log.Printf("WARNING: unknown type to find the package for [%T]: %s", t, t.String())
+
 		return nil, false
 	}
 }
@@ -331,6 +374,9 @@ func (s *scanCtx) PkgForType(t types.Type) (*packages.Package, bool) {
 	// case *types.Slice:
 	// case *types.Map:
 	case *types.Named:
+		v, ok := s.app.AllPackages[tpe.Obj().Pkg().Path()]
+		return v, ok
+	case *types.Alias:
 		v, ok := s.app.AllPackages[tpe.Obj().Pkg().Path()]
 		return v, ok
 	default:
@@ -385,7 +431,7 @@ func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list [
 										desc     = &strings.Builder{}
 										namesLen = len(vs.Names)
 									)
-									desc.WriteString(fmt.Sprintf("%v ", blValue))
+									fmt.Fprintf(desc, "%v ", blValue)
 									for i, name := range vs.Names {
 										desc.WriteString(name.Name)
 										if i < namesLen-1 {
@@ -419,18 +465,60 @@ func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list [
 	return list, descList, true
 }
 
-func newTypeIndex(pkgs []*packages.Package, excludeDeps bool, includeTags, excludeTags map[string]bool, includePkgs, excludePkgs []string, setXNullableForPointers bool) (*typeIndex, error) {
-	ac := &typeIndex{
-		AllPackages:             make(map[string]*packages.Package),
-		Models:                  make(map[*ast.Ident]*entityDecl),
-		ExtraModels:             make(map[*ast.Ident]*entityDecl),
-		excludeDeps:             excludeDeps,
-		includeTags:             includeTags,
-		excludeTags:             excludeTags,
-		includePkgs:             includePkgs,
-		excludePkgs:             excludePkgs,
-		setXNullableForPointers: setXNullableForPointers,
+type typeIndexOption func(*typeIndex)
+
+func withExcludeDeps(excluded bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.excludeDeps = excluded
 	}
+}
+
+func withIncludeTags(included map[string]bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.includeTags = included
+	}
+}
+
+func withExcludeTags(excluded map[string]bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.excludeTags = excluded
+	}
+}
+
+func withIncludePkgs(included []string) typeIndexOption {
+	return func(a *typeIndex) {
+		a.includePkgs = included
+	}
+}
+
+func withExcludePkgs(excluded []string) typeIndexOption {
+	return func(a *typeIndex) {
+		a.excludePkgs = excluded
+	}
+}
+
+func withXNullableForPointers(enabled bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.setXNullableForPointers = enabled
+	}
+}
+
+func withRefAliases(enabled bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.refAliases = enabled
+	}
+}
+
+func newTypeIndex(pkgs []*packages.Package, opts ...typeIndexOption) (*typeIndex, error) {
+	ac := &typeIndex{
+		AllPackages: make(map[string]*packages.Package),
+		Models:      make(map[*ast.Ident]*entityDecl),
+		ExtraModels: make(map[*ast.Ident]*entityDecl),
+	}
+	for _, apply := range opts {
+		apply(ac)
+	}
+
 	if err := ac.build(pkgs); err != nil {
 		return nil, err
 	}
@@ -452,6 +540,7 @@ type typeIndex struct {
 	includePkgs             []string
 	excludePkgs             []string
 	setXNullableForPointers bool
+	refAliases              bool
 }
 
 func (a *typeIndex) build(pkgs []*packages.Package) error {
@@ -554,8 +643,10 @@ func (a *typeIndex) processDecl(pkg *packages.Package, file *ast.File, n node, g
 				continue
 			}
 			nt, isNamed := def.Type().(*types.Named)
-			if !isNamed {
-				debugLog("%s is not a named type but a %T", ts.Name, def.Type())
+			at, isAliased := def.Type().(*types.Alias)
+			if !isNamed && !isAliased {
+				debugLog("%s is not a named or aliased type but a %T", ts.Name, def.Type())
+
 				continue
 			}
 
@@ -567,20 +658,26 @@ func (a *typeIndex) processDecl(pkg *packages.Package, file *ast.File, n node, g
 			decl := &entityDecl{
 				Comments: comments,
 				Type:     nt,
+				Alias:    at,
 				Ident:    ts.Name,
 				Spec:     ts,
 				File:     file,
 				Pkg:      pkg,
 			}
 			key := ts.Name
-			if n&modelNode != 0 && decl.HasModelAnnotation() {
+			switch {
+			case n&modelNode != 0 && decl.HasModelAnnotation():
 				a.Models[key] = decl
-			}
-			if n&parametersNode != 0 && decl.HasParameterAnnotation() {
+			case n&parametersNode != 0 && decl.HasParameterAnnotation():
 				a.Parameters = append(a.Parameters, decl)
-			}
-			if n&responseNode != 0 && decl.HasResponseAnnotation() {
+			case n&responseNode != 0 && decl.HasResponseAnnotation():
 				a.Responses = append(a.Responses, decl)
+			default:
+				debugLog(
+					"type %q skipped because it is not tagged as a model, a parameter or a response. %s",
+					decl.Obj().Name(),
+					"It may reenter the scope because it is a discovered dependency",
+				)
 			}
 		}
 	}
@@ -668,6 +765,6 @@ func (a *typeIndex) detectNodes(file *ast.File) (node, error) {
 
 func debugLog(format string, args ...interface{}) {
 	if Debug {
-		log.Printf(format, args...)
+		_ = log.Output(2, fmt.Sprintf(format, args...))
 	}
 }
