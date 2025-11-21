@@ -73,6 +73,8 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
+# Unset NOTIFY_SOCKET based on: https://github.com/containers/podman/pull/27514#issuecomment-3529125596
+unset NOTIFY_SOCKET
 # This is a possible manual maintenance gaff, i.e. forgetting to update a
 # *_NAME variable in .cirrus.yml.  check to be sure at least one comparison
 # matches the actual OS being run.  Ignore details, such as debian point-release
