@@ -1,6 +1,5 @@
 import json
 import unittest
-from multiprocessing import Process
 import multiprocessing as mp
 import requests
 from dateutil.parser import parse
@@ -173,7 +172,7 @@ class ImageTestCase(APITestCase):
         mp.set_start_method('fork')
         for fn in [do_search1, do_search2, do_search3, do_search4, do_search5]:
             with self.subTest(i=i):
-                search = Process(target=fn)
+                search = mp.Process(target=fn)
                 search.start()
                 search.join(timeout=10)
                 self.assertFalse(search.is_alive(), f"#{i} /images/search took too long")
