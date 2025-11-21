@@ -173,7 +173,3 @@ func WeightDevices(_ map[string]spec.LinuxWeightDevice) ([]spec.LinuxWeightDevic
 	devs := []spec.LinuxWeightDevice{}
 	return devs, nil
 }
-
-func subNegativeOne(u spec.POSIXRlimit) spec.POSIXRlimit {
-	return u
-}
