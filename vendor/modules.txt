@@ -197,7 +197,7 @@ github.com/crc-org/vfkit/pkg/util
 # github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
-# github.com/cyphar/filepath-securejoin v0.6.0
+# github.com/cyphar/filepath-securejoin v0.6.1
 ## explicit; go 1.18
 github.com/cyphar/filepath-securejoin
 github.com/cyphar/filepath-securejoin/internal/consts
@@ -589,10 +589,10 @@ github.com/opencontainers/runc/internal/pathrs
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/utils
-# github.com/opencontainers/runtime-spec v1.2.1
+# github.com/opencontainers/runtime-spec v1.3.0
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
+# github.com/opencontainers/runtime-tools v0.9.1-0.20251114084447-edf4cb3d2116
 ## explicit; go 1.21
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
@@ -787,7 +787,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.1-0.20251112195944-4afce3558e66
+# go.podman.io/common v0.66.1-0.20251120131032-23712697ddda
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -857,7 +857,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.1-0.20251112195944-4afce3558e66
+# go.podman.io/image/v5 v5.38.1-0.20251120131032-23712697ddda
 ## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -931,7 +931,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20251112195944-4afce3558e66
+# go.podman.io/storage v1.61.1-0.20251120131032-23712697ddda
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1225,12 +1225,12 @@ gopkg.in/yaml.v3
 # sigs.k8s.io/yaml v1.6.0
 ## explicit; go 1.22
 sigs.k8s.io/yaml
-# tags.cncf.io/container-device-interface v1.0.1
-## explicit; go 1.20
+# tags.cncf.io/container-device-interface v1.0.2-0.20251120202831-139ffec09210
+## explicit; go 1.21
 tags.cncf.io/container-device-interface/internal/validation
 tags.cncf.io/container-device-interface/internal/validation/k8s
 tags.cncf.io/container-device-interface/pkg/cdi
 tags.cncf.io/container-device-interface/pkg/parser
-# tags.cncf.io/container-device-interface/specs-go v1.0.0
+# tags.cncf.io/container-device-interface/specs-go v1.0.1-0.20251120202831-139ffec09210
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
