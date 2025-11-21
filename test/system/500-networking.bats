@@ -320,7 +320,7 @@ load helpers.network
     run_podman 1 network rm $mynetname
 }
 
-# CANNOT BE PARALLELIZED due to iptables/nft commands
+# CANNOT BE PARALLELIZED due to nft commands
 @test "podman network reload" {
     skip_if_remote "podman network reload does not have remote support"
 
@@ -356,12 +356,9 @@ load helpers.network
     # rootless cannot modify the host firewall
     if ! is_rootless; then
         # for debugging only
-        iptables -t nat -nvL || true
         nft list ruleset     || true
 
         # flush the firewall rule here to break port forwarding
-        # netavark can use either iptables or nftables, so try flushing both
-        iptables -t nat -F "NETAVARK-HOSTPORT-DNAT" || true
         nft delete table inet netavark              || true
 
         # check that we cannot curl (timeout after 1 sec)
@@ -369,7 +366,7 @@ load helpers.network
         assert $status -eq 28 "curl did not time out"
     fi
 
-    # reload the network to recreate the iptables rules
+    # reload the network to recreate the nftables rules
     run_podman network reload $cid
     is "$output" "$cid" "Output does match container ID"
 
@@ -400,7 +397,7 @@ load helpers.network
     mac2="${lines[2]}"
 
     # make sure --all is working and that this
-    # cmd also works if the iptables still exists
+    # cmd also works if the nftables still exists
     run_podman network reload --all
     is "$output" "$cid" "Output does match container ID"
 

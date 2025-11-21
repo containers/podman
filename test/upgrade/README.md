@@ -21,22 +21,19 @@ container image from quay.io/podman, uses it to create and run
 a number of containers, then uses new-podman to interact with
 those containers.
 
-As of 2024-02-05 the available old-podman versions are:
+Testing updates from versions earlier than v5.3.1 fails. Testing updates from
+tags that do not respect semantic versioning fails too (e.g. v5.6.0-immutable or
+v5.6). As of 2025-11-18 the available old-podman versions to test against are:
 
 ```console
-$ bin/podman search --list-tags --limit=400 quay.io/podman/stable | awk '$2 ~ /^v/ { print $2}' | sort | column -c 75
-v1.4.2  v1.9.1  v3.2.0  v3.4.0  v4.1.0  v4.3.1  v4.5.1  v4.8
-v1.4.4  v2.0.2  v3.2.1  v3.4.1  v4.1.1  v4.4    v4.6    v4.8.0
-v1.5.0  v2.0.6  v3.2.2  v3.4.2  v4.2    v4.4.1  v4.6.1  v4.8.1
-v1.5.1  v2.1.1  v3.2.3  v3.4.4  v4.2.0  v4.4.2  v4.6.2  v4.8.2
-v1.6    v2.2.1  v3.3.0  v3.4.7  v4.2.1  v4.4.4  v4.7    v4.8.3
-v1.6.2  v3      v3.3.1  v4      v4.3    v4.5    v4.7.0  v4.9
-v1.9.0  v3.1.2  v3.4    v4.1    v4.3.0  v4.5.0  v4.7.2  v4.9.0
+$ bin/podman search --list-tags --limit=400 quay.io/podman/stable | awk '$2 ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/ { print $2}' | sort | awk '/v5.3.1/,0' | column -c 75
+v5.3.1  v5.4.0  v5.4.2  v5.5.1  v5.6.0  v5.6.2
+v5.3.2  v5.4.1  v5.5.0  v5.5.2  v5.6.1
 ```
 
 Test invocation is:
 ```console
-$ sudo env PODMAN=bin/podman PODMAN_UPGRADE_FROM=v4.1.0 PODMAN_UPGRADE_TEST_DEBUG= bats test/upgrade
+$ sudo env PODMAN=bin/podman PODMAN_UPGRADE_FROM=v5.3.1 PODMAN_UPGRADE_TEST_DEBUG= bats test/upgrade
 ```
 (Path assumes you're cd'ed to top-level podman repo). `PODMAN_UPGRADE_FROM`
 can be any of the versions above. `PODMAN_UPGRADE_TEST_DEBUG` is empty
