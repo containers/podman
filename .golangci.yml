@@ -73,6 +73,9 @@ linters:
       - linters:
           - recvcheck
         path: pkg/k8s.io/
+      - linters:
+          - unused
+        text: "(rootlessPortSyncR|rootlessPortSyncW)"
 
 issues:
   max-issues-per-linter: 0
