@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -122,6 +123,62 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(repeatSession).To(Exit(125))
 		Expect(repeatSession.errorToString()).To(ContainSubstring(fmt.Sprintf("Error: machine %q already exists", mb.names[0])))
+	})
+
+	It("init subid range check for rootless PinP", func() {
+		/* By default, a new user is assigned the following sub-ID ranges (see manual useradd):
+		 * SUB_UID_MIN=100000, SUB_GID_MIN=100000, SUB_UID_COUNT=65536, SUB_GID_COUNT=65536
+		 * This means the default sub-UID and sub-GID ranges are 100000–165535.
+		 *
+		 * When the container is run rootless by the user in WSL, ID mappings occur as follows:
+		 * Container ID 0 (root) maps to user ID on the host.
+		 * Container IDs 1–65536 map to IDs 100000–165535 on host (range previously mentioned).
+		 *
+		 * If a new user is created inside the container and used to build containers with
+		 * (rootless PinP), it will attempt to use the default sub-ID range (100000–165535). Given
+		 * the mapping, this means that the host must at least have a SUB_UID_COUNT and
+		 * SUB_GID_COUNT of 165536. Since 165536 would only allow rootless PinP for the first
+		 * user (with ID 1000), the check is run against a count of 166536 (=165536+1000) as to
+		 * provide additional margin.
+		 */
+
+		count_min := 166536
+		i := new(initMachine)
+		name := randomString()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		// obtain the users subid range from the machine
+		ssh := new(sshMachine)
+		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"cat", "/etc/subuid", "/etc/subgid"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		if sshSession.ExitCode() != 0 {
+			Fail(fmt.Sprintf("SSH session failed with exit code %d\nstdout:\n%s\nstderr:\n%s",
+				sshSession.ExitCode(),
+				sshSession.outputToString(),
+				sshSession.errorToString(),
+			))
+		}
+		Expect(sshSession).To(Exit(0))
+		output := strings.TrimSpace(sshSession.outputToString())
+
+		// subuid and subgid have the format 'USER:SUB_ID_MIN:SUB_ID_COUNT', for example
+		// 'user:100000:65536', only count is of interest.
+		re := regexp.MustCompile(`(?m):(\d+)$`)
+		counts := re.FindAllStringSubmatch(output, -1)
+
+		// A user must exist in order to run podman rootless, a line in both subuid and subgid
+		// should exist for it, so 2 lines in total.
+		Expect(len(counts)).To(BeNumerically(">=", 2), "expected at least 1 user/line in /etc/subuid and /etc/subgid each, got %d", len(counts))
+
+		// Verify the count. At the moment only 1 user is created in the machine. If multiple users
+		// are ever created, this will check that all users have a sufficient subid range.
+		for _, count := range counts {
+			n, err := strconv.Atoi(count[1])
+			Expect(err).ToNot(HaveOccurred())
+			Expect(n).To(BeNumerically(">=", count_min), "expected last number %d to be >= %d", n, count_min)
+		}
 	})
 
 	It("run playbook", func() {
