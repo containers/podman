@@ -432,3 +432,7 @@ func (pr *prSigstoreSigned) isRunningImageAllowed(ctx context.Context, image pri
 	}
 	return false, summary
 }
+
+func (pr *prSigstoreSigned) verifiesSignatures() bool {
+	return true
+}

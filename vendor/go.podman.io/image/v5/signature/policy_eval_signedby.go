@@ -114,3 +114,7 @@ func (pr *prSignedBy) isRunningImageAllowed(ctx context.Context, image private.U
 	}
 	return false, summary
 }
+
+func (pr *prSignedBy) verifiesSignatures() bool {
+	return true
+}
