@@ -514,4 +514,43 @@ t POST libpod/local/images/load?path="" 400
 
 t POST libpod/local/images/load?path="../../../etc/passwd" 404
 
+# Test pullProgress parameter on /libpod/images/pull endpoint
+# Remove the image first to ensure we actually pull it
+podman rmi -f quay.io/libpod/alpine:latest >/dev/null 2>&1 || true
+
+# Test pullProgress=true - should return ImagePullReportV2 format with progress info
+t POST "libpod/images/pull?reference=quay.io/libpod/alpine:latest&pullProgress=true" 200 \
+  .status~".*success.*" \
+  .stream~".*Pull complete.*"
+
+
+# Test pullProgress=true with invalid image - should return error status
+t POST "libpod/images/pull?reference=localhost:5000/idonotexist:latest&pullProgress=true" 200 \
+  .status~".*error.*" \
+  .stream~".*"
+
+# Test pullProgress=true shows layer IDs during pull
+# Remove the image first to ensure we actually pull it
+podman rmi -f quay.io/libpod/alpine:latest >/dev/null 2>&1 || true
+
+# Get layer digests using skopeo inspect
+layer_digests=$(skopeo inspect docker://quay.io/libpod/alpine:latest | jq -r '.Layers[]' | sed 's/sha256://' | head -5)
+
+# Pull image with pullProgress=true and verify layer IDs are in the stream
+t POST "libpod/images/pull?reference=quay.io/libpod/alpine:latest&pullProgress=true" 200 \
+  .status~".*success.*" \
+  .stream~".*Pull complete.*"
+
+# Verify each layer digest appears in the stream output
+for layer_id in $layer_digests; do
+    if [[ $output =~ $layer_id ]]; then
+        _show_ok 1 "pullProgress shows layer ID $layer_id"
+    else
+        _show_ok 0 "pullProgress shows layer ID $layer_id" "[layer ID $layer_id not found in output]"
+    fi
+done
+
+# Clean up
+podman rmi -f quay.io/libpod/alpine:latest >/dev/null 2>&1 || true
+
 # vim: filetype=sh
