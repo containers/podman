@@ -85,12 +85,11 @@ or [DynamicUser](https://www.freedesktop.org/software/systemd/man/latest/systemd
 systemd options. If you want to run a rootless Quadlet, you will need to create the user
 and add the unit file to one of the above rootless unit search paths.
 
-Note: When a Quadlet is starting, Podman often pulls or builds one more container images which may take a considerable amount of time.
-Systemd defaults service start time to 90 seconds, or fails the service. Pre-pulling the image or extending
-the systemd timeout time for the service using the *TimeoutStartSec* Service option can fix the problem.
-A word of caution: *TimeoutStartSec* is not available for `Type=oneshot` units. Refer to `systemd.service(5)`
-for more information on how to handle long startup times for units which do not need to stay active
-once their main process has finished.
+When a Quadlet unit starts, Podman may need to pull or build container images, which can take significantly longer
+than systemd's default 90-second service startup limit. If this causes the unit to fail, you can either pre-pull the
+required images or increase the service's startup timeout using the *TimeoutStartSec* option. Keep in mind, however,
+that *TimeoutStartSec* cannot be used with units that specify `Type=oneshot` (their startup timeout is disabled by
+default). For further details on *TimeoutStartSec*, see `systemd.service(5)`.
 
 Adding the following snippet to a Quadlet file extends the systemd timeout to 15 minutes.
 
