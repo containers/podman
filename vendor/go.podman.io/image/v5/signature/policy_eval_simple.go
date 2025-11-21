@@ -20,10 +20,18 @@ func (pr *prInsecureAcceptAnything) isRunningImageAllowed(ctx context.Context, i
 	return true, nil
 }
 
+func (pr *prInsecureAcceptAnything) verifiesSignatures() bool {
+	return false
+}
+
 func (pr *prReject) isSignatureAuthorAccepted(ctx context.Context, image private.UnparsedImage, sig []byte) (signatureAcceptanceResult, *Signature, error) {
 	return sarRejected, nil, PolicyRequirementError(fmt.Sprintf("Any signatures for image %s are rejected by policy.", transports.ImageName(image.Reference())))
 }
 
 func (pr *prReject) isRunningImageAllowed(ctx context.Context, image private.UnparsedImage) (bool, error) {
 	return false, PolicyRequirementError(fmt.Sprintf("Running image %s is rejected by policy.", transports.ImageName(image.Reference())))
+}
+
+func (pr *prReject) verifiesSignatures() bool {
+	return false
 }

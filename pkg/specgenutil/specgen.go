@@ -1292,7 +1292,7 @@ func GetResources(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) 
 	}
 	if c.PIDsLimit != nil {
 		pids := specs.LinuxPids{
-			Limit: *c.PIDsLimit,
+			Limit: c.PIDsLimit,
 		}
 
 		s.ResourceLimits.Pids = &pids
