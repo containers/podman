@@ -6,7 +6,8 @@ import (
 )
 
 func shouldResolveWinPaths() bool {
-	return machine.HostType() == "wsl"
+	hostType := machine.HostType()
+	return hostType == machine.Wsl || hostType == machine.HyperV
 }
 
 func shouldResolveUnixWinVariant(path string) bool {
