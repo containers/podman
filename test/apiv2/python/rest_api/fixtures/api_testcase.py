@@ -84,6 +84,19 @@ class Artifact:
         os.remove(self.file.name)
         return r
 
+    def add_local(self) -> requests.Response:
+        try:
+            r = requests.post(
+                self.uri + "/artifacts/local/add",
+                params=self.parameters,
+            )
+        except Exception:
+            pass
+
+        if self.file is not None and os.path.exists(self.file.name):
+            os.remove(self.file.name)
+        return r
+
     def do_artifact_inspect_request(self) -> requests.Response:
         r = requests.get(
             self.uri + "/artifacts/" + self.name + "/json",

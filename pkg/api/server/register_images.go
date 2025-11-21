@@ -952,7 +952,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     name: path
 	//     type: string
 	//     required: true
-	//     description: Path to the image archive file on the server filesystem
+	//     description: Absolute path to the image archive file on the server filesystem
 	// produces:
 	// - application/json
 	// responses:
