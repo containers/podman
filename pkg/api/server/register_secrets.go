@@ -236,7 +236,7 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//   '500':
 	//     "$ref": "#/responses/internalError"
 	r.Handle(VersionedPath("/secrets/{name}"), s.APIHandler(compat.RemoveSecret)).Methods(http.MethodDelete)
-	r.Handle("/secret/{name}", s.APIHandler(compat.RemoveSecret)).Methods(http.MethodDelete)
+	r.Handle("/secrets/{name}", s.APIHandler(compat.RemoveSecret)).Methods(http.MethodDelete)
 
 	r.Handle(VersionedPath("/secrets/{name}/update"), s.APIHandler(compat.UpdateSecret)).Methods(http.MethodPost)
 	r.Handle("/secrets/{name}/update", s.APIHandler(compat.UpdateSecret)).Methods(http.MethodPost)
