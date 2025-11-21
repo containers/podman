@@ -72,10 +72,12 @@ func SerialCtxDeps(ctx context.Context, fns ...interface{}) {
 
 // CtxDeps runs the given functions as dependencies of the calling function.
 // Dependencies must only be of type:
-//     func()
-//     func() error
-//     func(context.Context)
-//     func(context.Context) error
+//
+//	func()
+//	func() error
+//	func(context.Context)
+//	func(context.Context) error
+//
 // Or a similar method on a mg.Namespace type.
 // Or an mg.Fn interface.
 //
@@ -148,10 +150,12 @@ func checkFns(fns []interface{}) []Fn {
 
 // Deps runs the given functions in parallel, exactly once. Dependencies must
 // only be of type:
-//     func()
-//     func() error
-//     func(context.Context)
-//     func(context.Context) error
+//
+//	func()
+//	func() error
+//	func(context.Context)
+//	func(context.Context) error
+//
 // Or a similar method on a mg.Namespace type.
 // Or an mg.Fn interface.
 //

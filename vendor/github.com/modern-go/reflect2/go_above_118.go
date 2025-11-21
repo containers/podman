@@ -1,4 +1,5 @@
-//+build go1.18
+//go:build go1.18
+// +build go1.18
 
 package reflect2
 
@@ -8,6 +9,7 @@ import (
 
 // m escapes into the return value, but the caller of mapiterinit
 // doesn't let the return value escape.
+//
 //go:noescape
 //go:linkname mapiterinit reflect.mapiterinit
 func mapiterinit(rtype unsafe.Pointer, m unsafe.Pointer, it *hiter)

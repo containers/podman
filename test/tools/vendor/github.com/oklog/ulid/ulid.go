@@ -376,7 +376,8 @@ func MaxTime() uint64 { return maxTime }
 
 // Now is a convenience function that returns the current
 // UTC time in Unix milliseconds. Equivalent to:
-//   Timestamp(time.Now().UTC())
+//
+//	Timestamp(time.Now().UTC())
 func Now() uint64 { return Timestamp(time.Now().UTC()) }
 
 // Timestamp converts a time.Time to Unix milliseconds.
@@ -457,7 +458,7 @@ func (id *ULID) Scan(src interface{}) error {
 // type can be created that calls String().
 //
 //	// stringValuer wraps a ULID as a string-based driver.Valuer.
-// 	type stringValuer ULID
+//	type stringValuer ULID
 //
 //	func (id stringValuer) Value() (driver.Value, error) {
 //		return ULID(id).String(), nil

@@ -1,14 +1,14 @@
 package reporters
 
 type GoJSONEventWriter struct {
-	enc encoder
+	enc             encoder
 	specSystemErrFn specSystemExtractFn
 	specSystemOutFn specSystemExtractFn
 }
 
 func NewGoJSONEventWriter(enc encoder, errFn specSystemExtractFn, outFn specSystemExtractFn) *GoJSONEventWriter {
 	return &GoJSONEventWriter{
-		enc: enc,
+		enc:             enc,
 		specSystemErrFn: errFn,
 		specSystemOutFn: outFn,
 	}

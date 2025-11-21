@@ -162,7 +162,7 @@ var supportedAlgorithms = map[string]bool{
 // parsing.
 //
 //	// Directly fetch the metadata document.
-// 	resp, err := http.Get("https://login.example.com/custom-metadata-path")
+//	resp, err := http.Get("https://login.example.com/custom-metadata-path")
 //	if err != nil {
 //		// ...
 //	}

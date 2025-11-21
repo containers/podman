@@ -9,17 +9,16 @@
 // This package is currently in experimental stage and the API may change.
 //
 // This package does NOT support:
-//  - rounding to specific precisions (as opposed to specific decimal positions)
-//  - the notion of context (each rounding must be explicit)
-//  - NaN and Inf values, and distinguishing between positive and negative zero
-//  - conversions to and from float32/64 types
+//   - rounding to specific precisions (as opposed to specific decimal positions)
+//   - the notion of context (each rounding must be explicit)
+//   - NaN and Inf values, and distinguishing between positive and negative zero
+//   - conversions to and from float32/64 types
 //
 // Features considered for possible addition:
-//  + formatting options
-//  + Exp method
-//  + combined operations such as AddRound/MulAdd etc
-//  + exchanging data in decimal32/64/128 formats
-//
+//   - formatting options
+//   - Exp method
+//   - combined operations such as AddRound/MulAdd etc
+//   - exchanging data in decimal32/64/128 formats
 package inf // import "gopkg.in/inf.v0"
 
 // TODO:
@@ -43,19 +42,19 @@ import (
 //
 // The mathematical value of a Dec equals:
 //
-//  unscaled * 10**(-scale)
+//	unscaled * 10**(-scale)
 //
 // Note that different Dec representations may have equal mathematical values.
 //
-//  unscaled  scale  String()
-//  -------------------------
-//         0      0    "0"
-//         0      2    "0.00"
-//         0     -2    "0"
-//         1      0    "1"
-//       100      2    "1.00"
-//        10      0   "10"
-//         1     -1   "10"
+//	unscaled  scale  String()
+//	-------------------------
+//	       0      0    "0"
+//	       0      2    "0.00"
+//	       0     -2    "0"
+//	       1      0    "1"
+//	     100      2    "1.00"
+//	      10      0   "10"
+//	       1     -1   "10"
 //
 // The zero value for a Dec represents the value 0 with scale 0.
 //
@@ -79,7 +78,6 @@ import (
 // QuoRound should be used with a Scale and a Rounder.
 // QuoExact or QuoRound with RoundExact can be used in the special cases when it
 // is known that the result is always a finite decimal.
-//
 type Dec struct {
 	unscaled big.Int
 	scale    Scale
@@ -182,7 +180,6 @@ func (z *Dec) Set(x *Dec) *Dec {
 //	-1 if x <  0
 //	 0 if x == 0
 //	+1 if x >  0
-//
 func (x *Dec) Sign() int {
 	return x.UnscaledBig().Sign()
 }
@@ -196,10 +193,9 @@ func (z *Dec) Neg(x *Dec) *Dec {
 
 // Cmp compares x and y and returns:
 //
-//   -1 if x <  y
-//    0 if x == y
-//   +1 if x >  y
-//
+//	-1 if x <  y
+//	 0 if x == y
+//	+1 if x >  y
 func (x *Dec) Cmp(y *Dec) int {
 	xx, yy := upscale(x, y)
 	return xx.UnscaledBig().Cmp(yy.UnscaledBig())
@@ -252,7 +248,6 @@ func (z *Dec) Round(x *Dec, s Scale, r Rounder) *Dec {
 //
 // There is no corresponding Div method; the equivalent can be achieved through
 // the choice of Rounder used.
-//
 func (z *Dec) QuoRound(x, y *Dec, s Scale, r Rounder) *Dec {
 	return z.quo(x, y, sclr{s}, r)
 }
@@ -290,10 +285,9 @@ func (z *Dec) QuoExact(x, y *Dec) *Dec {
 // The remainder is normalized to the range -1 < r < 1 to simplify rounding;
 // that is, the results satisfy the following equation:
 //
-//  x / y = z + (remNum/remDen) * 10**(-z.Scale())
+//	x / y = z + (remNum/remDen) * 10**(-z.Scale())
 //
 // See Rounder for more details about rounding.
-//
 func (z *Dec) quoRem(x, y *Dec, s Scale, useRem bool,
 	remNum, remDen *big.Int) (*Dec, *big.Int, *big.Int) {
 	// difference (required adjustment) compared to "canonical" result scale
