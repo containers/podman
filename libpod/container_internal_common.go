@@ -2287,7 +2287,11 @@ func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) bool {
 		}
 	}
 
-	return c.pastaResult.IPv6
+	if c.pastaResult != nil {
+		return c.pastaResult.IPv6
+	}
+
+	return false
 }
 
 // Add a new nameserver to the container's resolv.conf, ensuring that it is the
