@@ -91,7 +91,7 @@ required images or increase the service's startup timeout using the *TimeoutStar
 that *TimeoutStartSec* cannot be used with units that specify `Type=oneshot` (their startup timeout is disabled by
 default). For further details on *TimeoutStartSec*, see `systemd.service(5)`.
 
-Adding the following snippet to a Quadlet file extends the systemd timeout to 15 minutes.
+Adding the following snippet to a Quadlet file extends the startup timeout to 15 minutes.
 
 ```
 [Service]
@@ -2372,7 +2372,7 @@ Image=quay.io/example/my-app:latest
 Mount=type=artifact,source=my-artifact.artifact,destination=/etc/config
 ```
 
-Example for Container in a Pod:
+Example for a container in a Pod:
 
 `test.pod`
 ```
@@ -2388,7 +2388,7 @@ Exec=sh -c "sleep inf"
 Pod=test.pod
 ```
 
-Example for a Pod with a oneshot Startup Task:
+Example for a Pod with a one-shot startup task:
 
 `test.pod`
 ```
