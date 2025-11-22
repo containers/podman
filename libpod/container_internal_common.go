@@ -2350,7 +2350,7 @@ func (c *Container) getHostsEntries() etchosts.HostEntries {
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
 	case c.config.NetMode.IsPasta():
 		// this should never be the case but check just to be sure and not panic
-		if len(c.pastaResult.IPAddresses) > 0 {
+		if c.pastaResult != nil && len(c.pastaResult.IPAddresses) > 0 {
 			entries = etchosts.HostEntries{{IP: c.pastaResult.IPAddresses[0].String(), Names: names}}
 		}
 	default:
