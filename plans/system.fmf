@@ -16,7 +16,7 @@ prepare:
       order: 10
     - when: initiator == packit
       how: shell
-      script: bash $TMT_TREE/contrib/packit-tmt/podman-next-setup.sh
+      script: bash $TMT_TREE/contrib/packit-tmt/dnf-repo-setup.sh
       order: 20
 
 adjust+:
