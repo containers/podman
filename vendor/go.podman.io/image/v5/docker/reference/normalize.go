@@ -169,6 +169,17 @@ func TagNameOnly(ref Named) Named {
 
 // ParseAnyReference parses a reference string as a possible identifier,
 // full digest, or familiar name.
+//
+// Deprecated: This parses inputs with 64 hexadecimal characters as sha256 digests,
+// and that can’t be generalized (a digest algorithm can not be determined purely
+// from the length of the input).
+//
+// In the future, image IDs will either stay 256-bit, but will not be SHA-256 values;
+// or they will support arbitrary algorithms, in which case the hexadecimal-only syntax
+// is not sufficient. Either way, this function will not be fit for purpose.
+//
+// Callers (if any) should redesign their syntax to strictly differentiate between
+// image IDs (with an as-yet-unknown future syntax) and named image references.
 func ParseAnyReference(ref string) (Reference, error) {
 	if ok := anchoredIdentifierRegexp.MatchString(ref); ok {
 		return digestReference("sha256:" + ref), nil
