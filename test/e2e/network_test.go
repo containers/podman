@@ -550,19 +550,6 @@ var _ = Describe("Podman network", func() {
 		Expect(c3).Should(ExitCleanly())
 	})
 
-	It("podman network create/remove macvlan", func() {
-		net := "macvlan" + stringid.GenerateRandomID()
-		nc := podmanTest.Podman([]string{"network", "create", "--macvlan", "lo", net})
-		nc.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		// Cannot ExitCleanly(): "The --macvlan option is deprecated..."
-		Expect(nc).Should(Exit(0))
-
-		nc = podmanTest.Podman([]string{"network", "rm", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(ExitCleanly())
-	})
-
 	It("podman network create/remove macvlan as driver (-d) no device name", func() {
 		net := "macvlan" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", net})

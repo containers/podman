@@ -39,7 +39,6 @@ type NetworkCreateOptions struct {
 	Gateways          []net.IP
 	Internal          bool
 	Labels            map[string]string
-	MacVLAN           string
 	NetworkDNSServers []string
 	Ranges            []string
 	Subnets           []string
