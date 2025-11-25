@@ -83,7 +83,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 		return err
 	}
 
-	paths := []string{}
+	paths := make([]string, 0, len(ctrs))
 	for _, ctr := range ctrs {
 		paths = append(paths, ctr.ConfigNoCopy().ConmonPidFile)
 	}
