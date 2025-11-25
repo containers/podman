@@ -4,6 +4,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // Default path for system runtime state
@@ -90,14 +92,22 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 
 	if len(paths) > 0 {
 		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, paths)
-	} else {
-		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
-		if err == nil && !noMoveProcess {
-			systemd.MovePauseProcessToScope(pausePidPath)
+		// TryJoinFromFilePaths fails with ESRCH when the PID are all not valid anymore
+		// In this case create a new userns.
+		if errors.Is(err, unix.ESRCH) {
+			logrus.Warnf("Failed to join existing conmon namespace, creating a new rootless podman user namespace. If there are existing container running please stop them with %q to reset the namespace", os.Args[0]+" system migrate")
+			became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 		}
+	} else {
+		logrus.Info("Creating a new rootless user namespace")
+		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 	}
+
 	if err != nil {
-		return fmt.Errorf("invalid internal status, try resetting the pause process with %q: %w", os.Args[0]+" system migrate", err)
+		return fmt.Errorf("fatal error, invalid internal status, unable to create a new pause process: %w. Try running %q and if that doesn't work reboot to recover", err, os.Args[0]+" system migrate")
+	}
+	if !noMoveProcess {
+		systemd.MovePauseProcessToScope(pausePidPath)
 	}
 	if became {
 		os.Exit(ret)
