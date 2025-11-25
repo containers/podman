@@ -149,3 +149,30 @@ function _check_pause_process() {
     # This used to hang trying to unmount the netns.
     run_podman rm -f -t0 $cname
 }
+
+# regression test for https://issues.redhat.com/browse/RHEL-130252
+@test "podman system migrate works with conmon being killed" {
+    skip_if_not_rootless "pause process is only used as rootless"
+    skip_if_remote "system migrate not supported via remote"
+
+    local cname=c-$(safename)
+    run_podman run --name $cname --stop-signal SIGKILL -d $IMAGE sleep 100
+
+    run_podman inspect --format '{{.State.ConmonPid}}' $cname
+    conmon_pid="$output"
+
+    # check for pause pid and then kill it
+    _check_pause_process
+    kill -9 $pause_pid
+
+    # kill conmon
+    kill -9 $conmon_pid
+
+    # Use podman system migrate to stop the currently running pause process
+    run_podman 125 system migrate
+    assert "$output" =~ "Failed to join existing conmon namespace" "fallback to userns creating"
+    assert "$output" =~ "conmon process killed"
+
+    # Now the removal command should work fine without errors.
+    run_podman rm $cname
+}
