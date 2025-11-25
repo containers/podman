@@ -76,9 +76,6 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 	if became {
 		os.Exit(ret)
 	}
-	if noMoveProcess {
-		return nil
-	}
 
 	// if there is no pid file, try to join existing containers, and create a pause process.
 	ctrs, err := ic.Libpod.GetRunningContainers()
@@ -95,7 +92,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, paths)
 	} else {
 		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
-		if err == nil {
+		if err == nil && !noMoveProcess {
 			systemd.MovePauseProcessToScope(pausePidPath)
 		}
 	}
