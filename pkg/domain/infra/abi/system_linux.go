@@ -59,6 +59,8 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 				}
 			}
 		}
+
+		// return early as we are already re-exec or root here so no need to join the rootless userns.
 		return nil
 	}
 
@@ -81,8 +83,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 	// if there is no pid file, try to join existing containers, and create a pause process.
 	ctrs, err := ic.Libpod.GetRunningContainers()
 	if err != nil {
-		logrus.Error(err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	paths := []string{}
@@ -99,11 +100,12 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 		}
 	}
 	if err != nil {
-		logrus.Error(fmt.Errorf("invalid internal status, try resetting the pause process with %q: %w", os.Args[0]+" system migrate", err))
-		os.Exit(1)
+		return fmt.Errorf("invalid internal status, try resetting the pause process with %q: %w", os.Args[0]+" system migrate", err)
 	}
 	if became {
 		os.Exit(ret)
 	}
+
+	logrus.Error("Internal error, failed to re-exec podman into user namespace without error. This should never happen, if you see this please report a bug")
 	return nil
 }
