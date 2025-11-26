@@ -78,7 +78,7 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 		mountUnit.Add("Mount", "Where", "%s")
 		mountUnit.Add("Mount", "Type", "virtiofs")
 		mountUnit.Add("Mount", "Options", fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext))
-		mountUnit.Add("Install", "WantedBy", "multi-user.target")
+		mountUnit.Add("Install", "WantedBy", "local-fs.target")
 		mountUnitFile, err := mountUnit.ToString()
 		if err != nil {
 			return nil, err
@@ -102,7 +102,7 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 	immutableRootOff.Add("Service", "Type", "oneshot")
 	immutableRootOff.Add("Service", "ExecStart", "chattr -i /")
 
-	immutableRootOff.Add("Install", "WantedBy", "remote-fs-pre.target")
+	immutableRootOff.Add("Install", "WantedBy", "local-fs-pre.target")
 	immutableRootOffFile, err := immutableRootOff.ToString()
 	if err != nil {
 		return nil, err
@@ -118,12 +118,12 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 	immutableRootOn := parser.NewUnitFile()
 	immutableRootOn.Add("Unit", "Description", "Set / back to immutable after mounts are done")
 	immutableRootOn.Add("Unit", "DefaultDependencies", "no")
-	immutableRootOn.Add("Unit", "After", "remote-fs.target")
+	immutableRootOn.Add("Unit", "After", "local-fs.target")
 
 	immutableRootOn.Add("Service", "Type", "oneshot")
 	immutableRootOn.Add("Service", "ExecStart", "chattr +i /")
 
-	immutableRootOn.Add("Install", "WantedBy", "remote-fs.target")
+	immutableRootOn.Add("Install", "WantedBy", "local-fs.target")
 	immutableRootOnFile, err := immutableRootOn.ToString()
 	if err != nil {
 		return nil, err
