@@ -175,8 +175,8 @@ github.com/containers/psgo/internal/process
 ## explicit; go 1.19
 github.com/containers/winquit/pkg/winquit
 github.com/containers/winquit/pkg/winquit/win32
-# github.com/coreos/go-oidc/v3 v3.14.1
-## explicit; go 1.23.0
+# github.com/coreos/go-oidc/v3 v3.16.0
+## explicit; go 1.24.0
 github.com/coreos/go-oidc/v3/oidc
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 ## explicit
@@ -410,14 +410,6 @@ github.com/klauspost/pgzip
 # github.com/kr/fs v0.1.0
 ## explicit
 github.com/kr/fs
-# github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec
-## explicit; go 1.22.0
-github.com/letsencrypt/boulder/core
-github.com/letsencrypt/boulder/goodkey
-github.com/letsencrypt/boulder/identifier
-github.com/letsencrypt/boulder/probs
-github.com/letsencrypt/boulder/revocation
-github.com/letsencrypt/boulder/strictyaml
 # github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
 ## explicit; go 1.17
 github.com/linuxkit/virtsock/pkg/hvsock
@@ -514,7 +506,7 @@ github.com/moby/term/windows
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
-# github.com/modern-go/reflect2 v1.0.2
+# github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
 ## explicit; go 1.12
 github.com/modern-go/reflect2
 # github.com/morikuni/aec v1.0.0
@@ -610,6 +602,9 @@ github.com/openshift/imagebuilder/dockerfile/parser
 github.com/openshift/imagebuilder/internal
 github.com/openshift/imagebuilder/signal
 github.com/openshift/imagebuilder/strslice
+# github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+## explicit; go 1.14
+github.com/pkg/browser
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -627,7 +622,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55
 ## explicit; go 1.14
 github.com/power-devops/perfstat
-# github.com/proglottis/gpgme v0.1.5
+# github.com/proglottis/gpgme v0.1.6
 ## explicit; go 1.17
 github.com/proglottis/gpgme
 # github.com/rootless-containers/rootlesskit/v2 v2.3.5
@@ -650,9 +645,6 @@ github.com/seccomp/libseccomp-golang
 # github.com/secure-systems-lab/go-securesystemslib v0.9.1
 ## explicit; go 1.23.0
 github.com/secure-systems-lab/go-securesystemslib/encrypted
-# github.com/segmentio/ksuid v1.0.4
-## explicit; go 1.12
-github.com/segmentio/ksuid
 # github.com/shirou/gopsutil/v4 v4.25.10
 ## explicit; go 1.24.0
 github.com/shirou/gopsutil/v4/common
@@ -661,31 +653,28 @@ github.com/shirou/gopsutil/v4/internal/common
 github.com/shirou/gopsutil/v4/mem
 github.com/shirou/gopsutil/v4/net
 github.com/shirou/gopsutil/v4/process
-# github.com/sigstore/fulcio v1.7.1
-## explicit; go 1.24.0
+# github.com/sigstore/fulcio v1.8.1
+## explicit; go 1.24.6
 github.com/sigstore/fulcio/pkg/api
 github.com/sigstore/fulcio/pkg/certificate
-# github.com/sigstore/protobuf-specs v0.4.1
+# github.com/sigstore/protobuf-specs v0.5.0
 ## explicit; go 1.22.0
 github.com/sigstore/protobuf-specs/gen/pb-go/common/v1
-# github.com/sigstore/sigstore v1.9.5
-## explicit; go 1.23.0
+# github.com/sigstore/sigstore v1.9.6-0.20251111174640-d8ab8afb1326
+## explicit; go 1.24.0
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauth
 github.com/sigstore/sigstore/pkg/oauthflow
 github.com/sigstore/sigstore/pkg/signature
 github.com/sigstore/sigstore/pkg/signature/options
 github.com/sigstore/sigstore/pkg/signature/payload
-# github.com/sirupsen/logrus v1.9.3
+# github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
 # github.com/skeema/knownhosts v1.3.2
 ## explicit; go 1.24.0
 github.com/skeema/knownhosts
-# github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-## explicit
-github.com/skratchdot/open-golang/open
 # github.com/smallstep/pkcs7 v0.1.1
 ## explicit; go 1.14
 github.com/smallstep/pkcs7
@@ -710,9 +699,6 @@ github.com/sylabs/sif/v2/pkg/sif
 # github.com/tchap/go-patricia/v2 v2.3.3
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
-# github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
-## explicit
-github.com/titanous/rocacheck
 # github.com/tklauser/go-sysconf v0.3.15
 ## explicit; go 1.23.0
 github.com/tklauser/go-sysconf
@@ -787,8 +773,8 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.1-0.20251122023359-22d50c57903c
-## explicit; go 1.24.2
+# go.podman.io/common v0.66.1-0.20251122023359-22d50c57903c => github.com/Luap99/container-libs/common v0.0.0-20251126142525-83dd0eb61809
+## explicit; go 1.24.6
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
@@ -857,8 +843,8 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.1-0.20251122023359-22d50c57903c
-## explicit; go 1.24.0
+# go.podman.io/image/v5 v5.38.1-0.20251122023359-22d50c57903c => github.com/Luap99/container-libs/image/v5 v5.0.0-20251126142525-83dd0eb61809
+## explicit; go 1.24.6
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
 go.podman.io/image/v5/directory/explicitfilepath
@@ -931,7 +917,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20251122023359-22d50c57903c
+# go.podman.io/storage v1.61.1-0.20251122023359-22d50c57903c => github.com/Luap99/container-libs/storage v0.0.0-20251126142525-83dd0eb61809
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -980,7 +966,7 @@ go.podman.io/storage/pkg/tarlog
 go.podman.io/storage/pkg/truncindex
 go.podman.io/storage/pkg/unshare
 go.podman.io/storage/types
-# go.yaml.in/yaml/v2 v2.4.2
+# go.yaml.in/yaml/v2 v2.4.3
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
@@ -999,7 +985,6 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/nacl/secretbox
-golang.org/x/crypto/ocsp
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/elgamal
@@ -1076,8 +1061,8 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.11.0
-## explicit; go 1.23.0
+# golang.org/x/time v0.14.0
+## explicit; go 1.24.0
 golang.org/x/time/rate
 # golang.org/x/tools v0.38.0
 ## explicit; go 1.24.0
@@ -1234,3 +1219,6 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.1-0.20251120202831-139ffec09210
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/storage => github.com/Luap99/container-libs/storage v0.0.0-20251126142525-83dd0eb61809
+# go.podman.io/image/v5 => github.com/Luap99/container-libs/image/v5 v5.0.0-20251126142525-83dd0eb61809
+# go.podman.io/common => github.com/Luap99/container-libs/common v0.0.0-20251126142525-83dd0eb61809

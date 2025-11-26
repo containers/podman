@@ -74,7 +74,7 @@ func splitUserInput(named reference.Named) (isTagged bool, isDigested bool, norm
 	// Strip off tag/digest if present.
 	normalized = reference.TrimNamed(named)
 
-	return
+	return isTagged, isDigested, normalized, tag, digest
 }
 
 // Add records the specified name-value pair as a new short-name alias to the

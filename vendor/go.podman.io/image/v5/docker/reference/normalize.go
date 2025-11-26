@@ -100,7 +100,7 @@ func splitDockerDomain(name string) (domain, remainder string) {
 	if domain == defaultDomain && !strings.ContainsRune(remainder, '/') {
 		remainder = officialRepoName + "/" + remainder
 	}
-	return
+	return domain, remainder
 }
 
 // familiarizeName returns a shortened version of the name familiar
