@@ -27,14 +27,14 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/segmentio/ksuid"
-	"github.com/skratchdot/open-golang/open"
+	"github.com/pkg/browser"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"golang.org/x/oauth2"
 )
 
 const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
-var browserOpener = open.Run
+var browserOpener = browser.OpenURL
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
@@ -47,8 +47,8 @@ type InteractiveIDTokenGetter struct {
 // GetIDToken gets an OIDC ID Token from the specified provider using an interactive browser session
 func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
 	// generate random fields and save them for comparison after OAuth2 dance
-	stateToken := randStr()
-	nonce := randStr()
+	stateToken := cryptoutils.GenerateRandomURLSafeString(128)
+	nonce := cryptoutils.GenerateRandomURLSafeString(128)
 
 	doneCh := make(chan string)
 	errCh := make(chan error)
@@ -230,12 +230,4 @@ func getCode(doneCh chan string, errCh chan error) (string, error) {
 	case <-timeoutCh.C:
 		return "", errors.New("timeout")
 	}
-}
-
-func randStr() string {
-	// we use ksuid here to ensure we get globally unique values to mitigate
-	// risk of replay attacks
-
-	// output is a 27 character base62 string which is by default URL-safe
-	return ksuid.New().String()
 }
