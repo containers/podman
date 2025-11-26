@@ -345,8 +345,8 @@ func WithNoExtensions() Option {
 // In Markdown, the link reference syntax can be made to resolve a link to
 // a reference instead of an inline URL, in one of the following ways:
 //
-//  * [link text][refid]
-//  * [refid][]
+//   - [link text][refid]
+//   - [refid][]
 //
 // Usually, the refid is defined at the bottom of the Markdown document. If
 // this override function is provided, the refid is passed to the override
@@ -363,7 +363,9 @@ func WithRefOverride(o ReferenceOverrideFunc) Option {
 // block of markdown-encoded text.
 //
 // The simplest invocation of Run takes one argument, input:
-//     output := Run(input)
+//
+//	output := Run(input)
+//
 // This will parse the input with CommonExtensions enabled and render it with
 // the default HTMLRenderer (with CommonHTMLFlags).
 //
@@ -371,13 +373,15 @@ func WithRefOverride(o ReferenceOverrideFunc) Option {
 // type does not contain exported fields, you can not use it directly. Instead,
 // use the With* functions. For example, this will call the most basic
 // functionality, with no extensions:
-//     output := Run(input, WithNoExtensions())
+//
+//	output := Run(input, WithNoExtensions())
 //
 // You can use any number of With* arguments, even contradicting ones. They
 // will be applied in order of appearance and the latter will override the
 // former:
-//     output := Run(input, WithNoExtensions(), WithExtensions(exts),
-//         WithRenderer(yourRenderer))
+//
+//	output := Run(input, WithNoExtensions(), WithExtensions(exts),
+//	    WithRenderer(yourRenderer))
 func Run(input []byte, opts ...Option) []byte {
 	r := NewHTMLRenderer(HTMLRendererParameters{
 		Flags: CommonHTMLFlags,
@@ -491,35 +495,35 @@ func (p *Markdown) parseRefsToAST() {
 //
 // Consider this markdown with reference-style links:
 //
-//     [link][ref]
+//	[link][ref]
 //
-//     [ref]: /url/ "tooltip title"
+//	[ref]: /url/ "tooltip title"
 //
 // It will be ultimately converted to this HTML:
 //
-//     <p><a href=\"/url/\" title=\"title\">link</a></p>
+//	<p><a href=\"/url/\" title=\"title\">link</a></p>
 //
 // And a reference structure will be populated as follows:
 //
-//     p.refs["ref"] = &reference{
-//         link: "/url/",
-//         title: "tooltip title",
-//     }
+//	p.refs["ref"] = &reference{
+//	    link: "/url/",
+//	    title: "tooltip title",
+//	}
 //
 // Alternatively, reference can contain information about a footnote. Consider
 // this markdown:
 //
-//     Text needing a footnote.[^a]
+//	Text needing a footnote.[^a]
 //
-//     [^a]: This is the note
+//	[^a]: This is the note
 //
 // A reference structure will be populated as follows:
 //
-//     p.refs["a"] = &reference{
-//         link: "a",
-//         title: "This is the note",
-//         noteID: <some positive int>,
-//     }
+//	p.refs["a"] = &reference{
+//	    link: "a",
+//	    title: "This is the note",
+//	    noteID: <some positive int>,
+//	}
 //
 // TODO: As you can see, it begs for splitting into two dedicated structures
 // for refs and for footnotes.

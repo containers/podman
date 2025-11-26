@@ -9,7 +9,6 @@ import (
 // Dec.Quo().
 //
 // See the Example for results of using each Rounder with some sample values.
-//
 type Rounder rounder
 
 // See http://speleotrove.com/decimal/damodel.html#refround for more detailed

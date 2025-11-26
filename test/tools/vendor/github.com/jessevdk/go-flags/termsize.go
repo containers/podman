@@ -1,3 +1,4 @@
+//go:build !windows && !plan9 && !appengine && !wasm
 // +build !windows,!plan9,!appengine,!wasm
 
 package flags

@@ -31,18 +31,20 @@ Abbreviate abbreviates a string using ellipses. This will turn  the string "Now 
 
 Specifically, the algorithm is as follows:
 
-    - If str is less than maxWidth characters long, return it.
-    - Else abbreviate it to (str[0:maxWidth - 3] + "...").
-    - If maxWidth is less than 4, return an illegal argument error.
-    - In no case will it return a string of length greater than maxWidth.
+  - If str is less than maxWidth characters long, return it.
+  - Else abbreviate it to (str[0:maxWidth - 3] + "...").
+  - If maxWidth is less than 4, return an illegal argument error.
+  - In no case will it return a string of length greater than maxWidth.
 
 Parameters:
-    str -  the string to check
-    maxWidth - maximum length of result string, must be at least 4
+
+	str -  the string to check
+	maxWidth - maximum length of result string, must be at least 4
 
 Returns:
-    string - abbreviated string
-    error - if the width is too small
+
+	string - abbreviated string
+	error - if the width is too small
 */
 func Abbreviate(str string, maxWidth int) (string, error) {
 	return AbbreviateFull(str, 0, maxWidth)
@@ -56,13 +58,15 @@ somewhere in the result.
 In no case will it return a string of length greater than maxWidth.
 
 Parameters:
-    str - the string to check
-    offset - left edge of source string
-    maxWidth - maximum length of result string, must be at least 4
+
+	str - the string to check
+	offset - left edge of source string
+	maxWidth - maximum length of result string, must be at least 4
 
 Returns:
-    string - abbreviated string
-    error - if the width is too small
+
+	string - abbreviated string
+	error - if the width is too small
 */
 func AbbreviateFull(str string, offset int, maxWidth int) (string, error) {
 	if str == "" {
@@ -101,10 +105,12 @@ DeleteWhiteSpace deletes all whitespaces from a string as defined by unicode.IsS
 It returns the string without whitespaces.
 
 Parameter:
-    str - the string to delete whitespace from, may be nil
+
+	str - the string to delete whitespace from, may be nil
 
 Returns:
-    the string without whitespaces
+
+	the string without whitespaces
 */
 func DeleteWhiteSpace(str string) string {
 	if str == "" {
@@ -130,11 +136,13 @@ func DeleteWhiteSpace(str string) string {
 IndexOfDifference compares two strings, and returns the index at which the strings begin to differ.
 
 Parameters:
-    str1 - the first string
-    str2 - the second string
+
+	str1 - the first string
+	str2 - the second string
 
 Returns:
-    the index where str1 and str2 begin to differ; -1 if they are equal
+
+	the index where str1 and str2 begin to differ; -1 if they are equal
 */
 func IndexOfDifference(str1 string, str2 string) int {
 	if str1 == str2 {
@@ -158,16 +166,18 @@ func IndexOfDifference(str1 string, str2 string) int {
 /*
 IsBlank checks if a string is whitespace or empty (""). Observe the following behavior:
 
-    goutils.IsBlank("")        = true
-    goutils.IsBlank(" ")       = true
-    goutils.IsBlank("bob")     = false
-    goutils.IsBlank("  bob  ") = false
+	goutils.IsBlank("")        = true
+	goutils.IsBlank(" ")       = true
+	goutils.IsBlank("bob")     = false
+	goutils.IsBlank("  bob  ") = false
 
 Parameter:
-    str - the string to check
+
+	str - the string to check
 
 Returns:
-    true - if the string is whitespace or empty ("")
+
+	true - if the string is whitespace or empty ("")
 */
 func IsBlank(str string) bool {
 	strLen := len(str)
@@ -190,12 +200,14 @@ An empty string ("") will return -1 (INDEX_NOT_FOUND). A negative start position
 A start position greater than the string length returns -1.
 
 Parameters:
-    str - the string to check
-    sub - the substring to find
-    start - the start position; negative treated as zero
+
+	str - the string to check
+	sub - the substring to find
+	start - the start position; negative treated as zero
 
 Returns:
-    the first index where the sub string was found  (always >= start)
+
+	the first index where the sub string was found  (always >= start)
 */
 func IndexOf(str string, sub string, start int) int {
 

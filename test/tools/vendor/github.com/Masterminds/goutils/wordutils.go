@@ -21,29 +21,29 @@ errors while others do not, so usage would vary as a result.
 
 Example:
 
-    package main
+	package main
 
-    import (
-        "fmt"
-        "github.com/aokoli/goutils"
-    )
+	import (
+	    "fmt"
+	    "github.com/aokoli/goutils"
+	)
 
-    func main() {
+	func main() {
 
-        // EXAMPLE 1: A goutils function which returns no errors
-        fmt.Println (goutils.Initials("John Doe Foo")) // Prints out "JDF"
+	    // EXAMPLE 1: A goutils function which returns no errors
+	    fmt.Println (goutils.Initials("John Doe Foo")) // Prints out "JDF"
 
 
 
-        // EXAMPLE 2: A goutils function which returns an error
-        rand1, err1 := goutils.Random (-1, 0, 0, true, true)
+	    // EXAMPLE 2: A goutils function which returns an error
+	    rand1, err1 := goutils.Random (-1, 0, 0, true, true)
 
-        if err1 != nil {
-            fmt.Println(err1) // Prints out error message because -1 was entered as the first parameter in goutils.Random(...)
-        } else {
-            fmt.Println(rand1)
-        }
-    }
+	    if err1 != nil {
+	        fmt.Println(err1) // Prints out error message because -1 was entered as the first parameter in goutils.Random(...)
+	    } else {
+	        fmt.Println(rand1)
+	    }
+	}
 */
 package goutils
 
@@ -62,11 +62,13 @@ New lines will be separated by '\n'. Very long words, such as URLs will not be w
 Leading spaces on a new line are stripped. Trailing spaces are not stripped.
 
 Parameters:
-    str - the string to be word wrapped
-    wrapLength - the column (a column can fit only one character) to wrap the words at, less than 1 is treated as 1
+
+	str - the string to be word wrapped
+	wrapLength - the column (a column can fit only one character) to wrap the words at, less than 1 is treated as 1
 
 Returns:
-    a line with newlines inserted
+
+	a line with newlines inserted
 */
 func Wrap(str string, wrapLength int) string {
 	return WrapCustom(str, wrapLength, "", false)
@@ -77,13 +79,15 @@ WrapCustom wraps a single line of text, identifying words by ' '.
 Leading spaces on a new line are stripped. Trailing spaces are not stripped.
 
 Parameters:
-    str - the string to be word wrapped
-    wrapLength - the column number (a column can fit only one character) to wrap the words at, less than 1 is treated as 1
-    newLineStr - the string to insert for a new line, "" uses '\n'
-    wrapLongWords - true if long words (such as URLs) should be wrapped
+
+	str - the string to be word wrapped
+	wrapLength - the column number (a column can fit only one character) to wrap the words at, less than 1 is treated as 1
+	newLineStr - the string to insert for a new line, "" uses '\n'
+	wrapLongWords - true if long words (such as URLs) should be wrapped
 
 Returns:
-    a line with newlines inserted
+
+	a line with newlines inserted
 */
 func WrapCustom(str string, wrapLength int, newLineStr string, wrapLongWords bool) string {
 
@@ -157,11 +161,13 @@ and the first non-delimiter character after a delimiter will be capitalized. A "
 Capitalization uses the Unicode title case, normally equivalent to upper case.
 
 Parameters:
-    str - the string to capitalize
-    delimiters - set of characters to determine capitalization, exclusion of this parameter means whitespace would be delimeter
+
+	str - the string to capitalize
+	delimiters - set of characters to determine capitalization, exclusion of this parameter means whitespace would be delimeter
 
 Returns:
-    capitalized string
+
+	capitalized string
 */
 func Capitalize(str string, delimiters ...rune) string {
 
@@ -199,11 +205,13 @@ to separate words. The first string character and the first non-delimiter charac
 Capitalization uses the Unicode title case, normally equivalent to upper case.
 
 Parameters:
-    str - the string to capitalize fully
-    delimiters - set of characters to determine capitalization, exclusion of this parameter means whitespace would be delimeter
+
+	str - the string to capitalize fully
+	delimiters - set of characters to determine capitalization, exclusion of this parameter means whitespace would be delimeter
 
 Returns:
-    capitalized string
+
+	capitalized string
 */
 func CapitalizeFully(str string, delimiters ...rune) string {
 
@@ -228,11 +236,13 @@ The delimiters represent a set of characters understood to separate words. The f
 character after a delimiter will be uncapitalized. Whitespace is defined by unicode.IsSpace(char).
 
 Parameters:
-    str - the string to uncapitalize fully
-    delimiters - set of characters to determine capitalization, exclusion of this parameter means whitespace would be delimeter
+
+	str - the string to uncapitalize fully
+	delimiters - set of characters to determine capitalization, exclusion of this parameter means whitespace would be delimeter
 
 Returns:
-    uncapitalized string
+
+	uncapitalized string
 */
 func Uncapitalize(str string, delimiters ...rune) string {
 
@@ -267,17 +277,19 @@ SwapCase swaps the case of a string using a word based algorithm.
 
 Conversion algorithm:
 
-    Upper case character converts to Lower case
-    Title case character converts to Lower case
-    Lower case character after Whitespace or at start converts to Title case
-    Other Lower case character converts to Upper case
-    Whitespace is defined by unicode.IsSpace(char).
+	Upper case character converts to Lower case
+	Title case character converts to Lower case
+	Lower case character after Whitespace or at start converts to Title case
+	Other Lower case character converts to Upper case
+	Whitespace is defined by unicode.IsSpace(char).
 
 Parameters:
-    str - the string to swap case
+
+	str - the string to swap case
 
 Returns:
-    the changed string
+
+	the changed string
 */
 func SwapCase(str string) string {
 	if str == "" {
@@ -315,10 +327,13 @@ letters after the defined delimiters are returned as a new string. Their case is
 parameter is excluded, then Whitespace is used. Whitespace is defined by unicode.IsSpacea(char). An empty delimiter array returns an empty string.
 
 Parameters:
-    str - the string to get initials from
-    delimiters - set of characters to determine words, exclusion of this parameter means whitespace would be delimeter
+
+	str - the string to get initials from
+	delimiters - set of characters to determine words, exclusion of this parameter means whitespace would be delimeter
+
 Returns:
-    string of initial letters
+
+	string of initial letters
 */
 func Initials(str string, delimiters ...rune) string {
 	if str == "" {

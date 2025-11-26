@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build aix || darwin || dragonfly || freebsd || (linux && !appengine) || netbsd || openbsd || os400 || solaris
 // +build aix darwin dragonfly freebsd linux,!appengine netbsd openbsd os400 solaris
 
 // Package terminal provides support functions for dealing with terminals, as
@@ -9,11 +10,11 @@
 //
 // Putting a terminal into raw mode is the most common requirement:
 //
-// 	oldState, err := terminal.MakeRaw(0)
-// 	if err != nil {
-// 	        panic(err)
-// 	}
-// 	defer terminal.Restore(0, oldState)
+//	oldState, err := terminal.MakeRaw(0)
+//	if err != nil {
+//	        panic(err)
+//	}
+//	defer terminal.Restore(0, oldState)
 package readline
 
 import (

@@ -884,7 +884,6 @@ const (
 	// ProcDomainGetMessages is libvirt's REMOTE_PROC_DOMAIN_GET_MESSAGES
 	ProcDomainGetMessages = 426
 
-
 	// From consts:
 	// StringMax is libvirt's REMOTE_STRING_MAX
 	StringMax = 4194304

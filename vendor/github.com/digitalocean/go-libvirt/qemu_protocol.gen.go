@@ -40,19 +40,17 @@ var (
 // Typedefs:
 //
 
-//
 // Enums:
 //
 // QEMUProcedure is libvirt's qemu_procedure
 type QEMUProcedure int32
 
-//
 // Structs:
 //
 // QEMUDomainMonitorCommandArgs is libvirt's qemu_domain_monitor_command_args
 type QEMUDomainMonitorCommandArgs struct {
-	Dom Domain
-	Cmd string
+	Dom   Domain
+	Cmd   string
 	Flags uint32
 }
 
@@ -64,7 +62,7 @@ type QEMUDomainMonitorCommandRet struct {
 // QEMUDomainAttachArgs is libvirt's qemu_domain_attach_args
 type QEMUDomainAttachArgs struct {
 	PidValue uint32
-	Flags uint32
+	Flags    uint32
 }
 
 // QEMUDomainAttachRet is libvirt's qemu_domain_attach_ret
@@ -74,10 +72,10 @@ type QEMUDomainAttachRet struct {
 
 // QEMUDomainAgentCommandArgs is libvirt's qemu_domain_agent_command_args
 type QEMUDomainAgentCommandArgs struct {
-	Dom Domain
-	Cmd string
+	Dom     Domain
+	Cmd     string
 	Timeout int32
-	Flags uint32
+	Flags   uint32
 }
 
 // QEMUDomainAgentCommandRet is libvirt's qemu_domain_agent_command_ret
@@ -87,7 +85,7 @@ type QEMUDomainAgentCommandRet struct {
 
 // QEMUConnectDomainMonitorEventRegisterArgs is libvirt's qemu_connect_domain_monitor_event_register_args
 type QEMUConnectDomainMonitorEventRegisterArgs struct {
-	Dom OptDomain
+	Dom   OptDomain
 	Event OptString
 	Flags uint32
 }
@@ -105,23 +103,20 @@ type QEMUConnectDomainMonitorEventDeregisterArgs struct {
 // QEMUDomainMonitorEventMsg is libvirt's qemu_domain_monitor_event_msg
 type QEMUDomainMonitorEventMsg struct {
 	CallbackID int32
-	Dom Domain
-	Event string
-	Seconds int64
-	Micros uint32
-	Details OptString
+	Dom        Domain
+	Event      string
+	Seconds    int64
+	Micros     uint32
+	Details    OptString
 }
-
-
-
 
 // QEMUDomainMonitorCommand is the go wrapper for QEMU_PROC_DOMAIN_MONITOR_COMMAND.
 func (l *Libvirt) QEMUDomainMonitorCommand(Dom Domain, Cmd string, Flags uint32) (rResult string, err error) {
 	var buf []byte
 
-	args := QEMUDomainMonitorCommandArgs {
-		Dom: Dom,
-		Cmd: Cmd,
+	args := QEMUDomainMonitorCommandArgs{
+		Dom:   Dom,
+		Cmd:   Cmd,
 		Flags: Flags,
 	}
 
@@ -154,9 +149,9 @@ func (l *Libvirt) QEMUDomainMonitorCommand(Dom Domain, Cmd string, Flags uint32)
 func (l *Libvirt) QEMUDomainAttach(PidValue uint32, Flags uint32) (rDom Domain, err error) {
 	var buf []byte
 
-	args := QEMUDomainAttachArgs {
+	args := QEMUDomainAttachArgs{
 		PidValue: PidValue,
-		Flags: Flags,
+		Flags:    Flags,
 	}
 
 	buf, err = encode(&args)
@@ -188,11 +183,11 @@ func (l *Libvirt) QEMUDomainAttach(PidValue uint32, Flags uint32) (rDom Domain, 
 func (l *Libvirt) QEMUDomainAgentCommand(Dom Domain, Cmd string, Timeout int32, Flags uint32) (rResult OptString, err error) {
 	var buf []byte
 
-	args := QEMUDomainAgentCommandArgs {
-		Dom: Dom,
-		Cmd: Cmd,
+	args := QEMUDomainAgentCommandArgs{
+		Dom:     Dom,
+		Cmd:     Cmd,
 		Timeout: Timeout,
-		Flags: Flags,
+		Flags:   Flags,
 	}
 
 	buf, err = encode(&args)
@@ -224,8 +219,8 @@ func (l *Libvirt) QEMUDomainAgentCommand(Dom Domain, Cmd string, Timeout int32, 
 func (l *Libvirt) QEMUConnectDomainMonitorEventRegister(Dom OptDomain, Event OptString, Flags uint32) (rCallbackID int32, err error) {
 	var buf []byte
 
-	args := QEMUConnectDomainMonitorEventRegisterArgs {
-		Dom: Dom,
+	args := QEMUConnectDomainMonitorEventRegisterArgs{
+		Dom:   Dom,
 		Event: Event,
 		Flags: Flags,
 	}
@@ -259,7 +254,7 @@ func (l *Libvirt) QEMUConnectDomainMonitorEventRegister(Dom OptDomain, Event Opt
 func (l *Libvirt) QEMUConnectDomainMonitorEventDeregister(CallbackID int32) (err error) {
 	var buf []byte
 
-	args := QEMUConnectDomainMonitorEventDeregisterArgs {
+	args := QEMUConnectDomainMonitorEventDeregisterArgs{
 		CallbackID: CallbackID,
 	}
 
@@ -267,7 +262,6 @@ func (l *Libvirt) QEMUConnectDomainMonitorEventDeregister(CallbackID int32) (err
 	if err != nil {
 		return
 	}
-
 
 	_, err = l.requestStream(5, constants.QEMUProgram, buf, nil, nil)
 	if err != nil {
@@ -281,7 +275,6 @@ func (l *Libvirt) QEMUConnectDomainMonitorEventDeregister(CallbackID int32) (err
 func (l *Libvirt) QEMUDomainMonitorEvent() (err error) {
 	var buf []byte
 
-
 	_, err = l.requestStream(6, constants.QEMUProgram, buf, nil, nil)
 	if err != nil {
 		return
@@ -289,4 +282,3 @@ func (l *Libvirt) QEMUDomainMonitorEvent() (err error) {
 
 	return
 }
-

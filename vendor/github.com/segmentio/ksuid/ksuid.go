@@ -38,8 +38,9 @@ const (
 )
 
 // KSUIDs are 20 bytes:
-//  00-03 byte: uint32 BE UTC timestamp with custom epoch
-//  04-19 byte: random "payload"
+//
+//	00-03 byte: uint32 BE UTC timestamp with custom epoch
+//	04-19 byte: random "payload"
 type KSUID [byteLength]byte
 
 var (

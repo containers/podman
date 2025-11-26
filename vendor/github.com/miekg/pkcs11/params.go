@@ -50,13 +50,12 @@ type GCMParams struct {
 //
 // Encrypt/Decrypt. As an example:
 //
-//    gcmParams := pkcs11.NewGCMParams(make([]byte, 12), nil, 128)
-//    p.ctx.EncryptInit(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_AES_GCM, gcmParams)},
-//			aesObjHandle)
-//    ct, _ := p.ctx.Encrypt(session, pt)
-//    iv := gcmParams.IV()
-//    gcmParams.Free()
-//
+//	   gcmParams := pkcs11.NewGCMParams(make([]byte, 12), nil, 128)
+//	   p.ctx.EncryptInit(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_AES_GCM, gcmParams)},
+//				aesObjHandle)
+//	   ct, _ := p.ctx.Encrypt(session, pt)
+//	   iv := gcmParams.IV()
+//	   gcmParams.Free()
 func NewGCMParams(iv, aad []byte, tagSize int) *GCMParams {
 	return &GCMParams{
 		iv:      iv,
