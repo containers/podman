@@ -3156,6 +3156,10 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 		logrus.Debugf("Labeling not supported on %q", src)
 		return nil
 	}
+	if errors.Is(err, unix.EPERM) {
+		currentUID := os.Getuid()
+		return fmt.Errorf("labeling failed on %q: likely due to a file owned by another user (current user: uid %d) or insufficient permissions: %w", src, currentUID, err)
+	}
 	return err
 }
 
