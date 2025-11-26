@@ -73,6 +73,9 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
+echo "NOTIFY_SOCKET ---------"
+printenv NOTIFY_SOCKET || true
+echo "-------------"
 # Unset NOTIFY_SOCKET based on: https://github.com/containers/podman/pull/27514#issuecomment-3529125596
 unset NOTIFY_SOCKET
 # This is a possible manual maintenance gaff, i.e. forgetting to update a

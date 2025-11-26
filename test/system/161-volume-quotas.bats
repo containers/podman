@@ -65,6 +65,8 @@ function teardown() {
     # make the function aware of the custom --root.
     _PODMAN_TEST_OPTS="$safe_opts --storage-driver $(podman_storage_driver)" _prefetch $IMAGE
 
+    ls -lZ --recursive ${PODMAN_TMPDIR}/root
+
     ctrname="testctr"
     # pull never to ensure the prefetch works correctly
     run_podman $safe_opts run -d --pull=never --name=$ctrname -i -v $vol_one:/one -v $vol_two:/two $IMAGE top

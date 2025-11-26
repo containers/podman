@@ -18,6 +18,8 @@ function setup_suite() {
     IFS="
  	"
 
+    printenv NOTIFY_SOCKET >&3
+
     # These are set/generated even for non-remote tests because some local tests still create their
     # own system service.
     export REMOTESYSTEM_UNIX_SOCK=$(mktemp ${BATS_SUITE_TMPDIR}/remotesystem.podman.XXXXXX.sock)

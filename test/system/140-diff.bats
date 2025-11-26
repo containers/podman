@@ -38,7 +38,10 @@ load helpers
 }
 
 @test "podman diff with buildah container " {
+    printenv NOTIFY_SOCKET
+
     rand_file=$(random_string 10)
+
     buildah from --name buildahctr $IMAGE
     buildah run buildahctr sh -c "touch /$rand_file;rm /etc/services"
 
