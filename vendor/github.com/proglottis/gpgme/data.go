@@ -156,31 +156,38 @@ func (d *Data) Close() error {
 	if d.cbc > 0 {
 		d.cbc.Delete()
 	}
-	_, err := C.gpgme_data_release(d.dh)
+	C.gpgme_data_release(d.dh)
 	runtime.KeepAlive(d)
 	d.dh = nil
-	return err
+	return nil
 }
 
 func (d *Data) Write(p []byte) (int, error) {
-	var buffer *byte
-	if len(p) > 0 {
-		buffer = &p[0]
-	}
+	total := 0
+	for total < len(p) {
+		remaining := p[total:]
 
-	n, err := C.gpgme_data_write(d.dh, unsafe.Pointer(buffer), C.size_t(len(p)))
-	runtime.KeepAlive(d)
-	switch {
-	case d.err != nil:
-		defer func() { d.err = nil }()
+		var buffer *byte
+		if len(remaining) > 0 {
+			buffer = &remaining[0]
+		}
 
-		return 0, d.err
-	case err != nil:
-		return 0, err
-	case len(p) > 0 && n == 0:
-		return 0, io.EOF
+		n, err := C.gpgme_data_write(d.dh, unsafe.Pointer(buffer), C.size_t(len(remaining)))
+		runtime.KeepAlive(d)
+		switch {
+		case d.err != nil:
+			defer func() { d.err = nil }()
+			return total, d.err
+		case n < 0:
+			return total, err
+		case n == 0: // This should never happen, but ensure we don’t loop forever
+			// If we got here, we know len(p) > 0, so ErrShortWrite is appropriate.
+			return total, io.ErrShortWrite
+		}
+
+		total += int(n)
 	}
-	return int(n), nil
+	return total, nil
 }
 
 func (d *Data) Read(p []byte) (int, error) {
@@ -196,7 +203,7 @@ func (d *Data) Read(p []byte) (int, error) {
 		defer func() { d.err = nil }()
 
 		return 0, d.err
-	case err != nil:
+	case n < 0:
 		return 0, err
 	case len(p) > 0 && n == 0:
 		return 0, io.EOF
@@ -212,7 +219,7 @@ func (d *Data) Seek(offset int64, whence int) (int64, error) {
 		defer func() { d.err = nil }()
 
 		return 0, d.err
-	case err != nil:
+	case n < 0:
 		return 0, err
 	}
 	return int64(n), nil
