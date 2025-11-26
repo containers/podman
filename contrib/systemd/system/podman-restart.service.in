@@ -9,8 +9,8 @@ After=network-online.target
 Type=oneshot
 RemainAfterExit=true
 Environment=LOGGING="--log-level=info"
-ExecStart=@@PODMAN@@ $LOGGING start --all --filter restart-policy=always
-ExecStop=@@PODMAN@@  $LOGGING stop  --all --filter restart-policy=always
+ExecStart=@@PODMAN@@ $LOGGING start --all --filter should-start-on-boot=true
+ExecStop=@@PODMAN@@  $LOGGING stop  --all --filter should-start-on-boot=true
 
 [Install]
 WantedBy=default.target
