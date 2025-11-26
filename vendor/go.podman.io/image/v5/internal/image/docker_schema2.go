@@ -110,9 +110,8 @@ func (m *manifestSchema2) ConfigBlob(ctx context.Context) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		computedDigest := digest.FromBytes(blob)
-		if computedDigest != m.m.ConfigDescriptor.Digest {
-			return nil, fmt.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.m.ConfigDescriptor.Digest)
+		if err := validateBlobAgainstDigest(blob, m.m.ConfigDescriptor.Digest); err != nil {
+			return nil, fmt.Errorf("config validation failed: %w", err)
 		}
 		m.configBlob = blob
 	}

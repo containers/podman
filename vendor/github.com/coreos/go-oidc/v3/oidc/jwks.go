@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/http"
 	"sync"
-	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
 )
@@ -57,16 +56,12 @@ func (s *StaticKeySet) VerifySignature(ctx context.Context, jwt string) ([]byte,
 // The returned KeySet is a long lived verifier that caches keys based on any
 // keys change. Reuse a common remote key set instead of creating new ones as needed.
 func NewRemoteKeySet(ctx context.Context, jwksURL string) *RemoteKeySet {
-	return newRemoteKeySet(ctx, jwksURL, time.Now)
+	return newRemoteKeySet(ctx, jwksURL)
 }
 
-func newRemoteKeySet(ctx context.Context, jwksURL string, now func() time.Time) *RemoteKeySet {
-	if now == nil {
-		now = time.Now
-	}
+func newRemoteKeySet(ctx context.Context, jwksURL string) *RemoteKeySet {
 	return &RemoteKeySet{
 		jwksURL: jwksURL,
-		now:     now,
 		// For historical reasons, this package uses contexts for configuration, not just
 		// cancellation. In hindsight, this was a bad idea.
 		//
@@ -81,7 +76,6 @@ func newRemoteKeySet(ctx context.Context, jwksURL string, now func() time.Time) 
 // a jwks_uri endpoint.
 type RemoteKeySet struct {
 	jwksURL string
-	now     func() time.Time
 
 	// Used for configuration. Cancelation is ignored.
 	ctx context.Context

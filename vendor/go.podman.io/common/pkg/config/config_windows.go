@@ -31,5 +31,7 @@ func overrideContainersConfigPath() (string, error) {
 }
 
 var defaultHelperBinariesDir = []string{
-	"C:\\Program Files\\RedHat\\Podman",
+	// FindHelperBinaries(), as a convention, interprets $BINDIR as the
+	// directory where the current process binary (i.e. podman) is located.
+	"$BINDIR",
 }
