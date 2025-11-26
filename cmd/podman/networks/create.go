@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/parse"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/libnetwork/util"
@@ -59,12 +58,6 @@ func networkCreateFlags(cmd *cobra.Command) {
 	ipRangeFlagName := "ip-range"
 	flags.StringArrayVar(&networkCreateOptions.Ranges, ipRangeFlagName, nil, "allocate container IP from range")
 	_ = cmd.RegisterFlagCompletionFunc(ipRangeFlagName, completion.AutocompleteNone)
-
-	// TODO consider removing this for 4.0
-	macvlanFlagName := "macvlan"
-	flags.StringVar(&networkCreateOptions.MacVLAN, macvlanFlagName, "", "create a Macvlan connection based on this device")
-	// This option is deprecated
-	_ = flags.MarkHidden(macvlanFlagName)
 
 	labelFlagName := "label"
 	flags.StringArrayVar(&labels, labelFlagName, nil, "set metadata on a network")
@@ -136,12 +129,7 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// old --macvlan option
-	if networkCreateOptions.MacVLAN != "" {
-		logrus.Warn("The --macvlan option is deprecated, use `--driver macvlan --opt parent=<device>` instead")
-		network.Driver = types.MacVLANNetworkDriver
-		network.NetworkInterface = networkCreateOptions.MacVLAN
-	} else if networkCreateOptions.Driver == types.MacVLANNetworkDriver || networkCreateOptions.Driver == types.IPVLANNetworkDriver {
+	if networkCreateOptions.Driver == types.MacVLANNetworkDriver || networkCreateOptions.Driver == types.IPVLANNetworkDriver {
 		// new -d macvlan --opt parent=... syntax
 		if parent, ok := network.Options["parent"]; ok {
 			network.NetworkInterface = parent
