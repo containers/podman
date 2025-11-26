@@ -189,6 +189,7 @@ type ContainerState struct {
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
 	// StoppedByUser indicates whether the container was stopped by an
 	// explicit call to the Stop() API.
+	// Warning: This field does persist across system reboots.
 	StoppedByUser bool `json:"stoppedByUser,omitempty"`
 	// RestartPolicyMatch indicates whether the conditions for restart
 	// policy have been met.

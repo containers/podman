@@ -635,7 +635,6 @@ func resetContainerState(state *ContainerState) {
 	state.ExecSessions = make(map[string]*ExecSession)
 	state.LegacyExecSessions = nil
 	state.BindMounts = make(map[string]string)
-	state.StoppedByUser = false
 	state.RestartPolicyMatch = false
 	state.RestartCount = 0
 	state.Checkpointed = false
