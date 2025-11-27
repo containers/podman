@@ -163,7 +163,7 @@ to use the installed ssh binary and config file declared in containers.conf.
 
 #### **--storage-driver**=*value*
 
-Storage driver.  The default storage driver for UID 0 is configured in `containers-storage.conf(5)` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
+Storage driver.  The default storage driver is configured in `containers-storage.conf(5)`. The `STORAGE_DRIVER` environment variable overrides the default. The --storage-driver specified driver overrides all.
 
 Overriding this option causes the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
