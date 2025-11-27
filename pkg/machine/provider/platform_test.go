@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
+	. "github.com/containers/podman/v5/test/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +25,11 @@ func TestSupportedProviders(t *testing.T) {
 }
 
 func TestInstalledProviders(t *testing.T) {
+	host := GetHostDistributionInfo()
+	if host.Distribution == "rhel" || host.Distribution == "centos" && host.Distribution != "fedora" {
+		t.Skip("Skip on RHEL and CentOS Stream, no qemu-system-$ARCH binary")
+	}
+
 	installed, err := InstalledProviders()
 	assert.NoError(t, err)
 	switch runtime.GOOS {
@@ -71,6 +77,11 @@ func TestBadSupportedProviders(t *testing.T) {
 }
 
 func TestBadInstalledProviders(t *testing.T) {
+	host := GetHostDistributionInfo()
+	if host.Distribution == "rhel" || host.Distribution == "centos" && host.Distribution != "fedora" {
+		t.Skip("Skip on RHEL and CentOS Stream, no qemu-system-$ARCH binary")
+	}
+
 	installed, err := InstalledProviders()
 	assert.NoError(t, err)
 	switch runtime.GOOS {
