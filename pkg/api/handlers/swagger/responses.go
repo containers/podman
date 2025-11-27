@@ -527,3 +527,10 @@ type quadletListResponse struct {
 	// in:body
 	Body []entities.ListQuadlet
 }
+
+// Quadlet file
+// swagger:response
+type quadletFileResponse struct {
+	// in:body
+	Body string
+}

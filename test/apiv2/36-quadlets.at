@@ -6,10 +6,60 @@
 # NOTE: Once podman-remote quadlet support is added we can enable the podman quadlet tests in
 #       test/system/253-podman-quadlet.bats which should cover it in more detail then.
 
-## list volume
+## Test list endpoint
 t GET libpod/quadlets/json 200
 
-# Example with filter applied (uncomment once needed)
-# t GET libpod/quadlets/json?filters='{"name":["name.*"]}' 200
+# Test 404 for non-existent quadlet
+t GET libpod/quadlets/nonexistent.container 404
+
+# Install a quadlet with a unique name
+quadlet_name=quadlet-test-$(cat /proc/sys/kernel/random/uuid)
+
+quadlet_container_name="$quadlet_name.container"
+quadlet_build_name="$quadlet_name.build"
+
+TMPDIR=$(mktemp -d podman-apiv2-test.quadlet.XXXXXXXX)
+
+quadlet_container_file_content=$(cat << EOF
+[Container]
+Image=$IMAGE
+EOF
+)
+
+quadlet_build_file_content=$(cat << EOF
+[Build]
+ImageTag=localhost/$quadlet_name
+EOF
+)
+
+echo "$quadlet_container_file_content" > $TMPDIR/$quadlet_container_name
+echo "$quadlet_build_file_content" > $TMPDIR/$quadlet_build_name
+
+# this should ensure the .config/containers/systemd directory is created
+podman quadlet install $TMPDIR/$quadlet_container_name
+podman quadlet install $TMPDIR/$quadlet_build_name
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_name")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+    length=2 \
+   .[0].Name="$quadlet_build_name" \
+   .[1].Name="$quadlet_container_name"
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_container_name")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+    length=1 \
+   .[0].Name="$quadlet_container_name"
+
+t GET "libpod/quadlets/$quadlet_name/file" 404
+
+t GET "libpod/quadlets/$quadlet_container_name/file" 200
+is "$output" "$quadlet_container_file_content"
+
+t GET "libpod/quadlets/$quadlet_build_name/file" 200
+is "$output" "$quadlet_build_file_content"
+
+podman quadlet rm $quadlet_container_name
+podman quadlet rm $quadlet_build_name
+rm -rf $TMPDIR
 
 # vim: filetype=sh
