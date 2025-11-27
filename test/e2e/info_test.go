@@ -167,6 +167,24 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.OutputToString()).To(Equal("netavark"))
 	})
 
+	It("Podman info: check default network from configuration", func() {
+		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", configPath)
+
+		customNetName := "my-custom-test-network"
+		configContent := fmt.Sprintf("[network]\ndefault_network=%q\n", customNetName)
+
+		err := os.WriteFile(configPath, []byte(configContent), os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+		podmanTest.RestartRemoteService()
+
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.NetworkBackendInfo.DefaultNetwork}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
+		Expect(session.OutputToString()).To(Equal(customNetName))
+	})
+
 	It("Podman info: check desired storage driver", func() {
 		// defined in .cirrus.yml
 		want := os.Getenv("CI_DESIRED_STORAGE")
