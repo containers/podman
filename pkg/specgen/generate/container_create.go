@@ -23,7 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/pasta"
-	"go.podman.io/common/libnetwork/slirp4netns"
 	"tags.cncf.io/container-device-interface/pkg/parser"
 )
 
@@ -203,9 +202,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 				return nil, nil, nil, err
 			}
 			switch conf.Network.DefaultRootlessNetworkCmd {
-			case slirp4netns.BinaryName, "":
-				s.NetNS.NSMode = specgen.Slirp
-			case pasta.BinaryName:
+			case pasta.BinaryName, "":
 				s.NetNS.NSMode = specgen.Pasta
 			default:
 				return nil, nil, nil, fmt.Errorf("invalid default_rootless_network_cmd option %q",
