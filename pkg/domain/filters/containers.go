@@ -287,6 +287,18 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		return func(c *libpod.Container) bool {
 			return util.StringMatchRegexSlice(c.Command()[0], filterValues)
 		}, nil
+	case "should-start-on-boot":
+		wantRestart := false
+		var err error
+		for _, fv := range filterValues {
+			wantRestart, err = strconv.ParseBool(fv)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return func(c *libpod.Container) bool {
+			return c.ShouldStartOnBoot() == wantRestart
+		}, nil
 	}
 	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }

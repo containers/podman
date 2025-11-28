@@ -1093,6 +1093,30 @@ func (c *Container) ShouldRestart(_ context.Context) bool {
 	return c.shouldRestart()
 }
 
+// Indicate whether or not the container will should start after a reboot of system
+func (c *Container) ShouldStartOnBoot() bool {
+	logrus.Debugf("Checking if container %s needs restart", c.ID())
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false
+		}
+	}
+
+	notExecuted := c.state.State == define.ContainerStateConfigured || c.state.State == define.ContainerStateCreated
+	if notExecuted {
+		return false
+	}
+
+	configuredRestartPolicy := c.RestartPolicy()
+	isAlways := configuredRestartPolicy == define.RestartPolicyAlways
+	isUnlessStopped := configuredRestartPolicy == define.RestartPolicyUnlessStopped && !c.state.StoppedByUser
+
+	return isAlways || isUnlessStopped
+}
+
 // CopyFromArchive copies the contents from the specified tarStream to path
 // *inside* the container.
 func (c *Container) CopyFromArchive(_ context.Context, containerPath string, chown, noOverwriteDirNonDir bool, rename map[string]string, tarStream io.Reader) (func() error, error) {
