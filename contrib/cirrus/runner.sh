@@ -418,6 +418,9 @@ dotest() {
         die "The CI test TMPDIR is not on a tmpfs mount, we need tmpfs to make the tests faster"
     fi
 
+    echo "----------"
+    printenv NOTIFY_SOCKET
+
     showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" \
         |& logformatter
 
