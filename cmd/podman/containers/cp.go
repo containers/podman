@@ -58,7 +58,7 @@ var (
 func cpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&cpOpts.OverwriteDirNonDir, "overwrite", false, "Allow to overwrite directories with non-directories and vice versa")
-	flags.BoolVarP(&chown, "archive", "a", true, `Chown copied files to the primary uid/gid of the destination container.`)
+	flags.BoolVarP(&chown, "archive", "a", false, `Chown copied files to the primary uid/gid of the destination container.`)
 
 	// Deprecated flags (both are NOPs): exist for backwards compat
 	flags.BoolVar(&cpOpts.Extract, "extract", false, "Deprecated...")

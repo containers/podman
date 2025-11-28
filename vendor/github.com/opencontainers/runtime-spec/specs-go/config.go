@@ -155,6 +155,8 @@ type User struct {
 	AdditionalGids []uint32 `json:"additionalGids,omitempty" platform:"linux,solaris"`
 	// Username is the user name.
 	Username string `json:"username,omitempty" platform:"windows"`
+	// Userless container.
+	UserlessContainer bool `json:"userless,omitempty"`
 }
 
 // Root contains information about the container's root filesystem on the host.
