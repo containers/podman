@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/specgen"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
@@ -17,7 +18,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
 
 	for _, u := range s.Rlimits {
 		name := "RLIMIT_" + strings.ToUpper(u.Type)
-		u = subNegativeOne(u)
+		u = util.ClampRlimitToHost(u)
 		g.AddProcessRlimits(name, u.Hard, u.Soft)
 	}
 }
