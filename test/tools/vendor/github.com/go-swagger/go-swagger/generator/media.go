@@ -44,6 +44,7 @@ var knownProducers = map[string]string{
 	"xml":           "runtime.XMLProducer()",
 	"txt":           "runtime.TextProducer()",
 	"bin":           "runtime.ByteStreamProducer()",
+	"csv":           "runtime.CSVProducer()",
 	"urlform":       "runtime.DiscardProducer",
 	"multipartform": "runtime.DiscardProducer",
 }
@@ -54,6 +55,7 @@ var knownConsumers = map[string]string{
 	"xml":           "runtime.XMLConsumer()",
 	"txt":           "runtime.TextConsumer()",
 	"bin":           "runtime.ByteStreamConsumer()",
+	"csv":           "runtime.CSVConsumer()",
 	"urlform":       "runtime.DiscardConsumer",
 	"multipartform": "runtime.DiscardConsumer",
 }
