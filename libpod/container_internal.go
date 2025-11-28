@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"maps"
+	"net"
 	"os"
 	"path/filepath"
 	"slices"
@@ -1343,6 +1344,69 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 	if !c.batched {
 		c.lock.Unlock()
 		defer c.lock.Lock()
+	}
+
+	healthStartPeriod := c.config.HealthCheckConfig.StartPeriod
+	needsExtension := healthStartPeriod > 0
+	var extendedTotal time.Duration
+	extension := 30 * time.Second
+	timerFreq := 25 * time.Second
+
+	if c.config.SdNotifySocket != "" && needsExtension {
+		socketAddr := &net.UnixAddr{
+			Name: c.config.SdNotifySocket,
+			Net:  "unixgram",
+		}
+		conn, err := net.DialUnix(socketAddr.Net, nil, socketAddr)
+		if err == nil {
+			defer conn.Close()
+
+			timer := time.NewTicker(timerFreq)
+			extendCtx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			defer timer.Stop()
+
+			// compute next chunk
+			sendExtend := func() {
+				remaining := healthStartPeriod - extendedTotal
+				if remaining <= 0 {
+					return
+				}
+
+				step := extension
+				if step > remaining {
+					step = remaining
+				}
+
+				msg := fmt.Appendf(nil, "EXTEND_TIMEOUT_USEC=%d", step.Microseconds())
+				if _, err := conn.Write(msg); err != nil {
+					logrus.Errorf("EXTEND_TIMEOUT_USEC failed in health-wait: %v", err)
+				} else {
+					logrus.Debugf("Extended startup by %v (total %v / %v)",
+						step, extendedTotal+step, healthStartPeriod)
+				}
+
+				extendedTotal += step
+			}
+
+			// First extension immediately
+			sendExtend()
+
+			// Background periodic extension loop
+			go func() {
+				for {
+					select {
+					case <-extendCtx.Done():
+						return
+					case <-timer.C:
+						if extendedTotal >= healthStartPeriod {
+							return
+						}
+						sendExtend()
+					}
+				}
+			}()
+		}
 	}
 
 	if _, err := c.WaitForConditionWithInterval(ctx, DefaultWaitInterval, define.HealthCheckHealthy); err != nil {
