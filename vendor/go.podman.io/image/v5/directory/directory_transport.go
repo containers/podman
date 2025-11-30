@@ -146,7 +146,7 @@ func (ref dirReference) NewImage(ctx context.Context, sys *types.SystemContext) 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref dirReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ref), nil
+	return newImageSource(ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
@@ -172,12 +172,19 @@ func (ref dirReference) manifestPath(instanceDigest *digest.Digest) (string, err
 }
 
 // layerPath returns a path for a layer tarball within a directory using our conventions.
-func (ref dirReference) layerPath(digest digest.Digest) (string, error) {
-	if err := digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in a path with ../, so validate explicitly.
+func (ref dirReference) layerPath(d digest.Digest) (string, error) {
+	if err := d.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in a path with ../, so validate explicitly.
 		return "", err
 	}
-	// FIXME: Should we keep the digest identification?
-	return filepath.Join(ref.path, digest.Encoded()), nil
+
+	var filename string
+	if d.Algorithm() == digest.Canonical {
+		filename = d.Encoded()
+	} else {
+		filename = d.Algorithm().String() + "-" + d.Encoded()
+	}
+
+	return filepath.Join(ref.path, filename), nil
 }
 
 // signaturePath returns a path for a signature within a directory using our conventions.
