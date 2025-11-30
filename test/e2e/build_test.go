@@ -99,6 +99,19 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman build with a secret from env", func() {
+		os.Setenv("MYSECRET", "somesecret")
+		defer os.Unsetenv("MYSECRET")
+		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,env=MYSECRET", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+
+		session = podmanTest.Podman([]string{"rmi", "secret-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
 	It("podman build with multiple secrets from files", func() {
 		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-multiple-secret", "-t", "multiple-secret-test", "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/"})
 		session.WaitWithDefaultTimeout()
