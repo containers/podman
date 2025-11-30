@@ -19,7 +19,6 @@ func newDockerClient(sys *types.SystemContext) (*dockerclient.Client, error) {
 
 	opts := []dockerclient.Opt{
 		dockerclient.WithHost(host),
-		dockerclient.WithAPIVersionNegotiation(),
 	}
 
 	// We conditionalize building the TLS configuration only to TLS sockets:
