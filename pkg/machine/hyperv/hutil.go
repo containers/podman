@@ -5,8 +5,9 @@ package hyperv
 import (
 	"errors"
 
+	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/windows"
+	syswindows "golang.org/x/sys/windows"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 )
 
 func HasHyperVAdminRights() bool {
-	sid, err := windows.CreateWellKnownSid(windows.WinBuiltinHyperVAdminsSid)
+	sid, err := syswindows.CreateWellKnownSid(syswindows.WinBuiltinHyperVAdminsSid)
 	if err != nil {
 		return false
 	}
@@ -27,7 +28,7 @@ func HasHyperVAdminRights() bool {
 	//  token of the calling thread. If the thread is not impersonating,
 	//  the function duplicates the thread's primary token to create an
 	//  impersonation token."
-	token := windows.Token(0)
+	token := syswindows.Token(0)
 	member, err := token.IsMember(sid)
 	if err != nil {
 		logrus.Warnf("Token Membership Error: %s", err)
@@ -35,4 +36,9 @@ func HasHyperVAdminRights() bool {
 	}
 
 	return member
+}
+
+// HasHyperVPermissions checks if the user has either admin rights or Hyper-V admin rights.
+func HasHyperVPermissions() bool {
+	return windows.HasAdminRights() || HasHyperVAdminRights()
 }
