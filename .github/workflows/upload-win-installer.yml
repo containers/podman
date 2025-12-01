@@ -15,12 +15,13 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     env:
       FETCH_BASE_URL: ${{ github.server_url }}/${{ github.repository }}
     steps:

@@ -3,10 +3,16 @@ on:
   push:
     tags:
       - '*'
+
+permissions: {}
+
 jobs:
   bump:
     name: Bump to -dev
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create and push to a branch
+      pull-requests: write # to read and create pull requests
     steps:
       - uses: actions/checkout@v6
         with:
@@ -77,6 +83,9 @@ jobs:
   mainbump:
     name: Bump on main
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create and push to a branch
+      pull-requests: write # to read and create pull requests
     env:
       GH_TOKEN: ${{ github.token }}
     steps:

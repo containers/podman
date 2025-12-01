@@ -15,13 +15,14 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
-permissions:
-  contents: write
-  actions: write
+permissions: {}
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
     steps:
       # If the job fails, these details are all but impossible to observe.yy
       - name: Provide github event JSON for examination
@@ -202,6 +203,8 @@ jobs:
     if: needs.build.outputs.uploaded == 'true'
     runs-on: ubuntu-24.04
     needs: build
+    permissions:
+      contents: read
     steps:
       - name: Format release email
         id: format

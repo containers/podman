@@ -16,6 +16,9 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: Check
@@ -374,6 +377,9 @@ jobs:
     name: Update podman.io
     uses: ./.github/workflows/update-podmanio.yml
     needs: [check, release]
+    permissions:
+      contents: write # to push to a branch
+      pull-requests: write # to read and create PRs
     if: needs.check.outputs.buildonly == 'false'
     secrets: inherit
     with:

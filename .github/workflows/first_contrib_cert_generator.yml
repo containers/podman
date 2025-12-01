@@ -16,11 +16,7 @@ on:
         description: 'The pull request number'
         required: true
 
-# Permissions needed for this workflow.
-permissions:
-  contents: read  # Write access for certificate storage
-  pull-requests: write  # Write access to comment on PRs
-  actions: read  # Read access for workflow actions
+permissions: {}
 
 jobs:
   screenshot_and_comment:
@@ -28,6 +24,10 @@ jobs:
     # The logic for first-time contributors is handled in a dedicated step below.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # Write access for certificate storage
+      pull-requests: write  # Write access to comment on PRs
+      actions: read  # Read access for workflow actions
     steps:
       # Step 1: Check if this is the contributor's first merged PR.
       # This step is the source of truth and will control the execution of subsequent steps.

@@ -15,12 +15,13 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     env:
       APPLICATION_CERTIFICATE: ${{ secrets.MACOS_APPLICATION_CERT }}
       CODESIGN_IDENTITY: ${{ secrets.MACOS_APPLICATION_IDENTITY }}

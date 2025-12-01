@@ -3,6 +3,9 @@ on:
   issues:
     types:
       - labeled
+
+permissions: {}
+
 jobs:
   add-comment:
     if: github.event.label.name == 'needs-info'

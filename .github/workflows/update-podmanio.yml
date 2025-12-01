@@ -18,10 +18,15 @@ on:
       PODMANBOT_TOKEN:
         required: true
 
+permissions: {}
+
 jobs:
   bump:
     name: Bump
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # to push to a branch
+      pull-requests: write # to read and create PRs
     steps:
       - name: Get version
         id: getversion

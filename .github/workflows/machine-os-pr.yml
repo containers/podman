@@ -5,6 +5,8 @@ on:
     paths:
       - 'version/rawversion/version.go'
 
+permissions: {}
+
 concurrency:
   # Cancel other in-progress runs on re-pushes
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
