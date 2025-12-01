@@ -28,17 +28,20 @@ jobs:
       - name: Provide github event JSON for examination
         run: |
           echo "::group::Event JSON"
-          jq --color-output "." "${{ github.event_path }}"
+          jq --color-output "." "${GITHUB_EVENT_PATH}"
           echo "::endgroup::"
 
       - name: Determine Version
         id: getversion
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          if [[ -z "${{ inputs.version }}" ]]
+          if [[ -z "${INPUT_VERSION}" ]]
           then
-            VERSION=${{ github.event.release.tag_name }}
+            VERSION=${TAG_NAME}
           else
-            VERSION=${{ inputs.version }}
+            VERSION=${INPUT_VERSION}
           fi
 
           if ! grep -Eq 'v[0-9]+(\.[0-9]+(\.[0-9]+(-.+)?)?)?$' <<<"$VERSION"
@@ -58,24 +61,30 @@ jobs:
 
       - name: Consolidate dryrun setting to always be true or false
         id: actual_dryrun
+        env:
+          INPUT_DRYRUN: ${{ inputs.dryrun }}
         run: |
           # The 'release' trigger will not have a 'dryrun' input set. Handle
           # this case in a readable/maintainable way.
-          if [[ -z "${{ inputs.dryrun }}" ]]
+          if [[ -z "${INPUT_DRYRUN}" ]]
           then
             echo "dryrun=false" >> $GITHUB_OUTPUT
           else
-            echo "dryrun=${{ inputs.dryrun }}" >> $GITHUB_OUTPUT
+            echo "dryrun=${INPUT_DRYRUN}" >> $GITHUB_OUTPUT
           fi
 
       - name: Dry Run Status
+        env:
+          DRYRUN: ${{ steps.actual_dryrun.outputs.dryrun }}
         run: |
-          echo "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
+          echo "::notice::This workflow execution will be a dry-run: ${DRYRUN}"
 
       - name: Check uploads
         id: check
+        env:
+          VERSION: ${{ steps.getversion.outputs.version }}
         run: |
-            URI="https://github.com/containers/podman/releases/download/${{steps.getversion.outputs.version}}"
+            URI="https://github.com/containers/podman/releases/download/${VERSION}"
             for artifact in "podman-remote-release-darwin_amd64.zip darwin_amd" \
                   'podman-remote-release-darwin_arm64.zip darwin_arm' \
                   'podman-remote-release-windows_amd64.zip windows_amd' \
@@ -189,11 +198,12 @@ jobs:
           steps.actual_dryrun.outputs.dryrun == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.getversion.outputs.version }}
         run: |
-          (gh release download ${{steps.getversion.outputs.version}} -p "shasums" || exit 0)
+          (gh release download "${VERSION}" -p "shasums" || exit 0)
           cat release/shasums >> shasums
-          gh release upload ${{steps.getversion.outputs.version}} release/*.zip release/*.tar.gz
-          gh release upload ${{steps.getversion.outputs.version}} --clobber shasums
+          gh release upload "${VERSION}" release/*.zip release/*.tar.gz
+          gh release upload "${VERSION}" --clobber shasums
 
           # WARNING: This should only be set when 'notification' job should be triggered
           echo "complete=true" >> $GITHUB_OUTPUT
@@ -211,6 +221,7 @@ jobs:
       - name: Format release email
         id: format
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           if grep -Eq '.+-rc' <<<"$VERSION"
@@ -220,19 +231,19 @@ jobs:
 
           echo "mail_subj=Podman ${RC_PREFIX}${VERSION} Released" >> $GITHUB_OUTPUT
 
-          cat <<EOF>email_body.txt
+          cat <<EOF > email_body.txt
           Hi all,
 
           Podman ${RC_PREFIX}${VERSION} is now available.  You may view the full details at
-          https://github.com/${{ github.repository }}/releases/tag/$VERSION
+          https://github.com/${GITHUB_REPOSITORY}/releases/tag/$VERSION
 
           Release ${RC_PREFIX}Notes:
           --------------
           EOF
 
-          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
-          gh release view $VERSION \
-            --repo ${{ github.repository }} --json=body --jq '.body' >> email_body.txt
+          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          gh release view "$VERSION" \
+            --repo "${GITHUB_REPOSITORY}" --json=body --jq '.body' >> email_body.txt
 
       # If job fails, permit operator to observe contents in case helpful.
       - name: Provide release e-mail contents for examination

@@ -65,10 +65,11 @@ jobs:
       # Step 3: Update the HTML file locally
       - name: Update HTML file
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
+        env:
+          CONTRIBUTOR_NAME: ${{ github.event.inputs.contributor_username || github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
         run: |
           HTML_FILE="automation-repo/certificate-generator/certificate_generator.html"
-          CONTRIBUTOR_NAME="${{ github.event.inputs.contributor_username || github.event.pull_request.user.login }}"
-          PR_NUMBER="${{ github.event.inputs.pr_number || github.event.pull_request.number }}"
           MERGE_DATE=$(date -u +"%B %d, %Y")
 
           sed --sandbox -i -e "/id=\"contributorName\"/s/value=\"[^\"]*\"/value=\"${CONTRIBUTOR_NAME}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update contributor name."; exit 1; }
@@ -120,6 +121,10 @@ jobs:
       - name: Upload certificate to separate repository
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
         uses: actions/github-script@v8
+        env:
+          CONTRIBUTOR_USERNAME: ${{ github.event.inputs.contributor_username }}
+          USER_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
         with:
           github-token: ${{ secrets.CERTIFICATES_REPO_TOKEN }}
           script: |
@@ -157,10 +162,10 @@ jobs:
               // Create a unique filename with timestamp
               const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
               const contributorName = context.eventName === 'workflow_dispatch'
-                ? '${{ github.event.inputs.contributor_username }}'
-                : '${{ github.event.pull_request.user.login }}';
+                ? process.env.CONTRIBUTOR_USERNAME
+                : process.env.USER_LOGIN;
               const prNumber = context.eventName === 'workflow_dispatch'
-                ? '${{ github.event.inputs.pr_number }}'
+                ? process.env.PR_NUMBER
                 : context.issue.number;
 
               const filename = `certificates/${contributorName}-${prNumber}-${timestamp}.png`;
@@ -219,6 +224,10 @@ jobs:
       - name: Comment with embedded certificate image
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
         uses: actions/github-script@v8
+        env:
+          CONTRIBUTOR_USERNAME: ${{ github.event.inputs.contributor_username }}
+          USER_LOGIN: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
         with:
           script: |
             try {
@@ -240,17 +249,17 @@ jobs:
 
               if (context.eventName === 'workflow_dispatch') {
                 // Manual trigger case
-                const contributorName = '${{ github.event.inputs.contributor_username }}';
-                const prNumber = '${{ github.event.inputs.pr_number }}';
+                const contributorName = process.env.CONTRIBUTOR_USERNAME;
+                const prNumber = process.env.PR_NUMBER;
                 body = `📜 Certificate preview generated for @${contributorName} (PR #${prNumber}):\n\n${body}`;
               } else {
                 // Auto trigger case for first-time contributors
-                const username = '${{ github.event.pull_request.user.login }}';
+                const username = process.env.USER_LOGIN;
                 body = `🎉 Congratulations on your first merged pull request, @${username}! Thank you for your contribution.\n\nHere's a preview of your certificate:\n\n${body}`;
               }
 
               const issueNumber = context.eventName === 'workflow_dispatch' ?
-                parseInt('${{ github.event.inputs.pr_number }}') :
+                parseInt(process.env.PR_NUMBER) :
                 context.issue.number;
 
               await github.rest.issues.createComment({

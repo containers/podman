@@ -36,9 +36,9 @@ jobs:
             exit 1
           elif [[ $VERSION == *-dev ]] ; then
             echo "::warning:: SKIPPING: dev bump"
-          elif [[ ${{github.base_ref}} == "main" ]] ; then
+          elif [[ "${GITHUB_BASE_REF}" == "main" ]] ; then
             echo "::warning:: SKIPPING: main branch"
-          elif [[ ${{github.base_ref}} == *-rhel ]] ; then
+          elif [[ "${GITHUB_BASE_REF}" == *-rhel ]] ; then
             echo "::warning:: SKIPPING: rhel branch"
           else
             echo "update=true" >> "$GITHUB_OUTPUT"
@@ -48,7 +48,7 @@ jobs:
       - name: Check machine-os-branch
         if: steps.getversion.outputs.update == 'true'
         run: |
-          if ! (curl -s https://api.github.com/repos/$UPSTREAM_MACHINE_OS/branches| jq -e --arg branch "${{github.base_ref}}" '.[] | select(.name==$branch)') ; then
+          if ! curl -s "https://api.github.com/repos/$UPSTREAM_MACHINE_OS/branches" | jq -e --arg branch "${GITHUB_BASE_REF}" '.[] | select(.name==$branch)'; then
             echo "::error:: Release branch does not exist."
             echo "::error:: Please push $branch to $UPSTREAM_MACHINE_OS, then re-run this task."
             exit 1
@@ -59,8 +59,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          EVENT_NUMBER: ${{ github.event.number }}
         run: |
-          gh pr edit --add-label do-not-merge/wait-machine-os-build ${{github.event.number}}
+          gh pr edit --add-label do-not-merge/wait-machine-os-build "${EVENT_NUMBER}"
 
       - name: Install wait-for-copr
         if: steps.getversion.outputs.update == 'true'
@@ -79,44 +80,53 @@ jobs:
       - name: Bump version
         if: steps.getversion.outputs.update == 'true'
         env:
+          EVENT_NUMBER: ${{ github.event.number }}
           VERS: ${{steps.getversion.outputs.version}}
         run: |
           update=$(printf 's/export PODMAN_VERSION=".*"/export PODMAN_VERSION="%s"/g\n' "$VERS")
           sed --sandbox -i -e "$update" podman-rpm-info-vars.sh
-          sed --sandbox -i -e "s/export PODMAN_PR_NUM=\".*\"/export PODMAN_PR_NUM=\"${{github.event.number}}\"/g" podman-rpm-info-vars.sh
+          sed --sandbox -i -e "s/export PODMAN_PR_NUM=\".*\"/export PODMAN_PR_NUM=\"${EVENT_NUMBER}\"/g" podman-rpm-info-vars.sh
           echo "Updated file:"
           cat podman-rpm-info-vars.sh
 
       - name: Wait for COPR build
         if: steps.getversion.outputs.update == 'true'
+        env:
+          EVENT_NUMBER: ${{ github.event.number }}
         run: |
           wait-for-copr \
           --owner packit \
-          --project containers-podman-${{github.event.number}} \
+          --project "containers-podman-${EVENT_NUMBER}" \
           podman \
           ${SHA::9}
 
       - name: Push
         if: steps.getversion.outputs.update == 'true'
+        env:
+          EVENT_NUMBER: ${{ github.event.number }}
+          VERSION: ${{ steps.getversion.outputs.version }}
         run: |
           # Make committer the user who triggered the action, either through cutting a release or manual trigger
           # GitHub gives everyone a noreply email associated with their account, use that email for the sign-off
-          git config --local user.name ${{ github.actor }}
-          git config --local user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-          bumpbranch="pr${{github.event.number}}"
-          git checkout -b $bumpbranch
+          git config --local user.name "${GITHUB_ACTOR}"
+          git config --local user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
+          bumpbranch="pr${EVENT_NUMBER}"
+          git checkout -b "$bumpbranch"
           git add podman-rpm-info-vars.sh
-          git commit --signoff -m "Bump Podman to v${{ steps.getversion.outputs.version }}"
+          git commit --signoff -m "Bump Podman to v${VERSION}"
           git remote add podmanbot https://github.com/podmanbot/podman-machine-os
           git push -f podmanbot "$bumpbranch"
 
       - name: Check open PRs
         id: checkpr
         if: steps.getversion.outputs.update == 'true'
+        env:
+          EVENT_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
         run: |
           prs=$(gh pr list \
-            --repo $UPSTREAM_MACHINE_OS \
-            --head "pr${{github.event.number}}" \
+            --repo "$UPSTREAM_MACHINE_OS" \
+            --head "pr${EVENT_NUMBER}" \
             --state open \
             --json title \
             --jq 'length')
@@ -125,25 +135,25 @@ jobs:
           else
             echo "openpr=true" >> "$GITHUB_OUTPUT"
           fi
-        env:
-          GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
 
       - name: Open PR
         if: steps.getversion.outputs.update == 'true' && steps.checkpr.outputs.openpr == 'true'
         id: pr
+        env:
+          EVENT_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
+          VERSION: ${{ steps.getversion.outputs.version }}
         run: |
-          bumpbranch="pr${{github.event.number}}"
+          bumpbranch="pr${EVENT_NUMBER}"
           body=$(printf 'Triggered by https://github.com/%s/pull/%s\n\n```release-note\nRelease v%s\n```\n' \
-          "$PODMAN_REPO" "${{github.event.number}}" "${{ steps.getversion.outputs.version }}")
+          "$PODMAN_REPO" "${EVENT_NUMBER}" "${VERSION}")
           uri=`gh pr create \
-            --title "Bump Podman to v${{ steps.getversion.outputs.version }}" \
+            --title "Bump Podman to v${VERSION}" \
             --body  "$body" \
             --head "podmanbot:$bumpbranch" \
-            --base "${{github.base_ref}}" \
-            --repo $UPSTREAM_MACHINE_OS`
+            --base "${GITHUB_BASE_REF}" \
+            --repo "$UPSTREAM_MACHINE_OS"`
           echo "uri=$uri" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
 
       - name: Comment PR link
         if: steps.getversion.outputs.update == 'true' && steps.checkpr.outputs.openpr == 'true'
