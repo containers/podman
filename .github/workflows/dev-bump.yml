@@ -34,7 +34,7 @@ jobs:
               echo "::notice:: bumping z up to $devbump"
           fi
 
-          sed -i "s/const RawVersion = ".*"/const RawVersion = \"${devbump}\"/g" version/rawversion/version.go
+          sed --sandbox -i -e "s/const RawVersion = \".*\"/const RawVersion = \"${devbump}\"/g" version/rawversion/version.go
 
           echo "devbump=$devbump" >> $GITHUB_OUTPUT
       - name: Push
@@ -121,7 +121,7 @@ jobs:
           devbump="$(IFS=. ; echo "${arr[*]}")-dev"
           echo "::notice:: Bumping main to: $devbump"
 
-          sed -i "s/const RawVersion = \".*\"/const RawVersion = \"$devbump\"/g" version/rawversion/version.go
+          sed --sandbox -i -e "s/const RawVersion = \".*\"/const RawVersion = \"${devbump}\"/g" version/rawversion/version.go
 
           echo "devbump=$devbump" >> $GITHUB_OUTPUT
       - name: Push

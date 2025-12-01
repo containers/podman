@@ -106,7 +106,7 @@ jobs:
           steps.checkpr.outputs.prexists == 'false'
         run: |
           # Replace the version in static/data/global.ts file
-          sed -i "s/export const LATEST_VERSION = '.*';/export const LATEST_VERSION = '${{ steps.getversion.outputs.version }}';/g" static/data/global.ts
+          sed --sandbox -i -e "s/export const LATEST_VERSION = '.*';/export const LATEST_VERSION = '${{ steps.getversion.outputs.version }}';/g" static/data/global.ts
           echo "Updated file:"
           cat static/data/global.ts
 

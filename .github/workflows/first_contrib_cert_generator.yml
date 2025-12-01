@@ -71,9 +71,9 @@ jobs:
           PR_NUMBER="${{ github.event.inputs.pr_number || github.event.pull_request.number }}"
           MERGE_DATE=$(date -u +"%B %d, %Y")
 
-          sed -i "/id=\"contributorName\"/s/value=\"[^\"]*\"/value=\"${CONTRIBUTOR_NAME}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update contributor name."; exit 1; }
-          sed -i "/id=\"prNumber\"/s/value=\"[^\"]*\"/value=\"#${PR_NUMBER}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update PR number."; exit 1; }
-          sed -i "/id=\"mergeDate\"/s/value=\"[^\"]*\"/value=\"${MERGE_DATE}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update merge date."; exit 1; }
+          sed --sandbox -i -e "/id=\"contributorName\"/s/value=\"[^\"]*\"/value=\"${CONTRIBUTOR_NAME}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update contributor name."; exit 1; }
+          sed --sandbox -i -e "/id=\"prNumber\"/s/value=\"[^\"]*\"/value=\"#${PR_NUMBER}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update PR number."; exit 1; }
+          sed --sandbox -i -e "/id=\"mergeDate\"/s/value=\"[^\"]*\"/value=\"${MERGE_DATE}\"/" ${HTML_FILE} || { echo "ERROR: Failed to update merge date."; exit 1; }
 
       # Step 4: Setup Node.js environment
       - name: Setup Node.js

@@ -82,8 +82,8 @@ jobs:
           VERS: ${{steps.getversion.outputs.version}}
         run: |
           update=$(printf 's/export PODMAN_VERSION=".*"/export PODMAN_VERSION="%s"/g\n' "$VERS")
-          sed -i "$update" podman-rpm-info-vars.sh
-          sed -i 's/export PODMAN_PR_NUM=".*"/export PODMAN_PR_NUM="${{github.event.number}}"/g' podman-rpm-info-vars.sh
+          sed --sandbox -i -e "$update" podman-rpm-info-vars.sh
+          sed --sandbox -i -e "s/export PODMAN_PR_NUM=\".*\"/export PODMAN_PR_NUM=\"${{github.event.number}}\"/g" podman-rpm-info-vars.sh
           echo "Updated file:"
           cat podman-rpm-info-vars.sh
 
