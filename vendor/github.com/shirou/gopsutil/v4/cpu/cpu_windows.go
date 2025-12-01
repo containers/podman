@@ -190,7 +190,7 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 
 	ppis, powerInformationErr := getProcessorPowerInformation(ctx)
 	if powerInformationErr != nil {
-		return ret, fmt.Errorf("failed to get processor power information: %w", err)
+		return ret, fmt.Errorf("failed to get processor power information: %w", powerInformationErr)
 	}
 
 	family, processorId, smBIOSErr := getSMBIOSProcessorInfo()

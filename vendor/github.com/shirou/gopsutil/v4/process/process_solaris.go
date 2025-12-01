@@ -289,6 +289,9 @@ func readPidsFromDir(path string) ([]int32, error) {
 		return nil, err
 	}
 	for _, fname := range fnames {
+		if !strictIntPtrn.MatchString(fname) {
+			continue
+		}
 		pid, err := strconv.ParseInt(fname, 10, 32)
 		if err != nil {
 			// if not numeric name, just skip

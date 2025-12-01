@@ -286,7 +286,7 @@ func RegisterFunc(fptr any, cfn uintptr) {
 
 				for j, val := range args[i:] {
 					if val.Kind() == reflect.String {
-						ptr := strings.CString(v.String())
+						ptr := strings.CString(val.String())
 						keepAlive = append(keepAlive, ptr)
 						val = reflect.ValueOf(ptr)
 						args[i+j] = val
