@@ -9,7 +9,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/opencontainers/runc/internal/pathrs"
-	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
 var (
@@ -29,7 +28,7 @@ func isEnabled() bool {
 }
 
 func setProcAttr(attr, value string) error {
-	attr = utils.CleanPath(attr)
+	attr = pathrs.LexicallyCleanPath(attr)
 	attrSubPath := "attr/apparmor/" + attr
 	if _, err := os.Stat("/proc/self/" + attrSubPath); errors.Is(err, os.ErrNotExist) {
 		// fall back to the old convention
@@ -50,7 +49,7 @@ func setProcAttr(attr, value string) error {
 	return err
 }
 
-// changeOnExec reimplements aa_change_onexec from libapparmor in Go
+// changeOnExec reimplements aa_change_onexec from libapparmor in Go.
 func changeOnExec(name string) error {
 	if err := setProcAttr("exec", "exec "+name); err != nil {
 		return fmt.Errorf("apparmor failed to apply profile: %w", err)
@@ -58,9 +57,8 @@ func changeOnExec(name string) error {
 	return nil
 }
 
-// applyProfile will apply the profile with the specified name to the process after
-// the next exec. It is only supported on Linux and produces an error on other
-// platforms.
+// applyProfile will apply the profile with the specified name to the process
+// after the next exec.
 func applyProfile(name string) error {
 	if name == "" {
 		return nil
