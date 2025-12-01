@@ -55,6 +55,8 @@ jobs:
     # installer build script is designed to support older releases (uses the archives
     # on the release tag).
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     # This step is super-duper critical for the built/signed windows installer .exe file.
     # It ensures the referenced $version github release page does NOT already contain
     # this file.  Windows assigns a UUID to the installer at build time, it's assumed

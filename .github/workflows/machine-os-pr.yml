@@ -74,6 +74,7 @@ jobs:
           repository: containers/podman-machine-os
           ref: ${{github.base_ref}}
           token: ${{secrets.PODMANBOT_TOKEN}}
+          persist-credentials: true
 
       - name: Bump version
         if: steps.getversion.outputs.update == 'true'

@@ -18,6 +18,7 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           token: ${{ secrets.PODMANBOT_TOKEN }}
+          persist-credentials: true
       - name: Bump
         id: bump
         run: |
@@ -93,6 +94,7 @@ jobs:
         with:
           ref: main
           token: ${{ secrets.PODMANBOT_TOKEN }}
+          persist-credentials: true
       - name: Check version on main
         id: check
         run: |

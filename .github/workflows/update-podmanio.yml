@@ -78,6 +78,7 @@ jobs:
           repository: containers/podman.io
           ref: refs/heads/main
           token: ${{ secrets.PODMANBOT_TOKEN }}
+          persist-credentials: true
 
       - name: Check version
         if: >-

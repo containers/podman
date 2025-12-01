@@ -60,6 +60,7 @@ jobs:
         with:
           repository: containers/automation
           path: automation-repo
+          persist-credentials: false
 
       # Step 3: Update the HTML file locally
       - name: Update HTML file

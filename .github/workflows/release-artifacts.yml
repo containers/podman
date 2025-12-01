@@ -103,6 +103,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{steps.getversion.outputs.version}}
+          persist-credentials: false
 
       - name: Set up Go
         if: >-
