@@ -389,6 +389,7 @@ jobs:
       contents: write # to push to a branch
       pull-requests: write # to read and create PRs
     if: needs.check.outputs.buildonly == 'false'
-    secrets: inherit
+    secrets:
+      PODMANBOT_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
     with:
       version: ${{ needs.check.outputs.version }}
