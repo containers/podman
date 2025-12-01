@@ -668,8 +668,8 @@ github.com/sigstore/sigstore/pkg/oauthflow
 github.com/sigstore/sigstore/pkg/signature
 github.com/sigstore/sigstore/pkg/signature/options
 github.com/sigstore/sigstore/pkg/signature/payload
-# github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
-## explicit; go 1.13
+# github.com/sirupsen/logrus v1.9.4-0.20251023124752-b61f268f75b6
+## explicit; go 1.17
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
 # github.com/skeema/knownhosts v1.3.2
