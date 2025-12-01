@@ -92,6 +92,7 @@ jobs:
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       with:
         go-version: stable
+        cache: false
     - name: Set up WiX
       run: dotnet tool install --global wix
     - name: Setup Signature Tooling

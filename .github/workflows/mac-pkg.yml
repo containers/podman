@@ -111,6 +111,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: stable
+        cache: false
     - name: Create Keychain
       if: >-
         steps.check.outputs.buildamd == 'true' ||
