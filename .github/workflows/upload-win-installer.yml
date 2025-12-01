@@ -101,7 +101,7 @@ jobs:
         echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
         echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
     - name: Pandoc Setup
-      uses: r-lib/actions/setup-pandoc@v2
+      uses: r-lib/actions/setup-pandoc@6f6e5bc62fba3a704f74e7ad7ef7676c5c6a2590 # v2.11.4
       with:
         pandoc-version: '3.1.11'
     - name: Build
