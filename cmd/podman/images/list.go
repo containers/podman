@@ -161,8 +161,11 @@ func writeID(imgs []imageReporter) error {
 func writeJSON(images []imageReporter) error {
 	type image struct {
 		entities.ImageSummary
-		Created   int64
-		CreatedAt string
+		Created    int64
+		CreatedAt  string
+		Repository string   `json:"Repository,omitempty"`
+		Tag        string   `json:"Tag,omitempty"`
+		RepoTags   []string `json:",omitempty"`
 	}
 
 	imgs := make([]image, 0, len(images))
@@ -171,6 +174,10 @@ func writeJSON(images []imageReporter) error {
 		h.ImageSummary = e.ImageSummary
 		h.Created = e.ImageSummary.Created
 		h.CreatedAt = e.created().Format(time.RFC3339Nano)
+		h.Repository = e.Repository
+		h.Tag = e.Tag
+		// This field is redundant with Repository and Tag
+		// but embedded from entities.ImageSummary
 		h.RepoTags = nil
 
 		imgs = append(imgs, h)

@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -80,7 +81,20 @@ var _ = Describe("Podman images", func() {
 		session := podmanTest.Podman([]string{"images", "--format=json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(BeValidJSON())
+
+		output := session.OutputToString()
+		Expect(output).To(BeValidJSON())
+
+		images := []map[string]interface{}{}
+		err := json.Unmarshal([]byte(output), &images)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(images).ToNot(BeEmpty())
+
+		for _, image := range images {
+			Expect(image).To(HaveKey("Repository"))
+			Expect(image).To(HaveKey("Tag"))
+		}
 	})
 
 	It("podman images in GO template format", func() {
