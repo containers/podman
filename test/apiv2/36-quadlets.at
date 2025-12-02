@@ -20,20 +20,22 @@ quadlet_build_name="$quadlet_name.build"
 
 TMPDIR=$(mktemp -d podman-apiv2-test.quadlet.XXXXXXXX)
 
-quadlet_container_file_content=$(cat << EOF
+quadlet_container_file_content=$(
+	cat <<EOF
 [Container]
 Image=$IMAGE
 EOF
 )
 
-quadlet_build_file_content=$(cat << EOF
+quadlet_build_file_content=$(
+	cat <<EOF
 [Build]
 ImageTag=localhost/$quadlet_name
 EOF
 )
 
-echo "$quadlet_container_file_content" > $TMPDIR/$quadlet_container_name
-echo "$quadlet_build_file_content" > $TMPDIR/$quadlet_build_name
+echo "$quadlet_container_file_content" >$TMPDIR/$quadlet_container_name
+echo "$quadlet_build_file_content" >$TMPDIR/$quadlet_build_name
 
 # this should ensure the .config/containers/systemd directory is created
 podman quadlet install $TMPDIR/$quadlet_container_name
@@ -41,14 +43,14 @@ podman quadlet install $TMPDIR/$quadlet_build_name
 
 filter_param=$(printf '{"name":["%s"]}' "$quadlet_name")
 t GET "libpod/quadlets/json?filters=$filter_param" 200 \
-    length=2 \
-   .[0].Name="$quadlet_build_name" \
-   .[1].Name="$quadlet_container_name"
+	length=2 \
+	.[0].Name="$quadlet_build_name" \
+	.[1].Name="$quadlet_container_name"
 
 filter_param=$(printf '{"name":["%s"]}' "$quadlet_container_name")
 t GET "libpod/quadlets/json?filters=$filter_param" 200 \
-    length=1 \
-   .[0].Name="$quadlet_container_name"
+	length=1 \
+	.[0].Name="$quadlet_container_name"
 
 t GET "libpod/quadlets/$quadlet_name/file" 404
 
@@ -60,6 +62,70 @@ is "$output" "$quadlet_build_file_content"
 
 podman quadlet rm $quadlet_container_name
 podman quadlet rm $quadlet_build_name
+rm -rf $TMPDIR
+
+#
+# quadlet-rm tests - Testing removal of all quadlets at once
+#
+
+# Install 2 quadlets with unique names
+quadlet_name_a=quadlet-rm-test-$(cat /proc/sys/kernel/random/uuid)
+quadlet_name_b=quadlet-rm-test-$(cat /proc/sys/kernel/random/uuid)
+quadlet_container_name_a="$quadlet_name_a.container"
+quadlet_container_name_b="$quadlet_name_b.container"
+
+TMPDIR=$(mktemp -d podman-apiv2-test.quadlet.rm.XXXXXXXX)
+
+quadlet_container_file_content=$(
+	cat <<EOF
+[Container]
+Image=$IMAGE
+EOF
+)
+
+echo "$quadlet_container_file_content" >$TMPDIR/$quadlet_container_name_a
+echo "$quadlet_container_file_content" >$TMPDIR/$quadlet_container_name_b
+
+# Install both quadlets
+podman quadlet install $TMPDIR/$quadlet_container_name_a
+podman quadlet install $TMPDIR/$quadlet_container_name_b
+
+# Verify both quadlets exist via API (file endpoint)
+t GET libpod/quadlets/$quadlet_container_name_a/file 200
+is "$output" "$quadlet_container_file_content"
+t GET libpod/quadlets/$quadlet_container_name_b/file 200
+is "$output" "$quadlet_container_file_content"
+
+# Verify both quadlets appear in the list using filters
+filter_param_a=$(printf '{"name":["%s"]}' "$quadlet_container_name_a")
+t GET "libpod/quadlets/json?filters=$filter_param_a" 200 \
+	length=1 \
+	.[0].Name="$quadlet_container_name_a"
+
+filter_param_b=$(printf '{"name":["%s"]}' "$quadlet_container_name_b")
+t GET "libpod/quadlets/json?filters=$filter_param_b" 200 \
+	length=1 \
+	.[0].Name="$quadlet_container_name_b"
+
+# Remove ALL quadlets using CLI
+podman quadlet rm -af
+
+# Verify both quadlets are gone via API (should return 404)
+t GET libpod/quadlets/$quadlet_container_name_a/file 404
+t GET libpod/quadlets/$quadlet_container_name_b/file 404
+
+# Verify both quadlets no longer appear in filtered lists
+t GET "libpod/quadlets/json?filters=$filter_param_a" 200 \
+	length=0
+
+t GET "libpod/quadlets/json?filters=$filter_param_b" 200 \
+	length=0
+
+# Verify the complete list is now empty
+t GET libpod/quadlets/json 200 \
+	length=0
+
+# Cleanup
 rm -rf $TMPDIR
 
 # vim: filetype=sh

@@ -773,8 +773,10 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	// is found then expand it to its respective quadlet files
 	// and remove it from the processing list.
 	for _, quadlet := range quadlets {
+		// Most likely this is an app
 		if strings.HasPrefix(quadlet, ".") && strings.HasSuffix(quadlet, ".app") {
 			files, ok := appMap[quadlet]
+			// Add files of this applicationn to-be removed list
 			if ok {
 				for _, file := range files {
 					if !systemdquadlet.IsExtSupported(file) {
@@ -868,18 +870,16 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			if err != nil {
 				return nil, fmt.Errorf("unable to get list of files to remove: %w", err)
 			}
-			if err == nil {
-				for _, entry := range filesToRemove {
-					if !systemdquadlet.IsExtSupported(entry) {
-						if _, ok := uniqueQuadletFiles[entry]; !ok {
-							removeList = append(removeList, entry)
-							uniqueQuadletFiles[entry] = struct{}{}
-						}
-					} else {
-						if _, ok := uniqueQuadletFiles[entry]; !ok {
-							quadlets = append(quadlets, entry)
-							uniqueQuadletFiles[entry] = struct{}{}
-						}
+			for _, entry := range filesToRemove {
+				if !systemdquadlet.IsExtSupported(entry) {
+					if _, ok := uniqueQuadletFiles[entry]; !ok {
+						removeList = append(removeList, entry)
+						uniqueQuadletFiles[entry] = struct{}{}
+					}
+				} else {
+					if _, ok := uniqueQuadletFiles[entry]; !ok {
+						quadlets = append(quadlets, entry)
+						uniqueQuadletFiles[entry] = struct{}{}
 					}
 				}
 			}
@@ -938,46 +938,46 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	}
 
 	// Remove the actual files behind the quadlets
-		if len(allQuadletPaths) != 0 {
-			for _, path := range allQuadletPaths {
-				var errAsset error
-				quadletName := filepath.Base(path)
-				errAsset = deleteAsset(quadletName)
-				if slices.Contains(runningQuadlets, quadletName) {
+	if len(allQuadletPaths) != 0 {
+		for _, path := range allQuadletPaths {
+			var errAsset error
+			quadletName := filepath.Base(path)
+			errAsset = deleteAsset(quadletName)
+			if slices.Contains(runningQuadlets, quadletName) {
+				continue
+			}
+			if err := os.Remove(path); err != nil {
+				if !errors.Is(err, fs.ErrNotExist) {
+					reportErr := fmt.Errorf("removing quadlet %s: %w", quadletName, err)
+					if errAsset != nil {
+						reportErr = errors.Join(reportErr, errAsset)
+					}
+					report.Errors[quadletName] = reportErr
 					continue
 				}
-				if err := os.Remove(path); err != nil {
-					if !errors.Is(err, fs.ErrNotExist) {
-						reportErr := fmt.Errorf("removing quadlet %s: %w", quadletName, err)
-						if errAsset != nil {
-							reportErr = errors.Join(reportErr, errAsset)
-						}
-						report.Errors[quadletName] = reportErr
-						continue
-					}
-				}
-
-				report.Removed = append(report.Removed, quadletName)
 			}
-		}
 
-		// Remove .app and asset files exactly once after quadlets
-		for _, entry := range removeList {
-			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry)
-			err := os.Remove(appFilePath)
-			if err == nil {
-				report.Removed = append(report.Removed, entry)
-			} else {
-				report.Errors[entry] = err
-			}
+			report.Removed = append(report.Removed, quadletName)
 		}
-
-		// Reload systemd, if necessary/requested.
-		if needReload {
-			if err := conn.ReloadContext(ctx); err != nil {
-				return &report, fmt.Errorf("reloading systemd: %w", err)
-			}
-		}
-
-		return &report, nil
 	}
+
+	// Remove .app and asset files exactly once after quadlets
+	for _, entry := range removeList {
+		appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry)
+		err := os.Remove(appFilePath)
+		if err == nil {
+			report.Removed = append(report.Removed, entry)
+		} else {
+			report.Errors[entry] = err
+		}
+	}
+
+	// Reload systemd, if necessary/requested.
+	if needReload {
+		if err := conn.ReloadContext(ctx); err != nil {
+			return &report, fmt.Errorf("reloading systemd: %w", err)
+		}
+	}
+
+	return &report, nil
+}
