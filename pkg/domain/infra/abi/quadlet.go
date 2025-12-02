@@ -765,33 +765,44 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	if err != nil {
 		return nil, fmt.Errorf("unable to build app map: %w", err)
 	}
+
+	// Use this map for deduplication of quadlet and app/asset files scheduled for removal
+	uniqueQuadletFiles := make(map[string]struct{})
 	expandQuadletList := []string{}
 	// Process all `.app` files in arguments, if `.app` file
 	// is found then expand it to its respective quadlet files
 	// and remove it from the processing list.
 	for _, quadlet := range quadlets {
-		// Most likely this is an app
 		if strings.HasPrefix(quadlet, ".") && strings.HasSuffix(quadlet, ".app") {
 			files, ok := appMap[quadlet]
-			// Add all files of this application in to-be removed list.
 			if ok {
 				for _, file := range files {
 					if !systemdquadlet.IsExtSupported(file) {
-						removeList = append(removeList, file)
+						if _, ok := uniqueQuadletFiles[file]; !ok {
+							removeList = append(removeList, file)
+							uniqueQuadletFiles[file] = struct{}{}
+						}
 					} else {
-						expandQuadletList = append(expandQuadletList, file)
+						if _, ok := uniqueQuadletFiles[file]; !ok {
+							expandQuadletList = append(expandQuadletList, file)
+							uniqueQuadletFiles[file] = struct{}{}
+						}
 					}
 				}
 			}
-			// also add .app file itself to the remove list so it can
-			// be cleaned after removal of all components in the list
-			if !slices.Contains(removeList, quadlet) {
+			if _, ok := uniqueQuadletFiles[quadlet]; !ok {
 				removeList = append(removeList, quadlet)
+				uniqueQuadletFiles[quadlet] = struct{}{}
 			}
 		} else {
-			expandQuadletList = append(expandQuadletList, quadlet)
+			// non-.app file, add to expanded list if not already scheduled
+			if _, ok := uniqueQuadletFiles[quadlet]; !ok {
+				expandQuadletList = append(expandQuadletList, quadlet)
+				uniqueQuadletFiles[quadlet] = struct{}{}
+			}
 		}
 	}
+
 	quadlets = expandQuadletList
 	allQuadletPaths := make([]string, 0, len(quadlets))
 	allServiceNames := make([]string, 0, len(quadlets))
@@ -813,7 +824,12 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 
 	if options.All {
 		allQuadlets := getAllQuadletPaths()
-		quadlets = allQuadlets
+		for _, quadlet := range allQuadlets {
+			if _, ok := uniqueQuadletFiles[quadlet]; !ok {
+				quadlets = append(quadlets, quadlet)
+				uniqueQuadletFiles[quadlet] = struct{}{}
+			}
+		}
 	}
 
 	// We are using index wise iteration here instead of `range`
@@ -843,25 +859,28 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			// If this is part of app and we are cleaning entire .app
 			// make sure to add .app file itself to the removal list
 			// if it does not already exists.
-			if !slices.Contains(removeList, value) {
+			if _, ok := uniqueQuadletFiles[value]; !ok {
 				removeList = append(removeList, value)
+				uniqueQuadletFiles[value] = struct{}{}
 			}
 			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), value)
 			filesToRemove, err := getAssetListFromFile(appFilePath)
 			if err != nil {
 				return nil, fmt.Errorf("unable to get list of files to remove: %w", err)
 			}
-			for _, entry := range filesToRemove {
-				if !systemdquadlet.IsExtSupported(entry) {
-					removeList = append(removeList, entry)
-					if !slices.Contains(removeList, value) {
-						// In the last also clean .<quadlet>.app file
-						removeList = append(removeList, value)
+			if err == nil {
+				for _, entry := range filesToRemove {
+					if !systemdquadlet.IsExtSupported(entry) {
+						if _, ok := uniqueQuadletFiles[entry]; !ok {
+							removeList = append(removeList, entry)
+							uniqueQuadletFiles[entry] = struct{}{}
+						}
+					} else {
+						if _, ok := uniqueQuadletFiles[entry]; !ok {
+							quadlets = append(quadlets, entry)
+							uniqueQuadletFiles[entry] = struct{}{}
+						}
 					}
-					continue
-				}
-				if !slices.Contains(quadlets, entry) {
-					quadlets = append(quadlets, entry)
 				}
 			}
 		}
@@ -919,37 +938,46 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	}
 
 	// Remove the actual files behind the quadlets
-	if len(allQuadletPaths) != 0 {
-		for _, path := range allQuadletPaths {
-			var errAsset error
-			quadletName := filepath.Base(path)
-			errAsset = deleteAsset(quadletName)
-			if slices.Contains(runningQuadlets, quadletName) {
-				continue
-			}
-			if err := os.Remove(path); err != nil {
-				if !errors.Is(err, fs.ErrNotExist) {
-					reportErr := fmt.Errorf("removing quadlet %s: %w", quadletName, err)
-					if errAsset != nil {
-						reportErr = errors.Join(reportErr, errAsset)
-					}
-					report.Errors[quadletName] = reportErr
+		if len(allQuadletPaths) != 0 {
+			for _, path := range allQuadletPaths {
+				var errAsset error
+				quadletName := filepath.Base(path)
+				errAsset = deleteAsset(quadletName)
+				if slices.Contains(runningQuadlets, quadletName) {
 					continue
 				}
-			}
-			for _, entry := range removeList {
-				os.Remove(filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry))
-			}
-			report.Removed = append(report.Removed, quadletName)
-		}
-	}
+				if err := os.Remove(path); err != nil {
+					if !errors.Is(err, fs.ErrNotExist) {
+						reportErr := fmt.Errorf("removing quadlet %s: %w", quadletName, err)
+						if errAsset != nil {
+							reportErr = errors.Join(reportErr, errAsset)
+						}
+						report.Errors[quadletName] = reportErr
+						continue
+					}
+				}
 
-	// Reload systemd, if necessary/requested.
-	if needReload {
-		if err := conn.ReloadContext(ctx); err != nil {
-			return &report, fmt.Errorf("reloading systemd: %w", err)
+				report.Removed = append(report.Removed, quadletName)
+			}
 		}
-	}
 
-	return &report, nil
-}
+		// Remove .app and asset files exactly once after quadlets
+		for _, entry := range removeList {
+			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry)
+			err := os.Remove(appFilePath)
+			if err == nil {
+				report.Removed = append(report.Removed, entry)
+			} else {
+				report.Errors[entry] = err
+			}
+		}
+
+		// Reload systemd, if necessary/requested.
+		if needReload {
+			if err := conn.ReloadContext(ctx); err != nil {
+				return &report, fmt.Errorf("reloading systemd: %w", err)
+			}
+		}
+
+		return &report, nil
+	}
