@@ -3,6 +3,8 @@
 package system
 
 import (
+	"os"
+
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -46,8 +48,13 @@ func init() {
 	newRuntimeFlagName := "new-runtime"
 	flags.StringVar(&migrateOptions.NewRuntime, newRuntimeFlagName, "", "Specify a new runtime for all containers")
 	_ = migrateCommand.RegisterFlagCompletionFunc(newRuntimeFlagName, completion.AutocompleteNone)
+
+	flags.BoolVar(&migrateOptions.MigrateDB, "migrate-db", false, "Migrate database from BoltDB to SQLite")
 }
 
 func migrate(_ *cobra.Command, _ []string) error {
+	// HACK: do not warn about a database migration being needed, when we are about to migrate the database.
+	os.Setenv("SUPPRESS_BOLTDB_WARNING", "1")
+
 	return registry.ContainerEngine().Migrate(registry.Context(), migrateOptions)
 }

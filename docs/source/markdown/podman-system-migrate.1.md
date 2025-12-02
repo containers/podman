@@ -26,6 +26,15 @@ newly configured mappings.
 
 ## OPTIONS
 
+#### **--migrate-db**
+
+Migrate from the legacy BoltDB database to SQLite.
+Support for BoltDB will be removed in Podman 6.0.
+Podman will display a warning if this migration is necessary.
+To ensure complete migration, all other Podman commands should be shut down before database migration.
+In particular, systemd-activated services like **podman system service** and Quadlets should be manually stopped prior to migration.
+The legacy database will not be removed, so no data loss should occur even on failure.
+
 #### **--new-runtime**=*runtime*
 
 Set a new OCI runtime for all containers.
