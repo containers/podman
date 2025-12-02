@@ -16,6 +16,9 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
+permissions:
+  contents: read
+
 jobs:
   check:
     name: Check
@@ -23,12 +26,14 @@ jobs:
     steps:
     - name: Determine Version
       id: getversion
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        if [[ -z "${{ inputs.version }}" ]]
+        if [[ -z "${INPUT_VERSION}" ]]
         then
-              VERSION=${{ github.ref_name }}
+              VERSION=${GITHUB_REF_NAME}
         else
-              VERSION=${{ inputs.version }}
+              VERSION=${INPUT_VERSION}
         fi
         if ! grep -Eq 'v[0-9]+(\.[0-9]+(\.[0-9]+(-.+)?)?)?$' <<<"$VERSION"
           then
@@ -45,14 +50,16 @@ jobs:
         echo "::notice::Building $VERSION"
     - name: Determine release
       id: buildonly
+      env:
+        INPUT_BUILDONLY: ${{ inputs.buildonly }}
       run: |
         # The 'tag' trigger will not have a 'buildonly' input set. Handle
         # this case in a readable/maintainable way.
-        if [[ -z "${{ inputs.buildonly }}" ]]
+        if [[ -z "${INPUT_BUILDONLY}" ]]
         then
           BUILDONLY=false
         else
-          BUILDONLY=${{ inputs.buildonly }}
+          BUILDONLY=${INPUT_BUILDONLY}
         fi
         echo "buildonly=$BUILDONLY" >> $GITHUB_OUTPUT
         echo "::notice::This will be build-only: $BUILDONLY"
@@ -69,10 +76,12 @@ jobs:
       uses: actions/checkout@v6
       with:
         ref: ${{needs.check.outputs.version}}
+        persist-credentials: false
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
         go-version: stable
+        cache: false
     - name: Set up pandoc
       run: |
           sudo apt-get install -y pandoc
@@ -106,10 +115,12 @@ jobs:
       uses: actions/checkout@v6
       with:
         ref: ${{needs.check.outputs.version}}
+        persist-credentials: false
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
         go-version: stable
+        cache: false
     - name: Create Keychain
       run: |
         echo $APPLICATION_CERTIFICATE | base64 --decode -o appcert.p12
@@ -154,32 +165,43 @@ jobs:
     steps:
     - name: Determine version
       id: getversion
+      env:
+        VERSION: ${{needs.check.outputs.version}}
       run: |
-        $version = "${{ needs.check.outputs.version }}"
+        $version = "${env:VERSION}"
         if ($version[0] -eq "v") {
               $version = $version.Substring(1)
           }
         Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
     - name: Checkout Podman
       uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     - name: Download Windows zip artifact
       uses: actions/download-artifact@v6
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
         go-version: stable
+        cache: false
     - name: Set up WiX
       run: dotnet tool install --global wix
     - name: Setup Signature Tooling
+      env:
+        AZ_CERT_NAME: ${{ secrets.AZ_CERT_NAME }}
+        AZ_VAULT_ID: ${{ secrets.AZ_VAULT_ID }}
+        AZ_APP_ID: ${{ secrets.AZ_APP_ID }}
+        AZ_TENANT_ID: ${{ secrets.AZ_TENANT_ID }}
+        AZ_CLIENT_SECRET: ${{ secrets.AZ_CLIENT_SECRET }}
       run: |
         dotnet tool install --global AzureSignTool --version 3.0.0
-        echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "VAULT_ID=${{secrets.AZ_VAULT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "APP_ID=${{secrets.AZ_APP_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "CERT_NAME=${env:AZ_CERT_NAME}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "VAULT_ID=${env:AZ_VAULT_ID}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "APP_ID=${env:AZ_APP_ID}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "TENANT_ID=${env:AZ_TENANT_ID}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "CLIENT_SECRET=${env:AZ_CLIENT_SECRET}" | Out-File -FilePath $env:GITHUB_ENV -Append
     - name: Pandoc Setup
-      uses: r-lib/actions/setup-pandoc@v2
+      uses: r-lib/actions/setup-pandoc@6f6e5bc62fba3a704f74e7ad7ef7676c5c6a2590 # v2.11.4
       with:
         pandoc-version: '3.1.11'
     # Note: Windows assigns a UUID to the installer at build time, it's assumed
@@ -190,17 +212,23 @@ jobs:
     # to judge.
     - name: Build the MSI
       id: build
+      env:
+        PODMAN_ARCH: ${{ matrix.arch }}
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         contrib\win-installer\build.ps1 `
-            -Version ${{steps.getversion.outputs.version}} `
-            -LocalReleaseDirPath ${{ github.workspace }}\release-artifacts `
-            -Architecture ${{ matrix.arch }}
+            -Version "${env:VERSION}" `
+            -LocalReleaseDirPath "${env:GITHUB_WORKSPACE}\release-artifacts" `
+            -Architecture "${env:PODMAN_ARCH}"
         Exit $LASTEXITCODE
     - name: Build the bundle (legacy)
       id: build-legacy
+      env:
+        PODMAN_ARCH: ${{ matrix.arch }}
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         Push-Location contrib\win-installer-legacy
-        .\build.ps1 ${{steps.getversion.outputs.version}} prod ${{ github.workspace }}\release-artifacts
+        .\build.ps1 "${env:VERSION}" prod "${env:GITHUB_WORKSPACE}\release-artifacts"
         $code = $LASTEXITCODE
         if ($code -eq 2) {
           Write-Output "artifact-missing=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -209,8 +237,6 @@ jobs:
         }
         Pop-Location
         Exit $code
-      env:
-        PODMAN_ARCH: ${{ matrix.arch }}
     - name: Display structure of built files
       run: |
         Push-Location contrib\win-installer
@@ -220,14 +246,20 @@ jobs:
         Get-ChildItem
         Pop-Location
     - name: Rename the MSI
+      env:
+        PODMAN_ARCH: ${{ matrix.arch }}
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         Push-Location contrib\win-installer
-        Copy-Item -Path podman-${{steps.getversion.outputs.version}}.msi -Destination podman-installer-windows-${{ matrix.arch }}.msi
+        Copy-Item -Path "podman-${env:VERSION}.msi" -Destination "podman-installer-windows-${env:PODMAN_ARCH}.msi"
         Pop-Location
     - name: Rename the bundle (legacy)
+      env:
+        PODMAN_ARCH: ${{ matrix.arch }}
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         Push-Location contrib\win-installer-legacy
-        Copy-Item -Path podman-${{steps.getversion.outputs.version}}-setup.exe -Destination podman-installer-windows-${{ matrix.arch }}.exe
+        Copy-Item -Path "podman-${env:VERSION}-setup.exe" -Destination "podman-installer-windows-${env:PODMAN_ARCH}.exe"
         Pop-Location
     - name: Upload the MSI
       uses: actions/upload-artifact@v5
@@ -265,6 +297,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         ref: ${{needs.check.outputs.version}}
+        persist-credentials: false
     - name: Get release notes
       run: |
         ver="$(echo "$VERSION" | sed -e "s/^v//" -e "s/-rc.*//")"
@@ -303,7 +336,7 @@ jobs:
           title="${title/rc/"RC"}"
         else
           # check if this version should not be marked latest
-          prevrelease=$(curl --retry 3 --silent -m 10 --connect-timeout 5 "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          prevrelease=$(curl --retry 3 --silent -m 10 --connect-timeout 5 "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest")
           prevvers=$(echo "$prevrelease" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed -e "s/^v//")
           vers=${VERSION#"v"}
           echo "${prevvers},${vers}"
@@ -331,6 +364,7 @@ jobs:
       - name: Format release email
         id: format
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.check.outputs.version }}
         run: |
           if grep -Eq '.+-rc' <<<"$VERSION"
@@ -344,22 +378,22 @@ jobs:
           Hi all,
 
           Podman ${RC_PREFIX}${VERSION} is now available.  You may view the full details at
-          https://github.com/${{ github.repository }}/releases/tag/$VERSION
+          https://github.com/${GITHUB_REPOSITORY}/releases/tag/$VERSION
 
           Release ${RC_PREFIX}Notes:
           --------------
           EOF
 
-          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
-          gh release view $VERSION \
-            --repo ${{ github.repository }} --json=body --jq '.body' >> email_body.txt
+          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          gh release view "$VERSION" \
+            --repo "${GITHUB_REPOSITORY}" --json=body --jq '.body' >> email_body.txt
 
       # If job fails, permit operator to observe contents in case helpful.
       - name: Provide release e-mail contents for examination
         run: cat email_body.txt
       - name: Send release notification e-mail
         # Ref: https://github.com/dawidd6/action-send-mail
-        uses: dawidd6/action-send-mail@v3.12.0
+        uses: dawidd6/action-send-mail@2cea9617b09d79a095af21254fbcb7ae95903dde # v3.12.0
         with:
           server_address: ${{secrets.ACTION_MAIL_SERVER}}
           server_port: 465
@@ -374,7 +408,11 @@ jobs:
     name: Update podman.io
     uses: ./.github/workflows/update-podmanio.yml
     needs: [check, release]
+    permissions:
+      contents: write # to push to a branch
+      pull-requests: write # to read and create PRs
     if: needs.check.outputs.buildonly == 'false'
-    secrets: inherit
+    secrets:
+      PODMANBOT_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
     with:
       version: ${{ needs.check.outputs.version }}

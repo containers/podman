@@ -15,35 +15,43 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     env:
       FETCH_BASE_URL: ${{ github.server_url }}/${{ github.repository }}
     steps:
     - name: Consolidate dryrun setting to always be true or false
       id: actual_dryrun
+      env:
+        INPUT_DRYRUN: ${{ inputs.dryrun }}
       run: |
         # The 'release' trigger will not have a 'dryrun' input set. Handle
         # this case in a readable/maintainable way.
-        $inputs_dryrun = "${{ inputs.dryrun }}"
+        $inputs_dryrun = "${env:INPUT_DRYRUN}"
         if ($inputs_dryrun.Length -lt 1) {
           Write-Output "dryrun=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         } else {
-          Write-Output "dryrun=${{ inputs.dryrun }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Output "dryrun=${env:INPUT_DRYRUN}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         }
     - name: Dry Run Status
+      env:
+        DRYRUN: ${{ steps.actual_dryrun.outputs.dryrun }}
       run: |
-        Write-Output "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
+          Write-Output "::notice::This workflow execution will be a dry-run: ${env:DRYRUN}"
     - name: Determine version
       id: getversion
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        TAG_NAME: ${{ github.event.release.tag_name }}
       run: |
-        $version = "${{ inputs.version }}"
+        $version = "${env:INPUT_VERSION}"
         if ($version.Length -lt 1) {
-          $version = "${{ github.event.release.tag_name }}"
+          $version = "${env:TAG_NAME}"
           if ($version.Length -lt 1) {
             Write-Host "::error::Could not determine version!"
             Exit 1
@@ -54,6 +62,8 @@ jobs:
     # installer build script is designed to support older releases (uses the archives
     # on the release tag).
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
     # This step is super-duper critical for the built/signed windows installer .exe file.
     # It ensures the referenced $version github release page does NOT already contain
     # this file.  Windows assigns a UUID to the installer at build time, it's assumed
@@ -63,16 +73,18 @@ jobs:
     # to judge w/n (i.e. in some extreme case) it should be uploaded to the release page.
     - name: Check
       id: check
+      env:
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         Push-Location contrib\win-installer-legacy
-        .\check.ps1 ${{steps.getversion.outputs.version}}
+        .\check.ps1 "${env:VERSION}"
         $code = $LASTEXITCODE
         if ($code -eq 2) {
           Write-Output "already-exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Pop-Location
           Exit 0
         }
-        Write-Output "upload_asset_name=$env:UPLOAD_ASSET_NAME" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        Write-Output "upload_asset_name=${env:UPLOAD_ASSET_NAME}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         Pop-Location
         Exit $code
     # The podman release process requires a cross-compile of the windows binaries be uploaded to
@@ -80,8 +92,10 @@ jobs:
     # non-obvious ways with a non-obvious error message.  Address that here.
     - name: Confirm upload_asset_name is non-empty
       if: steps.check.outputs.upload_asset_name == ''
+      env:
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
-        Write-Output "::error::check.ps1 script failed to find manually uploaded podman-remote-release-windows_amd64.zip github release asset for version ${{steps.getversion.outputs.version}}."
+        Write-Output "::error::check.ps1 script failed to find manually uploaded podman-remote-release-windows_amd64.zip github release asset for version ${env:VERSION}."
         Exit 1
     - name: Set up Go
       uses: actions/setup-go@v6
@@ -89,27 +103,36 @@ jobs:
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
       with:
         go-version: stable
+        cache: false
     - name: Set up WiX
       run: dotnet tool install --global wix
     - name: Setup Signature Tooling
       if: steps.Check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
+      env:
+        AZ_CERT_NAME: ${{ secrets.AZ_CERT_NAME }}
+        AZ_VAULT_ID: ${{ secrets.AZ_VAULT_ID }}
+        AZ_APP_ID: ${{ secrets.AZ_APP_ID }}
+        AZ_TENANT_ID: ${{ secrets.AZ_TENANT_ID }}
+        AZ_CLIENT_SECRET: ${{ secrets.AZ_CLIENT_SECRET }}
       run: |
         dotnet tool install --global AzureSignTool --version 3.0.0
-        echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "VAULT_ID=${{secrets.AZ_VAULT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "APP_ID=${{secrets.AZ_APP_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
-        echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "CERT_NAME=${env:AZ_CERT_NAME}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "VAULT_ID=${env:AZ_VAULT_ID}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "APP_ID=${env:AZ_APP_ID}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "TENANT_ID=${env:AZ_TENANT_ID}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "CLIENT_SECRET=${env:AZ_CLIENT_SECRET}" | Out-File -FilePath $env:GITHUB_ENV -Append
     - name: Pandoc Setup
-      uses: r-lib/actions/setup-pandoc@v2
+      uses: r-lib/actions/setup-pandoc@6f6e5bc62fba3a704f74e7ad7ef7676c5c6a2590 # v2.11.4
       with:
         pandoc-version: '3.1.11'
     - name: Build
       id: build
       if: steps.check.outputs.already-exists != 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
+      env:
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         Push-Location contrib\win-installer-legacy
-        .\build.ps1 ${{steps.getversion.outputs.version}} prod
+        .\build.ps1 "${env:VERSION}" prod
         $code = $LASTEXITCODE
         if ($code -eq 2) {
           Write-Output "artifact-missing=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -132,14 +155,16 @@ jobs:
         steps.check.outputs.already-exists != 'true' &&
         steps.build.outputs.artifact-missing != 'true'
       env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        UPLOAD_ASSET_NAME: ${{ steps.check.outputs.upload_asset_name }}
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
         Push-Location contrib\win-installer-legacy
-        $version = "${{ steps.getversion.outputs.version }}"
+        $version = "${env:VERSION}"
         if ($version[0] -ne "v") {
           $version = "v$version"
         }
-        gh release upload $version ${{ steps.check.outputs.upload_asset_name }}
+        gh release upload $version "${env:UPLOAD_ASSET_NAME}"
         if ($LASTEXITCODE -ne 0) {
           .\check.ps1 $version
           if ($LASTEXITCODE -eq 2) {

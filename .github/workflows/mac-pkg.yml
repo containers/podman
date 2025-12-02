@@ -15,12 +15,13 @@ on:
           - "true"  # Must be quoted string, boolean value not supported.
           - "false"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     env:
       APPLICATION_CERTIFICATE: ${{ secrets.MACOS_APPLICATION_CERT }}
       CODESIGN_IDENTITY: ${{ secrets.MACOS_APPLICATION_IDENTITY }}
@@ -36,33 +37,42 @@ jobs:
     steps:
     - name: Consolidate dryrun setting to always be true or false
       id: actual_dryrun
+      env:
+        INPUT_DRYRUN: ${{ inputs.dryrun }}
       run: |
         # The 'release' trigger will not have a 'dryrun' input set. Handle
         # this case in a readable/maintainable way.
-        if [[ -z "${{ inputs.dryrun }}" ]]
+        if [[ -z "${INPUT_DRYRUN}" ]]
         then
           echo "dryrun=false" >> $GITHUB_OUTPUT
         else
-          echo "dryrun=${{ inputs.dryrun }}" >> $GITHUB_OUTPUT
+          echo "dryrun=${INPUT_DRYRUN}" >> $GITHUB_OUTPUT
         fi
     - name: Dry Run Status
+      env:
+        DRYRUN: ${{ steps.actual_dryrun.outputs.dryrun }}
       run: |
-        echo "::notice::This workflow execution will be a dry-run: ${{ steps.actual_dryrun.outputs.dryrun }}"
+        echo "::notice::This workflow execution will be a dry-run: ${DRYRUN}"
     - name: Determine Version
       id: getversion
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        TAG_NAME: ${{ github.event.release.tag_name }}
       run: |
-        if [[ -z "${{ inputs.version }}" ]]
+        if [[ -z "${INPUT_VERSION}" ]]
         then
-              VERSION=${{ github.event.release.tag_name }}
+              VERSION=${TAG_NAME}
         else
-              VERSION=${{ inputs.version }}
+              VERSION=${INPUT_VERSION}
         fi
         echo
         echo "version=$VERSION" >> $GITHUB_OUTPUT
     - name: Check uploads
       id: check
+      env:
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
-        URI="https://github.com/containers/podman/releases/download/${{steps.getversion.outputs.version}}"
+        URI="https://github.com/containers/podman/releases/download/${VERSION}"
         ARM_FILE="podman-installer-macos-arm64.pkg"
         AMD_FILE="podman-installer-macos-amd64.pkg"
         UNIVERSAL_FILE="podman-installer-macos-universal.pkg"
@@ -99,6 +109,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         ref: ${{steps.getversion.outputs.version}}
+        persist-credentials: false
     - name: Set up Go
       # Conditional duplication sucks - GHA doesn't grok YAML anchors/aliases
       if: >-
@@ -109,6 +120,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: stable
+        cache: false
     - name: Create Keychain
       if: >-
         steps.check.outputs.buildamd == 'true' ||
@@ -165,8 +177,9 @@ jobs:
          steps.check.outputs.builduniversal == 'true' )
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ steps.getversion.outputs.version }}
       run: |
-        (gh release download ${{steps.getversion.outputs.version}} -p "shasums" || exit 0)
+        (gh release download "${VERSION}" -p "shasums" || exit 0)
         cat contrib/pkginstaller/out/shasums >> shasums
-        gh release upload ${{steps.getversion.outputs.version}} contrib/pkginstaller/out/podman-installer-macos-*.pkg
-        gh release upload ${{steps.getversion.outputs.version}} --clobber shasums
+        gh release upload "${VERSION}" contrib/pkginstaller/out/podman-installer-macos-*.pkg
+        gh release upload "${VERSION}" --clobber shasums
