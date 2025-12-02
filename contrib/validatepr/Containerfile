@@ -12,6 +12,7 @@ RUN dnf install -y systemd-devel \
 	libseccomp-devel \
 	make \
 	man-db \
+	perl \
 	perl-Clone \
 	perl-FindBin \
 	pre-commit && dnf clean all
