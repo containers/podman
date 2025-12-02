@@ -13,7 +13,7 @@ the `podman machine` command.
 On Windows, each Podman machine is backed by a virtualized Windows Subsystem for
 Linux (WSLv2) distribution or an Hyper-V virtual machine.
 
-The podman command can be run directly from your Windows PowerShell (or CMD)
+The Podman command can be run directly from your Windows PowerShell (or CMD)
 prompt, where it remotely communicates with the podman service running in the
 guest environment. In addition to command-line access, Podman also listens for
 Docker API clients, supporting direct usage of Docker-based tools and
@@ -48,15 +48,16 @@ Table of Contents
 Prerequisites
 -------------
 
-Because Podman uses WSLv2 or Hyper-V, you need a recent release of Windows 10 or
-later. On x64, WSLv2 requires build 18362 or later, and 19041 or later is
-required for arm64 systems. Internally, WSL and Hyper-V use virtualization, so
-your system must support and have hardware virtualization enabled. If you are
-running Windows on a VM, you must have a VM that supports nested virtualization.
+Because Podman uses WSLv2 or Hyper-V recent features, you need Windows 11 or
+later. Internally, WSL and Hyper-V use virtualization, so your system must
+support and have hardware virtualization enabled. If you are running Windows on
+a VM, you must have a VM that supports nested virtualization.
 
 Hyper-V is only available on Windows Enterprise, Pro, or Education editions (not
-Home). The `podman machine` sub-commands (init, start, stop, rm, etc...) require
-administrator privileges.
+Home). The command to initialize the first Hyper-V Podman machine, and the command
+to remove the last one, both require administrator privileges. Other commands for
+machine management (start, stop, etc...) require that the current user is a member
+of the Hyper-V administrators group.
 
 It is also recommended to install the modern "Windows Terminal," which
 provides a superior user experience to the standard PowerShell and CMD
@@ -74,20 +75,27 @@ Installing the Windows Podman client begins by downloading the Podman Windows
 installer. The Windows installer is built with each Podman release and can be
 downloaded from the official
 [GitHub release page](https://github.com/containers/podman/releases).
-Be sure to download a Podman 5.6 or later release for the capabilities discussed
+Be sure to download a Podman 6.0 or later release for the capabilities discussed
 in this guide.
 
-The Windows installer is provided as an installation bundle (e.g.,
-`podman-installer-windows-arm64.exe`). It only supports machine-scope
-installations: it requires administrator privileges. Files are installed in
-`%PROGRAMFILES%\RedHat\Podman`, and the PATH is updated for all users.
+The Windows installer is provided as an MSI package (e.g.,
+`podman-installer-windows-arm64.msi`). The installer supports both user-scope
+and machine-scope installations:
+
+- **User scope (per-user)**: No administrator privileges required. Files are
+  installed in the user's profile directory (`%LOCALAPPDATA%\Programs\Podman`),
+  and the PATH is updated only for the current user. This is the default scope.
+
+- **Machine scope (per-machine)**: Requires administrator privileges. Files are
+  installed in `%PROGRAMFILES%\Podman`, and the PATH is updated for all users.
 
 During installation, you can select the virtualization provider (WSL or Hyper-V)
 that Podman will use for machines. The installer will create a configuration
-file at `%PROGRAMDATA%\containers\containers.conf.d\99-podman-machine-provider.conf`
-with the selected provider.
+file at `%APPDATA%\containers\containers.conf.d\99-podman-machine-provider.conf`
+(for user scope) or `%PROGRAMDATA%\containers\containers.conf.d\99-podman-machine-provider.conf`
+(for machine scope) with the selected provider.
 
-![Installing Podman 5.6.2](podman-win-install.jpg)
+![Installing Podman 6.0.0](podman-win-install.jpg)
 
 Once installed, relaunch a new terminal. After this point, `podman.exe` will be
 present on your PATH, and you will be able to run the `podman machine init`
@@ -106,21 +114,25 @@ an administrator PowerShell prompt.
 The following tables list the directories, files and registry keys used by
 Podman on Windows.
 
-| Directory or file                                                            | Description                           |
-|------------------------------------------------------------------------------|---------------------------------------|
-| `%PROGRAMFILES%\RedHat\Podman`                                               | Installation directory                |
-| `%PROGRAMDATA%\containers\containers.conf.d\99-podman-machine-provider.conf` | Installer created configuration file  |
-| `%APPDATA%\containers\containers.conf`                                       | Client main configuration file        |
-| `%APPDATA%\containers\podman-connections.json`                               | Client connections configuration file |
-| `%USERPROFILE%\.local\share\containers\podman\machine`                       | Machines data directory               |
-| `%USERPROFILE%\.config\containers\podman\machine\`                           | Machines configuration directory      |
-| `%USERPROFILE%\.local\share\containers\storage\podman\`                      | Containers and images storage layers  |
+| Directory or file                                                            | Description                                |
+|------------------------------------------------------------------------------|--------------------------------------------|
+| `%LocalAppData%\Programs\Podman\`                                            | Installation directory                     |
+| `%APPDATA%\containers\containers.conf.d\99-podman-machine-provider.conf`     | Installer created configuration file       |
+| `%APPDATA%\containers\containers.conf`                                       | Client main configuration file             |
+| `%APPDATA%\containers\podman-connections.json`                               | Client connections configuration file      |
+| `%USERPROFILE%\.local\share\containers\podman\machine`                       | Machines data directory                    |
+| `%USERPROFILE%\.config\containers\podman\machine\`                           | Machines configuration directory           |
+| `%USERPROFILE%\.local\share\containers\storage\podman\`                      | Containers and images storage layers       |
+| `%ProgramFiles%\Podman\`                                                     | Machine-scope installation directory       |
+| `%ProgramData%\containers\containers.conf.d\99-podman-machine-provider.conf` | Machine-scope installer created conf file  |
+| `%ProgramData%\containers\containers.conf`                                   | Machine-scope client configuration file    |
 
 Table: Directories and files used by Podman on Windows
 
 | Key                                                                                            | Description                                                                        |
 |------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| `HKLM:\SOFTWARE\Red Hat\Podman`                                                                | Installation directory path                                                        |
+| `HKCU:\SOFTWARE\Podman`                                                                        | Installation directory path                                                        |
+| `HKLM:\SOFTWARE\Podman`                                                                        | Machine-scope Installation directory path                                          |
 | `HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization\GuestCommunicationServices` | Hyper-V socket registry entries (`{PORT_HEX}-FACB-11E6-BD58-64006A7986D3` pattern) |
 
 Table: Registry keys used by Podman on Windows
@@ -134,12 +146,12 @@ The image is customized to run Podman.
 
 ```powershell
 PS C:\Users\User> podman machine init
-Looking up Podman Machine image at quay.io/podman/machine-os:5.6 to create VM
+Looking up Podman Machine image at quay.io/podman/machine-os:6.0 to create VM
 Getting image source signatures
-Copying blob 26cff917a2a5 done   |
+Copying blob 24c97bc42489 done   |
 Copying config 44136fa355 done   |
 Writing manifest to image destination
-26cff917a2a5c6a194472f8cd1ae3b7a21efe0d80cce6ddc4e621ee64c080dc1
+24c97bc424897b38d15d0e229b7a27487a1f8ed8ec8c019ccf2bb18add970db5
 Extracting compressed file: podman-machine-default-arm64: done
 Importing operating system into WSL (this may take a few minutes on a new WSL install)...
 The operation completed successfully.
@@ -150,8 +162,24 @@ To start your machine run:
         podman machine start
 ```
 
-**Note:** Hyper-V requires administrator privileges to manage the
-podman machine.
+You can also specify the virtualization provider when initializing a machine:
+
+```powershell
+PS C:\Users\User> podman machine init --provider wsl
+```
+
+or
+
+```powershell
+PS C:\Users\User> podman machine init --provider hyperv
+```
+
+**Note:** Hyper-V requires administrator privileges to initialize the first
+podman machine. Similarly it requires administrator privileges to remove the
+last machine. That's because these operation create and delete
+machine-scope registry keys, required to support the communication between the
+guest OS and the host. Other commands such as machine start and stop require
+that the current user is a member of the Hyper-V Administrator group.
 
 Starting Machine
 ----------------
@@ -287,7 +315,7 @@ podman machine set --rootful=false
 ```
 
 Another case in which you may wish to use rootful execution is binding a port
-less than 1024. However, future versions of podman will likely drop this to a
+less than 1024. However, future versions of Podman will likely drop this to a
 lower number to improve compatibility with defaults on system port services (such
 as MySQL)
 
@@ -297,7 +325,7 @@ Configuring the Machine Provider
 Podman on Windows supports two virtualization providers: WSL and Hyper-V. The
 provider can be configured in several ways:
 
-1. **During installation**: The installer allows you to select the provider
+1. **During installation**: The MSI installer allows you to select the provider
    during installation and creates a configuration file automatically.
 
 2. **Via configuration file**: You can manually create or edit the configuration
@@ -322,6 +350,12 @@ provider can be configured in several ways:
 
 3. **Via environment variable**: Set `CONTAINERS_MACHINE_PROVIDER` to `wsl` or
    `hyperv`.
+
+4. **Via command line**: Specify the provider when initializing a machine:
+
+   ```powershell
+   podman machine init --provider wsl
+   ```
 
 **Note:** WSL and Hyper-V machines cannot run simultaneously. You must stop
 machines using one provider before starting machines with the other.
@@ -360,17 +394,6 @@ PS C:\Users\User> podman machine ls
 
 NAME                    VM TYPE     CREATED         LAST UP            CPUS        MEMORY      DISK SIZE
 wsl-default             wsl         2 hours ago     Currently running  12          16G         768MB
-```
-
-The command lists the machines of the configured provider. In the example above,
-the configured provider is WSL, so the command lists the WSL machines. In the
-example below, the configured provider is Hyper-V:
-
-```powershell
-PS C:\Users\User> podman machine ls
-
-
-NAME                    VM TYPE     CREATED         LAST UP            CPUS        MEMORY      DISK SIZE
 hyperv-default*         hyperv      16 minutes ago  Never              6           2GiB        100GiB
 ```
 
@@ -494,7 +517,7 @@ Podman can be uninstalled from the Windows Control Panel. Administrator
 privileges are required if Podman was installed for the machine, rather than for
 a user.
 
-The uninstaller does not clean up Podman data an configuration resources. These
+The uninstaller does not clean up Podman data and configuration resources. These
 must be cleaned up manually.
 
 Troubleshooting
