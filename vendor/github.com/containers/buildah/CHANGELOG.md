@@ -2,6 +2,15 @@
 
 # Changelog
 
+## v1.42.2 (2025-12-02)
+
+    [release-1.42] Bump runc to v1.3.4
+
+## v1.42.1 (2025-11-06)
+
+    [release-1.42] bump runc to v1.3.3 - CVE-2025-52881
+    RPM: build with sequoia on F43+
+
 ## v1.42.0 (2025-10-17)
 
     Bump to storage v1.61.0, image v5.38.0, common v0.66.0
