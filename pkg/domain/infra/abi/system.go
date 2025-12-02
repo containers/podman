@@ -307,7 +307,7 @@ func (ic *ContainerEngine) Renumber(_ context.Context) error {
 }
 
 func (ic *ContainerEngine) Migrate(_ context.Context, options entities.SystemMigrateOptions) error {
-	return ic.Libpod.Migrate(options.NewRuntime)
+	return ic.Libpod.Migrate(options.NewRuntime, options.MigrateDB)
 }
 
 func unshareEnv(graphroot, runroot string) []string {
