@@ -49,6 +49,7 @@ import (
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/chown"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/libartifact/store"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/common/pkg/subscriptions"
 	"go.podman.io/common/pkg/umask"
@@ -548,7 +549,11 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, err
 		}
 		for _, artifactMount := range c.config.ArtifactVolumes {
-			paths, err := artStore.BlobMountPaths(ctx, artifactMount.Source, &libartTypes.BlobMountPathOptions{
+			asr, err := store.NewArtifactStorageReference(artifactMount.Source)
+			if err != nil {
+				return nil, nil, err
+			}
+			paths, err := artStore.BlobMountPaths(ctx, asr, &libartTypes.BlobMountPathOptions{
 				FilterBlobOptions: libartTypes.FilterBlobOptions{
 					Title:  artifactMount.Title,
 					Digest: artifactMount.Digest,

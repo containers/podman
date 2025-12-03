@@ -128,7 +128,7 @@ class ArtifactTestCase(APITestCase):
         self.assertEqual(len(artifact_layers), 2)
 
     def test_add_with_artifactMIMEType_override(self):
-        ARTIFACT_NAME = "quay.io/myimage/myartifact_artifactType:latest"
+        ARTIFACT_NAME = "quay.io/myimage/myartifact_artifacttype:latest"
         file = ArtifactFile()
         parameters: dict[str, str | list[str]] = {
             "name": ARTIFACT_NAME,

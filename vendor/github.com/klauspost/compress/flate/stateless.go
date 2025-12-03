@@ -61,13 +61,19 @@ var bitWriterPool = sync.Pool{
 	},
 }
 
+// tokensPool contains tokens struct objects that can be reused
+var tokensPool = sync.Pool{
+	New: func() any {
+		return &tokens{}
+	},
+}
+
 // StatelessDeflate allows compressing directly to a Writer without retaining state.
 // When returning everything will be flushed.
 // Up to 8KB of an optional dictionary can be given which is presumed to precede the block.
 // Longer dictionaries will be truncated and will still produce valid output.
 // Sending nil dictionary is perfectly fine.
 func StatelessDeflate(out io.Writer, in []byte, eof bool, dict []byte) error {
-	var dst tokens
 	bw := bitWriterPool.Get().(*huffmanBitWriter)
 	bw.reset(out)
 	defer func() {
@@ -91,6 +97,12 @@ func StatelessDeflate(out io.Writer, in []byte, eof bool, dict []byte) error {
 	// For subsequent loops, keep shallow dict reference to avoid alloc+copy.
 	var inDict []byte
 
+	dst := tokensPool.Get().(*tokens)
+	dst.Reset()
+	defer func() {
+		tokensPool.Put(dst)
+	}()
+
 	for len(in) > 0 {
 		todo := in
 		if len(inDict) > 0 {
@@ -113,9 +125,9 @@ func StatelessDeflate(out io.Writer, in []byte, eof bool, dict []byte) error {
 		}
 		// Compress
 		if len(inDict) == 0 {
-			statelessEnc(&dst, todo, int16(len(dict)))
+			statelessEnc(dst, todo, int16(len(dict)))
 		} else {
-			statelessEnc(&dst, inDict[:maxStatelessDict+len(todo)], maxStatelessDict)
+			statelessEnc(dst, inDict[:maxStatelessDict+len(todo)], maxStatelessDict)
 		}
 		isEof := eof && len(in) == 0
 
@@ -129,7 +141,7 @@ func StatelessDeflate(out io.Writer, in []byte, eof bool, dict []byte) error {
 			// If we removed less than 1/16th, huffman compress the block.
 			bw.writeBlockHuff(isEof, uncompressed, len(in) == 0)
 		} else {
-			bw.writeBlockDynamic(&dst, isEof, uncompressed, len(in) == 0)
+			bw.writeBlockDynamic(dst, isEof, uncompressed, len(in) == 0)
 		}
 		if len(in) > 0 {
 			// Retain a dict if we have more
