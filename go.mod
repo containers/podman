@@ -64,9 +64,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vbauerster/mpb/v8 v8.11.2
 	github.com/vishvananda/netlink v1.3.1
-	go.podman.io/common v0.66.1-0.20251128185259-94e31d2e45ba
-	go.podman.io/image/v5 v5.38.1-0.20251128185259-94e31d2e45ba
-	go.podman.io/storage v1.61.1-0.20251128185259-94e31d2e45ba
+	go.podman.io/common v0.66.1-0.20251202202200-df55d6c661e8
+	go.podman.io/image/v5 v5.38.1-0.20251202202200-df55d6c661e8
+	go.podman.io/storage v1.61.1-0.20251202202200-df55d6c661e8
 	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
 	golang.org/x/sync v0.18.0

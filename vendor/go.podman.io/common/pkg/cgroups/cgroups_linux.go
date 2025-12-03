@@ -8,11 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"math"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,7 +21,6 @@ import (
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/cgroups"
 	"github.com/opencontainers/cgroups/fs2"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
@@ -32,9 +29,7 @@ import (
 var (
 	// ErrCgroupDeleted means the cgroup was deleted.
 	ErrCgroupDeleted = errors.New("cgroup deleted")
-	// ErrCgroupV1Rootless means the cgroup v1 were attempted to be used in rootless environment.
-	ErrCgroupV1Rootless = errors.New("no support for CGroups V1 in rootless environments")
-	ErrStatCgroup       = errors.New("no cgroup available for gathering user statistics")
+	ErrStatCgroup    = errors.New("no cgroup available for gathering user statistics")
 
 	isUnifiedOnce sync.Once
 	isUnified     bool
@@ -43,34 +38,17 @@ var (
 
 // CgroupControl controls a cgroup hierarchy.
 type CgroupControl struct {
-	cgroup2 bool
 	config  *cgroups.Cgroup
 	systemd bool
-	// List of additional cgroup subsystems joined that
-	// do not have a custom handler.
-	additionalControllers []controller
 }
 
-type controller struct {
-	name    string
-	symlink bool
-}
-
-type controllerHandler interface {
-	Create(*CgroupControl) (bool, error)
-	Apply(*CgroupControl, *cgroups.Resources) error
-	Destroy(*CgroupControl) error
-	Stat(*CgroupControl, *cgroups.Stats) error
-}
+// statFunc is a function that gathers statistics for a cgroup controller.
+type statFunc func(*CgroupControl, *cgroups.Stats) error
 
 const (
 	cgroupRoot = "/sys/fs/cgroup"
 	// CPU is the cpu controller.
 	CPU = "cpu"
-	// CPUAcct is the cpuacct controller.
-	CPUAcct = "cpuacct"
-	// CPUset is the cpuset controller.
-	CPUset = "cpuset"
 	// Memory is the memory controller.
 	Memory = "memory"
 	// Pids is the pids controller.
@@ -79,110 +57,36 @@ const (
 	Blkio = "blkio"
 )
 
-var handlers map[string]controllerHandler
-
-func init() {
-	handlers = map[string]controllerHandler{
-		CPU:    getCPUHandler(),
-		CPUset: getCpusetHandler(),
-		Memory: getMemoryHandler(),
-		Pids:   getPidsHandler(),
-		Blkio:  getBlkioHandler(),
-	}
-}
-
-// getAvailableControllers get the available controllers.
-func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool) ([]controller, error) {
-	if cgroup2 {
-		controllers := []controller{}
-		controllersFile := filepath.Join(cgroupRoot, "cgroup.controllers")
-
-		// rootless cgroupv2: check available controllers for current user, systemd or servicescope will inherit
-		if unshare.IsRootless() {
-			userSlice, err := getCgroupPathForCurrentProcess()
-			if err != nil {
-				return controllers, err
-			}
-			// userSlice already contains '/' so not adding here
-			basePath := cgroupRoot + userSlice
-			controllersFile = filepath.Join(basePath, "cgroup.controllers")
-		}
-		controllersFileBytes, err := os.ReadFile(controllersFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed while reading controllers for cgroup v2: %w", err)
-		}
-		for controllerName := range strings.FieldsSeq(string(controllersFileBytes)) {
-			c := controller{
-				name:    controllerName,
-				symlink: false,
-			}
-			controllers = append(controllers, c)
-		}
-		return controllers, nil
-	}
-
-	subsystems, _ := cgroupV1GetAllSubsystems()
-	controllers := []controller{}
-	// cgroupv1 and rootless: No subsystem is available: delegation is unsafe.
-	if unshare.IsRootless() {
-		return controllers, nil
-	}
-
-	for _, name := range subsystems {
-		if _, found := exclude[name]; found {
-			continue
-		}
-		fileInfo, err := os.Stat(cgroupRoot + "/" + name)
-		if err != nil {
-			continue
-		}
-		c := controller{
-			name:    name,
-			symlink: !fileInfo.IsDir(),
-		}
-		controllers = append(controllers, c)
-	}
-
-	return controllers, nil
+var handlers = map[string]statFunc{
+	CPU:    cpuStat,
+	Memory: memoryStat,
+	Pids:   pidsStat,
+	Blkio:  blkioStat,
 }
 
 // AvailableControllers get string:bool map of all the available controllers.
-func AvailableControllers(exclude map[string]controllerHandler, cgroup2 bool) ([]string, error) {
-	availableControllers, err := getAvailableControllers(exclude, cgroup2)
-	if err != nil {
-		return nil, err
-	}
-	controllerList := []string{}
-	for _, controller := range availableControllers {
-		controllerList = append(controllerList, controller.name)
-	}
+func AvailableControllers() ([]string, error) {
+	controllers := []string{}
+	controllersFile := filepath.Join(cgroupRoot, "cgroup.controllers")
 
-	return controllerList, nil
-}
-
-func cgroupV1GetAllSubsystems() ([]string, error) {
-	f, err := os.Open("/proc/cgroups")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	subsystems := []string{}
-
-	s := bufio.NewScanner(f)
-	for s.Scan() {
-		text := s.Text()
-		if text[0] != '#' {
-			parts := strings.Fields(text)
-			if len(parts) >= 4 && parts[3] != "0" {
-				subsystems = append(subsystems, parts[0])
-			}
+	// rootless cgroupv2: check available controllers for current user, systemd or servicescope will inherit
+	if unshare.IsRootless() {
+		userSlice, err := getCgroupPathForCurrentProcess()
+		if err != nil {
+			return controllers, err
 		}
+		// userSlice already contains '/' so not adding here
+		basePath := cgroupRoot + userSlice
+		controllersFile = filepath.Join(basePath, "cgroup.controllers")
 	}
-	if err := s.Err(); err != nil {
-		return nil, err
+	controllersFileBytes, err := os.ReadFile(controllersFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed while reading controllers for cgroup v2: %w", err)
 	}
-	return subsystems, nil
+	for controllerName := range strings.FieldsSeq(string(controllersFileBytes)) {
+		controllers = append(controllers, controllerName)
+	}
+	return controllers, nil
 }
 
 func getCgroupPathForCurrentProcess() (string, error) {
@@ -208,51 +112,11 @@ func getCgroupPathForCurrentProcess() (string, error) {
 	return cgroupPath, nil
 }
 
-// getCgroupv1Path is a helper function to get the cgroup v1 path.
-func (c *CgroupControl) getCgroupv1Path(name string) string {
-	return filepath.Join(cgroupRoot, name, c.config.Path)
-}
-
 // initialize initializes the specified hierarchy.
 func (c *CgroupControl) initialize() (err error) {
-	createdSoFar := map[string]controllerHandler{}
-	defer func() {
-		if err != nil {
-			for name, ctr := range createdSoFar {
-				if err := ctr.Destroy(c); err != nil {
-					logrus.Warningf("error cleaning up controller %s for %s", name, c.config.Path)
-				}
-			}
-		}
-	}()
-	if c.cgroup2 {
-		if err := createCgroupv2Path(filepath.Join(cgroupRoot, c.config.Path)); err != nil {
-			return fmt.Errorf("creating cgroup path %s: %w", c.config.Path, err)
-		}
+	if err := createCgroupv2Path(filepath.Join(cgroupRoot, c.config.Path)); err != nil {
+		return fmt.Errorf("creating cgroup path %s: %w", c.config.Path, err)
 	}
-	for name, handler := range handlers {
-		created, err := handler.Create(c)
-		if err != nil {
-			return err
-		}
-		if created {
-			createdSoFar[name] = handler
-		}
-	}
-
-	if !c.cgroup2 {
-		// We won't need to do this for cgroup v2
-		for _, ctr := range c.additionalControllers {
-			if ctr.symlink {
-				continue
-			}
-			path := c.getCgroupv1Path(ctr.name)
-			if err := os.MkdirAll(path, 0o755); err != nil {
-				return fmt.Errorf("creating cgroup path for %s: %w", ctr.name, err)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -297,24 +161,15 @@ func readFileByKeyAsUint64(path, key string) (uint64, error) {
 
 // New creates a new cgroup control.
 func New(path string, resources *cgroups.Resources) (*CgroupControl, error) {
-	cgroup2, err := IsCgroup2UnifiedMode()
+	_, err := IsCgroup2UnifiedMode()
 	if err != nil {
 		return nil, err
 	}
 	control := &CgroupControl{
-		cgroup2: cgroup2,
 		config: &cgroups.Cgroup{
 			Path:      path,
 			Resources: resources,
 		},
-	}
-
-	if !cgroup2 {
-		controllers, err := getAvailableControllers(handlers, false)
-		if err != nil {
-			return nil, err
-		}
-		control.additionalControllers = controllers
 	}
 
 	if err := control.initialize(); err != nil {
@@ -326,12 +181,11 @@ func New(path string, resources *cgroups.Resources) (*CgroupControl, error) {
 
 // NewSystemd creates a new cgroup control.
 func NewSystemd(path string, resources *cgroups.Resources) (*CgroupControl, error) {
-	cgroup2, err := IsCgroup2UnifiedMode()
+	_, err := IsCgroup2UnifiedMode()
 	if err != nil {
 		return nil, err
 	}
 	control := &CgroupControl{
-		cgroup2: cgroup2,
 		systemd: true,
 		config: &cgroups.Cgroup{
 			Path:      path,
@@ -345,44 +199,15 @@ func NewSystemd(path string, resources *cgroups.Resources) (*CgroupControl, erro
 
 // Load loads an existing cgroup control.
 func Load(path string) (*CgroupControl, error) {
-	cgroup2, err := IsCgroup2UnifiedMode()
+	_, err := IsCgroup2UnifiedMode()
 	if err != nil {
 		return nil, err
 	}
 	control := &CgroupControl{
-		cgroup2: cgroup2,
 		systemd: false,
 		config: &cgroups.Cgroup{
 			Path: path,
 		},
-	}
-	if !cgroup2 {
-		controllers, err := getAvailableControllers(handlers, false)
-		if err != nil {
-			return nil, err
-		}
-		control.additionalControllers = controllers
-	}
-	if !cgroup2 {
-		oneExists := false
-		// check that the cgroup exists at least under one controller
-		for name := range handlers {
-			p := control.getCgroupv1Path(name)
-			if err := fileutils.Exists(p); err == nil {
-				oneExists = true
-				break
-			}
-		}
-
-		// if there is no controller at all, raise an error
-		if !oneExists {
-			if unshare.IsRootless() {
-				return nil, ErrCgroupV1Rootless
-			}
-			// compatible with the error code
-			// used by containerd/cgroups
-			return nil, ErrCgroupDeleted
-		}
 	}
 	return control, nil
 }
@@ -448,26 +273,7 @@ func (c *CgroupControl) DeleteByPathConn(path string, conn *systemdDbus.Conn) er
 	if c.systemd {
 		return systemdDestroyConn(path, conn)
 	}
-	if c.cgroup2 {
-		return rmDirRecursively(filepath.Join(cgroupRoot, c.config.Path))
-	}
-	var lastError error
-	for _, h := range handlers {
-		if err := h.Destroy(c); err != nil {
-			lastError = err
-		}
-	}
-
-	for _, ctr := range c.additionalControllers {
-		if ctr.symlink {
-			continue
-		}
-		p := c.getCgroupv1Path(ctr.name)
-		if err := rmDirRecursively(p); err != nil {
-			lastError = fmt.Errorf("remove %s: %w", p, err)
-		}
-	}
-	return lastError
+	return rmDirRecursively(filepath.Join(cgroupRoot, c.config.Path))
 }
 
 // DeleteByPath deletes the specified cgroup path.
@@ -485,50 +291,28 @@ func (c *CgroupControl) DeleteByPath(path string) error {
 
 // Update updates the cgroups.
 func (c *CgroupControl) Update(resources *cgroups.Resources) error {
-	for _, h := range handlers {
-		if err := h.Apply(c, resources); err != nil {
-			return err
-		}
+	man, err := fs2.NewManager(c.config, filepath.Join(cgroupRoot, c.config.Path))
+	if err != nil {
+		return err
 	}
-	return nil
+	return man.Set(resources)
 }
 
 // AddPid moves the specified pid to the cgroup.
 func (c *CgroupControl) AddPid(pid int) error {
-	pidString := []byte(fmt.Sprintf("%d\n", pid))
-
-	if c.cgroup2 {
-		path := filepath.Join(cgroupRoot, c.config.Path)
-		return fs2.CreateCgroupPath(path, c.config)
+	man, err := fs2.NewManager(c.config, filepath.Join(cgroupRoot, c.config.Path))
+	if err != nil {
+		return err
 	}
-
-	names := slices.Collect(maps.Keys(handlers))
-
-	for _, c := range c.additionalControllers {
-		if !c.symlink {
-			names = append(names, c.name)
-		}
-	}
-
-	for _, n := range names {
-		// If we aren't using cgroup2, we won't write correctly to unified hierarchy
-		if !c.cgroup2 && n == "unified" {
-			continue
-		}
-		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
-		if err := os.WriteFile(p, pidString, 0o644); err != nil {
-			return fmt.Errorf("write %s: %w", p, err)
-		}
-	}
-	return nil
+	return man.Apply(pid)
 }
 
 // Stat returns usage statistics for the cgroup.
 func (c *CgroupControl) Stat() (*cgroups.Stats, error) {
 	m := cgroups.Stats{}
 	found := false
-	for _, h := range handlers {
-		if err := h.Stat(c, &m); err != nil {
+	for _, statFunc := range handlers {
+		if err := statFunc(c, &m); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return nil, err
 			}
@@ -571,23 +355,6 @@ func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, e
 	p := filepath.Join(cgroupRoot, ctr.config.Path, name)
 
 	return readCgroupMapPath(p)
-}
-
-func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
-	cPath := c.getCgroupv1Path(controller)
-	err := fileutils.Exists(cPath)
-	if err == nil {
-		return false, nil
-	}
-
-	if !errors.Is(err, os.ErrNotExist) {
-		return false, err
-	}
-
-	if err := os.MkdirAll(cPath, 0o755); err != nil {
-		return false, fmt.Errorf("creating cgroup for %s: %w", controller, err)
-	}
-	return true, nil
 }
 
 var TestMode bool
@@ -671,83 +438,12 @@ func cleanString(s string) string {
 	return strings.Trim(s, "\n")
 }
 
-func readAcct(ctr *CgroupControl, name string) (uint64, error) {
-	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
-	return readFileAsUint64(p)
-}
-
-func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
-	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
-	data, err := os.ReadFile(p)
-	if err != nil {
-		return nil, err
-	}
-	r := []uint64{}
-	for s := range strings.SplitSeq(string(data), " ") {
-		s = cleanString(s)
-		if s == "" {
-			break
-		}
-		v, err := strconv.ParseUint(s, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parsing %s: %w", s, err)
-		}
-		r = append(r, v)
-	}
-	return r, nil
-}
-
-func cpusetCopyFromParent(path string, cgroupv2 bool) error {
-	for _, file := range []string{"cpuset.cpus", "cpuset.mems"} {
-		if _, err := cpusetCopyFileFromParent(path, file, cgroupv2); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
-	if dir == cgroupRoot {
-		return nil, fmt.Errorf("could not find parent to initialize cpuset %s", file)
-	}
-	path := filepath.Join(dir, file)
-	parentPath := path
-	if cgroupv2 {
-		parentPath += ".effective"
-	}
-	data, err := os.ReadFile(parentPath)
-	if err != nil {
-		// if the file doesn't exist, it is likely that the cpuset controller
-		// is not enabled in the kernel.
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	if strings.Trim(string(data), "\n") != "" {
-		return data, nil
-	}
-	data, err = cpusetCopyFileFromParent(filepath.Dir(dir), file, cgroupv2)
-	if err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return nil, fmt.Errorf("write %s: %w", path, err)
-	}
-	return data, nil
-}
-
 // SystemCPUUsage returns the system usage for all the cgroups.
 func SystemCPUUsage() (uint64, error) {
-	cgroupv2, err := IsCgroup2UnifiedMode()
+	_, err := IsCgroup2UnifiedMode()
 	if err != nil {
 		return 0, err
 	}
-	if !cgroupv2 {
-		p := filepath.Join(cgroupRoot, CPUAcct, "cpuacct.usage")
-		return readFileAsUint64(p)
-	}
-
 	files, err := os.ReadDir(cgroupRoot)
 	if err != nil {
 		return 0, err
@@ -800,7 +496,7 @@ func UserConnection(uid int) (*systemdDbus.Conn, error) {
 func UserOwnsCurrentSystemdCgroup() (bool, error) {
 	uid := os.Geteuid()
 
-	cgroup2, err := IsCgroup2UnifiedMode()
+	_, err := IsCgroup2UnifiedMode()
 	if err != nil {
 		return false, err
 	}
@@ -822,20 +518,11 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 
 		// If we are on a cgroup v2 system and there are cgroup v1 controllers
 		// mounted, ignore them when the current process is at the root cgroup.
-		if cgroup2 && parts[1] != "" && parts[2] == "/" {
+		if parts[1] != "" && parts[2] == "/" {
 			continue
 		}
 
-		var cgroupPath string
-
-		if cgroup2 {
-			cgroupPath = filepath.Join(cgroupRoot, parts[2])
-		} else {
-			if parts[1] != "name=systemd" {
-				continue
-			}
-			cgroupPath = filepath.Join(cgroupRoot, "systemd", parts[2])
-		}
+		cgroupPath := filepath.Join(cgroupRoot, parts[2])
 
 		st, err := os.Stat(cgroupPath)
 		if err != nil {

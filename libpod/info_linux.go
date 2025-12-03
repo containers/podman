@@ -30,10 +30,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		return fmt.Errorf("getting Seccomp profile path: %w", err)
 	}
 
-	// Get Map of all available controllers
-	// FIXME: AvailableControllers should be further simplified once CGv1 removal
-	// in container-libs is complete.
-	availableControllers, err := cgroups.AvailableControllers(nil, true)
+	availableControllers, err := cgroups.AvailableControllers()
 	if err != nil {
 		return fmt.Errorf("getting available cgroup controllers: %w", err)
 	}

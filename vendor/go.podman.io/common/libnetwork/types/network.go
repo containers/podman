@@ -102,7 +102,7 @@ type NetworkInfo struct {
 	Package        string         `json:"package,omitempty"`
 	Path           string         `json:"path,omitempty"`
 	DNS            DNSNetworkInfo `json:"dns,omitempty"`
-	DefaultNetwork string         `json:"default_network,omitempty"`
+	DefaultNetwork string         `json:"defaultNetwork,omitempty"`
 }
 
 // DNSNetworkInfo contains the DNS information.
