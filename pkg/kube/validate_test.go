@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package annotations
+package kube
 
 import (
 	"strings"
@@ -46,7 +46,7 @@ func TestValidateAnnotations(t *testing.T) {
 	}
 
 	for i := range successCases {
-		if err := ValidateAnnotations(successCases[i]); err != nil {
+		if err := Validate(successCases[i]); err != nil {
 			t.Errorf("case[%d] expected success, got %v", i, err)
 		}
 	}
@@ -59,21 +59,20 @@ func TestValidateAnnotations(t *testing.T) {
 	}
 
 	for i := range nameErrorCases {
-		if err := ValidateAnnotations(nameErrorCases[i]); err == nil {
+		if err := Validate(nameErrorCases[i]); err == nil {
 			t.Errorf("case[%d]: expected failure", i)
 		}
 	}
 
 	totalSizeErrorCases := []map[string]string{
 		{"a": strings.Repeat("b", define.TotalAnnotationSizeLimitB)},
-		{
-			"a": strings.Repeat("b", define.TotalAnnotationSizeLimitB/2),
-			"c": strings.Repeat("d", define.TotalAnnotationSizeLimitB/2),
-		},
+		{"ab": strings.Repeat("b", define.TotalAnnotationSizeLimitB)},
+		{"abc": strings.Repeat("b", define.TotalAnnotationSizeLimitB)},
 	}
 
 	for i := range totalSizeErrorCases {
-		if err := ValidateAnnotations(totalSizeErrorCases[i]); err == nil {
+
+		if err := Validate(totalSizeErrorCases[i]); err == nil {
 			t.Errorf("case[%d] expected failure", i)
 		}
 	}

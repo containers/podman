@@ -19,11 +19,11 @@ import (
 	"time"
 
 	"github.com/containers/podman/v6/libpod/define"
-	ann "github.com/containers/podman/v6/pkg/annotations"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/api/resource"
 	"github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/util/intstr"
+	kmeta "github.com/containers/podman/v6/pkg/kube"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgen/generate"
 	systemdDefine "github.com/containers/podman/v6/pkg/systemd/define"
@@ -371,7 +371,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		annotations = opts.Annotations
 	}
 	if opts.PodInfraID != "" {
-		annotations[ann.SandboxID] = opts.PodInfraID
+		annotations[kmeta.SandboxID] = opts.PodInfraID
 	}
 	s.Annotations = annotations
 

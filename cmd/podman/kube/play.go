@@ -19,9 +19,9 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/utils"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/shutdown"
-	"github.com/containers/podman/v6/pkg/annotations"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/errorhandling"
+	"github.com/containers/podman/v6/pkg/kube"
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
@@ -38,8 +38,10 @@ type playKubeOptionsWrapper struct {
 	CredentialsCLI string
 	StartCLI       bool
 	BuildCLI       bool
-	annotations    []string
-	macs           []string
+
+	annotations []string
+	labels      []string
+	macs        []string
 }
 
 const yamlFileSeparator = "\n---\n"
@@ -109,6 +111,15 @@ func playFlags(cmd *cobra.Command) {
 		"Add Podman-specific annotations to containers and pods created by Podman (key=value)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
+
+	labelFlagName := "label"
+	flags.StringArrayVar(
+		&playOptions.labels,
+		labelFlagName, []string{},
+		"Add Podman-specific labels to pods created by Podman (key=value)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
+
 	credsFlagName := "creds"
 	flags.StringVar(&playOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	_ = cmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
@@ -174,9 +185,9 @@ func playFlags(cmd *cobra.Command) {
 	flags.StringArrayVar(&playOptions.ConfigMaps, configmapFlagName, []string{}, "`Pathname` of a YAML file containing a kubernetes configmap")
 	_ = cmd.RegisterFlagCompletionFunc(configmapFlagName, completion.AutocompleteDefault)
 
-	noTruncFlagName := "no-trunc"
-	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
-	_ = flags.MarkHidden(noTruncFlagName)
+	noTruncFlagAnnsName := "no-trunc"
+	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagAnnsName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
+	_ = flags.MarkHidden(noTruncFlagAnnsName)
 
 	noPodPrefix := "no-pod-prefix"
 	flags.BoolVar(&playOptions.NoPodPrefix, noPodPrefix, false, "Do not prefix container name with pod name")
@@ -265,7 +276,22 @@ func play(cmd *cobra.Command, args []string) error {
 		playOptions.Annotations[key] = val
 	}
 
-	if err := annotations.ValidateAnnotations(playOptions.Annotations); err != nil {
+	if err := kube.Validate(playOptions.Annotations); err != nil {
+		return err
+	}
+
+	for _, label := range playOptions.labels {
+		key, val, hasVal := strings.Cut(label, "=")
+		if !hasVal {
+			return fmt.Errorf("label %q must include an '=' sign", label)
+		}
+		if playOptions.Labels == nil {
+			playOptions.Labels = make(map[string]string)
+		}
+		playOptions.Labels[key] = val
+	}
+
+	if err := kube.Validate(playOptions.Labels); err != nil {
 		return err
 	}
 
