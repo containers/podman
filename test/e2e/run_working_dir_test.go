@@ -57,4 +57,14 @@ WORKDIR  /etc/foobar`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("/home/foobar"))
 	})
+
+	It("podman run on an image with a symlinked workdir", func() {
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN mkdir /A && ln -s /A /B
+WORKDIR /B`, ALPINE)
+		podmanTest.BuildImage(dockerfile, "test", "false")
+
+		session := podmanTest.PodmanExitCleanly("run", "test", "pwd")
+		Expect(session.OutputToString()).To(Equal("/A"))
+	})
 })

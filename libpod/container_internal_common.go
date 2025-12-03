@@ -932,7 +932,10 @@ func (c *Container) resolveWorkDir() error {
 		// we need to return the full error.
 		return fmt.Errorf("detecting workdir %q on container %s: %w", workdir, c.ID(), err)
 	}
-	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
+	if err := os.MkdirAll(resolvedWorkdir, 0o755); err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			return nil
+		}
 		return fmt.Errorf("creating container %s workdir: %w", c.ID(), err)
 	}
 
