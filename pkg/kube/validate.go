@@ -1,4 +1,4 @@
-package annotations
+package kube
 
 import (
 	"errors"
@@ -8,6 +8,27 @@ import (
 
 	"github.com/containers/podman/v6/libpod/define"
 )
+
+// Validate validates a set of key values are correctly defined for
+// kubernetes specifications.
+func Validate(kv map[string]string) error {
+	totalSize := 0
+	for k, v := range kv {
+		totalSize += len(k) + len(v)
+
+		// The rule is QualifiedName except that case doesn't matter,
+		// so convert to lowercase before checking.
+		if err := isQualifiedName(strings.ToLower(k)); err != nil {
+			return err
+		}
+	}
+
+	if totalSize > define.TotalAnnotationSizeLimitB {
+		return fmt.Errorf("annotations size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
+	}
+
+	return nil
+}
 
 // regexErrorMsg returns a string explanation of a regex validation failure.
 func regexErrorMsg(msg string, fmt string, examples ...string) string {
@@ -94,35 +115,6 @@ func isQualifiedName(value string) error {
 	if !qualifiedNameRegexp.MatchString(name) {
 		return fmt.Errorf("name part of %s "+
 			regexErrorMsg(qualifiedNameErrMsg, qualifiedNameFmt, "MyName", "my.name", "123-abc"), value)
-	}
-
-	return nil
-}
-
-func validateAnnotationsSize(annotations map[string]string) error {
-	var totalSize int64
-	for k, v := range annotations {
-		totalSize += (int64)(len(k)) + (int64)(len(v))
-	}
-	if totalSize > (int64)(define.TotalAnnotationSizeLimitB) {
-		return fmt.Errorf("annotations size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
-	}
-	return nil
-}
-
-// ValidateAnnotations validates that a set of annotations are correctly
-// defined.
-func ValidateAnnotations(annotations map[string]string) error {
-	for k := range annotations {
-		// The rule is QualifiedName except that case doesn't matter,
-		// so convert to lowercase before checking.
-		if err := isQualifiedName(strings.ToLower(k)); err != nil {
-			return err
-		}
-	}
-
-	if err := validateAnnotationsSize(annotations); err != nil {
-		return err
 	}
 
 	return nil

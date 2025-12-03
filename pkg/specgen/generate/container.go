@@ -15,8 +15,8 @@ import (
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
-	ann "github.com/containers/podman/v6/pkg/annotations"
 	envLib "github.com/containers/podman/v6/pkg/env"
+	"github.com/containers/podman/v6/pkg/kube"
 	"github.com/containers/podman/v6/pkg/signal"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/openshift/imagebuilder"
@@ -271,7 +271,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			}
 			sandboxID = infra.ID()
 		}
-		annotations[ann.SandboxID] = sandboxID
+		annotations[kube.SandboxID] = sandboxID
 		// Check if this is an init-ctr and if so, check if
 		// the pod is running.  we do not want to add init-ctrs to
 		// a running pod because it creates confusion for us.

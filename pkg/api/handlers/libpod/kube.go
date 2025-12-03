@@ -94,7 +94,6 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 			logrus.Warn(fmt.Errorf("failed to remove libpod_kube tmp directory %q: %w", contextDirectory, err))
 		}
 	}()
-
 	// extract the reader
 	reader, err := extractPlayReader(contextDirectory, r)
 	if err != nil {
@@ -106,6 +105,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Annotations      map[string]string `schema:"annotations"`
+		Labels           map[string]string `schema:"labels"`
 		LogDriver        string            `schema:"logDriver"`
 		LogOptions       []string          `schema:"logOptions"`
 		Network          []string          `schema:"network"`
@@ -179,6 +179,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.PlayKubeOptions{
 		Annotations:        query.Annotations,
+		Labels:             query.Labels,
 		Authfile:           authfile,
 		IsRemote:           true,
 		LogDriver:          logDriver,
