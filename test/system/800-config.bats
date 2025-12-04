@@ -83,6 +83,44 @@ EOF
     is "$output" "Error:.*no such container"
 }
 
+@test "podman CONTAINERS_CONF - runtime_flags from containers.conf" {
+    skip_if_remote "can't set CONTAINERS_CONF over remote"
+
+    # Discover current database backend so containers.conf is otherwise sane
+    run_podman info --format '{{ .Host.DatabaseBackend }}'
+    db_backend="$output"
+
+    # Create a fake runtime that logs its argv and exits successfully
+    fake_runtime="$PODMAN_TMPDIR/fake-runtime.sh"
+    fake_log="$PODMAN_TMPDIR/fake-runtime.log"
+    cat >"$fake_runtime" <<EOF
+#!/bin/sh
+# Log all arguments so the test can inspect them
+printf '%s\n' "\$0" "\$@" >"$fake_log"
+exit 0
+EOF
+    chmod +x "$fake_runtime"
+
+    # containers.conf that wires in the fake runtime and runtime_flags
+    conf_tmp="$PODMAN_TMPDIR/containers.runtimeflags.conf"
+    cat >"$conf_tmp" <<EOF
+[engine]
+runtime = "testrun"
+database_backend = "$db_backend"
+runtime_flags = ["this-is-a-test-flag"]
+
+[engine.runtimes]
+testrun = ["$fake_runtime"]
+EOF
+
+    CONTAINERS_CONF="$conf_tmp" run_podman run --rm $IMAGE true
+
+    # The fake runtime should have been invoked and should have seen our flag
+    assert_file_exists "$fake_log"
+    # runtime_libpod.go prefixes each flag with "--"
+    grep -- '--this-is-a-test-flag' "$fake_log"
+}
+
 @test "podman --module - absolute path" {
     skip_if_remote "--module is not supported for remote clients"
 
