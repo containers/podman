@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"runtime"
 	"sort"
 	"sync"
@@ -18,6 +19,7 @@ import (
 
 var (
 	invoke                 common.Invoker = common.Invoke{}
+	strictIntPtrn                         = regexp.MustCompile(`^\d+$`)
 	ErrorNoChildren                       = errors.New("process does not have children") // Deprecated: ErrorNoChildren is never returned by process.Children(), check its returned []*Process slice length instead
 	ErrorProcessNotRunning                = errors.New("process does not exist")
 	ErrorNotPermitted                     = errors.New("operation not permitted")

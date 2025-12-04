@@ -699,6 +699,7 @@ func (p *Process) OpenFilesWithContext(ctx context.Context) ([]OpenFilesStat, er
 	if err != nil {
 		return nil, err
 	}
+	defer windows.CloseHandle(process)
 
 	buffer := make([]byte, 1024)
 	var size uint32
