@@ -62,6 +62,8 @@ Valid filters are listed below:
 | network    | [Network] name or full ID of network                                                            |
 | until      | [DateTime] container created before the given duration or time.                                 |
 | command    | [Command] the command the container is executing, only argv[0] is taken  |
+| restart-policy | [Policy] Container's restart policy (e.g., 'no', 'on-failure', 'always', 'unless-stopped')  |
+| should-start-on-boot | [Bool] Containers that need to be restarted after system reboot. True for containers with restart policy 'always', or 'unless-stopped' that were not explicitly stopped by the user |
 
 #### **--format**=*format*
 
@@ -286,6 +288,14 @@ Filter containers by network.
 $ podman ps --filter network=web-net
 CONTAINER ID  IMAGE                         COMMAND     CREATED        STATUS        PORTS       NAMES
 5e3694604817  quay.io/centos/centos:latest  sleep 300   3 minutes ago  Up 3 minutes              centos-test
+```
+
+Filter containers that need to be restarted after system reboot.
+```
+$ podman ps -a --filter should-start-on-boot=true
+CONTAINER ID  IMAGE                           COMMAND               CREATED        STATUS                    PORTS                 NAMES
+ff660efda598  docker.io/library/nginx:latest  nginx -g daemon o...  3 minutes ago  Up 3 minutes              0.0.0.0:8080->80/tcp  webserver
+5693e934f4c6  docker.io/library/redis:latest  redis-server          3 minutes ago  Exited (0) 3 minutes ago  6379/tcp              cache
 ```
 
 Use custom format to show container and pod information.

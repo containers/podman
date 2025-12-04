@@ -13,7 +13,7 @@ Valid _policy_ values are:
 - `never`                    : Synonym for **no**; do not restart containers on exit
 - `on-failure[:max_retries]` : Restart containers when they exit with a non-zero exit code, retrying indefinitely or until the optional *max_retries* count is hit
 - `always`                   : Restart containers when they exit, regardless of status, retrying indefinitely
-- `unless-stopped`           : Identical to **always**
+- `unless-stopped`           : Restart containers when they exit, unless the container was explicitly stopped by the user. After a system reboot, containers with this policy will be restarted by podman-restart.service only if they were not explicitly stopped by the user before the reboot. This differs from **always**, which restarts containers after a system reboot regardless of whether they were user-stopped
 
 Podman provides a systemd unit file, podman-restart.service, which restarts containers after a system reboot.
 
