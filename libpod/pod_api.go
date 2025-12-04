@@ -6,6 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"sort"
+	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
@@ -620,6 +623,8 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			ctrStatuses[c.ID()] = c.state.State
 		}
 	}
+	slices.SortFunc(ctrs, func(a, b define.InspectPodContainerInfo) int { return strings.Compare(a.ID, b.ID) })
+
 	podState, err := createPodStatusResults(ctrStatuses)
 	if err != nil {
 		return nil, err
@@ -641,6 +646,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			sharesNS = append(sharesNS, nsStr)
 		}
 	}
+	sort.Strings(sharesNS)
 
 	// Infra config contains detailed information on the pod's infra
 	// container.
