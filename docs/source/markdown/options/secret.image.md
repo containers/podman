@@ -21,3 +21,5 @@ The location of the secret in the container can be overridden using the
 `RUN --mount=type=secret,id=mysecret,target=/run/secrets/myothersecret cat /run/secrets/myothersecret`
 
 Note: changing the contents of secret files will not trigger a rebuild of layers that use said secrets.
+Note: on macOS and Windows, build secrets are not currently supported via environment variables,
+specified by the "env" option.
