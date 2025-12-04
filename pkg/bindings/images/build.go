@@ -626,7 +626,8 @@ func prepareSecrets(secrets []string, contextDir string, tempManager *remote_bui
 		for _, token := range secretOpt {
 			opt, val, hasVal := strings.Cut(token, "=")
 			if hasVal {
-				if opt == "src" {
+				switch opt {
+				case "src":
 					// read specified secret into a tmp file
 					// move tmp file to tar and change secret source to relative tmp file
 					tmpSecretFilePath, err := tempManager.CreateTempSecret(val, contextDir)
@@ -639,7 +640,21 @@ func prepareSecrets(secrets []string, contextDir string, tempManager *remote_bui
 
 					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
 					modifiedOpt = append(modifiedOpt, modifiedSrc)
-				} else {
+				case "env":
+					// read specified env into a tmp file
+					// move tmp file to tar and change secret source to relative tmp file
+					secretVal := os.Getenv(val)
+					tmpSecretFilePath, err := tempManager.CreateTempFileFromReader(contextDir, "podman-build-secret-*", strings.NewReader(secretVal))
+					if err != nil {
+						return nil, nil, err
+					}
+
+					// add tmp file to context dir
+					tarContent = append(tarContent, tmpSecretFilePath)
+
+					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
+					modifiedOpt = append(modifiedOpt, modifiedSrc)
+				default:
 					modifiedOpt = append(modifiedOpt, token)
 				}
 			}
