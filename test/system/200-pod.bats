@@ -809,4 +809,12 @@ function thingy_with_unique_id() {
     done
 }
 
+@test "podman pod inspect ordering" {
+    local pod_name="p-$(safename)"
+    run_podman pod create $pod_name
+
+    run_podman pod inspect --format '{{ .SharedNamespaces }}' $pod_name
+    assert "$output" == "[ipc net uts]"
+}
+
 # vim: filetype=sh
