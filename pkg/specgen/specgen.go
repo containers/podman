@@ -477,14 +477,14 @@ type ContainerNetworkConfig struct {
 	// Mandatory.
 	NetNS Namespace `json:"netns"`
 	// PortBindings is a set of ports to map into the container.
-	// Only available if NetNS is set to bridge, slirp, or pasta.
+	// Only available if NetNS is set to bridge, or pasta.
 	// Optional.
 	PortMappings []nettypes.PortMapping `json:"portmappings,omitempty"`
 	// PublishExposedPorts will publish ports specified in the image to
 	// random unused ports (guaranteed to be above 1024) on the host.
 	// This is based on ports set in Expose below, and any ports specified
 	// by the Image (if one is given).
-	// Only available if NetNS is set to Bridge or Slirp.
+	// Only available if NetNS is set to Bridge.
 	// Optional.
 	PublishExposedPorts *bool `json:"publish_image_ports,omitempty"`
 	// Expose is a number of ports that will be forwarded to the container
@@ -493,7 +493,7 @@ type ContainerNetworkConfig struct {
 	// protocol i.e map[uint16]string. Allowed protocols are "tcp", "udp", and "sctp", or some
 	// combination of the three separated by commas.
 	// If protocol is set to "" we will assume TCP.
-	// Only available if NetNS is set to Bridge or Slirp, and
+	// Only available if NetNS is set to Bridge, and
 	// PublishExposedPorts is set.
 	// Optional.
 	Expose map[uint16]string `json:"expose,omitempty"`

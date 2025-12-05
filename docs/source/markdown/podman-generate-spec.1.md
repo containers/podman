@@ -86,7 +86,7 @@ $ podman generate spec container1
   "nsmode": "default"
  },
  "netns": {
-  "nsmode": "slirp4netns"
+  "nsmode": "pasta"
  },
  "Networks": null,
  "use_image_hosts": false,
@@ -161,7 +161,7 @@ $ cat output.json
   "nsmode": "default"
  },
  "netns": {
-  "nsmode": "slirp4netns"
+  "nsmode": "pasta"
  },
  "Networks": null,
  "use_image_hosts": false,

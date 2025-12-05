@@ -47,7 +47,6 @@ case $1 in
                     passt
                     podman
                     skopeo
-                    slirp4netns
         )
         case $OS_RELEASE_ID in
             fedora)
