@@ -120,6 +120,14 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			splitVol[0] = src
 		}
 
+		// Resolve symlinks for absolute host paths
+		if filepath.IsAbs(src) {
+			if resolved := ResolveVolumeSourcePath(src); resolved != src {
+				src = resolved
+				splitVol[0] = resolved
+			}
+		}
+
 		if len(splitVol) == 1 {
 			// This is an anonymous named volume. Only thing given
 			// is destination.
