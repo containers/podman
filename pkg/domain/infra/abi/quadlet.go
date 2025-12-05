@@ -753,17 +753,6 @@ func (ic *ContainerEngine) QuadletPrint(_ context.Context, quadlet string) (stri
 	return string(contents), nil
 }
 
-// addIfUnique appends item to list if it has not already been seen in seenMap.
-// it returns true if the item was newly added, false if it was already present.
-func addIfUnique(seenMap map[string]struct{}, item string, list *[]string) bool {
-	if _, ok := seenMap[item]; ok {
-		return false
-	}
-	*list = append(*list, item)
-	seenMap[item] = struct{}{}
-	return true
-}
-
 // QuadletRemove removes one or more Quadlet files or applications and reloads systemd daemon as needed. The function returns a `QuadletRemoveReport`
 // containing the removal status for each quadlet file or application, or returns an error if the entire function fails.
 func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string, options entities.QuadletRemoveOptions) (*entities.QuadletRemoveReport, error) {
@@ -771,13 +760,16 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 		Errors:  make(map[string]error),
 		Removed: []string{},
 	}
-	removeList := []string{}
+
 	reverseMap, appMap, err := buildAppMap(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()))
 	if err != nil {
 		return nil, fmt.Errorf("unable to build app map: %w", err)
 	}
-	uniqueQuadletFiles := make(map[string]struct{})
-	expandQuadletList := []string{}
+
+	// Use sets for deduplication
+	removeSet := make(map[string]struct{})
+	expandQuadletSet := make(map[string]struct{})
+
 	// Process all `.app` files in arguments, if `.app` file
 	// is found then expand it to its respective quadlet files
 	// and remove it from the processing list.
@@ -789,29 +781,35 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			if ok {
 				for _, file := range files {
 					if !systemdquadlet.IsExtSupported(file) {
-						addIfUnique(uniqueQuadletFiles, file, &removeList)
+						removeSet[file] = struct{}{}
 					} else {
-						addIfUnique(uniqueQuadletFiles, file, &expandQuadletList)
+						expandQuadletSet[file] = struct{}{}
 					}
 				}
 			}
 			// also add .app file itself to the remove list so it can
 			// be cleaned after removal of all components in the list
-			addIfUnique(uniqueQuadletFiles, quadlet, &removeList)
+			removeSet[quadlet] = struct{}{}
 		} else {
-			addIfUnique(uniqueQuadletFiles, quadlet, &expandQuadletList)
+			expandQuadletSet[quadlet] = struct{}{}
 		}
 	}
-	quadlets = expandQuadletList
+
+	// Convert expandQuadletSet to slice
+	quadlets = make([]string, 0, len(expandQuadletSet))
+	for quadlet := range expandQuadletSet {
+		quadlets = append(quadlets, quadlet)
+	}
+
+	if len(quadlets) == 0 && !options.All {
+		return nil, errors.New("must provide at least 1 quadlet to remove")
+	}
+
 	allQuadletPaths := make([]string, 0, len(quadlets))
 	allServiceNames := make([]string, 0, len(quadlets))
 	runningQuadlets := make([]string, 0, len(quadlets))
 	serviceNameToQuadletName := make(map[string]string)
 	needReload := options.ReloadSystemd
-
-	if len(quadlets) == 0 && !options.All {
-		return nil, errors.New("must provide at least 1 quadlet to remove")
-	}
 
 	// Is systemd available to the current user?
 	// We cannot proceed if not.
@@ -824,7 +822,10 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	if options.All {
 		allQuadlets := getAllQuadletPaths()
 		for _, quadlet := range allQuadlets {
-			addIfUnique(uniqueQuadletFiles, quadlet, &quadlets)
+			if _, exists := expandQuadletSet[quadlet]; !exists {
+				quadlets = append(quadlets, quadlet)
+				expandQuadletSet[quadlet] = struct{}{}
+			}
 		}
 	}
 
@@ -850,12 +851,14 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			}
 			continue
 		}
-		value, ok := reverseMap[quadlet]
+		// Use base filename for reverseMap lookup since map keys are filenames, not full paths
+		quadletBaseName := filepath.Base(quadlet)
+		value, ok := reverseMap[quadletBaseName]
 		if ok {
 			// If this is part of app and we are cleaning entire .app
 			// make sure to add .app file itself to the removal list
 			// if it does not already exists.
-			addIfUnique(uniqueQuadletFiles, value, &removeList)
+			removeSet[value] = struct{}{}
 			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), value)
 			filesToRemove, err := getAssetListFromFile(appFilePath)
 			if err != nil {
@@ -863,11 +866,23 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			}
 			for _, entry := range filesToRemove {
 				if !systemdquadlet.IsExtSupported(entry) {
-					addIfUnique(uniqueQuadletFiles, entry, &removeList)
-					addIfUnique(uniqueQuadletFiles, value, &removeList)
+					removeSet[entry] = struct{}{}
+					removeSet[value] = struct{}{}
 					continue
 				}
-				addIfUnique(uniqueQuadletFiles, entry, &quadlets)
+				// When options.All is true, use full paths; when false, use filenames.
+				// this ensures consistency since getAllQuadletPaths() returns full paths
+				// but getQuadletPathByName() expects filenames
+				var entryToAdd string
+				if options.All {
+					entryToAdd = filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry)
+				} else {
+					entryToAdd = entry
+				}
+				if _, exists := expandQuadletSet[entryToAdd]; !exists {
+					quadlets = append(quadlets, entryToAdd)
+					expandQuadletSet[entryToAdd] = struct{}{}
+				}
 			}
 		}
 
@@ -942,11 +957,21 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 					continue
 				}
 			}
-			// Clean up app and quadlet files
-			for _, entry := range removeList {
-				os.Remove(filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry))
-			}
 			report.Removed = append(report.Removed, quadletName)
+		}
+	}
+
+	// Remove .app and .asset files after the main quadlet removal loop
+	// This ensures they are cleaned up properly since they are not included in allQuadletPaths
+	installDir := systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless())
+	for entry := range removeSet {
+		entryPath := filepath.Join(installDir, entry)
+		if err := os.Remove(entryPath); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Warnf("Failed to remove metadata file %s: %v", entry, err)
+			}
+		} else {
+			logrus.Debugf("Removed metadata file %s", entry)
 		}
 	}
 

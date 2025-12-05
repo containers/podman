@@ -20,20 +20,22 @@ quadlet_build_name="$quadlet_name.build"
 
 TMPDIR=$(mktemp -d podman-apiv2-test.quadlet.XXXXXXXX)
 
-quadlet_container_file_content=$(cat << EOF
+quadlet_container_file_content=$(
+	cat <<EOF
 [Container]
 Image=$IMAGE
 EOF
 )
 
-quadlet_build_file_content=$(cat << EOF
+quadlet_build_file_content=$(
+	cat <<EOF
 [Build]
 ImageTag=localhost/$quadlet_name
 EOF
 )
 
-echo "$quadlet_container_file_content" > $TMPDIR/$quadlet_container_name
-echo "$quadlet_build_file_content" > $TMPDIR/$quadlet_build_name
+echo "$quadlet_container_file_content" >$TMPDIR/$quadlet_container_name
+echo "$quadlet_build_file_content" >$TMPDIR/$quadlet_build_name
 
 # this should ensure the .config/containers/systemd directory is created
 podman quadlet install $TMPDIR/$quadlet_container_name
@@ -41,14 +43,14 @@ podman quadlet install $TMPDIR/$quadlet_build_name
 
 filter_param=$(printf '{"name":["%s"]}' "$quadlet_name")
 t GET "libpod/quadlets/json?filters=$filter_param" 200 \
-    length=2 \
-   .[0].Name="$quadlet_build_name" \
-   .[1].Name="$quadlet_container_name"
+	length=2 \
+	.[0].Name="$quadlet_build_name" \
+	.[1].Name="$quadlet_container_name"
 
 filter_param=$(printf '{"name":["%s"]}' "$quadlet_container_name")
 t GET "libpod/quadlets/json?filters=$filter_param" 200 \
-    length=1 \
-   .[0].Name="$quadlet_container_name"
+	length=1 \
+	.[0].Name="$quadlet_container_name"
 
 t GET "libpod/quadlets/$quadlet_name/file" 404
 
@@ -60,6 +62,107 @@ is "$output" "$quadlet_build_file_content"
 
 podman quadlet rm $quadlet_container_name
 podman quadlet rm $quadlet_build_name
+rm -rf $TMPDIR
+
+# podman quadlet rm -all --force : Testing removal of all quadlets at once
+#
+# Install quadlets(.container, .network, .volume)
+
+quadlet_name=quadlet-rm-test-$(cat /proc/sys/kernel/random/uuid)
+
+quadlet_container="$quadlet_name.container"
+
+quadlet_network="$quadlet_name.network"
+
+quadlet_volume="$quadlet_name.volume"
+
+TMPDIR=$(mktemp -d podman-apiv2-test.quadlet.rm.XXXXXXXX)
+
+quadlet_container_file_content=$(
+	cat <<EOF
+[Container]
+Image=$IMAGE
+EOF
+)
+
+quadlet_network_file_content=$(
+	cat <<EOF
+[Network]
+Label=app=nginx-network
+EOF
+)
+
+quadlet_volume_file_content=$(
+	cat <<EOF
+[Volume]
+VolumeName=does_not_exist
+EOF
+)
+
+echo "$quadlet_container_file_content" >$TMPDIR/$quadlet_container
+echo "$quadlet_network_file_content" >$TMPDIR/$quadlet_network
+echo "$quadlet_volume_file_content" >$TMPDIR/$quadlet_volume
+
+# Install all quadlets
+podman quadlet install $TMPDIR
+
+# Verify all quadlets exist via API (file endpoint)
+
+t GET libpod/quadlets/$quadlet_container/file 200
+is "$output" "$quadlet_container_file_content"
+
+t GET libpod/quadlets/$quadlet_network/file 200
+is "$output" "$quadlet_network_file_content"
+
+t GET libpod/quadlets/$quadlet_volume/file 200
+is "$output" "$quadlet_volume_file_content"
+
+# Verify all quadlets appear in the list using filters
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_container")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+	length=1 \
+	.[0].Name="$quadlet_container"
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_network")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+	length=1 \
+	.[0].Name="$quadlet_network"
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_volume")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+	length=1 \
+	.[0].Name="$quadlet_volume"
+
+# Remove ALL quadlets using CLI
+podman quadlet rm -af
+
+# Verify all quadlets are gone via API (should return 404)
+
+t GET libpod/quadlets/$quadlet_container/file 404
+t GET libpod/quadlets/$quadlet_network/file 404
+t GET libpod/quadlets/$quadlet_volume/file 404
+
+# Verify all quadlets no longer appear in filtered lists
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_container")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+	length=0
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_network")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+	length=0
+
+filter_param=$(printf '{"name":["%s"]}' "$quadlet_volume")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+	length=0
+
+# Verify the complete list is now empty
+
+t GET libpod/quadlets/json 200 \
+	length=0
+
+# Cleanup
 rm -rf $TMPDIR
 
 # vim: filetype=sh
