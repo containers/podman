@@ -753,6 +753,16 @@ func (ic *ContainerEngine) QuadletPrint(_ context.Context, quadlet string) (stri
 	return string(contents), nil
 }
 
+// addIfUnique appends item to list if it has not already been seen in seenMap.
+// it returns true if the item was newly added, false if it was already present.
+func addIfUnique(seenMap map[string]struct{}, item string, list *[]string) {
+	if _, ok := seenMap[item]; ok {
+		return
+	}
+	*list = append(*list, item)
+	seenMap[item] = struct{}{}
+}
+
 // QuadletRemove removes one or more Quadlet files or applications and reloads systemd daemon as needed. The function returns a `QuadletRemoveReport`
 // containing the removal status for each quadlet file or application, or returns an error if the entire function fails.
 func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string, options entities.QuadletRemoveOptions) (*entities.QuadletRemoveReport, error) {
@@ -765,6 +775,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	if err != nil {
 		return nil, fmt.Errorf("unable to build app map: %w", err)
 	}
+	uniqueQuadletFiles := make(map[string]struct{})
 	expandQuadletList := []string{}
 	// Process all `.app` files in arguments, if `.app` file
 	// is found then expand it to its respective quadlet files
@@ -777,19 +788,17 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			if ok {
 				for _, file := range files {
 					if !systemdquadlet.IsExtSupported(file) {
-						removeList = append(removeList, file)
+						addIfUnique(uniqueQuadletFiles, file, &removeList)
 					} else {
-						expandQuadletList = append(expandQuadletList, file)
+						addIfUnique(uniqueQuadletFiles, file, &expandQuadletList)
 					}
 				}
 			}
 			// also add .app file itself to the remove list so it can
 			// be cleaned after removal of all components in the list
-			if !slices.Contains(removeList, quadlet) {
-				removeList = append(removeList, quadlet)
-			}
+			addIfUnique(uniqueQuadletFiles, quadlet, &removeList)
 		} else {
-			expandQuadletList = append(expandQuadletList, quadlet)
+			addIfUnique(uniqueQuadletFiles, quadlet, &expandQuadletList)
 		}
 	}
 	quadlets = expandQuadletList
@@ -813,7 +822,9 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 
 	if options.All {
 		allQuadlets := getAllQuadletPaths()
-		quadlets = allQuadlets
+		for _, quadlet := range allQuadlets {
+			addIfUnique(uniqueQuadletFiles, quadlet, &quadlets)
+		}
 	}
 
 	// We are using index wise iteration here instead of `range`
@@ -843,9 +854,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			// If this is part of app and we are cleaning entire .app
 			// make sure to add .app file itself to the removal list
 			// if it does not already exists.
-			if !slices.Contains(removeList, value) {
-				removeList = append(removeList, value)
-			}
+			addIfUnique(uniqueQuadletFiles, value, &removeList)
 			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), value)
 			filesToRemove, err := getAssetListFromFile(appFilePath)
 			if err != nil {
@@ -853,16 +862,11 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			}
 			for _, entry := range filesToRemove {
 				if !systemdquadlet.IsExtSupported(entry) {
-					removeList = append(removeList, entry)
-					if !slices.Contains(removeList, value) {
-						// In the last also clean .<quadlet>.app file
-						removeList = append(removeList, value)
-					}
+					addIfUnique(uniqueQuadletFiles, entry, &removeList)
+					addIfUnique(uniqueQuadletFiles, value, &removeList)
 					continue
 				}
-				if !slices.Contains(quadlets, entry) {
-					quadlets = append(quadlets, entry)
-				}
+				addIfUnique(uniqueQuadletFiles, entry, &quadlets)
 			}
 		}
 
@@ -937,6 +941,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 					continue
 				}
 			}
+			// Clean up app and quadlet files
 			for _, entry := range removeList {
 				os.Remove(filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry))
 			}
