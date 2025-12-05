@@ -155,7 +155,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if query.Timestamps {
-			frame.WriteString(line.Time.Format(time.RFC3339))
+			frame.WriteString(line.Time.Format(time.RFC3339Nano))
 			frame.WriteString(" ")
 		}
 
