@@ -1370,4 +1370,48 @@ BOGUS=foo
 			},
 		),
 	)
+	Describe("Running quadlet force remove all", func() {
+		It("Should remove all quadlets at once", func() {
+			SkipIfRemote("quadlet is not supported for remote clients")
+			SkipIfSystemdNotRunning("quadlet install requires a running systemd")
+			quadletName := fmt.Sprintf("quadlet-remove-all-test-%d", GinkgoRandomSeed())
+			containerFile := quadletName + ".container"
+			networkFile := quadletName + ".network"
+			volumeFile := quadletName + ".volume"
+
+			tmpDir := filepath.Join(podmanTest.TempDir, quadletName)
+			err := os.Mkdir(tmpDir, 0o755)
+			Expect(err).ToNot(HaveOccurred())
+
+			containerContent := []byte(fmt.Sprintf("[Container]\nImage=%s\n", ALPINE))
+			networkContent := []byte("[Network]\nLabel=app=nginx-network\n")
+			volumeContent := []byte("[Volume]\nVolumeName=does_not_exist\n")
+
+			Expect(os.WriteFile(filepath.Join(tmpDir, containerFile), containerContent, 0o644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(tmpDir, networkFile), networkContent, 0o644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(tmpDir, volumeFile), volumeContent, 0o644)).To(Succeed())
+
+			// Install quadlets
+			podmanTest.PodmanExitCleanly("quadlet", "install", tmpDir)
+
+			// Verify quadlets appear in list
+			listSession := podmanTest.Podman([]string{"quadlet", "list", "--format", "json"})
+			listSession.WaitWithDefaultTimeout()
+			Expect(listSession).Should(ExitCleanly())
+			output := listSession.OutputToString()
+			Expect(output).To(ContainSubstring(containerFile))
+			Expect(output).To(ContainSubstring(networkFile))
+			Expect(output).To(ContainSubstring(volumeFile))
+
+			// Remove all quadlets
+			podmanTest.PodmanExitCleanly("quadlet", "rm", "-af")
+
+			// Verify if list is empty
+			listSession = podmanTest.Podman([]string{"quadlet", "list", "--format", "json"})
+			listSession.WaitWithDefaultTimeout()
+			Expect(listSession).Should(ExitCleanly())
+			output = listSession.OutputToString()
+			Expect(output).To(Equal("[]"))
+		})
+	})
 })
