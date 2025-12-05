@@ -17,8 +17,6 @@ linters-settings:
         disabled-checks:
             - importShadow
             - unnamedResult
-    golint:
-        min-confidence: 0
     goimports:
         local-prefixes: github.com/spf13/viper
 
@@ -30,7 +28,6 @@ linters:
         - dupl
         - durationcheck
         - exhaustive
-        - exportloopref
         - gci
         - gocritic
         - godot

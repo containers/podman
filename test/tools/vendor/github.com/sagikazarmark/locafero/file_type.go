@@ -5,6 +5,7 @@ import "io/fs"
 // FileType represents the kind of entries [Finder] can return.
 type FileType int
 
+// FileType represents the kind of entries [Finder] can return.
 const (
 	FileTypeAll FileType = iota
 	FileTypeFile
