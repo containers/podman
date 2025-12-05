@@ -9067,7 +9067,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:810
 #: ../../source/markdown/podman-run.1.md:852
-msgid "**--image-volume**=**bind** | *tmpfs* | *ignore*"
+msgid "**--image-volume**=*anonymous* | *tmpfs* | *ignore*"
 msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:812
