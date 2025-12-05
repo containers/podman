@@ -61,7 +61,7 @@ Valid filters are listed below:
 | pod        | [Pod] name or full or partial ID of pod                                                         |
 | network    | [Network] name or full ID of network                                                            |
 | until      | [DateTime] container created before the given duration or time.                                 |
-| command    | [Command] the command the container is executing, only argv[0] is taken  |
+| command    | [Command] the command the container is executing, only argv[0] is taken                         |
 | restart-policy | [Policy] Container's restart policy (e.g., 'no', 'on-failure', 'always', 'unless-stopped')  |
 | should-start-on-boot | [Bool] Containers that need to be restarted after system reboot. True for containers with restart policy 'always', or 'unless-stopped' that were not explicitly stopped by the user |
 
