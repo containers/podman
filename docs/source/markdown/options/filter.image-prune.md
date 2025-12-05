@@ -1,0 +1,17 @@
+#### **--filter**=*filters*
+
+Provide filter values.
+
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+
+Supported filters:
+
+| Filter | Description                                                                                      |
+|:------:|--------------------------------------------------------------------------------------------------|
+| label  | Only remove images, with (or without, in the case of label!=[...] is used) the specified labels. |
+| until  | Only remove images created before given timestamp.                                               |
+
+
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers without the specified labels.
+
+The `until` *filter* can be Unix timestamps, date formatted timestamps or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine's time.
