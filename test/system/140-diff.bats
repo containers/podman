@@ -38,10 +38,13 @@ load helpers
 }
 
 @test "podman diff with buildah container " {
+
+    env
+    # Unset NOTIFY_SOCKET based on: https://github.com/containers/podman/pull/27514#issuecomment-3529125596
+    unset NOTIFY_SOCKET
     rand_file=$(random_string 10)
     buildah from --name buildahctr $IMAGE
     buildah run buildahctr sh -c "touch /$rand_file;rm /etc/services"
-
     run_podman diff --format json buildahctr
 
     # Expected results for each type of diff
