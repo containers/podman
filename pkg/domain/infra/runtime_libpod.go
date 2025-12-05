@@ -140,6 +140,13 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 			runtimeFlags = append(runtimeFlags, "--"+arg)
 		}
 		options = append(options, libpod.WithRuntimeFlags(runtimeFlags))
+	} else if len(cfg.ContainersConf.Engine.RuntimeFlags) > 0 {
+		// If no CLI flags were provided, use runtime_flags from containers.conf
+		runtimeFlags := []string{}
+		for _, arg := range cfg.ContainersConf.Engine.RuntimeFlags {
+			runtimeFlags = append(runtimeFlags, "--"+arg)
+		}
+		options = append(options, libpod.WithRuntimeFlags(runtimeFlags))
 	}
 
 	// Only set this if the user changes storage config on the command line
