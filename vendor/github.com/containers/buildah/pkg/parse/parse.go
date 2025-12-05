@@ -712,26 +712,25 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 // GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
 // Takes `buildOutput` as string and returns BuildOutputOption
 func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
-	if buildOutput == "-" {
-		// Feature parity with buildkit, output tar to stdout
-		// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
+	// Support simple values, in the form --output ./mydir
+	if !strings.Contains(buildOutput, ",") && !strings.Contains(buildOutput, "=") {
+		if buildOutput == "-" {
+			// Feature parity with buildkit, output tar to stdout
+			// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
+			return define.BuildOutputOption{
+				Type: define.BuildOutputStdout,
+				Path: "",
+			}, nil
+		}
+
 		return define.BuildOutputOption{
-			Path:     "",
-			IsDir:    false,
-			IsStdout: true,
+			Type: define.BuildOutputLocalDir,
+			Path: buildOutput,
 		}, nil
 	}
-	if !strings.Contains(buildOutput, ",") {
-		// expect default --output <dirname>
-		return define.BuildOutputOption{
-			Path:     buildOutput,
-			IsDir:    true,
-			IsStdout: false,
-		}, nil
-	}
-	isDir := true
-	isStdout := false
-	typeSelected := ""
+
+	// Support complex values, in the form --output type=local,dest=./mydir
+	var typeSelected define.BuildOutputType = -1
 	pathSelected := ""
 	for option := range strings.SplitSeq(buildOutput, ",") {
 		key, value, found := strings.Cut(option, "=")
@@ -740,15 +739,14 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 		}
 		switch key {
 		case "type":
-			if typeSelected != "" {
+			if typeSelected != -1 {
 				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", key)
 			}
-			typeSelected = value
-			switch typeSelected {
+			switch value {
 			case "local":
-				isDir = true
+				typeSelected = define.BuildOutputLocalDir
 			case "tar":
-				isDir = false
+				typeSelected = define.BuildOutputTar
 			default:
 				return define.BuildOutputOption{}, fmt.Errorf("invalid type %q selected for build output options %q", value, buildOutput)
 			}
@@ -762,17 +760,35 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 		}
 	}
 
-	if typeSelected == "" || pathSelected == "" {
-		return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, accepted keys are "type" and "dest" must be present`, buildOutput)
+	// Validate there is a type
+	if typeSelected == -1 {
+		return define.BuildOutputOption{}, fmt.Errorf("missing required key %q in build output option: %q", "type", buildOutput)
 	}
 
+	// Validate path is only set when needed
+	if typeSelected == define.BuildOutputLocalDir || typeSelected == define.BuildOutputTar {
+		if pathSelected == "" {
+			return define.BuildOutputOption{}, fmt.Errorf("missing required key %q in build output option: %q", "dest", buildOutput)
+		}
+	} else {
+		// Clear path when not needed by type
+		pathSelected = ""
+	}
+
+	// Handle redirecting stdout for tar output
 	if pathSelected == "-" {
-		if isDir {
-			return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, "type=local" can not be used with "dest=-"`, buildOutput)
+		if typeSelected == define.BuildOutputTar {
+			typeSelected = define.BuildOutputStdout
+			pathSelected = ""
+		} else {
+			return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, only "type=tar" can be used with "dest=-"`, buildOutput)
 		}
 	}
 
-	return define.BuildOutputOption{Path: pathSelected, IsDir: isDir, IsStdout: isStdout}, nil
+	return define.BuildOutputOption{
+		Type: typeSelected,
+		Path: pathSelected,
+	}, nil
 }
 
 // TeeType parses a string value and returns a TeeType

@@ -5,6 +5,7 @@ package integration
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1385,4 +1386,87 @@ COPY --from=img2 /etc/alpine-release /prefix-test/container-prefix.txt`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
+
+	It("podman build --output ./folder", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		files, err := os.ReadDir(podmanTest.TempDir)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(files)).To(BeNumerically(">", 1))
+	})
+
+	It("podman build --output type=local,dest=./folder", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", fmt.Sprintf("type=local,dest=%v", podmanTest.TempDir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		files, err := os.ReadDir(podmanTest.TempDir)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(files)).To(BeNumerically(">", 1))
+	})
+
+	It("podman build --output type=tar,dest=./folder/file.tar", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", fmt.Sprintf("type=tar,dest=%v/file.tar", podmanTest.TempDir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		tarFile := filepath.Join(podmanTest.TempDir, "file.tar")
+		_, err := os.Stat(tarFile)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("podman build --output -", func() {
+		// Capture output to buffer manually, to avoid binary output leaking into test logs
+		session := podmanTest.PodmanWithOptions(PodmanExecOptions{
+			FullOutputWriter: io.Discard,
+		}, "build", "-f", "build/basicalpine/Containerfile", "--output", "-")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Check for tar header magic number
+		Expect(session.OutputToString()).To(ContainSubstring("ustar"))
+	})
+
+	It("podman build --output type=tar,dest=-", func() {
+		// Capture output to buffer manually, to avoid binary output leaking into test logs
+		session := podmanTest.PodmanWithOptions(PodmanExecOptions{
+			FullOutputWriter: io.Discard,
+		}, "build", "-f", "build/basicalpine/Containerfile", "--output", "type=tar,dest=-")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Check for tar header magic number
+		Expect(session.OutputToString()).To(ContainSubstring("ustar"))
+	})
+
+	// Should error because no type
+	It("podman build --output dest=./folder", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", fmt.Sprintf("dest=%v", podmanTest.TempDir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `missing required key "type"`))
+	})
+
+	// Should error because invalid type
+	It("podman build --output type=INVALID", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", "type=INVALID"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `invalid type "INVALID"`))
+	})
+
+	// Should error because no dest specified
+	It("podman build --output type=local", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", "type=local"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `missing required key "dest"`))
+	})
+
+	// Should error because invalid dest for local type
+	It("podman build --output type=local,dest=-", func() {
+		session := podmanTest.Podman([]string{"build", "-f", "build/basicalpine/Containerfile", "--output", "type=local,dest=-"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `only "type=tar" can be used with "dest=-"`))
+	})
+
 })
