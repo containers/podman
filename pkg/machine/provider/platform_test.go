@@ -13,7 +13,7 @@ func TestSupportedProviders(t *testing.T) {
 	case "darwin":
 		assert.Equal(t, []define.VMType{define.AppleHvVirt, define.LibKrun}, SupportedProviders())
 	case "windows":
-		assert.Equal(t, []define.VMType{define.WSLVirt, define.HyperVVirt}, SupportedProviders())
+		assert.ElementsMatch(t, []define.VMType{define.WSLVirt, define.HyperVVirt}, SupportedProviders())
 	case "linux":
 		assert.Equal(t, []define.VMType{define.QemuVirt}, SupportedProviders())
 	}
@@ -28,7 +28,7 @@ func TestInstalledProviders(t *testing.T) {
 	case "windows":
 		provider, err := Get()
 		assert.NoError(t, err)
-		assert.Contains(t, installed, provider)
+		assert.Contains(t, installed, provider.VMType())
 	case "linux":
 		assert.Equal(t, []define.VMType{define.QemuVirt}, installed)
 	}

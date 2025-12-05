@@ -15,6 +15,11 @@ import (
 	"go.podman.io/common/pkg/config"
 )
 
+// Variable to hold permission check function for testing purposes.
+var (
+	hasHyperVPermissionsFunc = hyperv.HasHyperVPermissions
+)
+
 func Get() (vmconfigs.VMProvider, error) {
 	cfg, err := config.Default()
 	if err != nil {
@@ -39,6 +44,12 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
+		// Check permissions before returning the Hyper-V provider.
+		// Working with Hyper-V requires users to be at least members of the Hyper-V admin group.
+		// Init and remove actions have custom use cases and they are checked on the stubber.
+		if !hasHyperVPermissionsFunc() {
+			return nil, hyperv.ErrHypervUserNotInAdminGroup
+		}
 		return new(hyperv.HyperVStubber), nil
 	default:
 	}
@@ -46,10 +57,13 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 }
 
 func GetAll() []vmconfigs.VMProvider {
-	return []vmconfigs.VMProvider{
+	providers := []vmconfigs.VMProvider{
 		new(wsl.WSLStubber),
-		new(hyperv.HyperVStubber),
 	}
+	if hasHyperVPermissionsFunc() {
+		providers = append(providers, new(hyperv.HyperVStubber))
+	}
+	return providers
 }
 
 // SupportedProviders returns the providers that are supported on the host operating system
