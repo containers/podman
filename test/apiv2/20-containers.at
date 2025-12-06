@@ -166,8 +166,8 @@ podman wait $CTRNAME
 t GET "containers/${CTRNAME}/logs?timestamps=true&stdout=true" 200
 # /logs returns application/octet-stream with binary headers. Strip null bytes.
 # Verify timestamp format includes nanoseconds (LogTimeFormat with 9 zero-padded digits)
-like "$(tr -d \\0 <$WORKDIR/curl.result.out)" ".*[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}T[0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}\\.[0-9]\\{9\\}.*test message.*" \# Format: 2006-01-02T15:04:05.000000000Z07:00
-
+# Timezone can be 'Z' (UTC) or '+/-HH:MM'
+like "$(tr -d \\0 <$WORKDIR/curl.result.out)" ".*[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}T[0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}\\.[0-9]\\{9\\}\\(Z\\|[+-][0-9]\\{2\\}:[0-9]\\{2\\}\\).*test message.*" \
      "logs timestamps should include nanosecond precision"
 podman rm -f $CTRNAME
 
