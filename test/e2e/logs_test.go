@@ -183,6 +183,29 @@ var _ = Describe("Podman logs", func() {
 			}).WithTimeout(logTimeout).Should(Succeed())
 		})
 
+		It("timestamps with nanosecond precision: "+log, func() {
+			skipIfJournaldInContainer()
+
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "echo", "test message"})
+			logc.WaitWithDefaultTimeout()
+			Expect(logc).To(ExitCleanly())
+			cid := logc.OutputToString()
+
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(ExitCleanly())
+
+			Eventually(func(g Gomega) {
+				results := podmanTest.Podman([]string{"logs", "-t", cid})
+				results.WaitWithDefaultTimeout()
+				g.Expect(results).To(ExitCleanly())
+				// LogTimeFormat: 2006-01-02T15:04:05.000000000Z07:00
+				// Verify timestamp contains nanoseconds (exactly 9 digits, zero-padded)
+				// Timezone can be 'Z' (UTC) or '+/-HH:MM'
+				g.Expect(results.OutputToString()).To(MatchRegexp(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}(Z|[+-]\d{2}:\d{2})\s+test message`))
+			}).WithTimeout(logTimeout).Should(Succeed())
+		})
+
 		It("since time 2017-08-07: "+log, func() {
 			skipIfJournaldInContainer()
 
