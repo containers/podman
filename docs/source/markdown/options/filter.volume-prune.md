@@ -1,4 +1,4 @@
-#### **--filter**
+#### **--filter**=*filters*
 
 Provide filter values.
 

@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman pause, restart, start, stop, unpause
+####>   podman pause, ps, restart, rm, start, stop, unpause
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--filter**, **-f**=*filter*
@@ -19,7 +19,7 @@ Valid filters are listed below:
 | label!     | [Key] or [Key=Value] Label NOT assigned to a container                                          |
 | exited     | [Int] Container's exit code                                                                     |
 | status     | [Status] Container's status: 'created', 'initialized', 'exited', 'paused', 'running', 'unknown' |
-| ancestor   | [ImageName] Image or descendant used to create container                                        |
+| ancestor   | [ImageName] Image or descendant used to create container (accepts regex)                        |
 | before     | [ID] or [Name] Containers created before this container                                         |
 | since      | [ID] or [Name] Containers created since this container                                          |
 | volume     | [VolumeName] or [MountpointDestination] Volume mounted in container                             |
@@ -28,5 +28,5 @@ Valid filters are listed below:
 | network    | [Network] name or full ID of network                                                            |
 | restart-policy | [Policy] Container's restart policy (e.g., 'no', 'on-failure', 'always', 'unless-stopped')  |
 | until      | [DateTime] Containers created before the given duration or time.                                |
-| command    | [Command] the command the container is executing, only argv[0] is taken  |
+| command    | [Command] the command the container is executing, only argv[0] is taken                         |
 | should-start-on-boot | [Bool] Containers that need to be restarted after system reboot. True for containers with restart policy 'always', or 'unless-stopped' that were not explicitly stopped by the user |

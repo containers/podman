@@ -22,7 +22,7 @@ Supported filters:
 
 The `driver` filter accepts values: `bridge`, `macvlan`, `ipvlan`.
 
-The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which shows images with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which shows images without the specified labels.
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which shows networks with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which shows networks without the specified labels.
 
 The `until` *filter* can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. 10m, 1h30m) computed relative to the machine's time.
 

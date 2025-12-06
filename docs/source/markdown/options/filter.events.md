@@ -10,4 +10,5 @@ filters are supported:
 | image      | [Name or ID] Image name or ID       |
 | label      | [key] or [key=value] label          |
 | pod        | [Name or ID] Pod name or ID         |
+| type       | Event type (e.g., container, image, pod, volume, network) |
 | volume     | [Name or ID] Volume name or ID      |
