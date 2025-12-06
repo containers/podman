@@ -41,15 +41,7 @@ Podman does not show these descriptors by default since they are not supported b
 
 @@option creds
 
-#### **--filter**, **-f**=*filter*
-
-Filter output based on conditions provided (default [])
-
-Supported filters are:
-
-* stars (int) - minimum number of stars required for images to show
-* is-automated (boolean - true | false) - is the image automated or not
-* is-official (boolean - true | false) - is the image official or not
+@@option filter.search
 
 #### **--format**=*format*
 
