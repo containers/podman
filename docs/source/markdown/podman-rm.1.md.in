@@ -26,7 +26,7 @@ Command does not fail when *file* is missing and user specified --ignore.
 
 Remove selected container and recursively remove all containers that depend on it.
 
-@@option filter.rm
+@@option filter.container
 
 #### **--force**, **-f**
 

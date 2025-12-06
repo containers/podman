@@ -20,4 +20,4 @@ Volumes can be filtered by the following attributes:
 | opt         | Matches a storage driver options                                                      |
 | scope       | Filters volume by scope                                                               |
 | after/since | Filter by volumes created after the given VOLUME (name or tag)                        |
-| until       | Only remove volumes created before given timestamp                                    |
+| until       | Filter by volumes created before given timestamp                                      |

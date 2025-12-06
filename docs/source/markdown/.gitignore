@@ -51,6 +51,7 @@ podman-pod-stats.1.md
 podman-pod-stop.1.md
 podman-pod-top.1.md
 podman-port.1.md
+podman-ps.1.md
 podman-pull.1.md
 podman-push.1.md
 podman-restart.1.md
