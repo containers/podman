@@ -269,6 +269,11 @@ help: ## (Default) Print listing of key targets with their descriptions
 		awk 'BEGIN {FS = ":(.*)?## "}; \
 			{printf $(_HLPFMT), $$1, $$2}'
 
+.PHONY: init-git-hooks
+init-git-hooks: ## Configure Git to use hooks from .githooks directory (enables automatic DCO signing)
+	git config core.hooksPath .githooks
+	@echo "Git hooks configured. Commits will now be automatically signed with DCO."
+
 ###
 ### Linting/Formatting/Code Validation targets
 ###

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# This script automatically adds a Signed-off-by trailer to each commit message, so that your commits
+# will adhere to the DCO (Developer Certificate of Origin) requirements.
+# To use, run `make init-git-hooks` or copy this file to .git/hooks/prepare-commit-msg in your copy of the repo.
+
+NAME=$(git config user.name)
+EMAIL=$(git config user.email)
+
+if [ -z "$NAME" ]; then
+    echo "empty git config user.name"
+    exit 1
+fi
+
+if [ -z "$EMAIL" ]; then
+    echo "empty git config user.email"
+    exit 1
+fi
+
+git interpret-trailers --if-exists doNothing --trailer \
+    "Signed-off-by: $NAME <$EMAIL>" \
+    --in-place "$1"
