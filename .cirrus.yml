@@ -271,7 +271,7 @@ alt_build_task:
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
-    name: "Build for MacOS amd64+arm64" # N/B: Referenced by URLencoded strings elsewhere
+    name: "Build for MacOS arm64" # N/B: Referenced by URLencoded strings elsewhere
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
@@ -300,12 +300,8 @@ osx_alt_build_task:
         - make podman-mac-helper
     build_pkginstaller_script:
         - pushd contrib/pkginstaller
-        - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
         - make ARCH=aarch64 NO_CODESIGN=1 pkginstaller
-        - make ARCH=universal NO_CODESIGN=1 pkginstaller
         - popd
-    build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip
     # Building arm podman needs to be the last thing built in this task
     # The Mac tests rely this Podman binary to run, and the CI Mac is ARM-based
     build_arm64_script:
@@ -899,7 +895,7 @@ podman_machine_mac_task:
     clone_script:  # artifacts from osx_alt_build_task
         - mkdir -p $CIRRUS_WORKING_DIR
         - cd $CIRRUS_WORKING_DIR
-        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tar.zst
+        - $ARTCURL/Build%20for%20MacOS%20arm64/repo/repo.tar.zst
         - tar -xf repo.tar.zst
     # This host is/was shared with potentially many other CI tasks.
     # The previous task may have been canceled or aborted.
@@ -1214,7 +1210,7 @@ artifacts_task:
     osx_binaries_script:
         - mkdir -p /tmp/osx
         - cd /tmp/osx
-        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tar.zst
+        - $ARTCURL/Build%20for%20MacOS%20arm64/repo/repo.tar.zst
         - tar -xf repo.tar.zst
         - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
         - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/

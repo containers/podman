@@ -198,12 +198,9 @@ spelled with complete minutiae.
       This action creates the GitHub release from the pushed tag,
       and automatically builds and uploads the binaries and installers to the release.
       1. The following artifacts should be attached to the release:
-         * podman-installer-macos-amd64.pkg
          * podman-installer-macos-arm64.pkg
-         * podman-installer-macos-universal.pkg
          * podman-installer-windows-amd64.exe
          * podman-installer-windows-arm64.exe
-         * podman-remote-release-darwin_amd64.zip
          * podman-remote-release-darwin_arm64.zip
          * podman-remote-release-windows_amd64.zip
          * podman-remote-release-windows_arm64.zip

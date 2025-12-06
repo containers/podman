@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin && arm64
 
 package libkrun
 

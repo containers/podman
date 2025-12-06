@@ -28,13 +28,7 @@ function build_podman() {
   cp -v docs/build/remote/darwin/*.1 "contrib/pkginstaller/out/packaging/${docDir}"
 
   case ${goArch} in
-  universal)
-    build_fat
-    cp "${tmpBin}/podman-universal"  "contrib/pkginstaller/out/packaging/${binDir}/podman"
-    cp "${tmpBin}/podman-mac-helper-universal" "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
-    ;;
-
-  amd64 | arm64)
+  arm64)
     build_podman_arch ${goArch}
     cp "${tmpBin}/podman-${goArch}"  "contrib/pkginstaller/out/packaging/${binDir}/podman"
     cp "${tmpBin}/podman-mac-helper-${goArch}" "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
@@ -53,17 +47,6 @@ function build_podman_arch(){
     mkdir -p "${tmpBin}"
     cp bin/darwin/podman "${tmpBin}/podman-$1"
     cp bin/darwin/podman-mac-helper "${tmpBin}/podman-mac-helper-$1"
-}
-
-function build_fat(){
-    echo "Building ARM Podman"
-    build_podman_arch "arm64"
-    echo "Building AMD Podman"
-    build_podman_arch "amd64"
-
-    echo "Creating universal binary"
-    lipo -create -output "${tmpBin}/podman-universal" "${tmpBin}/podman-arm64" "${tmpBin}/podman-amd64"
-    lipo -create -output "${tmpBin}/podman-mac-helper-universal" "${tmpBin}/podman-mac-helper-arm64" "${tmpBin}/podman-mac-helper-amd64"
 }
 
 function sign() {
