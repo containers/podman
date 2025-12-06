@@ -63,6 +63,7 @@ type SystemPruneReport struct {
 // cli to migrate runtimes of containers
 type SystemMigrateOptions struct {
 	NewRuntime string
+	MigrateDB  bool
 }
 
 // SystemDfOptions describes the options for getting df information
