@@ -57,6 +57,40 @@ func WriteFile(dir, file, data string) error {
 	return nil
 }
 
+// WriteFileByLine is the same as WriteFile, except if data contains newlines,
+// it is written line by line.
+func WriteFileByLine(dir, file, data string) error {
+	i := strings.Index(data, "\n")
+	if i == -1 {
+		return WriteFile(dir, file, data)
+	}
+
+	fd, err := OpenFile(dir, file, unix.O_WRONLY)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+	start := 0
+	for {
+		var line string
+		if i == -1 {
+			line = data[start:]
+		} else {
+			line = data[start : start+i+1]
+		}
+		_, err := fd.WriteString(line)
+		if err != nil {
+			return fmt.Errorf("failed to write %q: %w", line, err)
+		}
+		if i == -1 {
+			break
+		}
+		start += i + 1
+		i = strings.Index(data[start:], "\n")
+	}
+	return nil
+}
+
 const (
 	cgroupfsDir    = "/sys/fs/cgroup"
 	cgroupfsPrefix = cgroupfsDir + "/"

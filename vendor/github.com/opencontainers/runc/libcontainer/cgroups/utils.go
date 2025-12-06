@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opencontainers/runc/libcontainer/userns"
+	"github.com/moby/sys/userns"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -136,18 +136,18 @@ func GetAllSubsystems() ([]string, error) {
 	return subsystems, nil
 }
 
-func readProcsFile(dir string) ([]int, error) {
-	f, err := OpenFile(dir, CgroupProcesses, os.O_RDONLY)
+func readProcsFile(dir string) (out []int, _ error) {
+	file := CgroupProcesses
+	retry := true
+
+again:
+	f, err := OpenFile(dir, file, os.O_RDONLY)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	var (
-		s   = bufio.NewScanner(f)
-		out = []int{}
-	)
-
+	s := bufio.NewScanner(f)
 	for s.Scan() {
 		if t := s.Text(); t != "" {
 			pid, err := strconv.Atoi(t)
@@ -156,6 +156,13 @@ func readProcsFile(dir string) ([]int, error) {
 			}
 			out = append(out, pid)
 		}
+	}
+	if errors.Is(s.Err(), unix.ENOTSUP) && retry {
+		// For a threaded cgroup, read returns ENOTSUP, and we should
+		// read from cgroup.threads instead.
+		file = "cgroup.threads"
+		retry = false
+		goto again
 	}
 	return out, s.Err()
 }
@@ -244,27 +251,39 @@ again:
 // RemovePath aims to remove cgroup path. It does so recursively,
 // by removing any subdirectories (sub-cgroups) first.
 func RemovePath(path string) error {
-	// Try the fast path first.
+	// Try the fast path first; don't retry on EBUSY yet.
 	if err := rmdir(path, false); err == nil {
 		return nil
 	}
 
+	// There are many reasons why rmdir can fail, including:
+	// 1. cgroup have existing sub-cgroups;
+	// 2. cgroup (still) have some processes (that are about to vanish);
+	// 3. lack of permission (one example is read-only /sys/fs/cgroup mount,
+	//    in which case rmdir returns EROFS even for for a non-existent path,
+	//    see issue 4518).
+	//
+	// Using os.ReadDir here kills two birds with one stone: check if
+	// the directory exists (handling scenario 3 above), and use
+	// directory contents to remove sub-cgroups (handling scenario 1).
 	infos, err := os.ReadDir(path)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
+	// Let's remove sub-cgroups, if any.
 	for _, info := range infos {
 		if info.IsDir() {
-			// We should remove subcgroup first.
 			if err = RemovePath(filepath.Join(path, info.Name())); err != nil {
-				break
+				return err
 			}
 		}
 	}
-	if err == nil {
-		err = rmdir(path, true)
-	}
-	return err
+	// Finally, try rmdir again, this time with retries on EBUSY,
+	// which may help with scenario 2 above.
+	return rmdir(path, true)
 }
 
 // RemovePaths iterates over the provided paths removing them.
@@ -275,9 +294,7 @@ func RemovePaths(paths map[string]string) (err error) {
 		}
 	}
 	if len(paths) == 0 {
-		//nolint:ineffassign,staticcheck // done to help garbage collecting: opencontainers/runc#2506
-		// TODO: switch to clear once Go < 1.21 is not supported.
-		paths = make(map[string]string)
+		clear(paths)
 		return nil
 	}
 	return fmt.Errorf("Failed to remove paths: %v", paths)
@@ -410,26 +427,29 @@ func ConvertCPUSharesToCgroupV2Value(cpuShares uint64) uint64 {
 
 // ConvertMemorySwapToCgroupV2Value converts MemorySwap value from OCI spec
 // for use by cgroup v2 drivers. A conversion is needed since Resources.MemorySwap
-// is defined as memory+swap combined, while in cgroup v2 swap is a separate value.
+// is defined as memory+swap combined, while in cgroup v2 swap is a separate value,
+// so we need to subtract memory from it where it makes sense.
 func ConvertMemorySwapToCgroupV2Value(memorySwap, memory int64) (int64, error) {
-	// for compatibility with cgroup1 controller, set swap to unlimited in
-	// case the memory is set to unlimited, and swap is not explicitly set,
-	// treating the request as "set both memory and swap to unlimited".
-	if memory == -1 && memorySwap == 0 {
+	switch {
+	case memory == -1 && memorySwap == 0:
+		// For compatibility with cgroup1 controller, set swap to unlimited in
+		// case the memory is set to unlimited and the swap is not explicitly set,
+		// treating the request as "set both memory and swap to unlimited".
 		return -1, nil
-	}
-	if memorySwap == -1 || memorySwap == 0 {
-		// -1 is "max", 0 is "unset", so treat as is
+	case memorySwap == -1, memorySwap == 0:
+		// Treat -1 ("max") and 0 ("unset") swap as is.
 		return memorySwap, nil
-	}
-	// sanity checks
-	if memory == 0 || memory == -1 {
+	case memory == -1:
+		// Unlimited memory, so treat swap as is.
+		return memorySwap, nil
+	case memory == 0:
+		// Unset or unknown memory, can't calculate swap.
 		return 0, errors.New("unable to set swap limit without memory limit")
-	}
-	if memory < 0 {
+	case memory < 0:
+		// Does not make sense to subtract a negative value.
 		return 0, fmt.Errorf("invalid memory value: %d", memory)
-	}
-	if memorySwap < memory {
+	case memorySwap < memory:
+		// Sanity check.
 		return 0, errors.New("memory+swap limit should be >= memory limit")
 	}
 

@@ -52,6 +52,13 @@ func (b *Builder) sbomScan(ctx context.Context, options CommitOptions) (imageFil
 			}
 		}
 	}()
+	scansSubdir := filepath.Join(scansDir, "scans")
+	if err = os.Mkdir(scansSubdir, 0o700); err != nil {
+		return nil, nil, "", err
+	}
+	if err = os.Chmod(scansSubdir, 0o777); err != nil {
+		return nil, nil, "", err
+	}
 
 	// We may be producing sets of outputs using temporary containers, and
 	// there's no need to create more than one container for any one
@@ -127,7 +134,7 @@ func (b *Builder) sbomScan(ctx context.Context, options CommitOptions) (imageFil
 			// Our temporary directory, read-write.
 			{
 				Type:        define.TypeBind,
-				Source:      scansDir,
+				Source:      scansSubdir,
 				Destination: scansTargetDir,
 				Options:     []string{"rw", "z"},
 			},
@@ -212,19 +219,19 @@ func (b *Builder) sbomScan(ctx context.Context, options CommitOptions) (imageFil
 		var sbomResult, purlResult string
 		switch {
 		case scanSpec.ImageSBOMOutput != "":
-			sbomResult = filepath.Join(scansDir, filepath.Base(scanSpec.ImageSBOMOutput))
+			sbomResult = filepath.Join(scansSubdir, filepath.Base(scanSpec.ImageSBOMOutput))
 		case scanSpec.SBOMOutput != "":
-			sbomResult = filepath.Join(scansDir, filepath.Base(scanSpec.SBOMOutput))
+			sbomResult = filepath.Join(scansSubdir, filepath.Base(scanSpec.SBOMOutput))
 		default:
-			sbomResult = filepath.Join(scansDir, "sbom-result")
+			sbomResult = filepath.Join(scansSubdir, "sbom-result")
 		}
 		switch {
 		case scanSpec.ImagePURLOutput != "":
-			purlResult = filepath.Join(scansDir, filepath.Base(scanSpec.ImagePURLOutput))
+			purlResult = filepath.Join(scansSubdir, filepath.Base(scanSpec.ImagePURLOutput))
 		case scanSpec.PURLOutput != "":
-			purlResult = filepath.Join(scansDir, filepath.Base(scanSpec.PURLOutput))
+			purlResult = filepath.Join(scansSubdir, filepath.Base(scanSpec.PURLOutput))
 		default:
-			purlResult = filepath.Join(scansDir, "purl-result")
+			purlResult = filepath.Join(scansSubdir, "purl-result")
 		}
 		copyFile := func(destination, source string) error {
 			dst, err := os.Create(destination)
@@ -244,7 +251,7 @@ func (b *Builder) sbomScan(ctx context.Context, options CommitOptions) (imageFil
 		}
 		err = func() error {
 			for i := range resultFiles {
-				thisResultFile := filepath.Join(scansDir, filepath.Base(resultFiles[i]))
+				thisResultFile := filepath.Join(scansSubdir, filepath.Base(resultFiles[i]))
 				switch i {
 				case 0:
 					// Straight-up copy to create the first version of the final output.

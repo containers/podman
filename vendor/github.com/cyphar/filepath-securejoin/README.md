@@ -1,5 +1,6 @@
 ## `filepath-securejoin` ##
 
+[![Go Documentation](https://pkg.go.dev/badge/github.com/cyphar/filepath-securejoin.svg)](https://pkg.go.dev/github.com/cyphar/filepath-securejoin)
 [![Build Status](https://github.com/cyphar/filepath-securejoin/actions/workflows/ci.yml/badge.svg)](https://github.com/cyphar/filepath-securejoin/actions/workflows/ci.yml)
 
 ### Old API ###
@@ -66,7 +67,8 @@ func SecureJoin(root, unsafePath string) (string, error) {
 [libpathrs]: https://github.com/openSUSE/libpathrs
 [go#20126]: https://github.com/golang/go/issues/20126
 
-### New API ###
+### <a name="new-api" /> New API ###
+[#new-api]: #new-api
 
 While we recommend users switch to [libpathrs][libpathrs] as soon as it has a
 stable release, some methods implemented by libpathrs have been ported to this
@@ -85,7 +87,7 @@ more secure. In particular:
   or avoid being tricked by a `/proc` that is not legitimate. This is done
   using [`openat2`][openat2.2] for all users, and privileged users will also be
   further protected by using [`fsopen`][fsopen.2] and [`open_tree`][open_tree.2]
-  (Linux 4.18 or later).
+  (Linux 5.2 or later).
 
 [openat2.2]: https://www.man7.org/linux/man-pages/man2/openat2.2.html
 [fsopen.2]: https://github.com/brauner/man-pages-md/blob/main/fsopen.md
@@ -164,5 +166,19 @@ after `MkdirAll`).
 
 ### License ###
 
-The license of this project is the same as Go, which is a BSD 3-clause license
-available in the `LICENSE` file.
+`SPDX-License-Identifier: BSD-3-Clause AND MPL-2.0`
+
+Some of the code in this project is derived from Go, and is licensed under a
+BSD 3-clause license (available in `LICENSE.BSD`). Other files (many of which
+are derived from [libpathrs][libpathrs]) are licensed under the Mozilla Public
+License version 2.0 (available in `LICENSE.MPL-2.0`). If you are using the
+["New API" described above][#new-api], you are probably using code from files
+released under this license.
+
+Every source file in this project has a copyright header describing its
+license. Please check the license headers of each file to see what license
+applies to it.
+
+See [COPYING.md](./COPYING.md) for some more details.
+
+[umoci]: https://github.com/opencontainers/umoci

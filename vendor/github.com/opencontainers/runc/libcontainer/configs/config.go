@@ -222,6 +222,9 @@ type Config struct {
 
 	// Personality contains configuration for the Linux personality syscall.
 	Personality *LinuxPersonality `json:"personality,omitempty"`
+
+	// IOPriority is the container's I/O priority.
+	IOPriority *IOPriority `json:"io_priority,omitempty"`
 }
 
 // Scheduler is based on the Linux sched_setattr(2) syscall.
@@ -282,6 +285,14 @@ func ToSchedAttr(scheduler *Scheduler) (*unix.SchedAttr, error) {
 		Period:   scheduler.Period,
 	}, nil
 }
+
+var IOPrioClassMapping = map[specs.IOPriorityClass]int{
+	specs.IOPRIO_CLASS_RT:   1,
+	specs.IOPRIO_CLASS_BE:   2,
+	specs.IOPRIO_CLASS_IDLE: 3,
+}
+
+type IOPriority = specs.LinuxIOPriority
 
 type (
 	HookName string

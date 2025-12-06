@@ -1,7 +1,7 @@
 package buildah
 
 import (
-	"github.com/opencontainers/runc/libcontainer/userns"
+	"github.com/moby/sys/userns"
 )
 
 func runningInUserNS() bool {

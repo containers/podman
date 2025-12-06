@@ -2,6 +2,15 @@
 
 # Changelog
 
+## v1.37.7 (2025-11-28)
+
+    [release-1.37] update RunningInUserNS lib
+    [release-1.37] Bump x/tools to v0.26.0
+    [release-1.37] replace deprecated selinux/label calls
+    [release-1.37] Bump runc to v1.2.9 - CVE-2025-52881
+    Builder.sbomScan(): don't break non-root scanners
+    [release-1.37] tests/conformance/testdata/Dockerfile.add:...
+
 ## v1.37.6 (2025-01-20)
 
     Fix TOCTOU error when bind and cache mounts use "src" values
