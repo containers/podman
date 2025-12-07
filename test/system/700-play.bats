@@ -964,6 +964,56 @@ EOF
     done
 }
 
+# bats test_tags=ci:parallel
+@test "podman kube play healthcheck should wait initialDelaySeconds before executing healthcheck" {
+
+    # GIVEN a container with a liveness exec healthcheck with initialDelaySeconds that is quite long
+    podname="liveness-exec-$(safename)"
+    ctrname="liveness-ctr-$(safename)"
+
+    fname="$PODMAN_TMPDIR/play_kube_$(random_string 6).yaml"
+    cat <<EOF >$fname
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+  name: $podname
+spec:
+  containers:
+  - name: $ctrname
+    image: $IMAGE
+    args:
+    - /bin/sh
+    - -c
+    - sleep 100
+    livenessProbe:
+      exec:
+        # /tmp/healthy will exist in healthy container
+        command:
+        - /bin/sh
+        - -c
+        - touch /tmp/healthcheck.log
+      initialDelaySeconds: 100
+      failureThreshold: 1
+      periodSeconds: 1
+EOF
+
+    run_podman kube play $fname
+    ctrName="$podname-$ctrname"
+
+    # WHEN then healthcheck is executed
+    run_podman 1 healthcheck run $ctrName
+
+    # THEN the execution of the liveness probe should be skipped because initialDelaySeconds has not yet elapsed
+    run_podman 1 exec $ctrName test -e /tmp/healthcheck.log
+
+    # The sleep command does not respond to SIGTERM, so we have to use stop here.
+    # This is done to save time in the test suite.
+    run_podman stop -t0 $ctrName
+
+    run_podman kube down $fname
+}
+
 # CANNOT BE PARALLELIZED (YET): buildah#5674, parallel builds fail
 # ...workaround is --layers=false, but there's no way to do that in kube
 @test "podman play --build private registry" {
