@@ -63,7 +63,7 @@ func IsInstalled(provider define.VMType) (bool, error) {
 		if cfg == nil {
 			return false, fmt.Errorf("error fetching getting default config")
 		}
-		_, err = cfg.FindHelperBinary(qemu.QemuCommand, true)
+		_, err = qemu.FindQEMUBinary()
 		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
 		}
