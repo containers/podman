@@ -16,6 +16,9 @@ type zipDecompressor struct {
 
 func newZipDecompressor(compressedFilePath string) (*zipDecompressor, error) {
 	d, err := newGenericDecompressor(compressedFilePath)
+	if err != nil {
+		return nil, err
+	}
 	return &zipDecompressor{*d, nil, nil}, err
 }
 
