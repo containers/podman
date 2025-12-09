@@ -12,36 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type User struct {
-	Name    string   `yaml:"name"`
-	Sudo    string   `yaml:"sudo"`
-	Shell   string   `yaml:"shell"`
-	Groups  []string `yaml:"groups"`
-	SSHKeys []string `yaml:"ssh_authorized_keys"`
-}
-
-type WriteFile struct {
-	Path        string `yaml:"path,omitempty"`
-	Content     string `yaml:"content,omitempty"`
-	Encoding    string `yaml:"encoding,omitempty"`
-	Owner       string `yaml:"owner,omitempty"`
-	Permissions string `yaml:"permissions,omitempty"`
-}
-
-type UserData struct {
-	Users      []User      `yaml:"users"`
-	WriteFiles []WriteFile `yaml:"write_files,omitempty"`
-	RunCmd     []string    `yaml:"runcmd,omitempty"`
-	Mounts     [][]string  `yaml:"mounts,omitempty"`
-}
-
-type EmbeddedResource struct {
-	Name    string `yaml:"name"`
-	Content []byte `yaml:"content"`
-}
-
 func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
-	yamlBytes, err := GenerateUserData(mc)
+	yamlBytes, err := generateUserData(mc)
 	if err != nil {
 		return "", err
 	}
@@ -83,12 +55,11 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 		}
 	}()
 
-	userdata, metadata, networkConfig := []byte{}, []byte{}, []byte{}
-	if mc.CloudInitConfig.UserData != nil {
-		userdata, err = mc.CloudInitConfig.UserData.Read()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read user-data file: %w", err)
-		}
+	metadata, networkConfig := []byte{}, []byte{}
+
+	userdata, err := generateUserData(mc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate user-data file: %w", err)
 	}
 
 	if mc.CloudInitConfig.MetaData != nil {
@@ -105,13 +76,6 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 		}
 	}
 
-	if len(userdata) == 0 && len(metadata) == 0 {
-		userdata, err = GenerateUserData(mc)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate user-data: %w", err)
-		}
-	}
-
 	if err := writer.AddFile(bytes.NewReader(userdata), "user-data"); err != nil {
 		return nil, err
 	}
@@ -123,11 +87,9 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	}
 
 	resources := GetEmbeddedResources(mc)
-	if resources != nil {
-		for _, res := range resources {
-			if err := writer.AddFile(bytes.NewReader(res.Content), res.Name); err != nil {
-				return nil, err
-			}
+	for _, res := range resources {
+		if err := writer.AddFile(bytes.NewReader(res.Content), res.Name); err != nil {
+			return nil, err
 		}
 	}
 

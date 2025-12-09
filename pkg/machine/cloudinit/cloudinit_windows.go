@@ -9,72 +9,92 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
-	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/hyperv/hutil"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
-	"gopkg.in/yaml.v3"
 )
 
-func GenerateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
-	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
+func addUserModeNetworking(userData *UserData, mc *vmconfigs.MachineConfig) error {
+	netUnitFile, err := hutil.CreateNetworkUnitWithBinary("/usr/local/bin/gvforwarder", mc.HyperVHypervisor.NetworkVSock.Port)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	userData := UserData{
-		Users: []User{
-			User{
-				Name:    mc.SSH.RemoteUsername,
-				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
-				Shell:   "/bin/bash",
-				Groups:  []string{"users"},
-				SSHKeys: []string{sshKey},
-			},
+	userData.WriteFiles = []WriteFile{
+		{
+			Path:        "/etc/NetworkManager/system-connections/vsock0.nmconnection",
+			Content:     hutil.HyperVVsockNMConnection,
+			Permissions: "0600",
+			Owner:       "root",
+		},
+		{
+			Path:        "/etc/systemd/system/vsock-network.service",
+			Content:     netUnitFile,
+			Permissions: "0644",
+			Owner:       "root",
 		},
 	}
 
-	if mc.HyperVHypervisor != nil && mc.HyperVHypervisor.UserModeNetworking {
-		netUnitFile, err := hutil.CreateNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
-		if err != nil {
-			return nil, err
-		}
-
-		userData.WriteFiles = []WriteFile{
-			{
-				Path:        "/etc/NetworkManager/system-connections/vsock0.nmconnection",
-				Content:     hutil.HyperVVsockNMConnection,
-				Permissions: "0600",
-				Owner:       "root",
-			},
-			{
-				Path:        "/etc/systemd/system/vsock-network.service",
-				Content:     netUnitFile,
-				Permissions: "0644",
-				Owner:       "root",
-			},
-		}
-
-		userData.RunCmd = []string{
-			"install -o root -g root -m 0755 /mnt/gvforwarder /usr/local/bin/gvforwarder",
-			"nmcli connection reload",
-			"systemctl daemon-reload",
-			"systemctl enable --now vsock-network.service",
-		}
-
-		userData.Mounts = [][]string{
-			{"/dev/sr0", "/mnt", "iso9660", "defaults,ro", "0", "0"},
-		}
+	userData.RunCmd = []string{
+		"install -o root -g root -m 0755 /mnt/gvforwarder /usr/local/bin/gvforwarder",
+		"nmcli connection reload",
+		"systemctl daemon-reload",
+		"systemctl enable --now vsock-network.service",
 	}
 
-	yamlBytes, err := yaml.Marshal(&userData)
+	userData.Mounts = [][]string{
+		{"/dev/sr0", "/mnt", "iso9660", "defaults,ro", "0", "0"},
+	}
+
+	return nil
+}
+
+func defaultHypervUserData(mc *vmconfigs.MachineConfig, userModeNetworking bool) ([]byte, error) {
+	userData, err := defaultUserData(mc)
 	if err != nil {
-		logrus.Errorf("Error marshaling to YAML: %v", err)
 		return nil, err
 	}
 
-	headerLine := "#cloud-config\n"
-	yamlBytes = append([]byte(headerLine), yamlBytes...)
-	return yamlBytes, nil
+	if userModeNetworking {
+		err = addUserModeNetworking(userData, mc)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return userData.Marshal()
+}
+
+func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
+	var err error
+	userModeNetworking := mc.HyperVHypervisor != nil && mc.HyperVHypervisor.UserModeNetworking
+
+	// If user has not provided any custom user-data, generate default
+	if mc.CloudInitConfig.UserData == nil {
+		return defaultHypervUserData(mc, userModeNetworking)
+	}
+
+	customUserData, err := mc.CloudInitConfig.UserData.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	// if user has provided a custom user-data but we're not on Hyper-V/user-mode networking, return it as-is
+	if !userModeNetworking {
+		return customUserData, nil
+	}
+
+	// otherwise use the custom user-data and add the user-mode networking configuration
+	userModeNetworkingUserData := &UserData{}
+
+	if err := addUserModeNetworking(userModeNetworkingUserData, mc); err != nil {
+		return nil, err
+	}
+
+	// if the user has provided a custom user-data and we are on Hyper-V/user-mode networking,
+	// we need to merge our generated user data with user's one
+	// To do it we create a MIME multi-part archive
+	// with both files
+	return userModeNetworkingUserData.MarshalMultiPart(customUserData)
 }
 
 func getGvForwarderBytes() ([]byte, error) {

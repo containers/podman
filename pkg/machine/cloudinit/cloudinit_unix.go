@@ -3,40 +3,26 @@
 package cloudinit
 
 import (
-	"github.com/sirupsen/logrus"
-	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
-	"gopkg.in/yaml.v3"
 )
 
-func GenerateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
-	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
+func generateDefaultUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
+	userData, err := defaultUserData(mc)
 	if err != nil {
 		return nil, err
 	}
 
-	userData := UserData{
-		Users: []User{
-			User{
-				Name:    mc.SSH.RemoteUsername,
-				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
-				Shell:   "/bin/bash",
-				Groups:  []string{"users"},
-				SSHKeys: []string{sshKey},
-			},
-		},
+	return userData.Marshal()
+}
+
+func generateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
+	// If user has not provided any custom user-data, generate default
+	// otherwise use the provided one
+	if mc.CloudInitConfig.UserData == nil {
+		return generateDefaultUserData(mc)
 	}
 
-	yamlBytes, err := yaml.Marshal(&userData)
-	if err != nil {
-		logrus.Errorf("Error marshaling to YAML: %v", err)
-		return nil, err
-	}
-
-	headerLine := "#cloud-config\n"
-	yamlBytes = append([]byte(headerLine), yamlBytes...)
-
-	return yamlBytes, nil
+	return mc.CloudInitConfig.UserData.Read()
 }
 
 func GetEmbeddedResources(_ *vmconfigs.MachineConfig) []EmbeddedResource {

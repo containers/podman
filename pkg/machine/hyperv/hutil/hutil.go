@@ -6,8 +6,7 @@ import (
 	"go.podman.io/podman/v6/pkg/systemd/parser"
 )
 
-const HyperVVsockNMConnection = `
-[connection]
+const HyperVVsockNMConnection = `[connection]
 id=vsock0
 type=tun
 interface-name=vsock0
@@ -24,12 +23,16 @@ method=auto
 [proxy]
 `
 
-func CreateNetworkUnit(netPort uint64) (string, error) {
+func CreateNetworkUnitWithBinary(binaryPath string, netPort uint64) (string, error) {
 	netUnit := parser.NewUnitFile()
 	netUnit.Add("Unit", "Description", "vsock_network")
 	netUnit.Add("Unit", "After", "NetworkManager.service")
-	netUnit.Add("Service", "ExecStart", fmt.Sprintf("/usr/libexec/podman/gvforwarder -preexisting -iface vsock0 -url vsock://2:%d/connect", netPort))
+	netUnit.Add("Service", "ExecStart", fmt.Sprintf("%s -preexisting -iface vsock0 -url vsock://2:%d/connect", binaryPath, netPort))
 	netUnit.Add("Service", "ExecStartPost", "/usr/bin/nmcli c up vsock0")
 	netUnit.Add("Install", "WantedBy", "multi-user.target")
 	return netUnit.ToString()
+}
+
+func CreateNetworkUnit(netPort uint64) (string, error) {
+	return CreateNetworkUnitWithBinary("/usr/libexec/podman/gvforwarder", netPort)
 }
