@@ -149,14 +149,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(exposeFlagName, completion.AutocompleteNone)
 
-		groupAddFlagName := "group-add"
-		createFlags.StringSliceVar(
-			&cf.GroupAdd,
-			groupAddFlagName, []string{},
-			"Add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
-
 		createFlags.BoolVar(
 			&cf.HTTPProxy,
 			"http-proxy", podmanConfig.ContainersConfDefaultsRO.Containers.HTTPProxy,
@@ -700,6 +692,16 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Set the maximum amount of time that the startup healthcheck may take before it is considered failed",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(startupHCTimeoutFlagName, completion.AutocompleteNone)
+	}
+
+	if mode == entities.InfraMode || mode == entities.CreateMode {
+		groupAddFlagName := "group-add"
+		createFlags.StringSliceVar(
+			&cf.GroupAdd,
+			groupAddFlagName, []string{},
+			"Add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
 	}
 
 	// Restart is allowed for created, updated, and infra ctr

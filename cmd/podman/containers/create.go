@@ -268,24 +268,6 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 		vals.PID = c.Flag("pid").Value.String()
 		vals.CgroupNS = c.Flag("cgroupns").Value.String()
 
-		if c.Flags().Changed("group-add") {
-			groups := []string{}
-			for _, g := range cliVals.GroupAdd {
-				if g == "keep-groups" {
-					if len(cliVals.GroupAdd) > 1 {
-						return vals, errors.New("the '--group-add keep-groups' option is not allowed with any other --group-add options")
-					}
-					if registry.IsRemote() {
-						return vals, errors.New("the '--group-add keep-groups' option is not supported in remote mode")
-					}
-					vals.Annotation = append(vals.Annotation, fmt.Sprintf("%s=1", define.RunOCIKeepOriginalGroups))
-				} else {
-					groups = append(groups, g)
-				}
-			}
-			vals.GroupAdd = groups
-		}
-
 		if c.Flags().Changed("oom-score-adj") {
 			val, err := c.Flags().GetInt("oom-score-adj")
 			if err != nil {
@@ -308,6 +290,24 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 		if c.Flag("cgroups").Changed && vals.CgroupsMode == "split" && registry.IsRemote() {
 			return vals, fmt.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CgroupsMode)
 		}
+	}
+
+	if c.Flags().Changed("group-add") {
+		groups := []string{}
+		for _, g := range cliVals.GroupAdd {
+			if g == "keep-groups" {
+				if len(cliVals.GroupAdd) > 1 {
+					return vals, errors.New("the '--group-add keep-groups' option is not allowed with any other --group-add options")
+				}
+				if registry.IsRemote() {
+					return vals, errors.New("the '--group-add keep-groups' option is not supported in remote mode")
+				}
+				vals.Annotation = append(vals.Annotation, fmt.Sprintf("%s=1", define.RunOCIKeepOriginalGroups))
+			} else {
+				groups = append(groups, g)
+			}
+		}
+		vals.GroupAdd = groups
 	}
 	if c.Flag("shm-size").Changed {
 		vals.ShmSize = c.Flag("shm-size").Value.String()
