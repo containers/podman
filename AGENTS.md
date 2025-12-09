@@ -2,7 +2,7 @@
 
 ![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 
-Quick reference guide for AI agents assisting with Podman development.
+This document is specifically designed for AI coding assistants (like Claude, ChatGPT, Copilot) to provide context and guidance when helping developers with Podman-related tasks. It contains essential information about codebase structure, development patterns, testing frameworks, and common pitfalls that AI agents should be aware of when assisting with Podman development, debugging, and contributions.
 
 ## Project Overview
 
@@ -76,6 +76,8 @@ func (ic *ContainerEngine) Command(ctx context.Context, options entities.Command
 
 ### Integration Tests ([Ginkgo](https://github.com/onsi/ginkgo))
 
+**Integration Tests** (`test/e2e/`): Test Podman CLI commands end-to-end, using actual binaries and real containers. Use for testing user-facing functionality and CLI behavior.
+
 ```go
 It("should work correctly", func() {
     session := podmanTest.Podman([]string{"command", "args"})
@@ -85,6 +87,8 @@ It("should work correctly", func() {
 ```
 
 ### System Tests ([BATS](https://github.com/bats-core/bats-core))
+
+**System Tests** (`test/system/`): Test Podman in realistic environments with shell scripts. Use for testing complex scenarios, multi-command workflows, and system integration.
 
 ```bash
 @test "podman command functionality" {
