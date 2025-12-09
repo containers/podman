@@ -1,5 +1,15 @@
 # Release Notes
 
+## 5.7.1
+### Bugfixes
+- Fixed a bug where adding devices to emulated Linux containers on FreeBSD did not work.
+- Fixed a bug where the `podman system migrate` command could panic under certain circumstances when run rootless.
+- Fixed a bug where Podman would sometimes not correctly recreate the rootless user namespace when Conmon and the rootless pause process were unexpectedly killed.
+
+### Misc
+- Updated Buildah to v1.42.2
+- Updated containers/common to v0.66.1
+
 ## 5.7.0
 ### Security
 - This release addresses CVE-2025-52881, where arbitrary write gadgets and procfs write redirects allowed runc container escape and denial of service.
