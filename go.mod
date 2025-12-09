@@ -65,8 +65,8 @@ require (
 	github.com/vbauerster/mpb/v8 v8.11.2
 	github.com/vishvananda/netlink v1.3.1
 	go.podman.io/common v0.66.1-0.20251202202200-df55d6c661e8
-	go.podman.io/image/v5 v5.38.1-0.20251202202200-df55d6c661e8
-	go.podman.io/storage v1.61.1-0.20251202202200-df55d6c661e8
+	go.podman.io/image/v5 v5.38.1-0.20251209145320-afd10d86c8a5
+	go.podman.io/storage v1.61.1-0.20251209145320-afd10d86c8a5
 	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
 	golang.org/x/sync v0.18.0
@@ -130,7 +130,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect

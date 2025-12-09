@@ -82,7 +82,7 @@ func (index *OCI1IndexPublic) UpdateInstances(updates []ListUpdate) error {
 			ListOperation:   ListOpUpdate,
 		})
 	}
-	return index.editInstances(editInstances)
+	return index.editInstances(editInstances, false)
 }
 
 func annotationsToCompressionAlgorithmNames(annotations map[string]string) []string {
@@ -97,7 +97,12 @@ func annotationsToCompressionAlgorithmNames(annotations map[string]string) []str
 	return result
 }
 
-func addCompressionAnnotations(compressionAlgorithms []compression.Algorithm, annotationsMap *map[string]string) {
+// addCompressionAnnotations updates annotationsMap for a manifest, based on compressionAlgorithms known to be used in that instance.
+// If cannotModifyManifest, avoidable updates should be skipped (i.e. this does nothing, because the algorithm annotation is “only” used for prioritization).
+func addCompressionAnnotations(compressionAlgorithms []compression.Algorithm, annotationsMap *map[string]string, cannotModifyManifest bool) {
+	if cannotModifyManifest {
+		return
+	}
 	// TODO: This should also delete the algorithm if map already contains an algorithm and compressionAlgorithm
 	// list has a different algorithm. To do that, we would need to modify the callers to always provide a reliable
 	// and full compressionAlghorithms list.
@@ -114,7 +119,9 @@ func addCompressionAnnotations(compressionAlgorithms []compression.Algorithm, an
 	}
 }
 
-func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit) error {
+// editInstances edits information about the list's instances, based on instructions in editInstances.
+// If cannotModifyManifest, avoidable updates should be skipped.
+func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit, cannotModifyManifest bool) error {
 	addedEntries := []imgspecv1.Descriptor{}
 	updatedAnnotations := false
 	for i, editInstance := range editInstances {
@@ -152,13 +159,15 @@ func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit) error {
 					maps.Copy(index.Manifests[targetIndex].Annotations, editInstance.UpdateAnnotations)
 				}
 			}
-			addCompressionAnnotations(editInstance.UpdateCompressionAlgorithms, &index.Manifests[targetIndex].Annotations)
+			// FIXME: This does not set updatedAnnotations, so we don’t re-sort images with Zstd instances if some other
+			// tool created them without the OCI1InstanceAnnotationCompressionZSTD annotation.
+			addCompressionAnnotations(editInstance.UpdateCompressionAlgorithms, &index.Manifests[targetIndex].Annotations, cannotModifyManifest)
 		case ListOpAdd:
 			annotations := map[string]string{}
 			if editInstance.AddAnnotations != nil {
 				annotations = maps.Clone(editInstance.AddAnnotations)
 			}
-			addCompressionAnnotations(editInstance.AddCompressionAlgorithms, &annotations)
+			addCompressionAnnotations(editInstance.AddCompressionAlgorithms, &annotations, false) // We are adding a full new entry, so skipping the annotation would still not allow preserving the original manifest.
 			addedEntries = append(addedEntries, imgspecv1.Descriptor{
 				MediaType:    editInstance.AddMediaType,
 				ArtifactType: editInstance.AddArtifactType,
@@ -195,8 +204,10 @@ func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit) error {
 	return nil
 }
 
-func (index *OCI1Index) EditInstances(editInstances []ListEdit) error {
-	return index.editInstances(editInstances)
+// EditInstances edits information about the list's instances, based on instructions in editInstances.
+// If cannotModifyManifest, avoidable updates should be skipped.
+func (index *OCI1Index) EditInstances(editInstances []ListEdit, cannotModifyManifest bool) error {
+	return index.editInstances(editInstances, cannotModifyManifest)
 }
 
 // instanceIsZstd returns true if instance is a zstd instance otherwise false.

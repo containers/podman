@@ -646,7 +646,7 @@ func (w *huffmanBitWriter) writeBlockDynamic(tokens *tokens, eof bool, input []b
 		w.lastHeader = 0
 	}
 
-	numLiterals, numOffsets := w.indexTokens(tokens, fillReuse && !sync)
+	numLiterals, numOffsets := w.indexTokens(tokens, true)
 	extraBits := 0
 	ssize, storable := w.storedSize(input)
 
@@ -781,7 +781,7 @@ func (w *huffmanBitWriter) fillTokens() {
 // literalFreq and offsetFreq, and generates literalEncoding
 // and offsetEncoding.
 // The number of literal and offset tokens is returned.
-func (w *huffmanBitWriter) indexTokens(t *tokens, filled bool) (numLiterals, numOffsets int) {
+func (w *huffmanBitWriter) indexTokens(t *tokens, alwaysEOB bool) (numLiterals, numOffsets int) {
 	//copy(w.literalFreq[:], t.litHist[:])
 	*(*[256]uint16)(w.literalFreq[:]) = t.litHist
 	//copy(w.literalFreq[256:], t.extraHist[:])
@@ -791,9 +791,10 @@ func (w *huffmanBitWriter) indexTokens(t *tokens, filled bool) (numLiterals, num
 	if t.n == 0 {
 		return
 	}
-	if filled {
-		return maxNumLit, maxNumDist
+	if alwaysEOB {
+		w.literalFreq[endBlockMarker] = 1
 	}
+
 	// get the number of literals
 	numLiterals = len(w.literalFreq)
 	for w.literalFreq[numLiterals-1] == 0 {
