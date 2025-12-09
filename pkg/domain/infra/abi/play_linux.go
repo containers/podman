@@ -14,5 +14,6 @@ func openSymlinkPath(root *os.File, unsafePath string, flags int) (*os.File, err
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	return pathrs.Reopen(file, flags)
 }
