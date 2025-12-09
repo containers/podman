@@ -9,12 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
 )
 
 const gvForwarderPath = "/usr/libexec/podman/gvforwarder"
@@ -78,7 +78,11 @@ func startUserModeNetworking(mc *vmconfigs.MachineConfig) error {
 		return nil
 	}
 
-	exe, err := machine.FindExecutablePeer(gvProxy)
+	cfg, err := config.Default()
+	if err != nil {
+		return err
+	}
+	exe, err := cfg.FindHelperBinary(gvProxy, false)
 	if err != nil {
 		return fmt.Errorf("could not locate %s, which is necessary for user-mode networking, please reinstall", gvProxy)
 	}
