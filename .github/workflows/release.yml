@@ -138,14 +138,6 @@ jobs:
       working-directory: contrib/pkginstaller
       run: |
         make ARCH=aarch64 notarize &> /dev/null
-    - name: Build and Sign AMD
-      working-directory: contrib/pkginstaller
-      run: |
-        make ARCH=amd64 notarize &> /dev/null
-    - name: Build and Sign Universal
-      working-directory: contrib/pkginstaller
-      run: |
-        make ARCH=universal notarize &> /dev/null
     - name: Artifact
       uses: actions/upload-artifact@v5
       with:

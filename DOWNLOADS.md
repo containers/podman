@@ -41,14 +41,8 @@ matches corresponding changes in the artifacts task.
   [rootlessport](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/rootlessport) -
   Built on the latest supported Fedora release.
 * MacOS
-  [universal](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-installer-macos-universal.pkg)
-  ,
-  [x86_64](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-installer-macos-amd64.pkg)
-  , and
   [arm64](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-installer-macos-arm64.pkg)
-  installation packages.  Again, these are **not** signed, so expect warnings if you try to install them.
-  There's also binary release *ZIP-files* for
-  [darwin_amd64](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-remote-release-darwin_amd64.zip)
-  and
+  installation package.  Again, this is **not** signed, so expect warnings if you try to install it.
+  There's also a binary release *ZIP-file* for
   [darwin_arm64](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-remote-release-darwin_arm64.zip).
 * Windows [podman-remote](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary/podman-remote-release-windows_amd64.zip) for x86_64 only.

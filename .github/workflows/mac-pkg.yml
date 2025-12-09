@@ -74,8 +74,6 @@ jobs:
       run: |
         URI="https://github.com/containers/podman/releases/download/${VERSION}"
         ARM_FILE="podman-installer-macos-arm64.pkg"
-        AMD_FILE="podman-installer-macos-amd64.pkg"
-        UNIVERSAL_FILE="podman-installer-macos-universal.pkg"
 
         status=$(curl -s -o /dev/null -w "%{http_code}" "${URI}/${ARM_FILE}")
         if [[ "$status" == "404" ]] ; then
@@ -84,27 +82,9 @@ jobs:
           echo "::warning::ARM installer already exists, skipping"
           echo "buildarm=false" >> $GITHUB_OUTPUT
         fi
-
-        status=$(curl -s -o /dev/null -w "%{http_code}" "${URI}/${AMD_FILE}")
-        if [[ "$status" == "404" ]] ; then
-          echo "buildamd=true" >> $GITHUB_OUTPUT
-        else
-          echo "::warning::AMD installer already exists, skipping"
-          echo "buildamd=false" >> $GITHUB_OUTPUT
-        fi
-
-        status=$(curl -s -o /dev/null -w "%{http_code}" "${URI}/${UNIVERSAL_FILE}")
-        if [[ "$status" == "404" ]] ; then
-          echo "builduniversal=true" >> $GITHUB_OUTPUT
-        else
-          echo "::warning::Universal installer already exists, skipping"
-          echo "builduniversal=false" >> $GITHUB_OUTPUT
-        fi
     - name: Checkout Version
       if: >-
-        steps.check.outputs.buildamd == 'true' ||
         steps.check.outputs.buildarm == 'true' ||
-        steps.check.outputs.builduniversal == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
       uses: actions/checkout@v6
       with:
@@ -113,9 +93,7 @@ jobs:
     - name: Set up Go
       # Conditional duplication sucks - GHA doesn't grok YAML anchors/aliases
       if: >-
-        steps.check.outputs.buildamd == 'true' ||
         steps.check.outputs.buildarm == 'true' ||
-        steps.check.outputs.builduniversal == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
       uses: actions/setup-go@v6
       with:
@@ -123,9 +101,7 @@ jobs:
         cache: false
     - name: Create Keychain
       if: >-
-        steps.check.outputs.buildamd == 'true' ||
         steps.check.outputs.buildarm == 'true' ||
-        steps.check.outputs.builduniversal == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
       run: |
         echo $APPLICATION_CERTIFICATE | base64 --decode -o appcert.p12
@@ -145,23 +121,9 @@ jobs:
       run: |
         make ARCH=aarch64 notarize &> /dev/null
         cd out && shasum -a 256 podman-installer-macos-arm64.pkg >> shasums
-    - name: Build and Sign AMD
-      if: steps.check.outputs.buildamd == 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
-      working-directory: contrib/pkginstaller
-      run: |
-        make ARCH=amd64 notarize &> /dev/null
-        cd out && shasum -a 256 podman-installer-macos-amd64.pkg >> shasums
-    - name: Build and Sign Universal
-      if: steps.check.outputs.builduniversal == 'true' || steps.actual_dryrun.outputs.dryrun == 'true'
-      working-directory: contrib/pkginstaller
-      run: |
-        make ARCH=universal notarize &> /dev/null
-        cd out && shasum -a 256 podman-installer-macos-universal.pkg >> shasums
     - name: Artifact
       if: >-
-        steps.check.outputs.buildamd == 'true' ||
         steps.check.outputs.buildarm == 'true' ||
-        steps.check.outputs.builduniversal == 'true' ||
         steps.actual_dryrun.outputs.dryrun == 'true'
       uses: actions/upload-artifact@v5
       with:
@@ -172,9 +134,7 @@ jobs:
     - name: Upload to Release
       if: >-
         steps.actual_dryrun.outputs.dryrun == 'false' &&
-        (steps.check.outputs.buildamd == 'true' ||
-         steps.check.outputs.buildarm == 'true'||
-         steps.check.outputs.builduniversal == 'true' )
+        steps.check.outputs.buildarm == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ steps.getversion.outputs.version }}

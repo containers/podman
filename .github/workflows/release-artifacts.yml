@@ -85,8 +85,7 @@ jobs:
           VERSION: ${{ steps.getversion.outputs.version }}
         run: |
             URI="https://github.com/containers/podman/releases/download/${VERSION}"
-            for artifact in "podman-remote-release-darwin_amd64.zip darwin_amd" \
-                  'podman-remote-release-darwin_arm64.zip darwin_arm' \
+            for artifact in 'podman-remote-release-darwin_arm64.zip darwin_arm' \
                   'podman-remote-release-windows_amd64.zip windows_amd' \
                   'podman-remote-static-linux_amd64.tar.gz linux_amd' \
                   'podman-remote-static-linux_arm64.tar.gz linux_arm'
@@ -128,14 +127,6 @@ jobs:
           steps.check.outputs.buildartifacts == 'true' ||
           steps.actual_dryrun.outputs.dryrun == 'true'
         run: mkdir -p release/
-
-      - name: Build Darwin AMD
-        if: >-
-          steps.check.outputs.darwin_amd == 'true' ||
-          steps.actual_dryrun.outputs.dryrun == 'true'
-        run: |
-            make podman-remote-release-darwin_amd64.zip
-            mv podman-remote-release-darwin_amd64.zip release/
 
       - name: Build Darwin ARM
         if: >-

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -102,10 +101,6 @@ func appleHvInstalled() (bool, error) {
 }
 
 func libKrunInstalled() (bool, error) {
-	if runtime.GOARCH != "arm64" {
-		return false, nil
-	}
-
 	// need to verify that krunkit, virglrenderer, and libkrun-efi are installed
 	cfg, err := config.Default()
 	if err != nil {

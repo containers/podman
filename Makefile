@@ -1028,8 +1028,6 @@ install.tools: .install.golangci-lint ## Install needed tools
 .PHONY: release-artifacts
 release-artifacts: clean-binaries
 	mkdir -p release/
-	$(MAKE) podman-remote-release-darwin_amd64.zip
-	mv podman-remote-release-darwin_amd64.zip release/
 	$(MAKE) podman-remote-release-darwin_arm64.zip
 	mv podman-remote-release-darwin_arm64.zip release/
 	$(MAKE) podman-remote-release-windows_amd64.zip
