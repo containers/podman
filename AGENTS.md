@@ -6,9 +6,7 @@ Quick reference guide for AI agents assisting with Podman development.
 
 ## Project Overview
 
-**Podman** is a daemonless container engine with Docker-compatible CLI, rootless support, and native pod management.
-
-**Key Technologies**: [Cobra](https://github.com/spf13/cobra), [containers/image](https://github.com/containers/image), [containers/storage](https://github.com/containers/storage), [crun](https://github.com/containers/crun), [Go](https://golang.org), [Netavark](https://github.com/containers/netavark), [runc](https://github.com/opencontainers/runc)
+**Podman** is a daemonless container engine with Docker-compatible CLI, rootless support, native pod management, and systemd integration via Quadlet.
 
 ## Quick Start
 
@@ -28,6 +26,7 @@ make install.tools      # Install linters and dev tools
 ```text
 podman/
 ├── cmd/podman/               # CLI commands (Cobra framework)
+├── cmd/quadlet/              # Quadlet systemd unit generator
 ├── libpod/                   # Core container/pod management (Linux only)
 ├── pkg/
 │   ├── api/                  # REST API server
@@ -105,13 +104,16 @@ It("should work correctly", func() {
 
 ## Key Libraries
 
+- **[aardvark-dns](https://github.com/containers/aardvark-dns)**: Container DNS server
+- **[Cobra](https://github.com/spf13/cobra)**: CLI framework used for cmd/podman commands
 - **[containers/buildah](https://github.com/containers/buildah)**: Image building
-- **[containers/common](https://github.com/containers/common)**: Shared utilities
-- **[containers/image](https://github.com/containers/image)**: Image management
-- **[containers/storage](https://github.com/containers/storage)**: Container and image storage
+- **[containers/container-libs](https://github.com/containers/container-libs)**: Shared utilities
+- **[crun](https://github.com/containers/crun)**: Fast, low-memory container runtime
+- **[Go](https://golang.org)**: Programming language
 - **[gorilla/mux](https://github.com/gorilla/mux)**: HTTP router and URL matcher for REST API
 - **[gorilla/schema](https://github.com/gorilla/schema)**: Form data to struct conversion
 - **[netavark](https://github.com/containers/netavark)**: Network management
+- **[runc](https://github.com/opencontainers/runc)**: OCI-compliant container runtime
 
 ## Common Pitfalls for AI Agents
 
