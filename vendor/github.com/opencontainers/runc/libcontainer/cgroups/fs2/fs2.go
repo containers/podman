@@ -71,7 +71,7 @@ func (m *Manager) Apply(pid int) error {
 		if m.config.Rootless {
 			if m.config.Path == "" {
 				if blNeed, nErr := needAnyControllers(m.config.Resources); nErr == nil && !blNeed {
-					return nil
+					return cgroups.ErrRootless
 				}
 				return fmt.Errorf("rootless needs no limits + no cgrouppath when no permission is granted for cgroups: %w", err)
 			}
@@ -233,7 +233,7 @@ func (m *Manager) setUnified(res map[string]string) error {
 		if strings.Contains(k, "/") {
 			return fmt.Errorf("unified resource %q must be a file name (no slashes)", k)
 		}
-		if err := cgroups.WriteFile(m.dirPath, k, v); err != nil {
+		if err := cgroups.WriteFileByLine(m.dirPath, k, v); err != nil {
 			// Check for both EPERM and ENOENT since O_CREAT is used by WriteFile.
 			if errors.Is(err, os.ErrPermission) || errors.Is(err, os.ErrNotExist) {
 				// Check if a controller is available,

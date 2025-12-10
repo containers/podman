@@ -1730,7 +1730,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			// no type flag for sockets
 			default:
 				return fmt.Errorf("unrecognized Typeflag %c", hdr.Typeflag)
-			case tar.TypeReg:
+			case tar.TypeReg: //nolint:staticcheck
 				var written int64
 				written, err = createFile(path, tr)
 				// only check the length if there wasn't an error, which we'll

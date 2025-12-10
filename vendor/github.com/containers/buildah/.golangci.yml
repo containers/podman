@@ -8,6 +8,5 @@ run:
   concurrency: 4
 linters:
   enable:
-    - revive
     - unconvert
     - unparam

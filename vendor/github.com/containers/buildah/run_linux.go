@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -330,6 +331,23 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	spec := g.Config
 	g = nil
 
+	// Override a buggy resource limit default that containers/common could supply before
+	// https://github.com/containers/common/pull/2199 fixed it.
+	if kernelPidMaxBytes, err := os.ReadFile("/proc/sys/kernel/pid_max"); err == nil {
+		kernelPidMaxString := strings.TrimSpace(string(kernelPidMaxBytes))
+		if kernelPidMaxValue, err := strconv.ParseUint(kernelPidMaxString, 10, 64); err == nil {
+			var filteredLimits []specs.POSIXRlimit
+			for _, rlimit := range spec.Process.Rlimits {
+				if rlimit.Type == "RLIMIT_NPROC" && rlimit.Soft == kernelPidMaxValue && rlimit.Hard == kernelPidMaxValue {
+					rlimit.Soft, rlimit.Hard = define.RLimitDefaultValue, define.RLimitDefaultValue
+					logrus.Debugf("overrode RLIMIT_NPROC set to kernel system-wide process limit with %d", define.RLimitDefaultValue)
+				}
+				filteredLimits = append(filteredLimits, rlimit)
+			}
+			spec.Process.Rlimits = filteredLimits
+		}
+	}
+
 	// Set the seccomp configuration using the specified profile name.  Some syscalls are
 	// allowed if certain capabilities are to be granted (example: CAP_SYS_CHROOT and chroot),
 	// so we sorted out the capabilities lists first.
@@ -499,6 +517,33 @@ rootless=%d
 	}()
 
 	defer b.cleanupTempVolumes()
+
+	// Handle mount flags that request that the source locations for "bind" mountpoints be
+	// relabeled, and filter those flags out of the list of mount options we pass to the
+	// runtime.
+	for i := range spec.Mounts {
+		switch spec.Mounts[i].Type {
+		default:
+			continue
+		case "bind", "rbind":
+			// all good, keep going
+		}
+		zflag := ""
+		for _, opt := range spec.Mounts[i].Options {
+			if opt == "z" || opt == "Z" {
+				zflag = opt
+			}
+		}
+		if zflag == "" {
+			continue
+		}
+		spec.Mounts[i].Options = slices.DeleteFunc(spec.Mounts[i].Options, func(opt string) bool {
+			return opt == "z" || opt == "Z"
+		})
+		if err := relabel(spec.Mounts[i].Source, b.MountLabel, zflag == "z"); err != nil {
+			return fmt.Errorf("setting file label %q on %q: %w", b.MountLabel, spec.Mounts[i].Source, err)
+		}
+	}
 
 	switch isolation {
 	case define.IsolationOCI:
@@ -1082,16 +1127,19 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			if err := relabel(host, mountLabel, true); err != nil {
 				return specs.Mount{}, err
 			}
+			options = slices.DeleteFunc(options, func(o string) bool { return o == "z" })
 		}
 		if foundZ {
 			if err := relabel(host, mountLabel, false); err != nil {
 				return specs.Mount{}, err
 			}
+			options = slices.DeleteFunc(options, func(o string) bool { return o == "Z" })
 		}
 		if foundU {
 			if err := chown.ChangeHostPathOwnership(host, true, idMaps.processUID, idMaps.processGID); err != nil {
 				return specs.Mount{}, err
 			}
+			options = slices.DeleteFunc(options, func(o string) bool { return o == "U" })
 		}
 		if foundO {
 			if (upperDir != "" && workDir == "") || (workDir != "" && upperDir == "") {
@@ -1194,9 +1242,6 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
 			return fmt.Errorf("adding %q to the permitted capability set: %w", cap, err)
 		}
-		if err := g.AddProcessCapabilityAmbient(cap); err != nil {
-			return fmt.Errorf("adding %q to the ambient capability set: %w", cap, err)
-		}
 	}
 	return nil
 }
@@ -1211,9 +1256,6 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
 			return fmt.Errorf("removing %q from the permitted capability set: %w", cap, err)
-		}
-		if err := g.DropProcessCapabilityAmbient(cap); err != nil {
-			return fmt.Errorf("removing %q from the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil

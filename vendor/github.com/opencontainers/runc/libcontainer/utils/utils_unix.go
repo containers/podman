@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package utils
 
@@ -14,21 +13,10 @@ import (
 	_ "unsafe" // for go:linkname
 
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/opencontainers/runc/internal/pathrs"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
-
-// EnsureProcHandle returns whether or not the given file handle is on procfs.
-func EnsureProcHandle(fh *os.File) error {
-	var buf unix.Statfs_t
-	if err := unix.Fstatfs(int(fh.Fd()), &buf); err != nil {
-		return fmt.Errorf("ensure %s is on procfs: %w", fh.Name(), err)
-	}
-	if buf.Type != unix.PROC_SUPER_MAGIC {
-		return fmt.Errorf("%s is not on procfs", fh.Name())
-	}
-	return nil
-}
 
 var (
 	haveCloseRangeCloexecBool bool
@@ -59,18 +47,12 @@ type fdFunc func(fd int)
 // fdRangeFrom calls the passed fdFunc for each file descriptor that is open in
 // the current process.
 func fdRangeFrom(minFd int, fn fdFunc) error {
-	procSelfFd, closer := ProcThreadSelf("fd")
-	defer closer()
-
-	fdDir, err := os.Open(procSelfFd)
+	fdDir, closer, err := pathrs.ProcThreadSelfOpen("fd/", unix.O_DIRECTORY|unix.O_CLOEXEC)
 	if err != nil {
-		return err
+		return fmt.Errorf("get handle to /proc/thread-self/fd: %w", err)
 	}
+	defer closer()
 	defer fdDir.Close()
-
-	if err := EnsureProcHandle(fdDir); err != nil {
-		return err
-	}
 
 	fdList, err := fdDir.Readdirnames(-1)
 	if err != nil {
@@ -164,8 +146,8 @@ func NewSockPair(name string) (parent, child *os.File, err error) {
 // the passed closure (the file handle will be freed once the closure returns).
 func WithProcfd(root, unsafePath string, fn func(procfd string) error) error {
 	// Remove the root then forcefully resolve inside the root.
-	unsafePath = stripRoot(root, unsafePath)
-	path, err := securejoin.SecureJoin(root, unsafePath)
+	unsafePath = StripRoot(root, unsafePath)
+	fullPath, err := securejoin.SecureJoin(root, unsafePath)
 	if err != nil {
 		return fmt.Errorf("resolving path inside rootfs failed: %w", err)
 	}
@@ -174,7 +156,7 @@ func WithProcfd(root, unsafePath string, fn func(procfd string) error) error {
 	defer closer()
 
 	// Open the target path.
-	fh, err := os.OpenFile(path, unix.O_PATH|unix.O_CLOEXEC, 0)
+	fh, err := os.OpenFile(fullPath, unix.O_PATH|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return fmt.Errorf("open o_path procfd: %w", err)
 	}
@@ -184,11 +166,22 @@ func WithProcfd(root, unsafePath string, fn func(procfd string) error) error {
 	// Double-check the path is the one we expected.
 	if realpath, err := os.Readlink(procfd); err != nil {
 		return fmt.Errorf("procfd verification failed: %w", err)
-	} else if realpath != path {
+	} else if realpath != fullPath {
 		return fmt.Errorf("possibly malicious path detected -- refusing to operate on %s", realpath)
 	}
 
 	return fn(procfd)
+}
+
+// WithProcfdFile is a very minimal wrapper around [ProcThreadSelfFd], intended
+// to make migrating from [WithProcfd] and [WithProcfdPath] usage easier. The
+// caller is responsible for making sure that the provided file handle is
+// actually safe to operate on.
+func WithProcfdFile(file *os.File, fn func(procfd string) error) error {
+	fdpath, closer := ProcThreadSelfFd(file.Fd())
+	defer closer()
+
+	return fn(fdpath)
 }
 
 type ProcThreadSelfCloser func()
@@ -260,4 +253,19 @@ func ProcThreadSelf(subpath string) (string, ProcThreadSelfCloser) {
 // without using fmt.Sprintf to avoid unneeded overhead.
 func ProcThreadSelfFd(fd uintptr) (string, ProcThreadSelfCloser) {
 	return ProcThreadSelf("fd/" + strconv.FormatUint(uint64(fd), 10))
+}
+
+// Openat is a Go-friendly openat(2) wrapper.
+func Openat(dir *os.File, path string, flags int, mode uint32) (*os.File, error) {
+	dirFd := unix.AT_FDCWD
+	if dir != nil {
+		dirFd = int(dir.Fd())
+	}
+	flags |= unix.O_CLOEXEC
+
+	fd, err := unix.Openat(dirFd, path, flags, mode)
+	if err != nil {
+		return nil, &os.PathError{Op: "openat", Path: path, Err: err}
+	}
+	return os.NewFile(uintptr(fd), dir.Name()+"/"+path), nil
 }
