@@ -12,8 +12,8 @@ import (
 )
 
 func TestResolveVolumeSourcePathTmpSymlink(t *testing.T) {
-	dir, err := os.MkdirTemp("/tmp", "podman-vol-")
-	require.NoError(t, err)
+	t.Setenv("TMPDIR", "/tmp")
+	dir := t.TempDir()
 	t.Cleanup(func() {
 		_ = os.RemoveAll(dir)
 	})
