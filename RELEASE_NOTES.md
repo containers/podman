@@ -5,6 +5,7 @@
 - Fixed a bug where adding devices to emulated Linux containers on FreeBSD did not work.
 - Fixed a bug where the `podman system migrate` command could panic under certain circumstances when run rootless.
 - Fixed a bug where Podman would sometimes not correctly recreate the rootless user namespace when Conmon and the rootless pause process were unexpectedly killed.
+- Fixed a bug where the `podman kube play` command could leak file descriptors.
 
 ### Misc
 - Updated Buildah to v1.42.2
