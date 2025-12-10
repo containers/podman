@@ -171,6 +171,9 @@ jobs:
         persist-credentials: false
     - name: Download Windows zip artifact
       uses: actions/download-artifact@v6
+      with:
+        name: release-artifacts
+        path: ${{ github.workspace }}\release-artifacts
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
