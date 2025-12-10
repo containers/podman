@@ -2,6 +2,22 @@
 
 . $PSScriptRoot\win-lib.ps1
 
+$syms =  [char[]]([char]'a'..[char]'z') +
+        [char[]]([char]'A'..[char]'Z') +
+        [char[]]([char]'0'..[char]'9')
+
+function GenerateRandomPassword {
+    param(
+        [int]$length = 32
+    )
+
+    $rnd = [byte[]]::new($length)
+    [System.Security.Cryptography.RandomNumberGenerator]::create().getBytes($rnd)
+    $password = ($rnd | ForEach-Object { $syms[$_ % $syms.length] }) -join ''
+
+    return $password
+}
+
 Write-Host "Recovering env. vars."
 Import-CLIXML "$ENV:TEMP\envars.xml" | % {
     Write-Host "    $($_.Name) = $($_.Value)"
@@ -25,7 +41,8 @@ Write-Host "    CONTAINERS_MACHINE_PROVIDER = $Env:CONTAINERS_MACHINE_PROVIDER"
 Write-Host "`n"
 
 # The repo.tar.zst artifact was extracted here
-Set-Location "$ENV:CIRRUS_WORKING_DIR\repo"
+$repoDir = "$ENV:CIRRUS_WORKING_DIR\repo"
+Set-Location $repoDir
 # Tests hard-code this location for podman-remote binary, make sure it actually runs.
 Run-Command ".\bin\windows\podman.exe --version"
 
@@ -40,7 +57,7 @@ $Env:TMPDIR = 'Z:\'
 $Env:TMP = 'Z:\'
 $Env:TEMP = 'Z:\'
 
-Write-Host "`nRunning podman-machine e2e tests"
+# Write-Host "`nRunning podman-machine e2e tests"
 
 if ($Env:TEST_FLAVOR -eq "machine-wsl") {
     # Output info so we know what version we are testing.
@@ -48,10 +65,35 @@ if ($Env:TEST_FLAVOR -eq "machine-wsl") {
     Run-Command "$PSScriptRoot\win-collect-wsl-logs-start.ps1"
 }
 
+# The unprivileged user is the default user for running Podman e2e and
+# installation tests.
+$unprivilegedUser = "unprivileged-user"
+$unprivilegedUserPass = GenerateRandomPassword
+$unprivilegedUserPassEnc = ConvertTo-SecureString $unprivilegedUserPass -AsPlainText -Force
+New-LocalUser -Name $unprivilegedUser -Password $unprivilegedUserPassEnc
+
+# Set permissions for the unprivileged user to the repo directory
+$parentPath = Split-Path -Path "$repoDir" -Parent
+icacls "$parentPath" /grant "${unprivilegedUser}:(RX)"
+icacls "$repoDir" /grant "${unprivilegedUser}:(OI)(CI)(F)" /T /Q /C /L
+
 try {
-    Run-Command ".\winmake localmachine"
+    Invoke-CommandAsUser `
+      -WorkingDirectory $repoDir `
+      -Username $unprivilegedUser `
+      -SecurePassword $unprivilegedUserPassEnc `
+      -Command ".\winmake.ps1 whoami"
 } finally {
     if ($Env:TEST_FLAVOR -eq "machine-wsl") {
         Run-Command "$PSScriptRoot\win-collect-wsl-logs-stop.ps1"
     }
 }
+
+Write-Host "`nListing the users on the machine"
+Get-LocalUser
+Write-Host "`nListing members of the Users group"
+Get-LocalGroup -Name Users | Get-LocalGroupMember
+Write-Host "`nListing members of the Administrators group"
+Get-LocalGroup -Name Administrators | Get-LocalGroupMember
+Write-Host "`nListing members of the Hyper-V Administrators group"
+Get-LocalGroup -Name "Hyper-V Administrators" | Get-LocalGroupMember

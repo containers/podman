@@ -101,9 +101,63 @@ function Run-Command {
 
     $exitCode = $LASTEXITCODE
 
-    if ($Env:CIRRUS_CI -eq "true") {
-        Invoke-Logformatter $unformattedLog
-    }
+    # if ($Env:CIRRUS_CI -eq "true") {
+    #     Invoke-Logformatter $unformattedLog
+    # }
 
     Check-Exit 2 "'$command'" "$exitCode"
+}
+
+function Invoke-CommandAsUser {
+    param (
+        [string] $WorkingDirectory,
+        [string] $Command,
+        [string] $Username,
+        [secureString] $SecurePassword
+    )
+
+    $credential = New-Object System.Management.Automation.PSCredential $Username, $securePassword
+
+    $fullCommand = "Set-Location -Path ${WorkingDirectory}; $Command"
+    $bytes = [System.Text.Encoding]::Unicode.GetBytes($fullCommand)
+    $encodedCommand = [Convert]::ToBase64String($bytes)
+
+    $cwd = [Environment]::GetFolderPath('CommonApplicationData')
+
+    # Start the process with the encoded command and the credentials
+    #   -Wait: Wait for the process to complete (synchronously)
+    #   -PassThru: Return the process object
+    Write-Host "Starting process with Working Directory $WorkingDirectory..."
+    $p = Start-Process -FilePath "powershell.exe" `
+                  -ArgumentList "-NoLogo -ExecutionPolicy Bypass -NoProfile -NonInteractive -OutputFormat Text -EncodedCommand $encodedCommand" `
+                  -Credential $credential `
+                  -WindowStyle Hidden `
+                  -Wait `
+                  -PassThru `
+                  -WorkingDirectory $WorkingDirectory `
+                  -RedirectStandardOutput "$cwd\command-output.txt"
+
+    if ($Env:CIRRUS_CI -eq "true") {
+        Invoke-Logformatter "$cwd\command-output.txt"
+    }
+
+    if ($null -eq $p) {
+        throw "the process object returned by Start-Process is null."
+    } elseif (-not $p.HasExited) {
+        throw "the process is still running (should never happen)."
+    } elseif ($p.ExitCode -ne 0) {
+        # Decode common task scheduler error codes
+        $resultMessage = switch ($p.ExitCode) {
+            0 { "Success" }
+            1 { "Commmand completed with an error or unknown command called" }
+            2 { "File not found" }
+            10 { "Environment is incorrect" }
+            2147750687 { "Command failed to start (invalid credentials or permissions)" }
+            2147943645 { "Access is denied" }
+            default { "Unknown error code" }
+        }
+        throw "command failed with error code: $($p.ExitCode) ($resultMessage)`n $(Get-Content -Path "$cwd\command-output.txt")"
+    } else {
+        Get-Content "$cwd\command-output.txt"
+    }
 }

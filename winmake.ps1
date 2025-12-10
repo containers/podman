@@ -19,7 +19,7 @@ param (
     [parameter(ValueFromRemainingArguments)][object[]]$params = @()
 )
 
-. ./contrib/cirrus/win-lib.ps1
+. $PSScriptRoot\contrib\cirrus\win-lib.ps1
 
 # Targets
 function Podman-Remote {
@@ -428,6 +428,9 @@ $remotetags = 'remote exclude_graphdriver_btrfs containers_image_openpgp'
 switch ($target) {
     { $_ -in '', 'podman-remote', 'podman' } {
         Podman-Remote
+    }
+    'whoami' {
+        Write-Host "Current user: $(whoami)"
     }
     'localunit' {
         Local-Unit
