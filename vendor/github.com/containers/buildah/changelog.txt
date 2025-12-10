@@ -1,3 +1,22 @@
+- Changelog for v1.37.7 (2025-12-09)
+  * [release-1.37] CI: run integration tests on Fedora with both crun and
+  * [release-1.37] runUsingRuntime: use named constants for runtime states
+  * [release-1.37] Add a dummy "runtime" that just dumps its
+  * [release-1.37] run: handle relabeling bind mounts ourselves
+  * [release-1.37] Partially work around containers/common
+  * [release-1.37] Don't set ambient capabilities
+  * [release-1.37] Silence new linter warnings
+  * [release-1.37] Bump onsi/ginkgo to v2 and x/tools
+  * [release-1.37] Bump CI environment to match release-1.39
+  * [release-1.37] Finish updating to go 1.22
+  * [release-1.37] update RunningInUserNS lib
+  * [release-1.37] Bump x/tools to v0.26.0
+  * [release-1.37] replace deprecated selinux/label calls
+  * [release-1.37] Bump Go to 1.22 in Makefile
+  * [release-1.37] Bump runc to v1.2.9 - CVE-2025-52881
+  * Builder.sbomScan(): don't break non-root scanners
+  * [release-1.37] tests/conformance/testdata/Dockerfile.add:...
+
 - Changelog for v1.37.6 (2025-01-20)
   * Fix TOCTOU error when bind and cache mounts use "src" values
   * define.TempDirForURL(): always use an intermediate subdirectory

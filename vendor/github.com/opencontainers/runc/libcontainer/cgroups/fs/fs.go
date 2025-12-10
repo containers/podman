@@ -105,7 +105,7 @@ func isIgnorableError(rootless bool, err error) bool {
 	return false
 }
 
-func (m *Manager) Apply(pid int) (err error) {
+func (m *Manager) Apply(pid int) (retErr error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -129,6 +129,7 @@ func (m *Manager) Apply(pid int) (err error) {
 			// later by Set, which fails with a friendly error (see
 			// if path == "" in Set).
 			if isIgnorableError(c.Rootless, err) && c.Path == "" {
+				retErr = cgroups.ErrRootless
 				delete(m.paths, name)
 				continue
 			}
@@ -136,7 +137,7 @@ func (m *Manager) Apply(pid int) (err error) {
 		}
 
 	}
-	return nil
+	return retErr
 }
 
 func (m *Manager) Destroy() error {

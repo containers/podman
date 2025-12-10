@@ -53,7 +53,7 @@ endif
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
 #           and inlining. Using these build options allows you to subsequently
 #           use source debugging tools like delve.
-all: bin/buildah bin/imgtype bin/copy bin/tutorial docs
+all: bin/buildah bin/imgtype bin/copy bin/tutorial bin/dumpspec docs
 
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
@@ -100,6 +100,9 @@ cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $
 bin/buildah.%:
 	mkdir -p ./bin
 	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
+
+bin/dumpspec: $(SOURCES) tests/dumpspec/*.go
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/dumpspec
 
 bin/imgtype: $(SOURCES) tests/imgtype/imgtype.go
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go
@@ -199,7 +202,12 @@ test-unit: tests/testreport/testreport
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover $(RACEFLAGS) ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.21 make vendor
+	goversion=$(shell sed -e '/^go /!d' -e '/^go /s,.* ,,g' go.mod) ; \
+	if test -d `go env GOCACHE` && test -w `go env GOCACHE` ; then \
+		podman run --privileged --rm --env HOME=/root -v `go env GOCACHE`:/root/.cache/go-build --env GOCACHE=/root/.cache/go-build -v `pwd`:/src -w /src docker.io/library/golang:$$goversion make vendor ; \
+	else \
+		podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:$$goversion make vendor ; \
+	fi
 
 .PHONY: vendor
 vendor:
