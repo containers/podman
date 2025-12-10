@@ -1,4 +1,4 @@
-# webbrowser [![Build Status](https://travis-ci.org/toqueteos/webbrowser.png?branch=master)](https://travis-ci.org/toqueteos/webbrowser) [![GoDoc](http://godoc.org/github.com/toqueteos/webbrowser?status.png)](http://godoc.org/github.com/toqueteos/webbrowser) [![Sourcegraph](https://sourcegraph.com/github.com/toqueteos/webbrowser/-/badge.svg)](https://sourcegraph.com/github.com/toqueteos/webbrowser?badge)
+# webbrowser [![Build Status](https://github.com/toqueteos/webbrowser/actions/workflows/ci.yml/badge.svg)](https://github.com/toqueteos/webbrowser/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/toqueteos/webbrowser.svg)](https://pkg.go.dev/github.com/toqueteos/webbrowser)
 
 webbrowser provides a simple API for opening web pages on your default browser.
 
@@ -13,6 +13,10 @@ As simple as:
 ```bash
 go get -u github.com/toqueteos/webbrowser
 ```
+
+It is Go modules compatible!
+
+_(`go.mod` was explicitly added in version `v1.2.0`)_
 
 ## Usage
 

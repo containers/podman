@@ -7,5 +7,4 @@ Any changes are welcomed!
 
 ## Looking for contact info?
 
-- Twitter: [@toqueteos](https://twitter.com/toqueteos)
 - Mail: `toqueteos AT gmail DOT com`

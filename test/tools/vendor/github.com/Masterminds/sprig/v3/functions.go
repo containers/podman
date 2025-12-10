@@ -22,8 +22,7 @@ import (
 //
 // Use this to pass the functions into the template engine:
 //
-// 	tpl := template.New("foo").Funcs(sprig.FuncMap()))
-//
+//	tpl := template.New("foo").Funcs(sprig.FuncMap()))
 func FuncMap() template.FuncMap {
 	return HtmlFuncMap()
 }
@@ -142,10 +141,13 @@ var genericMap = map[string]interface{}{
 	"swapcase":     util.SwapCase,
 	"shuffle":      xstrings.Shuffle,
 	"snakecase":    xstrings.ToSnakeCase,
-	"camelcase":    xstrings.ToCamelCase,
-	"kebabcase":    xstrings.ToKebabCase,
-	"wrap":         func(l int, s string) string { return util.Wrap(s, l) },
-	"wrapWith":     func(l int, sep, str string) string { return util.WrapCustom(str, l, sep, true) },
+	// camelcase used to call xstrings.ToCamelCase, but that function had a breaking change in version
+	// 1.5 that moved it from upper camel case to lower camel case. This is a breaking change for sprig.
+	// A new xstrings.ToPascalCase function was added that provided upper camel case.
+	"camelcase": xstrings.ToPascalCase,
+	"kebabcase": xstrings.ToKebabCase,
+	"wrap":      func(l int, s string) string { return util.Wrap(s, l) },
+	"wrapWith":  func(l int, sep, str string) string { return util.WrapCustom(str, l, sep, true) },
 	// Switch order so that "foobar" | contains "foo"
 	"contains":   func(substr string, str string) bool { return strings.Contains(str, substr) },
 	"hasPrefix":  func(substr string, str string) bool { return strings.HasPrefix(str, substr) },
@@ -159,6 +161,7 @@ var genericMap = map[string]interface{}{
 	"plural":     plural,
 	"sha1sum":    sha1sum,
 	"sha256sum":  sha256sum,
+	"sha512sum":  sha512sum,
 	"adler32sum": adler32sum,
 	"toString":   strval,
 
@@ -336,20 +339,20 @@ var genericMap = map[string]interface{}{
 	"mustChunk":   mustChunk,
 
 	// Crypto:
-	"bcrypt":            bcrypt,
-	"htpasswd":          htpasswd,
-	"genPrivateKey":     generatePrivateKey,
-	"derivePassword":    derivePassword,
-	"buildCustomCert":   buildCustomCertificate,
-	"genCA":             generateCertificateAuthority,
-	"genCAWithKey":      generateCertificateAuthorityWithPEMKey,
-	"genSelfSignedCert": generateSelfSignedCertificate,
+	"bcrypt":                   bcrypt,
+	"htpasswd":                 htpasswd,
+	"genPrivateKey":            generatePrivateKey,
+	"derivePassword":           derivePassword,
+	"buildCustomCert":          buildCustomCertificate,
+	"genCA":                    generateCertificateAuthority,
+	"genCAWithKey":             generateCertificateAuthorityWithPEMKey,
+	"genSelfSignedCert":        generateSelfSignedCertificate,
 	"genSelfSignedCertWithKey": generateSelfSignedCertificateWithPEMKey,
-	"genSignedCert":     generateSignedCertificate,
-	"genSignedCertWithKey": generateSignedCertificateWithPEMKey,
-	"encryptAES":        encryptAES,
-	"decryptAES":        decryptAES,
-	"randBytes":         randBytes,
+	"genSignedCert":            generateSignedCertificate,
+	"genSignedCertWithKey":     generateSignedCertificateWithPEMKey,
+	"encryptAES":               encryptAES,
+	"decryptAES":               decryptAES,
+	"randBytes":                randBytes,
 
 	// UUIDs:
 	"uuidv4": uuidv4,

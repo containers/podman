@@ -1,6 +1,8 @@
 # decimal
 
-[![Build Status](https://app.travis-ci.com/shopspring/decimal.svg?branch=master)](https://app.travis-ci.com/shopspring/decimal) [![GoDoc](https://godoc.org/github.com/shopspring/decimal?status.svg)](https://godoc.org/github.com/shopspring/decimal) [![Go Report Card](https://goreportcard.com/badge/github.com/shopspring/decimal)](https://goreportcard.com/report/github.com/shopspring/decimal)
+[![ci](https://github.com/shopspring/decimal/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/shopspring/decimal/actions/workflows/ci.yml)
+[![GoDoc](https://godoc.org/github.com/shopspring/decimal?status.svg)](https://godoc.org/github.com/shopspring/decimal) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/shopspring/decimal)](https://goreportcard.com/report/github.com/shopspring/decimal)
 
 Arbitrary-precision fixed-point decimal numbers in go.
 
@@ -20,7 +22,12 @@ Run `go get github.com/shopspring/decimal`
 
 ## Requirements 
 
-Decimal library requires Go version `>=1.7`
+Decimal library requires Go version `>=1.10`
+
+## Documentation
+
+http://godoc.org/github.com/shopspring/decimal
+
 
 ## Usage
 
@@ -57,14 +64,16 @@ func main() {
 }
 ```
 
-## Documentation
+## Alternative libraries
 
-http://godoc.org/github.com/shopspring/decimal
+When working with decimal numbers, you might face problems this library is not perfectly suited for. 
+Fortunately, thanks to the wonderful community we have a dozen other libraries that you can choose from.  
+Explore other alternatives to find the one that best fits your needs :)  
 
-## Production Usage
-
-* [Spring](https://shopspring.com/), since August 14, 2014.
-* If you are using this in production, please let us know!
+* [cockroachdb/apd](https://github.com/cockroachdb/apd) - arbitrary precision, mutable and rich API similar to `big.Int`, more performant than this library 
+* [alpacahq/alpacadecimal](https://github.com/alpacahq/alpacadecimal) - high performance, low precision (12 digits), fully compatible API with this library 
+* [govalues/decimal](https://github.com/govalues/decimal) - high performance, zero-allocation, low precision (19 digits)
+* [greatcloak/decimal](https://github.com/greatcloak/decimal) - fork focusing on billing and e-commerce web application related use cases, includes out-of-the-box BSON marshaling support
 
 ## FAQ
 

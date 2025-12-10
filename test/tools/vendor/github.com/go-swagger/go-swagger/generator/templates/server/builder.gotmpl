@@ -51,7 +51,10 @@ func New{{ pascalize .Name }}API(spec *loads.Document) *{{ pascalize .Name }}API
       {{- if .Implementation }}
         {{ pascalize .Name }}Consumer: {{ .Implementation }},
       {{- else }}
-        {{ pascalize .Name }}Consumer: runtime.ConsumerFunc(func(r io.Reader, target interface{}) error {
+        {{ pascalize .Name }}Consumer: runtime.ConsumerFunc(func(r io.Reader, target any) error {
+          _ = r
+          _ = target
+
           return errors.NotImplemented("{{.Name}} consumer has not yet been implemented")
         }),
       {{- end }}
@@ -60,38 +63,62 @@ func New{{ pascalize .Name }}API(spec *loads.Document) *{{ pascalize .Name }}API
       {{- if .Implementation }}
         {{ pascalize .Name }}Producer: {{ .Implementation }},
       {{- else }}
-        {{ pascalize .Name }}Producer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+        {{ pascalize .Name }}Producer: runtime.ProducerFunc(func(w io.Writer, data any) error {
+            _ = w
+            _ = data
+
           return errors.NotImplemented("{{.Name}} producer has not yet been implemented")
         }),
       {{- end }}
     {{- end }}
     {{ range .Operations }}
+      {{ $mayBePackage := "" }}
+      {{ if ne .Package $package -}}
+        {{ $mayBePackage = printf "%s." .PackageAlias }}
+      {{ end -}}
+
       {{ if ne .Package $package }}{{ pascalize .Package }}{{ end }}{{ pascalize .Name }}Handler:
-        {{- if ne .Package $package }}{{ .PackageAlias }}.{{ end }}{{ pascalize .Name }}HandlerFunc(func(params {{ if ne .Package $package }}{{ .PackageAlias }}.{{end }}
-    {{- if $.GenOpts.StrictResponders}}
-        {{- pascalize .Name }}Params{{if .Authorized}}, principal {{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}{{end}}) {{if ne .Package $package }}{{ .Package }}.{{ end }}{{ pascalize .Name }}Responder {
-      return {{if ne .Package $package }}{{ .Package }}.{{ end }}{{ pascalize .Name }}NotImplemented()
-    {{else}}
-        {{- pascalize .Name }}Params{{if .Authorized}}, principal {{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}{{end}}) middleware.Responder {
-      return middleware.NotImplemented("operation {{ if ne .Package $package }}{{ .Package }}.{{ end }}{{pascalize .Name}} has not yet been implemented")
-    {{ end -}}
+        {{ $mayBePackage }}{{ pascalize .Name }}HandlerFunc(func(params {{ $mayBePackage }}{{ pascalize .Name }}Params{{if .Authorized}}, principal {{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}{{end}})
+          {{- if $.GenOpts.ReturnErrors }}
+            {{- if $.GenOpts.StrictResponders }} ({{ $mayBePackage }}{{ pascalize .Name }}Responder, error) { {{ else }} (middleware.Responder, error) { {{ end }}
+          {{ else }}
+            {{- if $.GenOpts.StrictResponders }} {{ $mayBePackage }}{{ pascalize .Name }}Responder { {{ else }} middleware.Responder { {{ end }}
+          {{ end -}}
+      _ = params
+      {{- if .Authorized }}
+      _ = principal
+      {{- end }}
+
+      {{ if $.GenOpts.StrictResponders }}
+        return {{ $mayBePackage }}{{ pascalize .Name }}NotImplemented(){{ if $.GenOpts.ReturnErrors }}, nil {{- end -}}
+      {{ else }}
+        return middleware.NotImplemented("operation {{ $mayBePackage }}{{pascalize .Name}} has not yet been implemented"){{ if $.GenOpts.ReturnErrors }}, nil {{- end -}}
+      {{- end }}
     }),
     {{- end }}
     {{ range .SecurityDefinitions }}
       {{- if .IsBasicAuth }}
       // Applies when the Authorization header is set with the Basic scheme
-    {{ pascalize .ID }}Auth: func(user string, pass string) ({{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
+    {{ pascalize .ID }}Auth: func(user string, password string) ({{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
+      _ = user
+      _ = password
+
       return nil, errors.NotImplemented("basic auth  ({{ .ID }}) has not yet been implemented")
     },
       {{- end }}
       {{- if .IsAPIKeyAuth }}
       // Applies when the "{{ .Name }}" {{ .Source }} is set
     {{ pascalize .ID }}Auth: func(token string) ({{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
+      _ = token
+
       return nil, errors.NotImplemented("api key auth ({{ .ID }}) {{.Name}} from {{.Source}} param [{{ .Name }}] has not yet been implemented")
     },
       {{- end }}
       {{- if .IsOAuth2 }}
     {{ pascalize .ID }}Auth: func(token string, scopes []string) ({{if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
+      _ = token
+      _ = scopes
+
       return nil, errors.NotImplemented("oauth2 bearer auth ({{ .ID }}) has not yet been implemented")
     },
       {{- end }}
@@ -188,7 +215,7 @@ type {{ pascalize .Name }}API struct {
   CommandLineOptionsGroups []swag.CommandLineOptionsGroup
 
   // User defined logger function.
-  Logger          func(string, ...interface{})
+  Logger          func(string, ...any)
 }
 
 // UseRedoc for documentation at /docs
@@ -266,37 +293,51 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}API) Validate() error {
 
   return nil
 }
+
 // ServeErrorFor gets a error handler for a given operation id
 func ({{.ReceiverName}} *{{ pascalize .Name }}API) ServeErrorFor(operationID string) func(http.ResponseWriter, *http.Request, error) {
   return {{.ReceiverName}}.ServeError
 }
+{{- define "defForScheme" }}
+  {{- if .IsBasicAuth }}
+        result[name] = {{.ReceiverName}}.BasicAuthenticator({{ if not ( eq .Principal "any" ) }}func(username, password string) (any, error) {
+          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "any" ) }}(username, password)
+        }{{ end }})
+  {{- else if .IsAPIKeyAuth }}
+        scheme := schemes[name]
+          result[name] = {{.ReceiverName}}.APIKeyAuthenticator(scheme.Name, scheme.In, {{ if not ( eq .Principal "any" ) }}func(token string) (any, error) {
+          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "any" ) }}(token)
+        }{{ end }})
+  {{- else if .IsOAuth2 }}
+        result[name] = {{.ReceiverName}}.BearerAuthenticator(name, {{ if not ( eq .Principal "any" ) }}func(token string, scopes []string) (any, error) {
+          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "any" ) }}(token, scopes)
+        }{{ end }})
+  {{- end }}
+{{- end }}
+
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func ({{.ReceiverName}} *{{ pascalize .Name }}API) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
   {{- if .SecurityDefinitions }}
   result := make(map[string]runtime.Authenticator)
   for name := range schemes {
+    {{- if gt (len .SecurityDefinitions) 1 }}
     switch name {
       {{- range .SecurityDefinitions }}
       case "{{.ID}}":
-        {{- if .IsBasicAuth }}
-        result[name] = {{.ReceiverName}}.BasicAuthenticator({{ if not ( eq .Principal "interface{}" ) }}func(username, password string) (interface{}, error) {
-          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "interface{}" ) }}(username, password)
-        }{{ end }})
-        {{- end }}
-        {{- if .IsAPIKeyAuth }}
-        scheme := schemes[name]
-          result[name] = {{.ReceiverName}}.APIKeyAuthenticator(scheme.Name, scheme.In, {{ if not ( eq .Principal "interface{}" ) }}func(token string) (interface{}, error) {
-          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "interface{}" ) }}(token)
-        }{{ end }})
-        {{- end }}
-        {{- if .IsOAuth2 }}
-        result[name] = {{.ReceiverName}}.BearerAuthenticator(name, {{ if not ( eq .Principal "interface{}" ) }}func(token string, scopes []string) (interface{}, error) {
-          return {{ end }}{{.ReceiverName}}.{{ pascalize .ID }}Auth{{ if not ( eq .Principal "interface{}" ) }}(token, scopes)
-        }{{ end }})
-        {{- end }}
-      {{end}}
+        {{- template "defForScheme" . }}
+      {{ end }}
     }
+  {{- else }}
+    {{- /* whenever we only have one security definition, write this as a if statement rather than a switch */}}
+    {{- $definition := (index .SecurityDefinitions 0) }}
+    {{- with $definition }}
+    if name == "{{ .ID }}" {
+      {{- template "defForScheme" . }}
+    }
+    {{- end }}
+  {{- end }}
   }
+
   return result
   {{- else }}
   return nil
@@ -313,24 +354,37 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}API) Authorizer() runtime.Authoriz
 }
 
 // ConsumersFor gets the consumers for the specified media types.
+//
 // MIME type parameters are ignored here.
 func ({{.ReceiverName}} *{{ pascalize .Name }}API) ConsumersFor(mediaTypes []string) map[string]runtime.Consumer {
   {{- if .Consumes }}
   result := make(map[string]runtime.Consumer, len(mediaTypes))
   for _, mt := range mediaTypes {
+    {{- if gt .Consumes.NumSerializers 1 }}
     switch mt {
-    {{- range .Consumes }}
-      {{- range .AllSerializers }}
+      {{- range .Consumes }}
+        {{- range .AllSerializers }}
       case "{{ .MediaType }}":
         result["{{ .MediaType }}"] = {{.ReceiverName}}.{{ pascalize .Name }}Consumer
+        {{- end }}
+      {{- end }}
+    }
+    {{- else }}
+      {{- /* whenever we only have one serializer, write this as a if statement rather than a switch */}}
+      {{- $serializerGroup := (index .Consumes 0) }}
+      {{- $serializer := (index $serializerGroup.AllSerializers 0) }}
+      {{- with $serializer }}
+      if mt == "{{ .MediaType }}" {
+        result["{{ .MediaType }}"] = {{.ReceiverName}}.{{ pascalize .Name }}Consumer
+      }
       {{- end }}
     {{- end }}
-    }
 
     if c, ok := {{.ReceiverName}}.customConsumers[mt]; ok {
       result[mt] = c
     }
   }
+
   return result
   {{- else }}
   return nil
@@ -338,11 +392,13 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}API) ConsumersFor(mediaTypes []str
 }
 
 // ProducersFor gets the producers for the specified media types.
+//
 // MIME type parameters are ignored here.
 func ({{.ReceiverName}} *{{ pascalize .Name }}API) ProducersFor(mediaTypes []string) map[string]runtime.Producer {
   {{- if .Produces }}
   result := make(map[string]runtime.Producer, len(mediaTypes))
   for _, mt := range mediaTypes {
+    {{- if gt .Produces.NumSerializers 1 }}
     switch mt {
       {{- range .Produces }}
         {{- range .AllSerializers }}
@@ -351,11 +407,22 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}API) ProducersFor(mediaTypes []str
         {{- end }}
       {{- end }}
     }
+    {{- else }}
+      {{- /* whenever we only have one serializer, write this as a if statement rather than a switch */}}
+      {{- $serializerGroup := (index .Produces 0) }}
+      {{- $serializer := (index $serializerGroup.AllSerializers 0) }}
+      {{- with $serializer }}
+      if mt == "{{ .MediaType }}" {
+        result["{{ .MediaType }}"] = {{.ReceiverName}}.{{ pascalize .Name }}Producer
+      }
+      {{- end }}
+    {{- end }}
 
     if p, ok := {{.ReceiverName}}.customProducers[mt]; ok {
       result[mt] = p
     }
   }
+
   return result
   {{- else }}
   return nil

@@ -53,7 +53,7 @@ func getBase(options multiTag, base int) (int, error) {
 
 func convertMarshal(val reflect.Value) (bool, string, error) {
 	// Check first for the Marshaler interface
-	if val.Type().NumMethod() > 0 && val.CanInterface() {
+	if val.IsValid() && val.Type().NumMethod() > 0 && val.CanInterface() {
 		if marshaler, ok := val.Interface().(Marshaler); ok {
 			ret, err := marshaler.MarshalFlag()
 			return true, ret, err
@@ -66,6 +66,10 @@ func convertMarshal(val reflect.Value) (bool, string, error) {
 func convertToString(val reflect.Value, options multiTag) (string, error) {
 	if ok, ret, err := convertMarshal(val); ok {
 		return ret, err
+	}
+
+	if !val.IsValid() {
+		return "", nil
 	}
 
 	tp := val.Type()
@@ -220,7 +224,7 @@ func convert(val string, retval reflect.Value, options multiTag) error {
 			retval.SetBool(b)
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		base, err := getBase(options, 10)
+		base, err := getBase(options, 0)
 
 		if err != nil {
 			return err
@@ -234,7 +238,7 @@ func convert(val string, retval reflect.Value, options multiTag) error {
 
 		retval.SetInt(parsed)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		base, err := getBase(options, 10)
+		base, err := getBase(options, 0)
 
 		if err != nil {
 			return err
@@ -267,7 +271,12 @@ func convert(val string, retval reflect.Value, options multiTag) error {
 
 		retval.Set(reflect.Append(retval, elemval))
 	case reflect.Map:
-		parts := strings.SplitN(val, ":", 2)
+		keyValueDelimiter := options.Get("key-value-delimiter")
+		if keyValueDelimiter == "" {
+			keyValueDelimiter = ":"
+		}
+
+		parts := strings.SplitN(val, keyValueDelimiter, 2)
 
 		key := parts[0]
 		var value string

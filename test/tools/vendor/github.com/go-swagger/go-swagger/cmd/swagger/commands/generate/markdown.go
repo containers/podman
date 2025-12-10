@@ -1,8 +1,9 @@
 package generate
 
 import (
-	"github.com/go-swagger/go-swagger/generator"
 	"github.com/jessevdk/go-flags"
+
+	"github.com/go-swagger/go-swagger/generator"
 )
 
 // Markdown generates a markdown representation of the spec
@@ -24,10 +25,10 @@ func (m *Markdown) generate(opts *generator.GenOpts) error {
 	return generator.GenerateMarkdown(string(m.Output), m.Models.Models, m.Operations.Operations, opts)
 }
 
-func (m Markdown) log(rp string) {
+func (m Markdown) log(_ string) {
 }
 
 // Execute runs this command
-func (m *Markdown) Execute(args []string) error {
+func (m *Markdown) Execute(_ []string) error {
 	return createSwagger(m)
 }

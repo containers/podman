@@ -57,9 +57,10 @@ type Server struct {
 	WithContext bool `long:"with-context" description:"handlers get a context as first arg (deprecated)"`
 }
 
-func (s Server) apply(opts *generator.GenOpts) {
+func (s *Server) apply(opts *generator.GenOpts) {
 	if s.WithContext {
 		log.Printf("warning: deprecated option --with-context is ignored")
+		s.WithContext = false
 	}
 
 	s.Shared.apply(opts)
@@ -92,7 +93,7 @@ func (s *Server) generate(opts *generator.GenOpts) error {
 	return generator.GenerateServer(s.Name, s.Models.Models, s.Operations.Operations, opts)
 }
 
-func (s Server) log(rp string) {
+func (s Server) log(_ string) {
 	var flagsPackage string
 	switch {
 	case strings.HasPrefix(s.FlagStrategy, "pflag"):
@@ -114,6 +115,6 @@ You can get these now with: go mod tidy`)
 }
 
 // Execute runs this command
-func (s *Server) Execute(args []string) error {
+func (s *Server) Execute(_ []string) error {
 	return createSwagger(s)
 }

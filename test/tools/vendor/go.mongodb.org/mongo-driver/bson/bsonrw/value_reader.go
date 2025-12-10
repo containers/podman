@@ -842,7 +842,7 @@ func (vr *valueReader) peekLength() (int32, error) {
 	}
 
 	idx := vr.offset
-	return (int32(vr.d[idx]) | int32(vr.d[idx+1])<<8 | int32(vr.d[idx+2])<<16 | int32(vr.d[idx+3])<<24), nil
+	return int32(binary.LittleEndian.Uint32(vr.d[idx:])), nil
 }
 
 func (vr *valueReader) readLength() (int32, error) { return vr.readi32() }
@@ -854,7 +854,7 @@ func (vr *valueReader) readi32() (int32, error) {
 
 	idx := vr.offset
 	vr.offset += 4
-	return (int32(vr.d[idx]) | int32(vr.d[idx+1])<<8 | int32(vr.d[idx+2])<<16 | int32(vr.d[idx+3])<<24), nil
+	return int32(binary.LittleEndian.Uint32(vr.d[idx:])), nil
 }
 
 func (vr *valueReader) readu32() (uint32, error) {
@@ -864,7 +864,7 @@ func (vr *valueReader) readu32() (uint32, error) {
 
 	idx := vr.offset
 	vr.offset += 4
-	return (uint32(vr.d[idx]) | uint32(vr.d[idx+1])<<8 | uint32(vr.d[idx+2])<<16 | uint32(vr.d[idx+3])<<24), nil
+	return binary.LittleEndian.Uint32(vr.d[idx:]), nil
 }
 
 func (vr *valueReader) readi64() (int64, error) {
@@ -874,8 +874,7 @@ func (vr *valueReader) readi64() (int64, error) {
 
 	idx := vr.offset
 	vr.offset += 8
-	return int64(vr.d[idx]) | int64(vr.d[idx+1])<<8 | int64(vr.d[idx+2])<<16 | int64(vr.d[idx+3])<<24 |
-		int64(vr.d[idx+4])<<32 | int64(vr.d[idx+5])<<40 | int64(vr.d[idx+6])<<48 | int64(vr.d[idx+7])<<56, nil
+	return int64(binary.LittleEndian.Uint64(vr.d[idx:])), nil
 }
 
 func (vr *valueReader) readu64() (uint64, error) {
@@ -885,6 +884,5 @@ func (vr *valueReader) readu64() (uint64, error) {
 
 	idx := vr.offset
 	vr.offset += 8
-	return uint64(vr.d[idx]) | uint64(vr.d[idx+1])<<8 | uint64(vr.d[idx+2])<<16 | uint64(vr.d[idx+3])<<24 |
-		uint64(vr.d[idx+4])<<32 | uint64(vr.d[idx+5])<<40 | uint64(vr.d[idx+6])<<48 | uint64(vr.d[idx+7])<<56, nil
+	return binary.LittleEndian.Uint64(vr.d[idx:]), nil
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/go-openapi/loads"
+
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands/diff"
 )
 
@@ -42,7 +43,7 @@ func (c *DiffCommand) Execute(_ []string) error {
 		err    error
 	)
 	if c.Destination != "stdout" {
-		output, err = os.OpenFile(c.Destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		output, err = os.OpenFile(c.Destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 		if err != nil {
 			return fmt.Errorf("%s: %w", c.Destination, err)
 		}

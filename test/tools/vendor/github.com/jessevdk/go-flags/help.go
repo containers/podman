@@ -72,15 +72,15 @@ func (p *Parser) getAlignmentInfo() alignmentInfo {
 	var prevcmd *Command
 
 	p.eachActiveGroup(func(c *Command, grp *Group) {
-		if !grp.showInHelp() {
-			return
-		}
 		if c != prevcmd {
 			for _, arg := range c.args {
 				ret.updateLen(arg.Name, c != p.Command)
 			}
+			prevcmd = c
 		}
-
+		if !grp.showInHelp() {
+			return
+		}
 		for _, info := range grp.options {
 			if !info.showInHelp() {
 				continue
@@ -334,7 +334,11 @@ func (p *Parser) WriteHelp(writer io.Writer) {
 				}
 
 				if !allcmd.ArgsRequired {
-					fmt.Fprintf(wr, "[%s]", name)
+					if arg.Required > 0 {
+						fmt.Fprintf(wr, "%s", name)
+					} else {
+						fmt.Fprintf(wr, "[%s]", name)
+					}
 				} else {
 					fmt.Fprintf(wr, "%s", name)
 				}

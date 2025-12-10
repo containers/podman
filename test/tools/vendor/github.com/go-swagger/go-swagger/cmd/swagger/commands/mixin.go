@@ -6,10 +6,11 @@ import (
 	"log"
 	"os"
 
+	flags "github.com/jessevdk/go-flags"
+
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
-	flags "github.com/jessevdk/go-flags"
 
 	"github.com/go-swagger/go-swagger/generator"
 )
@@ -50,7 +51,6 @@ type MixinSpec struct {
 // generation tools that natively support hosting multiple specs in
 // one server process will not need this tool.
 func (c *MixinSpec) Execute(args []string) error {
-
 	if len(args) < 2 {
 		return errors.New(nothingToDo)
 	}
@@ -90,8 +90,7 @@ func (c *MixinSpec) Execute(args []string) error {
 // with mixins to the given writer in JSON.  Returns the warning
 // messages for collisions that occurred during mixin process and any
 // error.
-func (c *MixinSpec) MixinFiles(primaryFile string, mixinFiles []string, w io.Writer) ([]string, error) {
-
+func (c *MixinSpec) MixinFiles(primaryFile string, mixinFiles []string, _ io.Writer) ([]string, error) {
 	primaryDoc, err := loads.Spec(primaryFile)
 	if err != nil {
 		return nil, err

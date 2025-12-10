@@ -76,7 +76,6 @@ func CompareProperties(location DifferenceLocation, schema1 *spec.Schema, schema
 		}
 	}
 	return propDiffs
-
 }
 
 // CompareFloatValues compares a float data item
@@ -123,7 +122,6 @@ func CompareIntValues(fieldName string, val1 *int64, val2 *int64, ifGreaterCode 
 
 // CheckToFromPrimitiveType check for diff to or from a primitive
 func CheckToFromPrimitiveType(diffs []TypeDiff, type1, type2 interface{}) []TypeDiff {
-
 	type1IsPrimitive := isPrimitive(type1)
 	type2IsPrimitive := isPrimitive(type2)
 
@@ -139,7 +137,6 @@ func CheckToFromPrimitiveType(diffs []TypeDiff, type1, type2 interface{}) []Type
 
 // CheckRefChange has the property ref changed
 func CheckRefChange(diffs []TypeDiff, type1, type2 interface{}) (diffReturn []TypeDiff) {
-
 	diffReturn = diffs
 	if isRefType(type1) && isRefType(type2) {
 		// both refs but to different objects (TODO detect renamed object)

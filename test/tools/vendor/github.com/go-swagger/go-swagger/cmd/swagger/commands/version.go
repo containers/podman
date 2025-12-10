@@ -13,11 +13,10 @@ var (
 )
 
 // PrintVersion the command
-type PrintVersion struct {
-}
+type PrintVersion struct{}
 
 // Execute this command
-func (p *PrintVersion) Execute(args []string) error {
+func (p *PrintVersion) Execute(_ []string) error {
 	if Version == "" {
 		if info, available := debug.ReadBuildInfo(); available && info.Main.Version != "(devel)" {
 			// built from source, with module (e.g. go get)
