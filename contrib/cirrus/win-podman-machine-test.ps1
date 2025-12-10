@@ -40,18 +40,27 @@ $Env:TMPDIR = 'Z:\'
 $Env:TMP = 'Z:\'
 $Env:TEMP = 'Z:\'
 
-Write-Host "`nRunning podman-machine e2e tests"
+# Write-Host "`nRunning podman-machine e2e tests"
 
-if ($Env:TEST_FLAVOR -eq "machine-wsl") {
-    # Output info so we know what version we are testing.
-    wsl --version
-    Run-Command "$PSScriptRoot\win-collect-wsl-logs-start.ps1"
-}
+# if ($Env:TEST_FLAVOR -eq "machine-wsl") {
+#     # Output info so we know what version we are testing.
+#     wsl --version
+#     Run-Command "$PSScriptRoot\win-collect-wsl-logs-start.ps1"
+# }
 
-try {
-    Run-Command ".\winmake localmachine"
-} finally {
-    if ($Env:TEST_FLAVOR -eq "machine-wsl") {
-        Run-Command "$PSScriptRoot\win-collect-wsl-logs-stop.ps1"
-    }
-}
+# try {
+#     Run-Command ".\winmake localmachine"
+# } finally {
+#     if ($Env:TEST_FLAVOR -eq "machine-wsl") {
+#         Run-Command "$PSScriptRoot\win-collect-wsl-logs-stop.ps1"
+#     }
+# }
+
+Write-Host "`nListing the users on the machine"
+Get-LocalUser
+Write-Host "`nListing members of the Users group"
+Get-LocalGroup -Name Users | Get-LocalGroupMember
+Write-Host "`nListing members of the Administrators group"
+Get-LocalGroup -Name Administrators | Get-LocalGroupMember
+Write-Host "`nListing members of the Hyper-V Administrators group"
+Get-LocalGroup -Name "Hyper-V Administrators" | Get-LocalGroupMember

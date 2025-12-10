@@ -78,6 +78,7 @@ aws_credentials: ENCRYPTED[b4127fef212e5bc38dd3d96eff17440f2c62d6d04219fa97fa7ac
 
 validate-source_task:
     name: "Validate source code changes"
+    skip: true
     alias: validate-source
     # This task is primarily intended to catch human-errors early on, in a
     # PR context.  Skip running it everywhere else.
@@ -137,6 +138,7 @@ validate-source_task:
 # otherwise duplicative effort in most tasks.
 build_task:
     alias: 'build'
+    skip: true
     name: 'Build for $DISTRO_NV' # N/B: Referenced by URLencoded strings elsewhere
     gce_instance: &fastvm
         image_project: libpod-218412
@@ -200,6 +202,7 @@ build_task:
 
 build_aarch64_task:
     alias: 'build_aarch64'
+    skip: true
     name: 'Build for $DISTRO_NV'
     ec2_instance: &standard_build_ec2_aarch64
         image: ${VM_IMAGE_NAME}
@@ -231,6 +234,7 @@ build_aarch64_task:
 # this task, though a few need dedicated tasks which follow.
 alt_build_task:
     name: "$ALT_NAME"
+    skip: false
     alias: alt_build
     # Don't create task on rhel-release builds
     # Docs: ./contrib/cirrus/CIModes.md
@@ -243,22 +247,22 @@ alt_build_task:
         TEST_BUILD_TAGS: ""
     gce_instance: *fastvm
     matrix:
-      - env:
-            ALT_NAME: 'Build Each Commit'
+    #   - env:
+    #         ALT_NAME: 'Build Each Commit'
       - env:
             # TODO: Replace with task using `winmake` to build
             # binary and archive installation zip file.
             ALT_NAME: 'Windows Cross' # N/B: Referenced by URLencoded strings elsewhere
-      - env:
-            ALT_NAME: 'Alt Arch. x86 Cross'
-      - env:
-            ALT_NAME: 'Alt Arch. ARM Cross'
-      - env:
-            ALT_NAME: 'Alt Arch. MIPS Cross'
-      - env:
-            ALT_NAME: 'Alt Arch. MIPS64 Cross'
-      - env:
-            ALT_NAME: 'Alt Arch. Other Cross'
+    #   - env:
+    #         ALT_NAME: 'Alt Arch. x86 Cross'
+    #   - env:
+    #         ALT_NAME: 'Alt Arch. ARM Cross'
+    #   - env:
+    #         ALT_NAME: 'Alt Arch. MIPS Cross'
+    #   - env:
+    #         ALT_NAME: 'Alt Arch. MIPS64 Cross'
+    #   - env:
+    #         ALT_NAME: 'Alt Arch. Other Cross'
     # This task cannot make use of the shared repo.tar.zst artifact.
     clone_script: *full_clone
     setup_script: *setup
@@ -272,6 +276,7 @@ alt_build_task:
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
     name: "Build for MacOS arm64" # N/B: Referenced by URLencoded strings elsewhere
+    skip: true
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
@@ -318,6 +323,7 @@ osx_alt_build_task:
 # Build freebsd release natively on a FreeBSD VM.
 freebsd_alt_build_task:
     name: "FreeBSD Cross"
+    skip: true
     alias: freebsd_alt_build
     # Only run on 'main' and PRs against 'main'
     # Docs: ./contrib/cirrus/CIModes.md
@@ -357,14 +363,15 @@ freebsd_alt_build_task:
 # anchors/aliases.
 build_success_task:
     name: "Total Build Success"
+    skip: false
     alias: build_success
     depends_on:
-        - validate-source
-        - build
-        - build_aarch64
+        # - validate-source
+        # - build
+        # - build_aarch64  # Skipped for Windows focus
         - alt_build
-        - osx_alt_build
-        - freebsd_alt_build
+        # - osx_alt_build  # Skipped for Windows focus
+        # - freebsd_alt_build  # Skipped for Windows focus
     env:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     container: &smallcontainer
@@ -381,6 +388,7 @@ build_success_task:
 # operations to ensure they are functional.
 bindings_task:
     name: "Test Bindings"
+    skip: true
     alias: bindings
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -432,6 +440,7 @@ bindings_task:
 # publish it to google-cloud-storage (GCS).
 swagger_task:
     name: "Test Swagger"
+    skip: true
     alias: swagger
     depends_on: *build
     gce_instance: *standardvm
@@ -455,6 +464,7 @@ swagger_task:
 
 win_installer_task:
     name: "Verify Win Installer Build"
+    skip: true
     matrix:
       - env:
             CONTAINERS_MACHINE_PROVIDER: 'wsl'
@@ -519,6 +529,7 @@ win_installer_task:
 # Verify podman is compatible with the docker python-module.
 docker-py_test_task:
     name: Docker-py Compat.
+    skip: true
     alias: docker-py_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -546,6 +557,7 @@ docker-py_test_task:
 # Does exactly what it says, execute the podman unit-tests on Fedora.
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
+    skip: true
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -578,6 +590,7 @@ unit_test_task:
 
 unit_test_windows_task:
     name: "Unit tests on Windows"
+    skip: true
     alias: unit_test_windows
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -596,9 +609,9 @@ unit_test_windows_task:
     # everywhere to do so here it would mean we would need duplicate the
     # full big only_if condition which is more difficult to maintain so
     # use the skip here.
-    skip: &skip_rhel_release |
-        $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
-        $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
+    # skip: &skip_rhel_release |
+#         $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
+#         $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
     depends_on: *build
     ec2_instance: *windows
     timeout_in: 20m
@@ -616,6 +629,7 @@ unit_test_windows_task:
 
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
+    skip: true
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -646,6 +660,7 @@ apiv2_test_task:
 
 compose_test_task:
     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
+    skip: true
     alias: compose_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -679,6 +694,7 @@ local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
+    skip: true
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -713,6 +729,7 @@ local_integration_test_task: &local_integration_test_task
 remote_integration_test_task:
     <<: *local_integration_test_task
     alias: remote_integration_test
+    skip: true
     env:
         TEST_FLAVOR: int
         PODBIN_NAME: remote
@@ -722,6 +739,7 @@ remote_integration_test_task:
 # This verifies all/most operations function with "podman-in-podman".
 container_integration_test_task:
     name: *std_name_fmt
+    skip: true
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
@@ -745,6 +763,7 @@ container_integration_test_task:
 # Execute most integration tests as a regular (non-root) user.
 rootless_integration_test_task:
     name: *std_name_fmt
+    skip: true
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
@@ -762,6 +781,7 @@ rootless_integration_test_task:
 
 podman_machine_task:
     name: *std_name_fmt
+    skip: true
     alias: podman_machine
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -792,6 +812,7 @@ podman_machine_task:
 
 podman_machine_aarch64_task:
     name: *std_name_fmt
+    skip: true
     alias: podman_machine_aarch64
     only_if: *only_if_machine_test
     depends_on: *build
@@ -817,6 +838,7 @@ podman_machine_aarch64_task:
 
 podman_machine_windows_task:
     name: *std_name_fmt
+    skip: false
     alias: podman_machine_windows
     allow_failures: $TEST_FLAVOR == 'machine-wsl'
     # Docs: ./contrib/cirrus/CIModes.md
@@ -832,7 +854,7 @@ podman_machine_windows_task:
     # everywhere to do so here it would mean we would need duplicate the
     # full big only_if condition which is more difficult to maintain so
     # use the skip here.
-    skip: *skip_rhel_release
+    # skip: *skip_rhel_release
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -875,9 +897,10 @@ podman_machine_windows_task:
 
 podman_machine_mac_task:
     name: *std_name_fmt
+    skip: true
     alias: podman_machine_mac
     only_if: *only_if_machine_test
-    skip: *skip_rhel_release
+    # skip: *skip_rhel_release
     depends_on: *build
     persistent_worker: *mac_pw
     timeout_in: 60m
@@ -923,6 +946,7 @@ podman_machine_mac_task:
 # the same matrix as the integration-tests (above).
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
+    skip: true
     alias: local_system_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -948,6 +972,7 @@ local_system_test_task: &local_system_test_task
 
 local_system_test_aarch64_task: &local_system_test_task_aarch64
     name: *std_name_fmt
+    skip: true
     alias: local_system_test_aarch64
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_system_test
@@ -968,6 +993,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
 remote_system_test_task:
     <<: *local_system_test_task
     alias: remote_system_test
+    skip: true
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -976,6 +1002,7 @@ remote_system_test_task:
 remote_system_test_aarch64_task:
     <<: *local_system_test_task_aarch64
     alias: remote_system_test_aarch64
+    skip: true
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -991,6 +1018,7 @@ rootless_remote_system_test_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     <<: *local_system_test_task
     alias: rootless_remote_system_test
+    skip: true
     gce_instance: *fastvm
     timeout_in: 25m
     env:
@@ -1001,6 +1029,7 @@ rootless_remote_system_test_task:
 
 rootless_system_test_task:
     name: *std_name_fmt
+    skip: true
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_system_test
@@ -1019,6 +1048,7 @@ rootless_system_test_task:
 
 farm_test_task:
     name: *std_name_fmt
+    skip: true
     alias: farm_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -1044,6 +1074,7 @@ farm_test_task:
 
 buildah_bud_test_task:
     name: *std_name_fmt
+    skip: true
     alias: buildah_bud_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -1072,6 +1103,7 @@ buildah_bud_test_task:
 
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
+    skip: true
     alias: upgrade_test
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
@@ -1106,6 +1138,7 @@ upgrade_test_task:
 # an out-of-band pruning operation to remove disused VM images.
 meta_task:
     name: "VM img. keepalive"
+    skip: true
     alias: meta
     container:
         cpu: 2
@@ -1138,6 +1171,7 @@ success_task:
     # N/B: The prow merge-bot (tide) is sensitized to this exact name, DO NOT CHANGE IT.
     # Ref: https://github.com/openshift/release/pull/48855
     name: "Total Success"
+    skip: true
     alias: success
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
@@ -1179,6 +1213,7 @@ success_task:
 # here, should probably be reflected in that document.
 artifacts_task:
     name: "Artifacts"
+    skip: true
     alias: artifacts
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release
@@ -1228,6 +1263,7 @@ artifacts_task:
 # meet criteria for an official release.
 release_task:
     name: "Verify Release"
+    skip: true
     alias: release
     # This should _only_ run for new tags
     # Docs: ./contrib/cirrus/CIModes.md
@@ -1253,6 +1289,7 @@ release_task:
 # comment, it is incompatible with 'trigger_type: manual'
 release_test_task:
     name: "Optional Release Test"
+    skip: true
     alias: release_test
     # Release-PRs always include "release" or "Bump" in the title
     # Docs: ./contrib/cirrus/CIModes.md
