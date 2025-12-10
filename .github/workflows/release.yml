@@ -163,7 +163,10 @@ jobs:
     - name: Checkout Podman
       uses: actions/checkout@v5
     - name: Download Windows zip artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
+      with:
+        name: release-artifacts
+        path: ${{ github.workspace }}\release-artifacts
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
