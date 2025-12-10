@@ -25,6 +25,9 @@ type State interface { //nolint:interfacebloat
 	// Refresh clears container and pod states after a reboot
 	Refresh() error
 
+	// Type returns the type of state in use
+	Type() string
+
 	// GetDBConfig retrieves several paths configured within the database
 	// when it was created - namely, Libpod root and tmp dirs, c/storage
 	// root and tmp dirs, and c/storage graph driver.
