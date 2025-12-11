@@ -1321,7 +1321,20 @@ func (c *Container) HostNetwork() bool {
 // HasHealthCheck returns bool as to whether there is a health check
 // defined for the container
 func (c *Container) HasHealthCheck() bool {
-	return c.config.HealthCheckConfig != nil
+	// Consider a healthcheck present only when a HealthCheckConfig exists
+	// and the Test field contains a meaningful command. Treat an empty
+	// Test slice or the special ["NONE"] sentinel as "no healthcheck".
+	if c.config.HealthCheckConfig == nil {
+		return false
+	}
+	test := c.config.HealthCheckConfig.Test
+	if len(test) == 0 {
+		return false
+	}
+	if len(test) == 1 && strings.ToUpper(test[0]) == define.HealthConfigTestNone {
+		return false
+	}
+	return true
 }
 
 // HealthCheckConfig returns the command and timing attributes of the health check
