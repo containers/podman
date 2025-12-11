@@ -18,6 +18,8 @@ import (
 
 // List is a generic interface for manipulating a manifest list or an image
 // index.
+//
+// Note: the instanceDigest values used for lookups/removals must exactly match the digests in the manifest list, in particular use the algorithm used there.
 type List interface {
 	AddInstance(manifestDigest digest.Digest, manifestSize int64, manifestType, os, architecture, osVersion string, osFeatures []string, variant string, features []string, annotations []string) error
 	Remove(instanceDigest digest.Digest) error

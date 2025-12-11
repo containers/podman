@@ -14,6 +14,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/libartifact/store"
 	"go.podman.io/common/pkg/libartifact/types"
 )
 
@@ -22,7 +23,11 @@ func (ir *ImageEngine) ArtifactInspect(ctx context.Context, name string, _ entit
 	if err != nil {
 		return nil, err
 	}
-	art, err := artStore.Inspect(ctx, name)
+	asr, err := store.NewArtifactStorageReference(name)
+	if err != nil {
+		return nil, err
+	}
+	art, err := artStore.Inspect(ctx, asr)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +62,11 @@ func (ir *ImageEngine) ArtifactList(ctx context.Context, _ entities.ArtifactList
 }
 
 func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entities.ArtifactPullOptions) (*entities.ArtifactPullReport, error) {
+	artRefToPull, err := store.NewArtifactReference(name)
+	if err != nil {
+		return nil, err
+	}
+
 	pullOptions := &libimage.CopyOptions{}
 	pullOptions.AuthFilePath = opts.AuthFilePath
 	pullOptions.CertDirPath = opts.CertDirPath
@@ -82,7 +92,7 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 	if err != nil {
 		return nil, err
 	}
-	artifactDigest, err := artStore.Pull(ctx, name, *pullOptions)
+	artifactDigest, err := artStore.Pull(ctx, artRefToPull, *pullOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -121,11 +131,16 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 	}
 
 	artifactDigests := make([]*digest.Digest, 0, len(namesOrDigests))
-	for _, namesOrDigest := range namesOrDigests {
-		artifactDigest, err := artStore.Remove(ctx, namesOrDigest)
+	for _, nameOrDigest := range namesOrDigests {
+		asr, err := store.NewArtifactStorageReference(nameOrDigest)
+		if err != nil {
+			return nil, err
+		}
+
+		artifactDigest, err := artStore.Remove(ctx, asr)
 		if err != nil {
 			if opts.Ignore && errors.Is(err, types.ErrArtifactNotExist) {
-				logrus.Debugf("Artifact with name or digest %q does not exist, ignoring error as request", namesOrDigest)
+				logrus.Debugf("Artifact with name or digest %q does not exist, ignoring error as request", nameOrDigest)
 				continue
 			}
 			return nil, err
@@ -191,7 +206,11 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 		IdentityToken:                    "",
 		Writer:                           opts.Writer,
 	}
-	artifactDigest, err := artStore.Push(ctx, name, name, copyOpts)
+	artRef, err := store.NewArtifactReference(name)
+	if err != nil {
+		return nil, err
+	}
+	artifactDigest, err := artStore.Push(ctx, artRef, artRef, copyOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -207,9 +226,13 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlo
 		return nil, err
 	}
 
+	artToAdd, err := store.NewArtifactReference(name)
+	if err != nil {
+		return nil, err
+	}
 	// If replace is true, try to remove existing artifact (ignore errors if it doesn't exist)
 	if opts.Replace {
-		if _, err = artStore.Remove(ctx, name); err != nil && !errors.Is(err, types.ErrArtifactNotExist) {
+		if _, err = artStore.Remove(ctx, artToAdd.ToArtifactStoreReference()); err != nil && !errors.Is(err, types.ErrArtifactNotExist) {
 			logrus.Debugf("Artifact %q removal failed: %s", name, err)
 		}
 	}
@@ -222,7 +245,7 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlo
 		Replace:          opts.Replace,
 	}
 
-	artifactDigest, err := artStore.Add(ctx, name, artifactBlobs, &addOptions)
+	artifactDigest, err := artStore.Add(ctx, artToAdd, artifactBlobs, &addOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +266,11 @@ func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target 
 		},
 	}
 
-	return artStore.Extract(ctx, name, target, &extractOpt)
+	asr, err := store.NewArtifactStorageReference(name)
+	if err != nil {
+		return err
+	}
+	return artStore.Extract(ctx, asr, target, &extractOpt)
 }
 
 func (ir *ImageEngine) ArtifactExtractTarStream(ctx context.Context, w io.Writer, name string, opts entities.ArtifactExtractOptions) error {
@@ -259,5 +286,9 @@ func (ir *ImageEngine) ArtifactExtractTarStream(ctx context.Context, w io.Writer
 		ExcludeTitle: opts.ExcludeTitle,
 	}
 
-	return artStore.ExtractTarStream(ctx, w, name, &extractOpt)
+	asr, err := store.NewArtifactStorageReference(name)
+	if err != nil {
+		return err
+	}
+	return artStore.ExtractTarStream(ctx, w, asr, &extractOpt)
 }

@@ -600,7 +600,7 @@ var _ = Describe("Podman inspect", func() {
 		artifactFile, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
 
-		artifactName := "localhost/test/myartifact"
+		artifactName := "localhost/test/myartifact:mytag"
 		add := podmanTest.Podman([]string{"artifact", "add", artifactName, artifactFile})
 		add.WaitWithDefaultTimeout()
 		Expect(add).Should(ExitCleanly())
