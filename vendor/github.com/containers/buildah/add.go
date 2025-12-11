@@ -23,7 +23,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/runc/libcontainer/userns"
+	"github.com/moby/sys/userns"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )

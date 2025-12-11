@@ -83,6 +83,7 @@ func tryDefaultCgroupRoot() string {
 	if err != nil {
 		return ""
 	}
+	defer dir.Close()
 	names, err := dir.Readdirnames(1)
 	if err != nil {
 		return ""
@@ -164,9 +165,8 @@ func subsysPath(root, inner, subsystem string) (string, error) {
 		return filepath.Join(root, filepath.Base(mnt), inner), nil
 	}
 
-	// Use GetOwnCgroupPath instead of GetInitCgroupPath, because the creating
-	// process could in container and shared pid namespace with host, and
-	// /proc/1/cgroup could point to whole other world of cgroups.
+	// Use GetOwnCgroupPath for dind-like cases, when cgroupns is not
+	// available. This is ugly.
 	parentPath, err := cgroups.GetOwnCgroupPath(subsystem)
 	if err != nil {
 		return "", err

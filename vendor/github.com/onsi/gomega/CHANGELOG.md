@@ -1,3 +1,82 @@
+## 1.34.1
+
+### Maintenance
+- Use slices from exp/slices to keep golang 1.20 compat [5e71dcd]
+
+## 1.34.0
+
+### Features
+- Add RoundTripper method to ghttp.Server [c549e0d]
+
+### Fixes
+- fix incorrect handling of nil slices in HaveExactElements (fixes #771) [878940c]
+- issue_765 - fixed bug in Hopcroft-Karp algorithm [ebadb67]
+
+### Maintenance
+- bump ginkgo [8af2ece]
+- Fix typo in docs [123a071]
+- Bump github.com/onsi/ginkgo/v2 from 2.17.2 to 2.17.3 (#756) [0e69083]
+- Bump google.golang.org/protobuf from 1.33.0 to 1.34.1 (#755) [2675796]
+- Bump golang.org/x/net from 0.24.0 to 0.25.0 (#754) [4160c0f]
+- Bump github-pages from 230 to 231 in /docs (#748) [892c303]
+
+## 1.33.1
+
+### Fixes
+- fix confusing eventually docs [3a66379]
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.17.1 to 2.17.2 [e9bc35a]
+
+## 1.33.0
+
+### Features
+
+`Receive` not accepts `Receive(<POINTER>, MATCHER>)`, allowing you to pick out a specific value on the channel that satisfies the provided matcher and is stored in the provided pointer.
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.15.0 to 2.17.1 (#745) [9999deb]
+- Bump github-pages from 229 to 230 in /docs (#735) [cb5ff21]
+- Bump golang.org/x/net from 0.20.0 to 0.23.0 (#746) [bac6596]
+
+## 1.32.0
+
+### Maintenance
+- Migrate github.com/golang/protobuf to google.golang.org/protobuf [436a197]
+  
+  This release drops the deprecated github.com/golang/protobuf and adopts google.golang.org/protobuf.  Care was taken to ensure the release is backwards compatible (thanks @jbduncan !).  Please open an issue if you run into one.
+
+- chore: test with Go 1.22 (#733) [32ef35e]
+- Bump golang.org/x/net from 0.19.0 to 0.20.0 (#717) [a0d0387]
+- Bump github-pages and jekyll-feed in /docs (#732) [b71e477]
+- docs: fix typo and broken anchor link to gstruct [f460154]
+- docs: fix HaveEach matcher signature [a2862e4]
+
+## 1.31.1
+
+### Fixes
+- Inverted arguments order of FailureMessage of BeComparableToMatcher [e0dd999]
+- Update test in case keeping msg is desired [ad1a367]
+
+### Maintenance
+- Show how to import the format sub package [24e958d]
+- tidy up go.sum [26661b8]
+- bump dependencies [bde8f7a]
+
+## 1.31.0
+
+### Features
+- Async assertions include context cancellation cause if present [121c37f]
+
+### Maintenance
+- Bump minimum go version [dee1e3c]
+- docs: fix typo in example usage "occured" -> "occurred" [49005fe]
+- Bump actions/setup-go from 4 to 5 (#714) [f1c8757]
+- Bump github/codeql-action from 2 to 3 (#715) [9836e76]
+- Bump github.com/onsi/ginkgo/v2 from 2.13.0 to 2.13.2 (#713) [54726f0]
+- Bump golang.org/x/net from 0.17.0 to 0.19.0 (#711) [df97ecc]
+- docs: fix `HaveExactElement` typo (#712) [a672c86]
+
 ## 1.30.0
 
 ### Features

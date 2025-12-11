@@ -333,4 +333,8 @@ type BuildOptions struct {
 	// value set in a base image will be preserved, so this does not
 	// frequently need to be set.
 	OSVersion string
+	// CompatSetParent causes the "parent" field to be set in the image's
+	// configuration when committing in Docker format.  Newer
+	// BuildKit-based docker build doesn't set this field.
+	CompatSetParent types.OptionalBool
 }
