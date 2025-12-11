@@ -77,7 +77,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.6.0
-	tags.cncf.io/container-device-interface v1.0.2-0.20251120202831-139ffec09210
+	tags.cncf.io/container-device-interface v1.1.0
 )
 
 require (
@@ -190,5 +190,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	tags.cncf.io/container-device-interface/specs-go v1.0.1-0.20251120202831-139ffec09210 // indirect
+	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )

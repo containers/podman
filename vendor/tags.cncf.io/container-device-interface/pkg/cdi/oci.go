@@ -63,3 +63,10 @@ func (i *IntelRdt) toOCI() *spec.LinuxIntelRdt {
 		EnableMonitoring: i.EnableMonitoring,
 	}
 }
+
+// toOCI returns the opencontainers runtime Spec LinuxNetDevice for this LinuxNetDevice.
+func (d *LinuxNetDevice) toOCI() *spec.LinuxNetDevice {
+	return &spec.LinuxNetDevice{
+		Name: d.Name,
+	}
+}
