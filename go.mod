@@ -8,7 +8,7 @@ go 1.24.6
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
-	github.com/checkpoint-restore/checkpointctl v1.4.0
+	github.com/checkpoint-restore/checkpointctl v1.4.1
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.8.0
 	github.com/containers/buildah v1.42.0
