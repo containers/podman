@@ -40,7 +40,7 @@ func init() {
 	flags.BoolVar(&pinOptions.Unpin, "unpin", false, "Remove pinning from volume")
 }
 
-func pin(cmd *cobra.Command, args []string) error {
+func pin(_ *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("must specify at least one volume name")
 	}

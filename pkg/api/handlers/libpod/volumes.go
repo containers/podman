@@ -208,7 +208,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check if volume is pinned and --include-pinned flag is not set
 	if vol.IsPinned() && !query.IncludePinned {
-		utils.Error(w, http.StatusBadRequest, 
+		utils.Error(w, http.StatusBadRequest,
 			fmt.Errorf("volume %s is pinned and cannot be removed without includePinned=true parameter", vol.Name()))
 		return
 	}

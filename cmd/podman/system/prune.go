@@ -82,7 +82,7 @@ func prune(_ *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
-	
+
 	// Set the include pinned flag for volume pruning
 	if pruneOptions.Volume {
 		pruneOptions.VolumePruneOptions.IncludePinned = includePinned

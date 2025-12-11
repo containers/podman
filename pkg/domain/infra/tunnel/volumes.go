@@ -122,7 +122,7 @@ func (ic *ContainerEngine) VolumeImport(_ context.Context, nameOrID string, opti
 	return volumes.Import(ic.ClientCtx, nameOrID, options.Input)
 }
 
-func (ic *ContainerEngine) VolumePin(ctx context.Context, namesOrIds []string, opts entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
+func (ic *ContainerEngine) VolumePin(_ context.Context, namesOrIds []string, _ entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
 	reports := make([]*entities.VolumePinReport, 0, len(namesOrIds))
 	for _, nameOrId := range namesOrIds {
 		report := &entities.VolumePinReport{

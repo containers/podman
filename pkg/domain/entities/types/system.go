@@ -47,7 +47,7 @@ type SystemPruneOptions struct {
 	Filters            map[string][]string `json:"filters" schema:"filters"`
 	External           bool
 	Build              bool
-	VolumePruneOptions VolumePruneOptions  `json:"volumePruneOptions" schema:"volumePruneOptions"`
+	VolumePruneOptions VolumePruneOptions `json:"volumePruneOptions" schema:"volumePruneOptions"`
 }
 
 // VolumePruneOptions describes the options needed
