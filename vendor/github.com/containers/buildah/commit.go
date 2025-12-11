@@ -118,6 +118,10 @@ type CommitOptions struct {
 	// to the configuration of the image that is being committed, after
 	// OverrideConfig is applied.
 	OverrideChanges []string
+	// CompatSetParent causes the "parent" field to be set when committing
+	// the image in Docker format.  Newer BuildKit-based builds don't set
+	// this field.
+	CompatSetParent types.OptionalBool
 }
 
 var (

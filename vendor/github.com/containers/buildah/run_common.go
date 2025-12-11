@@ -676,8 +676,9 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 			return 1, fmt.Errorf("parsing container state %q from %s: %w", string(stateOutput), runtime, err)
 		}
 		switch state.Status {
-		case "running":
-		case "stopped":
+		case specs.StateCreating, specs.StateCreated, specs.StateRunning:
+			// all fine
+		case specs.StateStopped:
 			atomic.StoreUint32(&stopped, 1)
 		default:
 			return 1, fmt.Errorf("container status unexpectedly changed to %q", state.Status)
@@ -1946,7 +1947,7 @@ func (b *Builder) cleanupTempVolumes() {
 	for tempVolume, val := range b.TempVolumes {
 		if val {
 			if err := overlay.RemoveTemp(tempVolume); err != nil {
-				b.Logger.Errorf(err.Error())
+				b.Logger.Errorf("%v", err)
 			}
 			b.TempVolumes[tempVolume] = false
 		}
@@ -2013,4 +2014,14 @@ func setPdeathsig(cmd *exec.Cmd) {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
 	cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+}
+
+func relabel(path, mountLabel string, shared bool) error {
+	if err := label.Relabel(path, mountLabel, shared); err != nil {
+		if !errors.Is(err, syscall.ENOTSUP) {
+			return err
+		}
+		logrus.Debugf("Labeling not supported on %q", path)
+	}
+	return nil
 }

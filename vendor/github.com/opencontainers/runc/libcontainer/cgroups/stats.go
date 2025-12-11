@@ -32,9 +32,22 @@ type CpuUsage struct {
 	UsageInUsermode uint64 `json:"usage_in_usermode"`
 }
 
+type PSIData struct {
+	Avg10  float64 `json:"avg10"`
+	Avg60  float64 `json:"avg60"`
+	Avg300 float64 `json:"avg300"`
+	Total  uint64  `json:"total"`
+}
+
+type PSIStats struct {
+	Some PSIData `json:"some,omitempty"`
+	Full PSIData `json:"full,omitempty"`
+}
+
 type CpuStats struct {
 	CpuUsage       CpuUsage       `json:"cpu_usage,omitempty"`
 	ThrottlingData ThrottlingData `json:"throttling_data,omitempty"`
+	PSI            *PSIStats      `json:"psi,omitempty"`
 }
 
 type CPUSetStats struct {
@@ -78,6 +91,8 @@ type MemoryStats struct {
 	Usage MemoryData `json:"usage,omitempty"`
 	// usage of memory + swap
 	SwapUsage MemoryData `json:"swap_usage,omitempty"`
+	// usage of swap only
+	SwapOnlyUsage MemoryData `json:"swap_only_usage,omitempty"`
 	// usage of kernel memory
 	KernelUsage MemoryData `json:"kernel_usage,omitempty"`
 	// usage of kernel TCP memory
@@ -89,6 +104,7 @@ type MemoryStats struct {
 	UseHierarchy bool `json:"use_hierarchy"`
 
 	Stats map[string]uint64 `json:"stats,omitempty"`
+	PSI   *PSIStats         `json:"psi,omitempty"`
 }
 
 type PageUsageByNUMA struct {
@@ -133,6 +149,7 @@ type BlkioStats struct {
 	IoMergedRecursive       []BlkioStatEntry `json:"io_merged_recursive,omitempty"`
 	IoTimeRecursive         []BlkioStatEntry `json:"io_time_recursive,omitempty"`
 	SectorsRecursive        []BlkioStatEntry `json:"sectors_recursive,omitempty"`
+	PSI                     *PSIStats        `json:"psi,omitempty"`
 }
 
 type HugetlbStats struct {
@@ -155,6 +172,13 @@ type RdmaStats struct {
 	RdmaCurrent []RdmaEntry `json:"rdma_current,omitempty"`
 }
 
+type MiscStats struct {
+	// current resource usage for a key in misc
+	Usage uint64 `json:"usage,omitempty"`
+	// number of times the resource usage was about to go over the max boundary
+	Events uint64 `json:"events,omitempty"`
+}
+
 type Stats struct {
 	CpuStats    CpuStats    `json:"cpu_stats,omitempty"`
 	CPUSetStats CPUSetStats `json:"cpuset_stats,omitempty"`
@@ -164,10 +188,13 @@ type Stats struct {
 	// the map is in the format "size of hugepage: stats of the hugepage"
 	HugetlbStats map[string]HugetlbStats `json:"hugetlb_stats,omitempty"`
 	RdmaStats    RdmaStats               `json:"rdma_stats,omitempty"`
+	// the map is in the format "misc resource name: stats of the key"
+	MiscStats map[string]MiscStats `json:"misc_stats,omitempty"`
 }
 
 func NewStats() *Stats {
 	memoryStats := MemoryStats{Stats: make(map[string]uint64)}
 	hugetlbStats := make(map[string]HugetlbStats)
-	return &Stats{MemoryStats: memoryStats, HugetlbStats: hugetlbStats}
+	miscStats := make(map[string]MiscStats)
+	return &Stats{MemoryStats: memoryStats, HugetlbStats: hugetlbStats, MiscStats: miscStats}
 }

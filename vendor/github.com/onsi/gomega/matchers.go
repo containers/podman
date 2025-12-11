@@ -194,20 +194,21 @@ func BeClosed() types.GomegaMatcher {
 //
 // will repeatedly attempt to pull values out of `c` until a value matching "bar" is received.
 //
-// Finally, if you want to have a reference to the value *sent* to the channel you can pass the `Receive` matcher a pointer to a variable of the appropriate type:
+// Furthermore, if you want to have a reference to the value *sent* to the channel you can pass the `Receive` matcher a pointer to a variable of the appropriate type:
 //
 //	var myThing thing
 //	Eventually(thingChan).Should(Receive(&myThing))
 //	Expect(myThing.Sprocket).Should(Equal("foo"))
 //	Expect(myThing.IsValid()).Should(BeTrue())
+//
+// Finally, if you want to match the received object as well as get the actual received value into a variable, so you can reason further about the value received,
+// you can pass a pointer to a variable of the approriate type first, and second a matcher:
+//
+//	var myThing thing
+//	Eventually(thingChan).Should(Receive(&myThing, ContainSubstring("bar")))
 func Receive(args ...interface{}) types.GomegaMatcher {
-	var arg interface{}
-	if len(args) > 0 {
-		arg = args[0]
-	}
-
 	return &matchers.ReceiveMatcher{
-		Arg: arg,
+		Args: args,
 	}
 }
 
@@ -394,7 +395,7 @@ func ConsistOf(elements ...interface{}) types.GomegaMatcher {
 	}
 }
 
-// HaveExactElemets succeeds if actual contains elements that precisely match the elemets passed into the matcher. The ordering of the elements does matter.
+// HaveExactElements succeeds if actual contains elements that precisely match the elemets passed into the matcher. The ordering of the elements does matter.
 // By default HaveExactElements() uses Equal() to match the elements, however custom matchers can be passed in instead.  Here are some examples:
 //
 //	Expect([]string{"Foo", "FooBar"}).Should(HaveExactElements("Foo", "FooBar"))

@@ -82,6 +82,7 @@ type containerImageRef struct {
 	postEmptyLayers       []v1.History
 	overrideChanges       []string
 	overrideConfig        *manifest.Schema2Config
+	compatSetParent       types.OptionalBool
 }
 
 type blobLayerInfo struct {
@@ -282,7 +283,11 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	if err := json.Unmarshal(i.dconfig, &dimage); err != nil {
 		return v1.Image{}, v1.Manifest{}, docker.V2Image{}, docker.V2S2Manifest{}, err
 	}
-	dimage.Parent = docker.ID(i.parent)
+	// Set the parent, but only if we want to be compatible with "classic" docker build.
+	if i.compatSetParent == types.OptionalBoolTrue {
+		dimage.Parent = docker.ID(i.parent)
+	}
+	// Set the container ID and containerConfig in the docker format.
 	dimage.Container = i.containerID
 	if dimage.Config != nil {
 		dimage.ContainerConfig = *dimage.Config
@@ -935,6 +940,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		postEmptyLayers:       b.AppendedEmptyLayers,
 		overrideChanges:       options.OverrideChanges,
 		overrideConfig:        options.OverrideConfig,
+		compatSetParent:       options.CompatSetParent,
 	}
 	return ref, nil
 }
