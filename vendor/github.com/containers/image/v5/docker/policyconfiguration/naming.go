@@ -40,7 +40,7 @@ func DockerReferenceNamespaces(ref reference.Named) []string {
 	// then in its parent "docker.io/library"; in none of "busybox",
 	// un-namespaced "library" nor in "" supposedly implicitly representing "library/".
 	//
-	// ref.FullName() == ref.Hostname() + "/" + ref.RemoteName(), so the last
+	// ref.Name() == ref.Domain() + "/" + ref.Path(), so the last
 	// iteration matches the host name (for any namespace).
 	res := []string{}
 	name := ref.Name()

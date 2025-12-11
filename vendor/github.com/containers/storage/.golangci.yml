@@ -2,36 +2,10 @@
 run:
   concurrency: 6
   deadline: 5m
+  skip-dirs-use-default: true
 linters:
-  enable-all: true
+  enable:
+    - gofumpt
   disable:
-    - dogsled
-    - dupl
     - errcheck
-    - funlen
-    - gochecknoglobals
-    - gochecknoinits
-    - gocognit
-    - gocritic
-    - gocyclo
-    - godox
-    - gomnd
-    - gosec
-    - gosimple
-    - govet
-    - ineffassign
-    - lll
-    - maligned
-    - misspell
-    - nakedret
-    - prealloc
-    - scopelint
     - staticcheck
-    - structcheck
-    - stylecheck
-    - unconvert
-    - unparam
-    - unused
-    - varcheck
-    - whitespace
-    - wsl

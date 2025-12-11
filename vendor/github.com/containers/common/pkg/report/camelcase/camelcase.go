@@ -51,8 +51,7 @@ func Split(src string) (entries []string) {
 	}
 	entries = []string{}
 	var runes [][]rune
-	lastClass := 0
-	class := 0
+	var class, lastClass int
 	// split into fields based on class of unicode character
 	for _, r := range src {
 		switch {

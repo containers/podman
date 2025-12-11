@@ -100,8 +100,8 @@ func (f *runtimeFunc) Load() error {
 			(*byte)(unsafe.Pointer(&f.addr)),
 			uint32(unsafe.Sizeof(f.addr)),
 			&n,
-			nil, //overlapped
-			0,   //completionRoutine
+			nil, // overlapped
+			0,   // completionRoutine
 		)
 	})
 	return f.err

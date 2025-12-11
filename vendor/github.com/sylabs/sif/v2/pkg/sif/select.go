@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2023, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -8,6 +8,8 @@ package sif
 import (
 	"errors"
 	"fmt"
+
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
 // ErrNoObjects is the error returned when an image contains no data objects.
@@ -89,6 +91,16 @@ func WithLinkedGroupID(groupID uint32) DescriptorSelectorFunc {
 func WithPartitionType(pt PartType) DescriptorSelectorFunc {
 	return func(d Descriptor) (bool, error) {
 		return d.raw.isPartitionOfType(pt), nil
+	}
+}
+
+// WithOCIBlobDigest selects descriptors that contain a OCI blob with the specified digest.
+func WithOCIBlobDigest(digest v1.Hash) DescriptorSelectorFunc {
+	return func(d Descriptor) (bool, error) {
+		if h, err := d.OCIBlobDigest(); err == nil {
+			return h.String() == digest.String(), nil
+		}
+		return false, nil
 	}
 }
 

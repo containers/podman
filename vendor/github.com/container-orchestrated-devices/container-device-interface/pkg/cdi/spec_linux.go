@@ -17,9 +17,9 @@
 package cdi
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -30,7 +30,7 @@ func renameIn(dir, src, dst string, overwrite bool) error {
 
 	dirf, err := os.Open(dir)
 	if err != nil {
-		return errors.Wrap(err, "rename failed")
+		return fmt.Errorf("rename failed: %w", err)
 	}
 	defer dirf.Close()
 
@@ -41,7 +41,7 @@ func renameIn(dir, src, dst string, overwrite bool) error {
 	dirFd := int(dirf.Fd())
 	err = unix.Renameat2(dirFd, src, dirFd, dst, flags)
 	if err != nil {
-		return errors.Wrap(err, "rename failed")
+		return fmt.Errorf("rename failed: %w", err)
 	}
 
 	return nil

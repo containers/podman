@@ -24,9 +24,10 @@ import (
 type Option func(*options)
 
 type options struct {
-	UserAgent  string
-	RetryCount uint
-	Logger     interface{}
+	UserAgent   string
+	RetryCount  uint
+	InsecureTLS bool
+	Logger      interface{}
 }
 
 const (
@@ -68,6 +69,12 @@ func WithLogger(logger interface{}) Option {
 		case retryablehttp.Logger, retryablehttp.LeveledLogger:
 			o.Logger = logger
 		}
+	}
+}
+
+func WithInsecureTLS(enabled bool) Option {
+	return func(o *options) {
+		o.InsecureTLS = enabled
 	}
 }
 

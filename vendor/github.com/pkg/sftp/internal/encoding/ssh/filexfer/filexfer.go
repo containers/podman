@@ -1,5 +1,5 @@
-// Package filexfer implements the wire encoding for secsh-filexfer as described in https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
-package filexfer
+// Package sshfx implements the wire encoding for secsh-filexfer as described in https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt
+package sshfx
 
 // PacketMarshaller narrowly defines packets that will only be transmitted.
 //

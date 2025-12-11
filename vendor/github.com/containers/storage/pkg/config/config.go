@@ -124,6 +124,11 @@ type OptionsConfig struct {
 	// for shared image content
 	AdditionalImageStores []string `toml:"additionalimagestores,omitempty"`
 
+	// ImageStore is the location of image store which is separated from the
+	// container store. Usually this is not recommended unless users wants
+	// separate store for image and containers.
+	ImageStore string `toml:"imagestore,omitempty"`
+
 	// AdditionalLayerStores is the location of additional read/only
 	// Layer stores.  Usually used to access Networked File System
 	// for shared image content

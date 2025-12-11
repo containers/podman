@@ -179,6 +179,6 @@ func validateEcdsaKey(pub *ecdsa.PublicKey) error {
 }
 
 // No validations currently, ED25519 supports only one key size.
-func validateEd25519Key(pub ed25519.PublicKey) error {
+func validateEd25519Key(_ ed25519.PublicKey) error {
 	return nil
 }

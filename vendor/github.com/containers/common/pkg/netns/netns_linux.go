@@ -20,6 +20,7 @@ package netns
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -51,13 +52,24 @@ func GetNSRunDir() (string, error) {
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
-	b := make([]byte, 16)
-	_, err := rand.Reader.Read(b)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate random netns name: %v", err)
+	for i := 0; i < 10000; i++ {
+		b := make([]byte, 16)
+		_, err := rand.Reader.Read(b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate random netns name: %v", err)
+		}
+		nsName := fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+		ns, err := NewNSWithName(nsName)
+		if err == nil {
+			return ns, nil
+		}
+		// retry when the name already exists
+		if errors.Is(err, os.ErrExist) {
+			continue
+		}
+		return nil, err
 	}
-	nsName := fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-	return NewNSWithName(nsName)
+	return nil, errors.New("failed to find free netns path name")
 }
 
 // NewNSWithName creates a new persistent (bind-mounted) network namespace and returns
@@ -101,7 +113,7 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 
 	// create an empty file at the mount point
 	nsPath := path.Join(nsRunDir, name)
-	mountPointFd, err := os.Create(nsPath)
+	mountPointFd, err := os.OpenFile(nsPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return nil, err
 	}
@@ -148,18 +160,6 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 			logrus.Warnf("Cannot create a new network namespace: %q", err)
 			return
 		}
-
-		// Put this thread back to the orig ns, since it might get reused (pre go1.10)
-		defer func() {
-			if err := origNS.Set(); err != nil {
-				if unshare.IsRootless() && strings.Contains(err.Error(), "operation not permitted") {
-					// When running in rootless mode it will fail to re-join
-					// the network namespace owned by root on the host.
-					return
-				}
-				logrus.Warnf("Unable to reset namespace: %q", err)
-			}
-		}()
 
 		// bind mount the netns from the current thread (from /proc) onto the
 		// mount point. This causes the namespace to persist, even when there

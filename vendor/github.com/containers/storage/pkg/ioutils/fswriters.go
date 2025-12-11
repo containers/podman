@@ -17,6 +17,20 @@ type AtomicFileWriterOptions struct {
 	// On successful return from Close() this is set to the mtime of the
 	// newly written file.
 	ModTime time.Time
+	// Specifies whether Commit() must be explicitly called to write state
+	// to the destination. This allows an application to preserve the original
+	// file when an error occurs during processing (and not just during write)
+	// The default is false, which will auto-commit on Close
+	ExplicitCommit bool
+}
+
+type CommittableWriter interface {
+	io.WriteCloser
+
+	// Commit closes the temporary file associated with this writer, and
+	// provided no errors (during commit or previously during write operations),
+	// will publish the completed file under the intended destination.
+	Commit() error
 }
 
 var defaultWriterOptions = AtomicFileWriterOptions{}
@@ -27,16 +41,19 @@ func SetDefaultOptions(opts AtomicFileWriterOptions) {
 	defaultWriterOptions = opts
 }
 
-// NewAtomicFileWriterWithOpts returns WriteCloser so that writing to it writes to a
-// temporary file and closing it atomically changes the temporary file to
-// destination path. Writing and closing concurrently is not allowed.
-func NewAtomicFileWriterWithOpts(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (io.WriteCloser, error) {
+// NewAtomicFileWriterWithOpts returns a CommittableWriter so that writing to it
+// writes to a temporary file, which can later be committed to a destination path,
+// either by Closing in the case of auto-commit, or manually calling commit if the
+// ExplicitCommit option is enabled. Writing and closing concurrently is not
+// allowed.
+func NewAtomicFileWriterWithOpts(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (CommittableWriter, error) {
 	return newAtomicFileWriter(filename, perm, opts)
 }
 
-// newAtomicFileWriter returns WriteCloser so that writing to it writes to a
-// temporary file and closing it atomically changes the temporary file to
-// destination path. Writing and closing concurrently is not allowed.
+// newAtomicFileWriter returns a CommittableWriter so that writing to it writes to
+// a temporary file, which can later be committed to a destination path, either by
+// Closing in the case of auto-commit, or manually calling commit if the
+// ExplicitCommit option is enabled. Writing and closing concurrently is not allowed.
 func newAtomicFileWriter(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (*atomicFileWriter, error) {
 	f, err := os.CreateTemp(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
 	if err != nil {
@@ -50,17 +67,18 @@ func newAtomicFileWriter(filename string, perm os.FileMode, opts *AtomicFileWrit
 		return nil, err
 	}
 	return &atomicFileWriter{
-		f:      f,
-		fn:     abspath,
-		perm:   perm,
-		noSync: opts.NoSync,
+		f:              f,
+		fn:             abspath,
+		perm:           perm,
+		noSync:         opts.NoSync,
+		explicitCommit: opts.ExplicitCommit,
 	}, nil
 }
 
-// NewAtomicFileWriter returns WriteCloser so that writing to it writes to a
-// temporary file and closing it atomically changes the temporary file to
-// destination path. Writing and closing concurrently is not allowed.
-func NewAtomicFileWriter(filename string, perm os.FileMode) (io.WriteCloser, error) {
+// NewAtomicFileWriterWithOpts returns a CommittableWriter, with auto-commit enabled.
+// Writing to it writes to a temporary file and closing it atomically changes the
+// temporary file to destination path. Writing and closing concurrently is not allowed.
+func NewAtomicFileWriter(filename string, perm os.FileMode) (CommittableWriter, error) {
 	return NewAtomicFileWriterWithOpts(filename, perm, nil)
 }
 
@@ -91,12 +109,14 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 }
 
 type atomicFileWriter struct {
-	f        *os.File
-	fn       string
-	writeErr error
-	perm     os.FileMode
-	noSync   bool
-	modTime  time.Time
+	f              *os.File
+	fn             string
+	writeErr       error
+	perm           os.FileMode
+	noSync         bool
+	modTime        time.Time
+	closed         bool
+	explicitCommit bool
 }
 
 func (w *atomicFileWriter) Write(dt []byte) (int, error) {
@@ -107,43 +127,73 @@ func (w *atomicFileWriter) Write(dt []byte) (int, error) {
 	return n, err
 }
 
-func (w *atomicFileWriter) Close() (retErr error) {
+func (w *atomicFileWriter) closeTempFile() error {
+	if w.closed {
+		return nil
+	}
+
+	w.closed = true
+	return w.f.Close()
+}
+
+func (w *atomicFileWriter) Close() error {
+	return w.complete(!w.explicitCommit)
+}
+
+func (w *atomicFileWriter) Commit() error {
+	return w.complete(true)
+}
+
+func (w *atomicFileWriter) complete(commit bool) (retErr error) {
+	if w == nil || w.closed {
+		return nil
+	}
+
 	defer func() {
+		w.closeTempFile()
 		if retErr != nil || w.writeErr != nil {
 			os.Remove(w.f.Name())
 		}
 	}()
-	if !w.noSync {
-		if err := fdatasync(w.f); err != nil {
-			w.f.Close()
-			return err
-		}
+
+	if commit {
+		return w.commitState()
 	}
 
-	// fstat before closing the fd
-	info, statErr := w.f.Stat()
-	if statErr == nil {
-		w.modTime = info.ModTime()
-	}
-	// We delay error reporting until after the real call to close()
-	// to match the traditional linux close() behaviour that an fd
-	// is invalid (closed) even if close returns failure. While
-	// weird, this allows a well defined way to not leak open fds.
+	return nil
+}
 
-	if err := w.f.Close(); err != nil {
+func (w *atomicFileWriter) commitState() error {
+	// Perform a data only sync (fdatasync()) if supported
+	if err := w.postDataWrittenSync(); err != nil {
 		return err
 	}
 
-	if statErr != nil {
-		return statErr
-	}
-
-	if err := os.Chmod(w.f.Name(), w.perm); err != nil {
+	// Capture fstat before closing the fd
+	info, err := w.f.Stat()
+	if err != nil {
 		return err
 	}
+	w.modTime = info.ModTime()
+
+	if err := w.f.Chmod(w.perm); err != nil {
+		return err
+	}
+
+	// Perform full sync on platforms that need it
+	if err := w.preRenameSync(); err != nil {
+		return err
+	}
+
+	// Some platforms require closing before rename (Windows)
+	if err := w.closeTempFile(); err != nil {
+		return err
+	}
+
 	if w.writeErr == nil {
 		return os.Rename(w.f.Name(), w.fn)
 	}
+
 	return nil
 }
 
@@ -195,7 +245,7 @@ func (w syncFileCloser) Close() error {
 	if !defaultWriterOptions.NoSync {
 		return w.File.Close()
 	}
-	err := fdatasync(w.File)
+	err := dataOrFullSync(w.File)
 	if err1 := w.File.Close(); err == nil {
 		err = err1
 	}

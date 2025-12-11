@@ -1,58 +1,12 @@
-package filexfer
+package sshfx
 
 import (
 	"errors"
-	"fmt"
 	"io"
 )
 
 // smallBufferSize is an initial allocation minimal capacity.
 const smallBufferSize = 64
-
-func newPacketFromType(typ PacketType) (Packet, error) {
-	switch typ {
-	case PacketTypeOpen:
-		return new(OpenPacket), nil
-	case PacketTypeClose:
-		return new(ClosePacket), nil
-	case PacketTypeRead:
-		return new(ReadPacket), nil
-	case PacketTypeWrite:
-		return new(WritePacket), nil
-	case PacketTypeLStat:
-		return new(LStatPacket), nil
-	case PacketTypeFStat:
-		return new(FStatPacket), nil
-	case PacketTypeSetstat:
-		return new(SetstatPacket), nil
-	case PacketTypeFSetstat:
-		return new(FSetstatPacket), nil
-	case PacketTypeOpenDir:
-		return new(OpenDirPacket), nil
-	case PacketTypeReadDir:
-		return new(ReadDirPacket), nil
-	case PacketTypeRemove:
-		return new(RemovePacket), nil
-	case PacketTypeMkdir:
-		return new(MkdirPacket), nil
-	case PacketTypeRmdir:
-		return new(RmdirPacket), nil
-	case PacketTypeRealPath:
-		return new(RealPathPacket), nil
-	case PacketTypeStat:
-		return new(StatPacket), nil
-	case PacketTypeRename:
-		return new(RenamePacket), nil
-	case PacketTypeReadLink:
-		return new(ReadLinkPacket), nil
-	case PacketTypeSymlink:
-		return new(SymlinkPacket), nil
-	case PacketTypeExtended:
-		return new(ExtendedPacket), nil
-	default:
-		return nil, fmt.Errorf("unexpected request packet type: %v", typ)
-	}
-}
 
 // RawPacket implements the general packet format from draft-ietf-secsh-filexfer-02
 //
@@ -63,7 +17,7 @@ func newPacketFromType(typ PacketType) (Packet, error) {
 // For servers expecting to receive arbitrary request packet types,
 // use RequestPacket.
 //
-// Defined in https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-3
+// Defined in https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-3
 type RawPacket struct {
 	PacketType PacketType
 	RequestID  uint32
@@ -110,19 +64,14 @@ func (p *RawPacket) MarshalBinary() ([]byte, error) {
 // The Data field will alias the passed in Buffer,
 // so the buffer passed in should not be reused before RawPacket.Reset().
 func (p *RawPacket) UnmarshalFrom(buf *Buffer) error {
-	typ, err := buf.ConsumeUint8()
-	if err != nil {
-		return err
-	}
-
-	p.PacketType = PacketType(typ)
-
-	if p.RequestID, err = buf.ConsumeUint32(); err != nil {
-		return err
+	*p = RawPacket{
+		PacketType: PacketType(buf.ConsumeUint8()),
+		RequestID:  buf.ConsumeUint32(),
 	}
 
 	p.Data = *buf
-	return nil
+
+	return buf.Err
 }
 
 // UnmarshalBinary decodes a full raw packet out of the given data.
@@ -225,7 +174,7 @@ func (p *RawPacket) ReadFrom(r io.Reader, b []byte, maxPacketLength uint32) erro
 // where automatic unmarshaling of the packet body does not make sense,
 // use RawPacket.
 //
-// Defined in https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-3
+// Defined in https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-3
 type RequestPacket struct {
 	RequestID uint32
 
@@ -268,18 +217,19 @@ func (p *RequestPacket) MarshalBinary() ([]byte, error) {
 // The Request field may alias the passed in Buffer, (e.g. SSH_FXP_WRITE),
 // so the buffer passed in should not be reused before RequestPacket.Reset().
 func (p *RequestPacket) UnmarshalFrom(buf *Buffer) error {
-	typ, err := buf.ConsumeUint8()
+	typ := PacketType(buf.ConsumeUint8())
+	if buf.Err != nil {
+		return buf.Err
+	}
+
+	req, err := newPacketFromType(typ)
 	if err != nil {
 		return err
 	}
 
-	p.Request, err = newPacketFromType(PacketType(typ))
-	if err != nil {
-		return err
-	}
-
-	if p.RequestID, err = buf.ConsumeUint32(); err != nil {
-		return err
+	*p = RequestPacket{
+		RequestID: buf.ConsumeUint32(),
+		Request:   req,
 	}
 
 	return p.Request.UnmarshalPacketBody(buf)

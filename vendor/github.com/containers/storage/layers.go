@@ -112,33 +112,33 @@ type Layer struct {
 	Created time.Time `json:"created,omitempty"`
 
 	// CompressedDigest is the digest of the blob that was last passed to
-	// ApplyDiff() or Put(), as it was presented to us.
+	// ApplyDiff() or create(), as it was presented to us.
 	CompressedDigest digest.Digest `json:"compressed-diff-digest,omitempty"`
 
 	// CompressedSize is the length of the blob that was last passed to
-	// ApplyDiff() or Put(), as it was presented to us.  If
+	// ApplyDiff() or create(), as it was presented to us.  If
 	// CompressedDigest is not set, this should be treated as if it were an
 	// uninitialized value.
 	CompressedSize int64 `json:"compressed-size,omitempty"`
 
 	// UncompressedDigest is the digest of the blob that was last passed to
-	// ApplyDiff() or Put(), after we decompressed it.  Often referred to
+	// ApplyDiff() or create(), after we decompressed it.  Often referred to
 	// as a DiffID.
 	UncompressedDigest digest.Digest `json:"diff-digest,omitempty"`
 
 	// UncompressedSize is the length of the blob that was last passed to
-	// ApplyDiff() or Put(), after we decompressed it.  If
+	// ApplyDiff() or create(), after we decompressed it.  If
 	// UncompressedDigest is not set, this should be treated as if it were
 	// an uninitialized value.
 	UncompressedSize int64 `json:"diff-size,omitempty"`
 
 	// CompressionType is the type of compression which we detected on the blob
-	// that was last passed to ApplyDiff() or Put().
+	// that was last passed to ApplyDiff() or create().
 	CompressionType archive.Compression `json:"compression,omitempty"`
 
 	// UIDs and GIDs are lists of UIDs and GIDs used in the layer.  This
 	// field is only populated (i.e., will only contain one or more
-	// entries) if the layer was created using ApplyDiff() or Put().
+	// entries) if the layer was created using ApplyDiff() or create().
 	UIDs []uint32 `json:"uidset,omitempty"`
 	GIDs []uint32 `json:"gidset,omitempty"`
 
@@ -248,20 +248,15 @@ type rwLayerStore interface {
 	// stopWriting releases locks obtained by startWriting.
 	stopWriting()
 
-	// Create creates a new layer, optionally giving it a specified ID rather than
+	// create creates a new layer, optionally giving it a specified ID rather than
 	// a randomly-generated one, either inheriting data from another specified
 	// layer or the empty base layer.  The new layer can optionally be given names
 	// and have an SELinux label specified for use when mounting it.  Some
 	// underlying drivers can accept a "size" option.  At this time, most
 	// underlying drivers do not themselves distinguish between writeable
-	// and read-only layers.
-	Create(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool) (*Layer, error)
-
-	// CreateWithFlags combines the functions of Create and SetFlag.
-	CreateWithFlags(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}) (layer *Layer, err error)
-
-	// Put combines the functions of CreateWithFlags and ApplyDiff.
-	Put(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (*Layer, int64, error)
+	// and read-only layers.  Returns the new layer structure and the size of the
+	// diff which was applied to its parent to initialize its contents.
+	create(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader) (*Layer, int64, error)
 
 	// updateNames modifies names associated with a layer based on (op, names).
 	updateNames(id string, names []string, op updateNameOperation) error
@@ -281,7 +276,7 @@ type rwLayerStore interface {
 	// unmount unmounts a layer when it is no longer in use.
 	// If conditional is set, it will fail with ErrLayerNotMounted if the layer is not mounted (without conditional, the caller is
 	// making a promise that the layer is actually mounted).
-	// If force is set, it will physically try to unmount it even if it is mounted multple times, or even if (!conditional and)
+	// If force is set, it will physically try to unmount it even if it is mounted multiple times, or even if (!conditional and)
 	// there are no records of it being mounted in the first place.
 	// It returns whether the layer was still mounted at the time this function returned.
 	// WARNING: The return value may already be obsolete by the time it is available
@@ -319,9 +314,6 @@ type rwLayerStore interface {
 
 	// Clean up unreferenced layers
 	GarbageCollect() error
-
-	// supportsShifting() returns true if the driver.Driver.SupportsShifting().
-	supportsShifting() bool
 }
 
 type layerStore struct {
@@ -662,7 +654,6 @@ func (r *layerStore) Layers() ([]Layer, error) {
 // Requires startWriting.
 func (r *layerStore) GarbageCollect() error {
 	layers, err := r.driver.ListLayers()
-
 	if err != nil {
 		if errors.Is(err, drivers.ErrNotSupported) {
 			return nil
@@ -678,10 +669,13 @@ func (r *layerStore) GarbageCollect() error {
 
 		// Remove layer and any related data of unreferenced id
 		if err := r.driver.Remove(id); err != nil {
+			logrus.Debugf("removing driver layer %q", id)
 			return err
 		}
 
+		logrus.Debugf("removing %q", r.tspath(id))
 		os.Remove(r.tspath(id))
+		logrus.Debugf("removing %q", r.datadir(id))
 		os.RemoveAll(r.datadir(id))
 	}
 	return nil
@@ -866,33 +860,35 @@ func (r *layerStore) loadMounts() error {
 		return err
 	}
 	layerMounts := []layerMountPoint{}
-	if err = json.Unmarshal(data, &layerMounts); len(data) == 0 || err == nil {
-		// Clear all of our mount information.  If another process
-		// unmounted something, it (along with its zero count) won't
-		// have been encoded into the version of mountpoints.json that
-		// we're loading, so our count could fall out of sync with it
-		// if we don't, and if we subsequently change something else,
-		// we'd pass that error along to other process that reloaded
-		// the data after we saved it.
-		for _, layer := range r.layers {
-			layer.MountPoint = ""
-			layer.MountCount = 0
+	if len(data) != 0 {
+		if err := json.Unmarshal(data, &layerMounts); err != nil {
+			return err
 		}
-		// All of the non-zero count values will have been encoded, so
-		// we reset the still-mounted ones based on the contents.
-		for _, mount := range layerMounts {
-			if mount.MountPoint != "" {
-				if layer, ok := r.lookup(mount.ID); ok {
-					mounts[mount.MountPoint] = layer
-					layer.MountPoint = mount.MountPoint
-					layer.MountCount = mount.MountCount
-				}
+	}
+	// Clear all of our mount information.  If another process
+	// unmounted something, it (along with its zero count) won't
+	// have been encoded into the version of mountpoints.json that
+	// we're loading, so our count could fall out of sync with it
+	// if we don't, and if we subsequently change something else,
+	// we'd pass that error along to other process that reloaded
+	// the data after we saved it.
+	for _, layer := range r.layers {
+		layer.MountPoint = ""
+		layer.MountCount = 0
+	}
+	// All of the non-zero count values will have been encoded, so
+	// we reset the still-mounted ones based on the contents.
+	for _, mount := range layerMounts {
+		if mount.MountPoint != "" {
+			if layer, ok := r.lookup(mount.ID); ok {
+				mounts[mount.MountPoint] = layer
+				layer.MountPoint = mount.MountPoint
+				layer.MountCount = mount.MountCount
 			}
 		}
-		err = nil
 	}
 	r.bymount = mounts
-	return err
+	return nil
 }
 
 // save saves the contents of the store to disk.
@@ -922,13 +918,21 @@ func (r *layerStore) saveLayers(saveLocations layerLocations) error {
 	}
 	r.lockfile.AssertLockedForWriting()
 
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
+	lw, err := r.lockfile.RecordWrite()
+	if err != nil {
+		return err
+	}
+	r.lastWrite = lw
+
 	for locationIndex := 0; locationIndex < numLayerLocationIndex; locationIndex++ {
 		location := layerLocationFromIndex(locationIndex)
 		if location&saveLocations == 0 {
 			continue
 		}
 		rpath := r.jsonPath[locationIndex]
-		if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(rpath), 0o700); err != nil {
 			return err
 		}
 		subsetLayers := make([]*Layer, 0, len(r.layers))
@@ -946,16 +950,11 @@ func (r *layerStore) saveLayers(saveLocations layerLocations) error {
 		if location == volatileLayerLocation {
 			opts.NoSync = true
 		}
-		if err := ioutils.AtomicWriteFileWithOpts(rpath, jldata, 0600, &opts); err != nil {
+		if err := ioutils.AtomicWriteFileWithOpts(rpath, jldata, 0o600, &opts); err != nil {
 			return err
 		}
 		r.layerspathsModified[locationIndex] = opts.ModTime
 	}
-	lw, err := r.lockfile.RecordWrite()
-	if err != nil {
-		return err
-	}
-	r.lastWrite = lw
 	return nil
 }
 
@@ -967,7 +966,7 @@ func (r *layerStore) saveMounts() error {
 	}
 	r.mountsLockfile.AssertLockedForWriting()
 	mpath := r.mountspath()
-	if err := os.MkdirAll(filepath.Dir(mpath), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(mpath), 0o700); err != nil {
 		return err
 	}
 	mounts := make([]layerMountPoint, 0, len(r.layers))
@@ -984,22 +983,26 @@ func (r *layerStore) saveMounts() error {
 	if err != nil {
 		return err
 	}
-	if err = ioutils.AtomicWriteFile(mpath, jmdata, 0600); err != nil {
-		return err
-	}
+
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
 	lw, err := r.mountsLockfile.RecordWrite()
 	if err != nil {
 		return err
 	}
 	r.mountsLastWrite = lw
+
+	if err = ioutils.AtomicWriteFile(mpath, jmdata, 0o600); err != nil {
+		return err
+	}
 	return r.loadMounts()
 }
 
 func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver, transient bool) (rwLayerStore, error) {
-	if err := os.MkdirAll(rundir, 0700); err != nil {
+	if err := os.MkdirAll(rundir, 0o700); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(layerdir, 0700); err != nil {
+	if err := os.MkdirAll(layerdir, 0o700); err != nil {
 		return nil, err
 	}
 	// Note: While the containers.lock file is in rundir for transient stores
@@ -1183,8 +1186,10 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 
 	// TODO: check if necessary fields are filled
 	r.layers = append(r.layers, layer)
-	// This can only fail on duplicate IDs, which shouldn’t happen — and in that case the index is already in the desired state anyway.
-	// Implementing recovery from an unlikely and unimportant failure here would be too risky.
+	// This can only fail on duplicate IDs, which shouldn’t happen — and in
+	// that case the index is already in the desired state anyway.
+	// Implementing recovery from an unlikely and unimportant failure here
+	// would be too risky.
 	_ = r.idindex.Add(id)
 	r.byid[id] = layer
 	for _, name := range names { // names got from the additional layer store won't be used
@@ -1197,8 +1202,8 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 		r.byuncompressedsum[layer.UncompressedDigest] = append(r.byuncompressedsum[layer.UncompressedDigest], layer.ID)
 	}
 	if err := r.saveFor(layer); err != nil {
-		if err2 := r.driver.Remove(id); err2 != nil {
-			logrus.Errorf("While recovering from a failure to save layers, error deleting layer %#v: %v", id, err2)
+		if e := r.Delete(layer.ID); e != nil {
+			logrus.Errorf("While recovering from a failure to save layers, error deleting layer %#v: %v", id, e)
 		}
 		return nil, err
 	}
@@ -1206,14 +1211,17 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 }
 
 // Requires startWriting.
-func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (*Layer, int64, error) {
+func (r *layerStore) create(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader) (layer *Layer, size int64, err error) {
+	if moreOptions == nil {
+		moreOptions = &LayerOptions{}
+	}
 	if !r.lockfile.IsReadWrite() {
 		return nil, -1, fmt.Errorf("not allowed to create new layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
 	}
-	if err := os.MkdirAll(r.rundir, 0700); err != nil {
+	if err := os.MkdirAll(r.rundir, 0o700); err != nil {
 		return nil, -1, err
 	}
-	if err := os.MkdirAll(r.layerdir, 0700); err != nil {
+	if err := os.MkdirAll(r.layerdir, 0o700); err != nil {
 		return nil, -1, err
 	}
 	if id == "" {
@@ -1227,7 +1235,7 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 	if duplicateLayer, idInUse := r.byid[id]; idInUse {
 		return duplicateLayer, -1, ErrDuplicateID
 	}
-	names = dedupeNames(names)
+	names = dedupeStrings(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
 			return nil, -1, ErrDuplicateName
@@ -1237,8 +1245,8 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 	if parentLayer != nil {
 		parent = parentLayer.ID
 	}
-	var parentMappings, templateIDMappings, oldMappings *idtools.IDMappings
 	var (
+		templateIDMappings         *idtools.IDMappings
 		templateMetadata           string
 		templateCompressedDigest   digest.Digest
 		templateCompressedSize     int64
@@ -1249,7 +1257,6 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		templateTSdata             []byte
 	)
 	if moreOptions.TemplateLayer != "" {
-		var tserr error
 		templateLayer, ok := r.lookup(moreOptions.TemplateLayer)
 		if !ok {
 			return nil, -1, ErrLayerUnknown
@@ -1260,25 +1267,21 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		templateUncompressedDigest, templateUncompressedSize = templateLayer.UncompressedDigest, templateLayer.UncompressedSize
 		templateCompressionType = templateLayer.CompressionType
 		templateUIDs, templateGIDs = append([]uint32{}, templateLayer.UIDs...), append([]uint32{}, templateLayer.GIDs...)
-		templateTSdata, tserr = os.ReadFile(r.tspath(templateLayer.ID))
-		if tserr != nil && !os.IsNotExist(tserr) {
-			return nil, -1, tserr
+		templateTSdata, err = os.ReadFile(r.tspath(templateLayer.ID))
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, -1, err
 		}
 	} else {
 		templateIDMappings = &idtools.IDMappings{}
-	}
-	if parentLayer != nil {
-		parentMappings = idtools.NewIDMappingsFromMaps(parentLayer.UIDMap, parentLayer.GIDMap)
-	} else {
-		parentMappings = &idtools.IDMappings{}
 	}
 	if mountLabel != "" {
 		selinux.ReserveLabel(mountLabel)
 	}
 
-	// Before actually creating the layer, make a persistent record of it with incompleteFlag,
-	// so that future processes have a chance to delete it.
-	layer := &Layer{
+	// Before actually creating the layer, make a persistent record of it
+	// with the incomplete flag set, so that future processes have a chance
+	// to clean up after it.
+	layer = &Layer{
 		ID:                 id,
 		Parent:             parent,
 		Names:              names,
@@ -1292,44 +1295,50 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		CompressionType:    templateCompressionType,
 		UIDs:               templateUIDs,
 		GIDs:               templateGIDs,
-		Flags:              make(map[string]interface{}),
+		Flags:              copyStringInterfaceMap(moreOptions.Flags),
 		UIDMap:             copyIDMap(moreOptions.UIDMap),
 		GIDMap:             copyIDMap(moreOptions.GIDMap),
 		BigDataNames:       []string{},
 		volatileStore:      moreOptions.Volatile,
 	}
+	layer.Flags[incompleteFlag] = true
+
 	r.layers = append(r.layers, layer)
-	// This can only fail if the ID is already missing, which shouldn’t happen — and in that case the index is already in the desired state anyway.
-	// This is on various paths to recover from failures, so this should be robust against partially missing data.
+	// This can only fail if the ID is already missing, which shouldn’t
+	// happen — and in that case the index is already in the desired state
+	// anyway.  This is on various paths to recover from failures, so this
+	// should be robust against partially missing data.
 	_ = r.idindex.Add(id)
 	r.byid[id] = layer
 	for _, name := range names {
 		r.byname[name] = layer
 	}
-	for flag, value := range flags {
-		layer.Flags[flag] = value
-	}
-	layer.Flags[incompleteFlag] = true
 
-	succeeded := false
 	cleanupFailureContext := ""
 	defer func() {
-		if !succeeded {
-			// On any error, try both removing the driver's data as well
-			// as the in-memory layer record.
-			if err2 := r.Delete(layer.ID); err2 != nil {
-				if cleanupFailureContext == "" {
-					cleanupFailureContext = "unknown: cleanupFailureContext not set at the failure site"
-				}
-				logrus.Errorf("While recovering from a failure (%s), error deleting layer %#v: %v", cleanupFailureContext, layer.ID, err2)
+		if err != nil {
+			// now that the in-memory structures know about the new
+			// record, we can use regular Delete() to clean up if
+			// anything breaks from here on out
+			if cleanupFailureContext == "" {
+				cleanupFailureContext = "unknown: cleanupFailureContext not set at the failure site"
+			}
+			if e := r.Delete(id); e != nil {
+				logrus.Errorf("While recovering from a failure (%s), error deleting layer %#v: %v", cleanupFailureContext, id, e)
 			}
 		}
 	}()
 
-	err := r.saveFor(layer)
-	if err != nil {
+	if err = r.saveFor(layer); err != nil {
 		cleanupFailureContext = "saving incomplete layer metadata"
 		return nil, -1, err
+	}
+
+	for _, item := range moreOptions.BigData {
+		if err = r.setBigData(layer, item.Key, item.Data); err != nil {
+			cleanupFailureContext = fmt.Sprintf("saving big data item %q", item.Key)
+			return nil, -1, err
+		}
 	}
 
 	idMappings := idtools.NewIDMappingsFromMaps(moreOptions.UIDMap, moreOptions.GIDMap)
@@ -1338,52 +1347,66 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		StorageOpt: options,
 		IDMappings: idMappings,
 	}
+
+	var parentMappings, oldMappings *idtools.IDMappings
+	if parentLayer != nil {
+		parentMappings = idtools.NewIDMappingsFromMaps(parentLayer.UIDMap, parentLayer.GIDMap)
+	} else {
+		parentMappings = &idtools.IDMappings{}
+	}
 	if moreOptions.TemplateLayer != "" {
-		if err := r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
-			cleanupFailureContext = "creating a layer from template"
+		if err = r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
+			cleanupFailureContext = fmt.Sprintf("creating a layer from template layer %q", moreOptions.TemplateLayer)
 			return nil, -1, fmt.Errorf("creating copy of template layer %q with ID %q: %w", moreOptions.TemplateLayer, id, err)
 		}
 		oldMappings = templateIDMappings
 	} else {
 		if writeable {
-			if err := r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+			if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
 				cleanupFailureContext = "creating a read-write layer"
 				return nil, -1, fmt.Errorf("creating read-write layer with ID %q: %w", id, err)
 			}
 		} else {
-			if err := r.driver.Create(id, parent, &opts); err != nil {
+			if err = r.driver.Create(id, parent, &opts); err != nil {
 				cleanupFailureContext = "creating a read-only layer"
-				return nil, -1, fmt.Errorf("creating layer with ID %q: %w", id, err)
+				return nil, -1, fmt.Errorf("creating read-only layer with ID %q: %w", id, err)
 			}
 		}
-		oldMappings = parentMappings
+		if parentLayer != nil {
+			oldMappings = parentMappings
+		}
 	}
-	if !reflect.DeepEqual(oldMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(oldMappings.GIDs(), idMappings.GIDs()) {
-		if err := r.driver.UpdateLayerIDMap(id, oldMappings, idMappings, mountLabel); err != nil {
+
+	if oldMappings != nil &&
+		(!reflect.DeepEqual(oldMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(oldMappings.GIDs(), idMappings.GIDs())) {
+		if err = r.driver.UpdateLayerIDMap(id, oldMappings, idMappings, mountLabel); err != nil {
 			cleanupFailureContext = "in UpdateLayerIDMap"
 			return nil, -1, err
 		}
 	}
+
 	if len(templateTSdata) > 0 {
-		if err := os.MkdirAll(filepath.Dir(r.tspath(id)), 0o700); err != nil {
+		if err = os.MkdirAll(filepath.Dir(r.tspath(id)), 0o700); err != nil {
 			cleanupFailureContext = "creating tar-split parent directory for a copy from template"
 			return nil, -1, err
 		}
-		if err := ioutils.AtomicWriteFile(r.tspath(id), templateTSdata, 0o600); err != nil {
+		if err = ioutils.AtomicWriteFile(r.tspath(id), templateTSdata, 0o600); err != nil {
 			cleanupFailureContext = "creating a tar-split copy from template"
 			return nil, -1, err
 		}
 	}
 
-	var size int64 = -1
+	size = -1
 	if diff != nil {
-		size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff)
-		if err != nil {
+		if size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff); err != nil {
 			cleanupFailureContext = "applying layer diff"
 			return nil, -1, err
 		}
 	} else {
-		// applyDiffWithOptions in the `diff != nil` case handles this bit for us
+		// applyDiffWithOptions() would have updated r.bycompressedsum
+		// and r.byuncompressedsum for us, but if we used a template
+		// layer, we didn't call it, so add the new layer as candidates
+		// for searches for layers by checksum
 		if layer.CompressedDigest != "" {
 			r.bycompressedsum[layer.CompressedDigest] = append(r.bycompressedsum[layer.CompressedDigest], layer.ID)
 		}
@@ -1391,27 +1414,15 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 			r.byuncompressedsum[layer.UncompressedDigest] = append(r.byuncompressedsum[layer.UncompressedDigest], layer.ID)
 		}
 	}
+
 	delete(layer.Flags, incompleteFlag)
-	err = r.saveFor(layer)
-	if err != nil {
+	if err = r.saveFor(layer); err != nil {
 		cleanupFailureContext = "saving finished layer metadata"
 		return nil, -1, err
 	}
 
 	layer = copyLayer(layer)
-	succeeded = true
 	return layer, size, err
-}
-
-// Requires startWriting.
-func (r *layerStore) CreateWithFlags(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}) (layer *Layer, err error) {
-	layer, _, err = r.Put(id, parent, names, mountLabel, options, moreOptions, writeable, flags, nil)
-	return layer, err
-}
-
-// Requires startWriting.
-func (r *layerStore) Create(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool) (layer *Layer, err error) {
-	return r.CreateWithFlags(id, parent, names, mountLabel, options, moreOptions, writeable, nil)
 }
 
 // Requires startReading or startWriting.
@@ -1674,9 +1685,6 @@ func (r *layerStore) BigData(id, key string) (io.ReadCloser, error) {
 
 // Requires startWriting.
 func (r *layerStore) SetBigData(id, key string, data io.Reader) error {
-	if key == "" {
-		return fmt.Errorf("can't set empty name for layer big data item: %w", ErrInvalidBigDataName)
-	}
 	if !r.lockfile.IsReadWrite() {
 		return fmt.Errorf("not allowed to save data items associated with layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
 	}
@@ -1684,7 +1692,14 @@ func (r *layerStore) SetBigData(id, key string, data io.Reader) error {
 	if !ok {
 		return fmt.Errorf("locating layer with ID %q to write bigdata: %w", id, ErrLayerUnknown)
 	}
-	err := os.MkdirAll(r.datadir(layer.ID), 0700)
+	return r.setBigData(layer, key, data)
+}
+
+func (r *layerStore) setBigData(layer *Layer, key string, data io.Reader) error {
+	if key == "" {
+		return fmt.Errorf("can't set empty name for layer big data item: %w", ErrInvalidBigDataName)
+	}
+	err := os.MkdirAll(r.datadir(layer.ID), 0o700)
 	if err != nil {
 		return err
 	}
@@ -1692,7 +1707,7 @@ func (r *layerStore) SetBigData(id, key string, data io.Reader) error {
 	// NewAtomicFileWriter doesn't overwrite/truncate the existing inode.
 	// BigData() relies on this behaviour when opening the file for read
 	// so that it is either accessing the old data or the new one.
-	writer, err := ioutils.NewAtomicFileWriter(r.datapath(layer.ID, key), 0600)
+	writer, err := ioutils.NewAtomicFileWriter(r.datapath(layer.ID, key), 0o600)
 	if err != nil {
 		return fmt.Errorf("opening bigdata file: %w", err)
 	}
@@ -1756,7 +1771,9 @@ func (r *layerStore) tspath(id string) string {
 // layerHasIncompleteFlag returns true if layer.Flags contains an incompleteFlag set to true
 // The caller must hold r.inProcessLock for reading.
 func layerHasIncompleteFlag(layer *Layer) bool {
-	// layer.Flags[…] is defined to succeed and return ok == false if Flags == nil
+	if layer.Flags == nil {
+		return false
+	}
 	if flagValue, ok := layer.Flags[incompleteFlag]; ok {
 		if b, ok := flagValue.(bool); ok && b {
 			return true
@@ -1785,20 +1802,21 @@ func (r *layerStore) deleteInternal(id string) error {
 		}
 	}
 	// We never unset incompleteFlag; below, we remove the entire object from r.layers.
-
 	id = layer.ID
-	if err := r.driver.Remove(id); err != nil {
+	if err := r.driver.Remove(id); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-
 	os.Remove(r.tspath(id))
 	os.RemoveAll(r.datadir(id))
 	delete(r.byid, id)
 	for _, name := range layer.Names {
 		delete(r.byname, name)
 	}
-	// This can only fail if the ID is already missing, which shouldn’t happen — and in that case the index is already in the desired state anyway.
-	// The store’s Delete method is used on various paths to recover from failures, so this should be robust against partially missing data.
+	// This can only fail if the ID is already missing, which shouldn’t
+	// happen — and in that case the index is already in the desired state
+	// anyway.  The store’s Delete method is used on various paths to
+	// recover from failures, so this should be robust against partially
+	// missing data.
 	_ = r.idindex.Delete(id)
 	mountLabel := layer.MountLabel
 	if layer.MountPoint != "" {
@@ -1832,7 +1850,6 @@ func (r *layerStore) deleteInternal(id string) error {
 			selinux.ReleaseLabel(mountLabel)
 		}
 	}
-
 	return nil
 }
 
@@ -1911,6 +1928,18 @@ func (r *layerStore) Wipe() error {
 	})
 	for _, id := range ids {
 		if err := r.Delete(id); err != nil {
+			return err
+		}
+	}
+	ids, err := r.driver.ListLayers()
+	if err != nil {
+		if !errors.Is(err, drivers.ErrNotSupported) {
+			return err
+		}
+		ids = nil
+	}
+	for _, id := range ids {
+		if err := r.driver.Remove(id); err != nil {
 			return err
 		}
 	}
@@ -2190,7 +2219,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 		return -1, err
 	}
 	compression := archive.DetectCompression(header[:n])
-	defragmented := io.MultiReader(bytes.NewBuffer(header[:n]), diff)
+	defragmented := io.MultiReader(bytes.NewReader(header[:n]), diff)
 
 	// Decide if we need to compute digests
 	var compressedDigest, uncompressedDigest digest.Digest       // = ""
@@ -2218,54 +2247,63 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	defragmented = io.TeeReader(defragmented, compressedCounter)
 
 	tsdata := bytes.Buffer{}
-	compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
-	if err != nil {
-		compressor = pgzip.NewWriter(&tsdata)
-	}
-	if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
-		logrus.Infof("setting compression concurrency threads to 1: %v; ignoring", err)
-	}
-	metadata := storage.NewJSONPacker(compressor)
-	uncompressed, err := archive.DecompressStream(defragmented)
-	if err != nil {
-		return -1, err
-	}
-	defer uncompressed.Close()
 	uidLog := make(map[uint32]struct{})
 	gidLog := make(map[uint32]struct{})
-	idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
-		if !strings.HasPrefix(path.Base(h.Name), archive.WhiteoutPrefix) {
-			uidLog[uint32(h.Uid)] = struct{}{}
-			gidLog[uint32(h.Gid)] = struct{}{}
+	var uncompressedCounter *ioutils.WriteCounter
+
+	size, err = func() (int64, error) { // A scope for defer
+		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
+		if err != nil {
+			return -1, err
 		}
-	})
+		defer compressor.Close()                                        // This must happen before tsdata is consumed.
+		if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
+			logrus.Infof("setting compression concurrency threads to 1: %v; ignoring", err)
+		}
+		metadata := storage.NewJSONPacker(compressor)
+		uncompressed, err := archive.DecompressStream(defragmented)
+		if err != nil {
+			return -1, err
+		}
+		defer uncompressed.Close()
+		idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
+			if !strings.HasPrefix(path.Base(h.Name), archive.WhiteoutPrefix) {
+				uidLog[uint32(h.Uid)] = struct{}{}
+				gidLog[uint32(h.Gid)] = struct{}{}
+			}
+		})
+		if err != nil {
+			return -1, err
+		}
+		defer idLogger.Close() // This must happen before uidLog and gidLog is consumed.
+		uncompressedCounter = ioutils.NewWriteCounter(idLogger)
+		uncompressedWriter := (io.Writer)(uncompressedCounter)
+		if uncompressedDigester != nil {
+			uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
+		}
+		payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
+		if err != nil {
+			return -1, err
+		}
+		options := drivers.ApplyDiffOpts{
+			Diff:       payload,
+			Mappings:   r.layerMappings(layer),
+			MountLabel: layer.MountLabel,
+		}
+		size, err := r.driver.ApplyDiff(layer.ID, layer.Parent, options)
+		if err != nil {
+			return -1, err
+		}
+		return size, err
+	}()
 	if err != nil {
 		return -1, err
 	}
-	defer idLogger.Close()
-	uncompressedCounter := ioutils.NewWriteCounter(idLogger)
-	uncompressedWriter := (io.Writer)(uncompressedCounter)
-	if uncompressedDigester != nil {
-		uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
-	}
-	payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
-	if err != nil {
+
+	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
 		return -1, err
 	}
-	options := drivers.ApplyDiffOpts{
-		Diff:       payload,
-		Mappings:   r.layerMappings(layer),
-		MountLabel: layer.MountLabel,
-	}
-	size, err = r.driver.ApplyDiff(layer.ID, layer.Parent, options)
-	if err != nil {
-		return -1, err
-	}
-	compressor.Close()
-	if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0700); err != nil {
-		return -1, err
-	}
-	if err := ioutils.AtomicWriteFile(r.tspath(layer.ID), tsdata.Bytes(), 0600); err != nil {
+	if err := ioutils.AtomicWriteFile(r.tspath(layer.ID), tsdata.Bytes(), 0o600); err != nil {
 		return -1, err
 	}
 	if compressedDigester != nil {
@@ -2358,8 +2396,26 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 	layer.UncompressedDigest = diffOutput.UncompressedDigest
 	layer.UncompressedSize = diffOutput.Size
 	layer.Metadata = diffOutput.Metadata
-	if err = r.saveFor(layer); err != nil {
-		return err
+	if len(diffOutput.TarSplit) != 0 {
+		tsdata := bytes.Buffer{}
+		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
+		if err != nil {
+			compressor = pgzip.NewWriter(&tsdata)
+		}
+		if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
+			logrus.Infof("setting compression concurrency threads to 1: %v; ignoring", err)
+		}
+		if _, err := compressor.Write(diffOutput.TarSplit); err != nil {
+			compressor.Close()
+			return err
+		}
+		compressor.Close()
+		if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0o700); err != nil {
+			return err
+		}
+		if err := ioutils.AtomicWriteFile(r.tspath(layer.ID), tsdata.Bytes(), 0o600); err != nil {
+			return err
+		}
 	}
 	for k, v := range diffOutput.BigData {
 		if err := r.SetBigData(id, k, bytes.NewReader(v)); err != nil {
@@ -2368,6 +2424,9 @@ func (r *layerStore) ApplyDiffFromStagingDirectory(id, stagingDirectory string, 
 			}
 			return err
 		}
+	}
+	if err = r.saveFor(layer); err != nil {
+		return err
 	}
 	return err
 }
@@ -2433,10 +2492,6 @@ func (r *layerStore) LayersByCompressedDigest(d digest.Digest) ([]Layer, error) 
 // Requires startReading or startWriting.
 func (r *layerStore) LayersByUncompressedDigest(d digest.Digest) ([]Layer, error) {
 	return r.layersByDigestMap(r.byuncompressedsum, d)
-}
-
-func (r *layerStore) supportsShifting() bool {
-	return r.driver.SupportsShifting()
 }
 
 func closeAll(closes ...func() error) (rErr error) {

@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ type PacketType uint8
 
 // Request packet types.
 const (
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-3
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-3
 	PacketTypeInit = PacketType(iota + 1)
 	PacketTypeVersion
 	PacketTypeOpen
@@ -31,17 +31,17 @@ const (
 	PacketTypeReadLink
 	PacketTypeSymlink
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-07#section-3.3
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-07.txt#section-3.3
 	PacketTypeV6Link
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-08#section-3.3
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-08.txt#section-3.3
 	PacketTypeV6Block
 	PacketTypeV6Unblock
 )
 
 // Response packet types.
 const (
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-3
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-3
 	PacketTypeStatus = PacketType(iota + 101)
 	PacketTypeHandle
 	PacketTypeData
@@ -51,7 +51,7 @@ const (
 
 // Extended packet types.
 const (
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-3
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-3
 	PacketTypeExtended = PacketType(iota + 200)
 	PacketTypeExtendedReply
 )
@@ -120,5 +120,50 @@ func (f PacketType) String() string {
 		return "SSH_FXP_EXTENDED_REPLY"
 	default:
 		return fmt.Sprintf("SSH_FXP_UNKNOWN(%d)", f)
+	}
+}
+
+func newPacketFromType(typ PacketType) (Packet, error) {
+	switch typ {
+	case PacketTypeOpen:
+		return new(OpenPacket), nil
+	case PacketTypeClose:
+		return new(ClosePacket), nil
+	case PacketTypeRead:
+		return new(ReadPacket), nil
+	case PacketTypeWrite:
+		return new(WritePacket), nil
+	case PacketTypeLStat:
+		return new(LStatPacket), nil
+	case PacketTypeFStat:
+		return new(FStatPacket), nil
+	case PacketTypeSetstat:
+		return new(SetstatPacket), nil
+	case PacketTypeFSetstat:
+		return new(FSetstatPacket), nil
+	case PacketTypeOpenDir:
+		return new(OpenDirPacket), nil
+	case PacketTypeReadDir:
+		return new(ReadDirPacket), nil
+	case PacketTypeRemove:
+		return new(RemovePacket), nil
+	case PacketTypeMkdir:
+		return new(MkdirPacket), nil
+	case PacketTypeRmdir:
+		return new(RmdirPacket), nil
+	case PacketTypeRealPath:
+		return new(RealPathPacket), nil
+	case PacketTypeStat:
+		return new(StatPacket), nil
+	case PacketTypeRename:
+		return new(RenamePacket), nil
+	case PacketTypeReadLink:
+		return new(ReadLinkPacket), nil
+	case PacketTypeSymlink:
+		return new(SymlinkPacket), nil
+	case PacketTypeExtended:
+		return new(ExtendedPacket), nil
+	default:
+		return nil, fmt.Errorf("unexpected request packet type: %v", typ)
 	}
 }

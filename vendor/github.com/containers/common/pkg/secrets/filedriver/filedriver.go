@@ -26,7 +26,7 @@ type Driver struct {
 	// secretsDataFilePath is the path to the secretsfile
 	secretsDataFilePath string
 	// lockfile is the filedriver lockfile
-	lockfile lockfile.Locker
+	lockfile *lockfile.LockFile
 }
 
 // NewDriver creates a new file driver.
@@ -150,7 +150,7 @@ func (d *Driver) getAllData() (map[string][]byte, error) {
 		return nil, err
 	}
 	secretData := new(map[string][]byte)
-	err = json.Unmarshal([]byte(byteValue), secretData)
+	err = json.Unmarshal(byteValue, secretData)
 	if err != nil {
 		return nil, err
 	}

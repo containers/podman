@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -88,7 +91,7 @@ func ImageConfigFromChanges(changes []string) (*ImageConfig, error) { // nolint:
 		case "ENV":
 			// Format is either:
 			// ENV key=value
-			// ENV key=value key=value ...
+			// ENV key-1=value key-2=value ...
 			// ENV key value
 			// Both keys and values can be surrounded by quotes to group them.
 			// For now: we only support key=value

@@ -1,4 +1,4 @@
-// Copyright 2013-2022 The Cobra Authors
+// Copyright 2013-2023 The Cobra Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,12 +30,15 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-const FlagSetByCobraAnnotation = "cobra_annotation_flag_set_by_cobra"
+const (
+	FlagSetByCobraAnnotation     = "cobra_annotation_flag_set_by_cobra"
+	CommandDisplayNameAnnotation = "cobra_annotation_command_display_name"
+)
 
 // FParseErrWhitelist configures Flag parse errors to be ignored
 type FParseErrWhitelist flag.ParseErrorsWhitelist
 
-// Structure to manage groups for commands
+// Group Structure to manage groups for commands
 type Group struct {
 	ID    string
 	Title string
@@ -47,7 +50,7 @@ type Group struct {
 // definition to ensure usability.
 type Command struct {
 	// Use is the one-line usage message.
-	// Recommended syntax is as follow:
+	// Recommended syntax is as follows:
 	//   [ ] identifies an optional argument. Arguments that are not enclosed in brackets are required.
 	//   ... indicates that you can specify multiple values for the previous argument.
 	//   |   indicates mutually exclusive information. You can use the argument to the left of the separator or the
@@ -99,7 +102,7 @@ type Command struct {
 	Deprecated string
 
 	// Annotations are key/value pairs that can be used by applications to identify or
-	// group commands.
+	// group commands or set special options.
 	Annotations map[string]string
 
 	// Version defines the version for this command. If this value is non-empty and the command does not
@@ -115,6 +118,8 @@ type Command struct {
 	//   * PostRun()
 	//   * PersistentPostRun()
 	// All functions get the same args, the arguments after the command name.
+	// The *PreRun and *PostRun functions will only be executed if the Run function of the current
+	// command has been declared.
 	//
 	// PersistentPreRun: children of this command will inherit and execute.
 	PersistentPreRun func(cmd *Command, args []string)
@@ -180,6 +185,9 @@ type Command struct {
 
 	// versionTemplate is the version template defined by user.
 	versionTemplate string
+
+	// errPrefix is the error message prefix defined by user.
+	errPrefix string
 
 	// inReader is a reader defined by the user that replaces stdin
 	inReader io.Reader
@@ -321,7 +329,7 @@ func (c *Command) SetHelpCommand(cmd *Command) {
 	c.helpCommand = cmd
 }
 
-// SetHelpCommandGroup sets the group id of the help command.
+// SetHelpCommandGroupID sets the group id of the help command.
 func (c *Command) SetHelpCommandGroupID(groupID string) {
 	if c.helpCommand != nil {
 		c.helpCommand.GroupID = groupID
@@ -330,7 +338,7 @@ func (c *Command) SetHelpCommandGroupID(groupID string) {
 	c.helpCommandGroupID = groupID
 }
 
-// SetCompletionCommandGroup sets the group id of the completion command.
+// SetCompletionCommandGroupID sets the group id of the completion command.
 func (c *Command) SetCompletionCommandGroupID(groupID string) {
 	// completionCommandGroupID is used if no completion command is defined by the user
 	c.Root().completionCommandGroupID = groupID
@@ -344,6 +352,11 @@ func (c *Command) SetHelpTemplate(s string) {
 // SetVersionTemplate sets version template to be used. Application can use it to set custom template.
 func (c *Command) SetVersionTemplate(s string) {
 	c.versionTemplate = s
+}
+
+// SetErrPrefix sets error message prefix to be used. Application can use it to set custom prefix.
+func (c *Command) SetErrPrefix(s string) {
+	c.errPrefix = s
 }
 
 // SetGlobalNormalizationFunc sets a normalization function to all flag sets and also to child commands.
@@ -595,6 +608,18 @@ func (c *Command) VersionTemplate() string {
 `
 }
 
+// ErrPrefix return error message prefix for the command
+func (c *Command) ErrPrefix() string {
+	if c.errPrefix != "" {
+		return c.errPrefix
+	}
+
+	if c.HasParent() {
+		return c.parent.ErrPrefix()
+	}
+	return "Error:"
+}
+
 func hasNoOptDefVal(name string, fs *flag.FlagSet) bool {
 	flag := fs.Lookup(name)
 	if flag == nil {
@@ -655,20 +680,44 @@ Loop:
 
 // argsMinusFirstX removes only the first x from args.  Otherwise, commands that look like
 // openshift admin policy add-role-to-user admin my-user, lose the admin argument (arg[4]).
-func argsMinusFirstX(args []string, x string) []string {
-	for i, y := range args {
-		if x == y {
-			ret := []string{}
-			ret = append(ret, args[:i]...)
-			ret = append(ret, args[i+1:]...)
-			return ret
+// Special care needs to be taken not to remove a flag value.
+func (c *Command) argsMinusFirstX(args []string, x string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	c.mergePersistentFlags()
+	flags := c.Flags()
+
+Loop:
+	for pos := 0; pos < len(args); pos++ {
+		s := args[pos]
+		switch {
+		case s == "--":
+			// -- means we have reached the end of the parseable args. Break out of the loop now.
+			break Loop
+		case strings.HasPrefix(s, "--") && !strings.Contains(s, "=") && !hasNoOptDefVal(s[2:], flags):
+			fallthrough
+		case strings.HasPrefix(s, "-") && !strings.Contains(s, "=") && len(s) == 2 && !shortHasNoOptDefVal(s[1:], flags):
+			// This is a flag without a default value, and an equal sign is not used. Increment pos in order to skip
+			// over the next arg, because that is the value of this flag.
+			pos++
+			continue
+		case !strings.HasPrefix(s, "-"):
+			// This is not a flag or a flag value. Check to see if it matches what we're looking for, and if so,
+			// return the args, excluding the one at this position.
+			if s == x {
+				ret := []string{}
+				ret = append(ret, args[:pos]...)
+				ret = append(ret, args[pos+1:]...)
+				return ret
+			}
 		}
 	}
 	return args
 }
 
 func isFlagArg(arg string) bool {
-	return ((len(arg) >= 3 && arg[1] == '-') ||
+	return ((len(arg) >= 3 && arg[0:2] == "--") ||
 		(len(arg) >= 2 && arg[0] == '-' && arg[1] != '-'))
 }
 
@@ -686,7 +735,7 @@ func (c *Command) Find(args []string) (*Command, []string, error) {
 
 		cmd := c.findNext(nextSubCmd)
 		if cmd != nil {
-			return innerfind(cmd, argsMinusFirstX(innerArgs, nextSubCmd))
+			return innerfind(cmd, c.argsMinusFirstX(innerArgs, nextSubCmd))
 		}
 		return c, innerArgs
 	}
@@ -728,7 +777,9 @@ func (c *Command) findNext(next string) *Command {
 	}
 
 	if len(matches) == 1 {
-		return matches[0]
+		// Temporarily disable gosec G602, which produces a false positive.
+		// See https://github.com/securego/gosec/issues/1005.
+		return matches[0] // #nosec G602
 	}
 
 	return nil
@@ -886,15 +937,31 @@ func (c *Command) execute(a []string) (err error) {
 		return err
 	}
 
+	parents := make([]*Command, 0, 5)
 	for p := c; p != nil; p = p.Parent() {
+		if EnableTraverseRunHooks {
+			// When EnableTraverseRunHooks is set:
+			// - Execute all persistent pre-runs from the root parent till this command.
+			// - Execute all persistent post-runs from this command till the root parent.
+			parents = append([]*Command{p}, parents...)
+		} else {
+			// Otherwise, execute only the first found persistent hook.
+			parents = append(parents, p)
+		}
+	}
+	for _, p := range parents {
 		if p.PersistentPreRunE != nil {
 			if err := p.PersistentPreRunE(c, argWoFlags); err != nil {
 				return err
 			}
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		} else if p.PersistentPreRun != nil {
 			p.PersistentPreRun(c, argWoFlags)
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		}
 	}
 	if c.PreRunE != nil {
@@ -931,10 +998,14 @@ func (c *Command) execute(a []string) (err error) {
 			if err := p.PersistentPostRunE(c, argWoFlags); err != nil {
 				return err
 			}
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		} else if p.PersistentPostRun != nil {
 			p.PersistentPostRun(c, argWoFlags)
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		}
 	}
 
@@ -1024,7 +1095,7 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 			c = cmd
 		}
 		if !c.SilenceErrors {
-			c.PrintErrln("Error:", err.Error())
+			c.PrintErrln(c.ErrPrefix(), err.Error())
 			c.PrintErrf("Run '%v --help' for usage.\n", c.CommandPath())
 		}
 		return c, err
@@ -1053,7 +1124,7 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 		// If root command has SilenceErrors flagged,
 		// all subcommands should respect it
 		if !cmd.SilenceErrors && !c.SilenceErrors {
-			c.PrintErrln("Error:", err.Error())
+			c.PrintErrln(cmd.ErrPrefix(), err.Error())
 		}
 
 		// If root command has SilenceUsage flagged,
@@ -1272,7 +1343,7 @@ func (c *Command) AllChildCommandsHaveGroup() bool {
 	return true
 }
 
-// ContainGroups return if groupID exists in the list of command groups.
+// ContainsGroup return if groupID exists in the list of command groups.
 func (c *Command) ContainsGroup(groupID string) bool {
 	for _, x := range c.commandgroups {
 		if x.ID == groupID {
@@ -1356,6 +1427,9 @@ func (c *Command) CommandPath() string {
 	if c.HasParent() {
 		return c.Parent().CommandPath() + " " + c.Name()
 	}
+	if displayName, ok := c.Annotations[CommandDisplayNameAnnotation]; ok {
+		return displayName
+	}
 	return c.Name()
 }
 
@@ -1378,6 +1452,7 @@ func (c *Command) UseLine() string {
 
 // DebugFlags used to determine which flags have been assigned to which commands
 // and which persist.
+// nolint:goconst
 func (c *Command) DebugFlags() {
 	c.Println("DebugFlags called on", c.Name())
 	var debugflags func(*Command)

@@ -15,11 +15,14 @@
 package client
 
 import (
+	"crypto/tls"
+	"net/http"
 	"net/url"
 
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-cleanhttp"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/util"
@@ -33,16 +36,28 @@ func GetRekorClient(rekorServerURL string, opts ...Option) (*client.Rekor, error
 	o := makeOptions(opts...)
 
 	retryableClient := retryablehttp.NewClient()
+	defaultTransport := cleanhttp.DefaultTransport()
+	if o.InsecureTLS {
+		/* #nosec G402 */
+		defaultTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	retryableClient.HTTPClient = &http.Client{
+		Transport: defaultTransport,
+	}
 	retryableClient.RetryMax = int(o.RetryCount)
 	retryableClient.Logger = o.Logger
 
 	httpClient := retryableClient.StandardClient()
 	httpClient.Transport = createRoundTripper(httpClient.Transport, o)
 
-	rt := httptransport.NewWithClient(url.Host, client.DefaultBasePath, []string{url.Scheme}, httpClient)
+	// sanitize path
+	if url.Path == "" {
+		url.Path = client.DefaultBasePath
+	}
+
+	rt := httptransport.NewWithClient(url.Host, url.Path, []string{url.Scheme}, httpClient)
 	rt.Consumers["application/json"] = runtime.JSONConsumer()
 	rt.Consumers["application/x-pem-file"] = runtime.TextConsumer()
-	rt.Consumers["application/pem-certificate-chain"] = runtime.TextConsumer()
 	rt.Producers["application/json"] = runtime.JSONProducer()
 
 	registry := strfmt.Default

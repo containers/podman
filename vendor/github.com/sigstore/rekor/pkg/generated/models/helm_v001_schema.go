@@ -126,6 +126,7 @@ func (m *HelmV001Schema) ContextValidate(ctx context.Context, formats strfmt.Reg
 func (m *HelmV001Schema) contextValidateChart(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Chart != nil {
+
 		if err := m.Chart.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart")
@@ -142,6 +143,7 @@ func (m *HelmV001Schema) contextValidateChart(ctx context.Context, formats strfm
 func (m *HelmV001Schema) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.PublicKey != nil {
+
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
@@ -264,6 +266,11 @@ func (m *HelmV001SchemaChart) ContextValidate(ctx context.Context, formats strfm
 func (m *HelmV001SchemaChart) contextValidateHash(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Hash != nil {
+
+		if swag.IsZero(m.Hash) { // not required
+			return nil
+		}
+
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "hash")
@@ -280,6 +287,7 @@ func (m *HelmV001SchemaChart) contextValidateHash(ctx context.Context, formats s
 func (m *HelmV001SchemaChart) contextValidateProvenance(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Provenance != nil {
+
 		if err := m.Provenance.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "provenance")
@@ -484,6 +492,11 @@ func (m *HelmV001SchemaChartProvenance) ContextValidate(ctx context.Context, for
 func (m *HelmV001SchemaChartProvenance) contextValidateSignature(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Signature != nil {
+
+		if swag.IsZero(m.Signature) { // not required
+			return nil
+		}
+
 		if err := m.Signature.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("chart" + "." + "provenance" + "." + "signature")

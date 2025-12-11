@@ -8,12 +8,8 @@ linters:
     - containedctx # struct contains a context
     - dupl # duplicate code
     - errname # erorrs are named correctly
-    - goconst # strings that should be constants
-    - godot # comments end in a period
-    - misspell
     - nolintlint # "//nolint" directives are properly explained
     - revive # golint replacement
-    - stylecheck # golint replacement, less configurable than revive
     - unconvert # unnecessary conversions
     - wastedassign
 
@@ -23,10 +19,7 @@ linters:
     - exhaustive # check exhaustiveness of enum switch statements
     - gofmt # files are gofmt'ed
     - gosec # security
-    - nestif # deeply nested ifs
     - nilerr # returns nil even with non-nil error
-    - prealloc # slices that can be pre-allocated
-    - structcheck # unused struct fields
     - unparam # unused function params
 
 issues:
@@ -42,6 +35,18 @@ issues:
       text: "^line-length-limit: "
       source: "^//(go:generate|sys) "
 
+    #TODO: remove after upgrading to go1.18
+    # ignore comment spacing for nolint and sys directives
+    - linters:
+        - revive
+      text: "^comment-spacings: no space between comment delimiter and comment text"
+      source: "//(cspell:|nolint:|sys |todo)"
+
+    # not on go 1.18 yet, so no any
+    - linters:
+        - revive
+      text: "^use-any: since GO 1.18 'interface{}' can be replaced by 'any'"
+
     # allow unjustified ignores of error checks in defer statements
     - linters:
         - nolintlint
@@ -56,6 +61,8 @@ issues:
 
 
 linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: true
   govet:
     enable-all: true
     disable:
@@ -98,6 +105,8 @@ linters-settings:
         disabled: true
       - name: flag-parameter # excessive, and a common idiom we use
         disabled: true
+      - name: unhandled-error # warns over common fmt.Print* and io.Close; rely on errcheck instead
+        disabled: true
       # general config
       - name: line-length-limit
         arguments:
@@ -138,7 +147,3 @@ linters-settings:
             - VPCI
             - WCOW
             - WIM
-  stylecheck:
-    checks:
-      - "all"
-      - "-ST1003" # use revive's var naming

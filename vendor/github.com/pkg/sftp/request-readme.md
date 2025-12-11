@@ -28,7 +28,7 @@ then sends to the client.
 Handler for "Put" method and returns an io.Writer for the file which the server
 then writes the uploaded file to. The file opening "pflags" are currently
 preserved in the Request.Flags field as a 32bit bitmask value. See the [SFTP
-spec](https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-6.3) for
+spec](https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-6.3) for
 details.
 
 ###    Filecmd(*Request) error

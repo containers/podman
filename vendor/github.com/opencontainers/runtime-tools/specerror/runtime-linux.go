@@ -12,11 +12,9 @@ const (
 	DefaultRuntimeLinuxSymlinks Code = 0xf001 + iota
 )
 
-var (
-	devSymbolicLinksRef = func(version string) (reference string, err error) {
-		return fmt.Sprintf(referenceTemplate, version, "runtime-linux.md#dev-symbolic-links"), nil
-	}
-)
+var devSymbolicLinksRef = func(version string) (reference string, err error) {
+	return fmt.Sprintf(referenceTemplate, version, "runtime-linux.md#dev-symbolic-links"), nil
+}
 
 func init() {
 	register(DefaultRuntimeLinuxSymlinks, rfc2119.Must, devSymbolicLinksRef)

@@ -4,13 +4,11 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/pools"
 	"github.com/docker/docker/pkg/system"
 	"github.com/sirupsen/logrus"
@@ -33,7 +31,6 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 	if options.ExcludePatterns == nil {
 		options.ExcludePatterns = []string{}
 	}
-	idMapping := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 
 	aufsTempdir := ""
 	aufsHardlinks := make(map[string]*tar.Header)
@@ -75,20 +72,10 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 			}
 		}
 
-		// Note as these operations are platform specific, so must the slash be.
-		if !strings.HasSuffix(hdr.Name, string(os.PathSeparator)) {
-			// Not the root directory, ensure that the parent directory exists.
-			// This happened in some tests where an image had a tarfile without any
-			// parent directories.
-			parent := filepath.Dir(hdr.Name)
-			parentPath := filepath.Join(dest, parent)
-
-			if _, err := os.Lstat(parentPath); err != nil && os.IsNotExist(err) {
-				err = system.MkdirAll(parentPath, 0600)
-				if err != nil {
-					return 0, err
-				}
-			}
+		// Ensure that the parent directory exists.
+		err = createImpliedDirectories(dest, hdr, options)
+		if err != nil {
+			return 0, err
 		}
 
 		// Skip AUFS metadata dirs
@@ -100,7 +87,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				basename := filepath.Base(hdr.Name)
 				aufsHardlinks[basename] = hdr
 				if aufsTempdir == "" {
-					if aufsTempdir, err = ioutil.TempDir("", "dockerplnk"); err != nil {
+					if aufsTempdir, err = os.MkdirTemp(dest, "dockerplnk"); err != nil {
 						return 0, err
 					}
 					defer os.RemoveAll(aufsTempdir)
@@ -114,6 +101,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				continue
 			}
 		}
+		//#nosec G305 -- The joined path is guarded against path traversal.
 		path := filepath.Join(dest, hdr.Name)
 		rel, err := filepath.Rel(dest, path)
 		if err != nil {
@@ -133,7 +121,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				if err != nil {
 					return 0, err
 				}
-				err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+				err = filepath.WalkDir(dir, func(path string, info os.DirEntry, err error) error {
 					if err != nil {
 						if os.IsNotExist(err) {
 							err = nil // parent was deleted
@@ -144,8 +132,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 						return nil
 					}
 					if _, exists := unpackedPaths[path]; !exists {
-						err := os.RemoveAll(path)
-						return err
+						return os.RemoveAll(path)
 					}
 					return nil
 				})
@@ -192,7 +179,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				srcData = tmpFile
 			}
 
-			if err := remapIDs(idMapping, srcHdr); err != nil {
+			if err := remapIDs(options.IDMap, srcHdr); err != nil {
 				return 0, err
 			}
 
@@ -210,6 +197,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 	}
 
 	for _, hdr := range dirs {
+		//#nosec G305 -- The header was checked for path traversal before it was appended to the dirs slice.
 		path := filepath.Join(dest, hdr.Name)
 		if err := system.Chtimes(path, hdr.AccessTime, hdr.ModTime); err != nil {
 			return 0, err
@@ -235,18 +223,32 @@ func ApplyUncompressedLayer(dest string, layer io.Reader, options *TarOptions) (
 	return applyLayerHandler(dest, layer, options, false)
 }
 
+// IsEmpty checks if the tar archive is empty (doesn't contain any entries).
+func IsEmpty(rd io.Reader) (bool, error) {
+	decompRd, err := DecompressStream(rd)
+	if err != nil {
+		return true, fmt.Errorf("failed to decompress archive: %v", err)
+	}
+	defer decompRd.Close()
+
+	tarReader := tar.NewReader(decompRd)
+	if _, err := tarReader.Next(); err != nil {
+		if err == io.EOF {
+			return true, nil
+		}
+		return false, fmt.Errorf("failed to read next archive header: %v", err)
+	}
+
+	return false, nil
+}
+
 // do the bulk load of ApplyLayer, but allow for not calling DecompressStream
 func applyLayerHandler(dest string, layer io.Reader, options *TarOptions, decompress bool) (int64, error) {
 	dest = filepath.Clean(dest)
 
 	// We need to be able to set any perms
-	if runtime.GOOS != "windows" {
-		oldmask, err := system.Umask(0)
-		if err != nil {
-			return 0, err
-		}
-		defer system.Umask(oldmask)
-	}
+	restore := overrideUmask(0)
+	defer restore()
 
 	if decompress {
 		decompLayer, err := DecompressStream(layer)

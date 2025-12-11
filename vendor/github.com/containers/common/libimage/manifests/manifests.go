@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	stderrors "errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/containers/common/pkg/manifests"
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/common/pkg/supplemented"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/signature/signer"
 	is "github.com/containers/image/v5/storage"
@@ -27,6 +29,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultMaxRetries = 3
+)
+
 const instancesData = "instances.json"
 
 // LookupReferenceFunc return an image reference based on the specified one.
@@ -37,7 +43,7 @@ type LookupReferenceFunc func(ref types.ImageReference) (types.ImageReference, e
 
 // ErrListImageUnknown is returned when we attempt to create an image reference
 // for a List that has not yet been saved to an image.
-var ErrListImageUnknown = stderrors.New("unable to determine which image holds the manifest list")
+var ErrListImageUnknown = errors.New("unable to determine which image holds the manifest list")
 
 type list struct {
 	manifests.List
@@ -70,6 +76,13 @@ type PushOptions struct {
 	RemoveSignatures                 bool                  // true to discard signatures in images
 	ManifestType                     string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
 	SourceFilter                     LookupReferenceFunc   // filter the list source
+	AddCompression                   []string              // add existing instances with requested compression algorithms to manifest list
+	ForceCompressionFormat           bool                  // force push with requested compression ignoring the blobs which can be reused.
+	// Maximum number of retries with exponential backoff when facing
+	// transient network errors. Default 3.
+	MaxRetries *uint
+	// RetryDelay used for the exponential back off of MaxRetries.
+	RetryDelay *time.Duration
 }
 
 // Create creates a new list containing information about the specified image,
@@ -239,6 +252,10 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 			return nil, "", err
 		}
 	}
+	compressionVariants, err := prepareAddWithCompression(options.AddCompression)
+	if err != nil {
+		return nil, "", err
+	}
 	copyOptions := &cp.Options{
 		ImageListSelection:               options.ImageListSelection,
 		Instances:                        options.Instances,
@@ -252,18 +269,47 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,
 		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
 		ForceManifestMIMEType:            singleImageManifestType,
+		EnsureCompressionVariantsExist:   compressionVariants,
+		ForceCompressionFormat:           options.ForceCompressionFormat,
+	}
+
+	retryOptions := retry.Options{}
+	retryOptions.MaxRetry = defaultMaxRetries
+	if options.MaxRetries != nil {
+		retryOptions.MaxRetry = int(*options.MaxRetries)
+	}
+	if options.RetryDelay != nil {
+		retryOptions.Delay = *options.RetryDelay
 	}
 
 	// Copy whatever we were asked to copy.
-	manifestBytes, err := cp.Image(ctx, policyContext, dest, src, copyOptions)
-	if err != nil {
-		return nil, "", err
+	var manifestDigest digest.Digest
+	f := func() error {
+		opts := copyOptions
+		var manifestBytes []byte
+		var digest digest.Digest
+		var err error
+		if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, opts); err == nil {
+			if digest, err = manifest.Digest(manifestBytes); err == nil {
+				manifestDigest = digest
+			}
+		}
+		return err
 	}
-	manifestDigest, err := manifest.Digest(manifestBytes)
-	if err != nil {
-		return nil, "", err
+	err = retry.IfNecessary(ctx, f, &retryOptions)
+	return nil, manifestDigest, err
+}
+
+func prepareAddWithCompression(variants []string) ([]cp.OptionCompressionVariant, error) {
+	res := []cp.OptionCompressionVariant{}
+	for _, name := range variants {
+		algo, err := compression.AlgorithmByName(name)
+		if err != nil {
+			return nil, fmt.Errorf("requested algorithm %s is not supported for replication: %w", name, err)
+		}
+		res = append(res, cp.OptionCompressionVariant{Algorithm: algo})
 	}
-	return nil, manifestDigest, nil
+	return res, nil
 }
 
 // Add adds information about the specified image to the list, computing the
@@ -423,7 +469,7 @@ func (l *list) Remove(instanceDigest digest.Digest) error {
 // then use that list's SaveToImage() method to save a modified version of the
 // list to that image record use this lock to avoid accidentally wiping out
 // changes that another process is also attempting to make.
-func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) {
+func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) { // nolint:staticcheck
 	img, err := store.Image(image)
 	if err != nil {
 		return nil, fmt.Errorf("locating image %q for locating lock: %w", image, err)

@@ -67,7 +67,7 @@ func (c *linuxMemHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 		limitFilename = "memory.limit_in_bytes"
 
 		path := filepath.Join(memoryRoot, "memory.stat")
-		values, err := readCgroup2MapPath(path)
+		values, err := readCgroupMapPath(path)
 		if err != nil {
 			return err
 		}

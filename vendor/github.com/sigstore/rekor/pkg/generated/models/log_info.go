@@ -182,6 +182,11 @@ func (m *LogInfo) contextValidateInactiveShards(ctx context.Context, formats str
 	for i := 0; i < len(m.InactiveShards); i++ {
 
 		if m.InactiveShards[i] != nil {
+
+			if swag.IsZero(m.InactiveShards[i]) { // not required
+				return nil
+			}
+
 			if err := m.InactiveShards[i].ContextValidate(ctx, formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("inactiveShards" + "." + strconv.Itoa(i))

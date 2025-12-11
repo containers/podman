@@ -7,7 +7,6 @@ import (
 )
 
 func statDifferent(oldStat *system.StatT, oldInfo *FileInfo, newStat *system.StatT, newInfo *FileInfo) bool {
-
 	// Don't look at size for dirs, its not a good measure of change
 	if oldStat.Mtim() != newStat.Mtim() ||
 		oldStat.Mode() != newStat.Mode() ||

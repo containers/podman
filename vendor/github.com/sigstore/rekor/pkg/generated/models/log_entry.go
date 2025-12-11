@@ -250,6 +250,11 @@ func (m *LogEntryAnon) ContextValidate(ctx context.Context, formats strfmt.Regis
 func (m *LogEntryAnon) contextValidateAttestation(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Attestation != nil {
+
+		if swag.IsZero(m.Attestation) { // not required
+			return nil
+		}
+
 		if err := m.Attestation.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("attestation")
@@ -266,6 +271,11 @@ func (m *LogEntryAnon) contextValidateAttestation(ctx context.Context, formats s
 func (m *LogEntryAnon) contextValidateVerification(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Verification != nil {
+
+		if swag.IsZero(m.Verification) { // not required
+			return nil
+		}
+
 		if err := m.Verification.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("verification")
@@ -398,6 +408,11 @@ func (m *LogEntryAnonVerification) ContextValidate(ctx context.Context, formats 
 func (m *LogEntryAnonVerification) contextValidateInclusionProof(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.InclusionProof != nil {
+
+		if swag.IsZero(m.InclusionProof) { // not required
+			return nil
+		}
+
 		if err := m.InclusionProof.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("verification" + "." + "inclusionProof")

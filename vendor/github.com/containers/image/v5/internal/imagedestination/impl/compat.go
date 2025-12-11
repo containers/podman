@@ -43,10 +43,17 @@ func AddCompat(dest private.ImageDestinationInternalOnly) Compat {
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 func (c *Compat) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
-	return c.dest.PutBlobWithOptions(ctx, stream, inputInfo, private.PutBlobOptions{
+	res, err := c.dest.PutBlobWithOptions(ctx, stream, inputInfo, private.PutBlobOptions{
 		Cache:    blobinfocache.FromBlobInfoCache(cache),
 		IsConfig: isConfig,
 	})
+	if err != nil {
+		return types.BlobInfo{}, err
+	}
+	return types.BlobInfo{
+		Digest: res.Digest,
+		Size:   res.Size,
+	}, nil
 }
 
 // TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
@@ -59,10 +66,26 @@ func (c *Compat) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 // May use and/or update cache.
 func (c *Compat) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
-	return c.dest.TryReusingBlobWithOptions(ctx, info, private.TryReusingBlobOptions{
+	reused, blob, err := c.dest.TryReusingBlobWithOptions(ctx, info, private.TryReusingBlobOptions{
 		Cache:         blobinfocache.FromBlobInfoCache(cache),
 		CanSubstitute: canSubstitute,
 	})
+	if !reused || err != nil {
+		return reused, types.BlobInfo{}, err
+	}
+	res := types.BlobInfo{
+		Digest:               blob.Digest,
+		Size:                 blob.Size,
+		CompressionOperation: blob.CompressionOperation,
+		CompressionAlgorithm: blob.CompressionAlgorithm,
+	}
+	// This is probably not necessary; we preserve MediaType to decrease risks of breaking for external callers.
+	// Some transports were not setting the MediaType field anyway, and others were setting the old value on substitution;
+	// provide the value in cases where it is likely to be correct.
+	if blob.Digest == info.Digest {
+		res.MediaType = info.MediaType
+	}
+	return true, res, nil
 }
 
 // PutSignatures writes a set of signatures to the destination.

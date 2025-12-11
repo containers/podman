@@ -43,7 +43,7 @@ func (ic *imageCopier) copyBlobFromStream(ctx context.Context, srcReader io.Read
 	stream.reader = bar.ProxyReader(stream.reader)
 
 	// === Decrypt the stream, if required.
-	decryptionStep, err := ic.c.blobPipelineDecryptionStep(&stream, srcInfo)
+	decryptionStep, err := ic.blobPipelineDecryptionStep(&stream, srcInfo)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -78,17 +78,17 @@ func (ic *imageCopier) copyBlobFromStream(ctx context.Context, srcReader io.Read
 		// Before relaxing this, see the original pull request’s review if there are other reasons to reject this.
 		return types.BlobInfo{}, errors.New("Unable to support both decryption and encryption in the same copy")
 	}
-	encryptionStep, err := ic.c.blobPipelineEncryptionStep(&stream, toEncrypt, srcInfo, decryptionStep)
+	encryptionStep, err := ic.blobPipelineEncryptionStep(&stream, toEncrypt, srcInfo, decryptionStep)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
 
-	// === Report progress using the ic.c.progress channel, if required.
-	if ic.c.progress != nil && ic.c.progressInterval > 0 {
+	// === Report progress using the ic.c.options.Progress channel, if required.
+	if ic.c.options.Progress != nil && ic.c.options.ProgressInterval > 0 {
 		progressReader := newProgressReader(
 			stream.reader,
-			ic.c.progress,
-			ic.c.progressInterval,
+			ic.c.options.Progress,
+			ic.c.options.ProgressInterval,
 			srcInfo,
 		)
 		defer progressReader.reportDone()
@@ -104,12 +104,11 @@ func (ic *imageCopier) copyBlobFromStream(ctx context.Context, srcReader io.Read
 	if !isConfig {
 		options.LayerIndex = &layerIndex
 	}
-	uploadedInfo, err := ic.c.dest.PutBlobWithOptions(ctx, &errorAnnotationReader{stream.reader}, stream.info, options)
+	destBlob, err := ic.c.dest.PutBlobWithOptions(ctx, &errorAnnotationReader{stream.reader}, stream.info, options)
 	if err != nil {
 		return types.BlobInfo{}, fmt.Errorf("writing blob: %w", err)
 	}
-
-	uploadedInfo.Annotations = stream.info.Annotations
+	uploadedInfo := updatedBlobInfoFromUpload(stream.info, destBlob)
 
 	compressionStep.updateCompressionEdits(&uploadedInfo.CompressionOperation, &uploadedInfo.CompressionAlgorithm, &uploadedInfo.Annotations)
 	decryptionStep.updateCryptoOperation(&uploadedInfo.CryptoOperation)
@@ -168,4 +167,21 @@ func (r errorAnnotationReader) Read(b []byte) (n int, err error) {
 		return n, fmt.Errorf("happened during read: %w", err)
 	}
 	return n, err
+}
+
+// updatedBlobInfoFromUpload returns inputInfo updated with uploadedBlob which was created based on inputInfo.
+func updatedBlobInfoFromUpload(inputInfo types.BlobInfo, uploadedBlob private.UploadedBlob) types.BlobInfo {
+	// The transport is only tasked with dealing with the raw blob, and possibly computing Digest/Size.
+	// Handling of compression, encryption, and the related MIME types and the like are all the responsibility
+	// of the generic code in this package.
+	return types.BlobInfo{
+		Digest:               uploadedBlob.Digest,
+		Size:                 uploadedBlob.Size,
+		URLs:                 nil, // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
+		Annotations:          inputInfo.Annotations,
+		MediaType:            inputInfo.MediaType,            // Mostly irrelevant, MediaType is updated based on Compression/Crypto.
+		CompressionOperation: inputInfo.CompressionOperation, // Expected to be unset, and only updated by copyBlobFromStream.
+		CompressionAlgorithm: inputInfo.CompressionAlgorithm, // Expected to be unset, and only updated by copyBlobFromStream.
+		CryptoOperation:      inputInfo.CryptoOperation,      // Expected to be unset, and only updated by copyBlobFromStream.
+	}
 }

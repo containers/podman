@@ -53,7 +53,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 			}
 			// If there are no lower layers, then it can't have been deleted in this layer.
 			if len(o.rolayers) == 0 {
-				return nil, nil
+				return nil, nil //nolint: nilnil
 			}
 			// At this point, we have a directory that's opaque.  If it appears in one of the lower
 			// layers, then it was newly-created here, so it wasn't also deleted here.
@@ -66,7 +66,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 				if statErr == nil {
 					if stat.Mode()&os.ModeCharDevice != 0 {
 						if isWhiteOut(stat) {
-							return nil, nil
+							return nil, nil //nolint: nilnil
 						}
 					}
 					// It's not whiteout, so it was there in the older layer, so we need to
@@ -100,7 +100,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 							// original directory wasn't inherited into this layer,
 							// so we don't need to emit whiteout for it.
 							if isWhiteOut(stat) {
-								return nil, nil
+								return nil, nil //nolint: nilnil
 							}
 						}
 					}
@@ -153,8 +153,7 @@ func (overlayWhiteoutConverter) ConvertReadWithHandler(hdr *tar.Header, path str
 	return true, nil
 }
 
-type directHandler struct {
-}
+type directHandler struct{}
 
 func (d directHandler) Setxattr(path, name string, value []byte) error {
 	return unix.Setxattr(path, name, value, 0)
@@ -185,7 +184,7 @@ func GetFileOwner(path string) (uint32, uint32, uint32, error) {
 	}
 	s, ok := f.Sys().(*syscall.Stat_t)
 	if ok {
-		return s.Uid, s.Gid, s.Mode & 07777, nil
+		return s.Uid, s.Gid, s.Mode & 0o7777, nil
 	}
 	return 0, 0, uint32(f.Mode()), nil
 }
