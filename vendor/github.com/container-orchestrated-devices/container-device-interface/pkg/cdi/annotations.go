@@ -17,9 +17,9 @@
 package cdi
 
 import (
+	"errors"
+	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -34,14 +34,14 @@ const (
 func UpdateAnnotations(annotations map[string]string, plugin string, deviceID string, devices []string) (map[string]string, error) {
 	key, err := AnnotationKey(plugin, deviceID)
 	if err != nil {
-		return annotations, errors.Wrap(err, "CDI annotation failed")
+		return annotations, fmt.Errorf("CDI annotation failed: %w", err)
 	}
 	if _, ok := annotations[key]; ok {
-		return annotations, errors.Errorf("CDI annotation failed, key %q used", key)
+		return annotations, fmt.Errorf("CDI annotation failed, key %q used", key)
 	}
 	value, err := AnnotationValue(devices)
 	if err != nil {
-		return annotations, errors.Wrap(err, "CDI annotation failed")
+		return annotations, fmt.Errorf("CDI annotation failed: %w", err)
 	}
 
 	if annotations == nil {
@@ -70,7 +70,7 @@ func ParseAnnotations(annotations map[string]string) ([]string, []string, error)
 		}
 		for _, d := range strings.Split(value, ",") {
 			if !IsQualifiedName(d) {
-				return nil, nil, errors.Errorf("invalid CDI device name %q", d)
+				return nil, nil, fmt.Errorf("invalid CDI device name %q", d)
 			}
 			devices = append(devices, d)
 		}
@@ -98,11 +98,11 @@ func AnnotationKey(pluginName, deviceID string) (string, error) {
 	name := pluginName + "_" + strings.ReplaceAll(deviceID, "/", "_")
 
 	if len(name) > maxNameLen {
-		return "", errors.Errorf("invalid plugin+deviceID %q, too long", name)
+		return "", fmt.Errorf("invalid plugin+deviceID %q, too long", name)
 	}
 
 	if c := rune(name[0]); !isAlphaNumeric(c) {
-		return "", errors.Errorf("invalid name %q, first '%c' should be alphanumeric",
+		return "", fmt.Errorf("invalid name %q, first '%c' should be alphanumeric",
 			name, c)
 	}
 	if len(name) > 2 {
@@ -111,13 +111,13 @@ func AnnotationKey(pluginName, deviceID string) (string, error) {
 			case isAlphaNumeric(c):
 			case c == '_' || c == '-' || c == '.':
 			default:
-				return "", errors.Errorf("invalid name %q, invalid charcter '%c'",
+				return "", fmt.Errorf("invalid name %q, invalid charcter '%c'",
 					name, c)
 			}
 		}
 	}
 	if c := rune(name[len(name)-1]); !isAlphaNumeric(c) {
-		return "", errors.Errorf("invalid name %q, last '%c' should be alphanumeric",
+		return "", fmt.Errorf("invalid name %q, last '%c' should be alphanumeric",
 			name, c)
 	}
 

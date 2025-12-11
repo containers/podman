@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -156,7 +157,7 @@ func (t *tempDirOCIRef) deleteTempDir() error {
 // createOCIRef creates the oci reference of the image
 // If SystemContext.BigFilesTemporaryDir not "", overrides the temporary directory to use for storing big files
 func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error) {
-	dir, err := os.MkdirTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "oci")
+	dir, err := tmpdir.MkDirBigFileTemp(sys, "oci")
 	if err != nil {
 		return tempDirOCIRef{}, fmt.Errorf("creating temp directory: %w", err)
 	}
@@ -171,18 +172,24 @@ func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error)
 
 // creates the temporary directory and copies the tarred content to it
 func createUntarTempDir(sys *types.SystemContext, ref ociArchiveReference) (tempDirOCIRef, error) {
+	src := ref.resolvedFile
+	arch, err := os.Open(src)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return tempDirOCIRef{}, ArchiveFileNotFoundError{ref: ref, path: src}
+		} else {
+			return tempDirOCIRef{}, err
+		}
+	}
+	defer arch.Close()
+
 	tempDirRef, err := createOCIRef(sys, ref.image)
 	if err != nil {
 		return tempDirOCIRef{}, fmt.Errorf("creating oci reference: %w", err)
 	}
-	src := ref.resolvedFile
 	dst := tempDirRef.tempDirectory
+
 	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
-	arch, err := os.Open(src)
-	if err != nil {
-		return tempDirOCIRef{}, err
-	}
-	defer arch.Close()
 	if err := archive.NewDefaultArchiver().Untar(arch, dst, &archive.TarOptions{NoLchown: true}); err != nil {
 		if err := tempDirRef.deleteTempDir(); err != nil {
 			return tempDirOCIRef{}, fmt.Errorf("deleting temp directory %q: %w", tempDirRef.tempDirectory, err)

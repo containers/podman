@@ -107,6 +107,21 @@ func (h *Handle) GetSocketReceiveBufferSize() ([]int, error) {
 	return results, nil
 }
 
+// SetStrictCheck sets the strict check socket option for each socket in the netlink handle. Returns early if any set operation fails
+func (h *Handle) SetStrictCheck(state bool) error {
+	for _, sh := range h.sockets {
+		var stateInt int = 0
+		if state {
+			stateInt = 1
+		}
+		err := unix.SetsockoptInt(sh.Socket.GetFd(), unix.SOL_NETLINK, unix.NETLINK_GET_STRICT_CHK, stateInt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NewHandleAt returns a netlink handle on the network namespace
 // specified by ns. If ns=netns.None(), current network namespace
 // will be assumed

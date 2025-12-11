@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -153,7 +152,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			if err != nil {
 				return "", nil, err
 			}
-			data = ioutil.NopCloser(pData)
+			data = io.NopCloser(pData)
 		}
 
 		dockerfiles = append(dockerfiles, data)

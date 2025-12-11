@@ -73,7 +73,8 @@ func Create() List {
 
 // AddInstance adds an entry for the specified manifest digest, with assorted
 // additional information specified in parameters, to the list or index.
-func (l *list) AddInstance(manifestDigest digest.Digest, manifestSize int64, manifestType, osName, architecture, osVersion string, osFeatures []string, variant string, features, annotations []string) error {
+func (l *list) AddInstance(manifestDigest digest.Digest, manifestSize int64, manifestType, osName, architecture, osVersion string, osFeatures []string, variant string, features, annotations []string) error { // nolint:revive
+	// FIXME: the annotations argument is currently ignored
 	if err := l.Remove(manifestDigest); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -452,23 +453,23 @@ func (l *list) Serialize(mimeType string) ([]byte, error) {
 		if l.preferOCI() {
 			res, err = json.Marshal(&l.oci)
 			if err != nil {
-				return nil, fmt.Errorf("error marshalling OCI image index: %w", err)
+				return nil, fmt.Errorf("marshalling OCI image index: %w", err)
 			}
 		} else {
 			res, err = json.Marshal(&l.docker)
 			if err != nil {
-				return nil, fmt.Errorf("error marshalling Docker manifest list: %w", err)
+				return nil, fmt.Errorf("marshalling Docker manifest list: %w", err)
 			}
 		}
 	case v1.MediaTypeImageIndex:
 		res, err = json.Marshal(&l.oci)
 		if err != nil {
-			return nil, fmt.Errorf("error marshalling OCI image index: %w", err)
+			return nil, fmt.Errorf("marshalling OCI image index: %w", err)
 		}
 	case manifest.DockerV2ListMediaType:
 		res, err = json.Marshal(&l.docker)
 		if err != nil {
-			return nil, fmt.Errorf("error marshalling Docker manifest list: %w", err)
+			return nil, fmt.Errorf("marshalling Docker manifest list: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("serializing list to type %q not implemented: %w", mimeType, ErrManifestTypeNotSupported)

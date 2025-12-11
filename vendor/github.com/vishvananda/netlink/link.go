@@ -1038,6 +1038,7 @@ type Iptun struct {
 	EncapType  uint16
 	EncapFlags uint16
 	FlowBased  bool
+	Proto      uint8
 }
 
 func (iptun *Iptun) Attrs() *LinkAttrs {

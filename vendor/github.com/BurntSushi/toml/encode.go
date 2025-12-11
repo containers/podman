@@ -79,12 +79,12 @@ type Marshaler interface {
 // Encoder encodes a Go to a TOML document.
 //
 // The mapping between Go values and TOML values should be precisely the same as
-// for the Decode* functions.
+// for [Decode].
 //
 // time.Time is encoded as a RFC 3339 string, and time.Duration as its string
 // representation.
 //
-// The toml.Marshaler and encoder.TextMarshaler interfaces are supported to
+// The [Marshaler] and [encoding.TextMarshaler] interfaces are supported to
 // encoding the value as custom TOML.
 //
 // If you want to write arbitrary binary data then you will need to use
@@ -130,13 +130,14 @@ func NewEncoder(w io.Writer) *Encoder {
 	}
 }
 
-// Encode writes a TOML representation of the Go value to the Encoder's writer.
+// Encode writes a TOML representation of the Go value to the [Encoder]'s writer.
 //
 // An error is returned if the value given cannot be encoded to a valid TOML
 // document.
 func (enc *Encoder) Encode(v interface{}) error {
 	rv := eindirect(reflect.ValueOf(v))
-	if err := enc.safeEncode(Key([]string{}), rv); err != nil {
+	err := enc.safeEncode(Key([]string{}), rv)
+	if err != nil {
 		return err
 	}
 	return enc.w.Flush()
@@ -261,7 +262,7 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 			enc.eElement(reflect.ValueOf(v))
 			return
 		}
-		encPanic(errors.New(fmt.Sprintf("Unable to convert \"%s\" to neither int64 nor float64", n)))
+		encPanic(fmt.Errorf("unable to convert %q to int64 or float64", n))
 	}
 
 	switch rv.Kind() {
@@ -457,6 +458,16 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 
 			frv := eindirect(rv.Field(i))
 
+			if is32Bit {
+				// Copy so it works correct on 32bit archs; not clear why this
+				// is needed. See #314, and https://www.reddit.com/r/golang/comments/pnx8v4
+				// This also works fine on 64bit, but 32bit archs are somewhat
+				// rare and this is a wee bit faster.
+				copyStart := make([]int, len(start))
+				copy(copyStart, start)
+				start = copyStart
+			}
+
 			// Treat anonymous struct fields with tag names as though they are
 			// not anonymous, like encoding/json does.
 			//
@@ -471,17 +482,7 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 			if typeIsTable(tomlTypeOfGo(frv)) {
 				fieldsSub = append(fieldsSub, append(start, f.Index...))
 			} else {
-				// Copy so it works correct on 32bit archs; not clear why this
-				// is needed. See #314, and https://www.reddit.com/r/golang/comments/pnx8v4
-				// This also works fine on 64bit, but 32bit archs are somewhat
-				// rare and this is a wee bit faster.
-				if is32Bit {
-					copyStart := make([]int, len(start))
-					copy(copyStart, start)
-					fieldsDirect = append(fieldsDirect, append(copyStart, f.Index...))
-				} else {
-					fieldsDirect = append(fieldsDirect, append(start, f.Index...))
-				}
+				fieldsDirect = append(fieldsDirect, append(start, f.Index...))
 			}
 		}
 	}
@@ -490,23 +491,27 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 	writeFields := func(fields [][]int) {
 		for _, fieldIndex := range fields {
 			fieldType := rt.FieldByIndex(fieldIndex)
-			fieldVal := eindirect(rv.FieldByIndex(fieldIndex))
-
-			if isNil(fieldVal) { /// Don't write anything for nil fields.
-				continue
-			}
+			fieldVal := rv.FieldByIndex(fieldIndex)
 
 			opts := getOptions(fieldType.Tag)
 			if opts.skip {
 				continue
 			}
+			if opts.omitempty && isEmpty(fieldVal) {
+				continue
+			}
+
+			fieldVal = eindirect(fieldVal)
+
+			if isNil(fieldVal) { /// Don't write anything for nil fields.
+				continue
+			}
+
 			keyName := fieldType.Name
 			if opts.name != "" {
 				keyName = opts.name
 			}
-			if opts.omitempty && isEmpty(fieldVal) {
-				continue
-			}
+
 			if opts.omitzero && isZero(fieldVal) {
 				continue
 			}
@@ -653,9 +658,25 @@ func isEmpty(rv reflect.Value) bool {
 	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
 		return rv.Len() == 0
 	case reflect.Struct:
-		return reflect.Zero(rv.Type()).Interface() == rv.Interface()
+		if rv.Type().Comparable() {
+			return reflect.Zero(rv.Type()).Interface() == rv.Interface()
+		}
+		// Need to also check if all the fields are empty, otherwise something
+		// like this with uncomparable types will always return true:
+		//
+		//   type a struct{ field b }
+		//   type b struct{ s []string }
+		//   s := a{field: b{s: []string{"AAA"}}}
+		for i := 0; i < rv.NumField(); i++ {
+			if !isEmpty(rv.Field(i)) {
+				return false
+			}
+		}
+		return true
 	case reflect.Bool:
 		return !rv.Bool()
+	case reflect.Ptr:
+		return rv.IsNil()
 	}
 	return false
 }
@@ -668,19 +689,21 @@ func (enc *Encoder) newline() {
 
 // Write a key/value pair:
 //
-//   key = <any value>
+//	key = <any value>
 //
 // This is also used for "k = v" in inline tables; so something like this will
 // be written in three calls:
 //
-//     ┌────────────────────┐
-//     │      ┌───┐  ┌─────┐│
-//     v      v   v  v     vv
-//     key = {k = v, k2 = v2}
-//
+//	┌───────────────────┐
+//	│      ┌───┐  ┌────┐│
+//	v      v   v  v    vv
+//	key = {k = 1, k2 = 2}
 func (enc *Encoder) writeKeyValue(key Key, val reflect.Value, inline bool) {
+	/// Marshaler used on top-level document; call eElement() to just call
+	/// Marshal{TOML,Text}.
 	if len(key) == 0 {
-		encPanic(errNoKey)
+		enc.eElement(val)
+		return
 	}
 	enc.wf("%s%s = ", enc.indentStr(key), key.maybeQuoted(len(key)-1))
 	enc.eElement(val)

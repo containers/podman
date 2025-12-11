@@ -1,8 +1,8 @@
 package helpers
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -12,8 +12,6 @@ import (
 	"github.com/containers/ocicrypt/config/pkcs11config"
 	"github.com/containers/ocicrypt/crypto/pkcs11"
 	encutils "github.com/containers/ocicrypt/utils"
-
-	"github.com/pkg/errors"
 )
 
 // processRecipientKeys sorts the array of recipients by type. Recipients may be either
@@ -43,9 +41,9 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 			gpgRecipients = append(gpgRecipients, []byte(value))
 
 		case "jwe":
-			tmp, err := ioutil.ReadFile(value)
+			tmp, err := os.ReadFile(value)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, errors.Wrap(err, "Unable to read file")
+				return nil, nil, nil, nil, nil, nil, fmt.Errorf("Unable to read file: %w", err)
 			}
 			if !encutils.IsPublicKey(tmp) {
 				return nil, nil, nil, nil, nil, nil, errors.New("File provided is not a public key")
@@ -53,9 +51,9 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 			pubkeys = append(pubkeys, tmp)
 
 		case "pkcs7":
-			tmp, err := ioutil.ReadFile(value)
+			tmp, err := os.ReadFile(value)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, errors.Wrap(err, "Unable to read file")
+				return nil, nil, nil, nil, nil, nil, fmt.Errorf("Unable to read file: %w", err)
 			}
 			if !encutils.IsCertificate(tmp) {
 				return nil, nil, nil, nil, nil, nil, errors.New("File provided is not an x509 cert")
@@ -63,9 +61,9 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 			x509s = append(x509s, tmp)
 
 		case "pkcs11":
-			tmp, err := ioutil.ReadFile(value)
+			tmp, err := os.ReadFile(value)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, errors.Wrap(err, "Unable to read file")
+				return nil, nil, nil, nil, nil, nil, fmt.Errorf("Unable to read file: %w", err)
 			}
 			if encutils.IsPkcs11PublicKey(tmp) {
 				pkcs11Yamls = append(pkcs11Yamls, tmp)
@@ -93,9 +91,9 @@ func processx509Certs(keys []string) ([][]byte, error) {
 		if _, err := os.Stat(fileName); os.IsNotExist(err) {
 			continue
 		}
-		tmp, err := ioutil.ReadFile(fileName)
+		tmp, err := os.ReadFile(fileName)
 		if err != nil {
-			return nil, errors.Wrap(err, "Unable to read file")
+			return nil, fmt.Errorf("Unable to read file: %w", err)
 		}
 		if !encutils.IsCertificate(tmp) {
 			continue
@@ -113,14 +111,14 @@ func processx509Certs(keys []string) ([][]byte, error) {
 // - <password>
 func processPwdString(pwdString string) ([]byte, error) {
 	if strings.HasPrefix(pwdString, "file=") {
-		return ioutil.ReadFile(pwdString[5:])
+		return os.ReadFile(pwdString[5:])
 	} else if strings.HasPrefix(pwdString, "pass=") {
 		return []byte(pwdString[5:]), nil
 	} else if strings.HasPrefix(pwdString, "fd=") {
 		fdStr := pwdString[3:]
 		fd, err := strconv.Atoi(fdStr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not parse file descriptor %s", fdStr)
+			return nil, fmt.Errorf("could not parse file descriptor %s: %w", fdStr, err)
 		}
 		f := os.NewFile(uintptr(fd), "pwdfile")
 		if f == nil {
@@ -130,7 +128,7 @@ func processPwdString(pwdString string) ([]byte, error) {
 		pwd := make([]byte, 64)
 		n, err := f.Read(pwd)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not read from file descriptor")
+			return nil, fmt.Errorf("could not read from file descriptor: %w", err)
 		}
 		return pwd[:n], nil
 	}
@@ -174,7 +172,7 @@ func processPrivateKeyFiles(keyFilesAndPwds []string) ([][]byte, [][]byte, [][]b
 		}
 
 		keyfile := parts[0]
-		tmp, err := ioutil.ReadFile(keyfile)
+		tmp, err := os.ReadFile(keyfile)
 		if err != nil {
 			return nil, nil, nil, nil, nil, nil, err
 		}
@@ -374,7 +372,6 @@ func CreateCryptoConfig(recipients []string, keys []string) (encconfig.CryptoCon
 
 	if len(ccs) > 0 {
 		return encconfig.CombineCryptoConfigs(ccs), nil
-	} else {
-		return encconfig.CryptoConfig{}, nil
 	}
+	return encconfig.CryptoConfig{}, nil
 }

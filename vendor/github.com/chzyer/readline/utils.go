@@ -6,9 +6,11 @@ import (
 	"container/list"
 	"fmt"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unicode"
 )
@@ -41,6 +43,7 @@ const (
 	CharCtrlY     = 25
 	CharCtrlZ     = 26
 	CharEsc       = 27
+	CharO         = 79
 	CharEscapeEx  = 91
 	CharBackspace = 127
 )
@@ -116,6 +119,27 @@ func escapeExKey(key *escapeKeyPair) rune {
 		if key.attr == "3" {
 			r = CharDelete
 		}
+	default:
+	}
+	return r
+}
+
+// translate EscOX SS3 codes for up/down/etc.
+func escapeSS3Key(key *escapeKeyPair) rune {
+	var r rune
+	switch key.typ {
+	case 'D':
+		r = CharBackward
+	case 'C':
+		r = CharForward
+	case 'A':
+		r = CharPrev
+	case 'B':
+		r = CharNext
+	case 'H':
+		r = CharLineStart
+	case 'F':
+		r = CharLineEnd
 	default:
 	}
 	return r
@@ -274,4 +298,14 @@ func Debug(o ...interface{}) {
 	f, _ := os.OpenFile("debug.tmp", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	fmt.Fprintln(f, o...)
 	f.Close()
+}
+
+func CaptureExitSignal(f func()) {
+	cSignal := make(chan os.Signal, 1)
+	signal.Notify(cSignal, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		for range cSignal {
+			f()
+		}
+	}()
 }

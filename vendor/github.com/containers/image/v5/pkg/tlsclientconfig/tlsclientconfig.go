@@ -2,6 +2,7 @@ package tlsclientconfig
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,9 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/go-connections/sockets"
-	"github.com/docker/go-connections/tlsconfig"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // SetupCertificates opens all .crt, .cert, and .key files in dir and appends / loads certs and key pairs as appropriate to tlsc
@@ -47,7 +47,7 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 				return err
 			}
 			if tlsc.RootCAs == nil {
-				systemPool, err := tlsconfig.SystemCertPool()
+				systemPool, err := x509.SystemCertPool()
 				if err != nil {
 					return fmt.Errorf("unable to get system cert pool: %w", err)
 				}
@@ -66,7 +66,7 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 			if err != nil {
 				return err
 			}
-			tlsc.Certificates = append(tlsc.Certificates, cert)
+			tlsc.Certificates = append(slices.Clone(tlsc.Certificates), cert)
 		}
 		if strings.HasSuffix(f.Name(), ".key") {
 			keyName := f.Name()
@@ -81,12 +81,9 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 }
 
 func hasFile(files []os.DirEntry, name string) bool {
-	for _, f := range files {
-		if f.Name() == name {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(files, func(f os.DirEntry) bool {
+		return f.Name() == name
+	})
 }
 
 // NewTransport Creates a default transport
@@ -94,17 +91,13 @@ func NewTransport() *http.Transport {
 	direct := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-		DualStack: true,
 	}
 	tr := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         direct.DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
-		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
-		DisableKeepAlives: true,
-	}
-	if _, err := sockets.DialerFromEnvironment(direct); err != nil {
-		logrus.Debugf("Can't execute DialerFromEnvironment: %v", err)
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConns:        100,
 	}
 	return tr
 }

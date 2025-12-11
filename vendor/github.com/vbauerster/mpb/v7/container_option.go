@@ -2,7 +2,6 @@ package mpb
 
 import (
 	"io"
-	"io/ioutil"
 	"sync"
 	"time"
 )
@@ -31,7 +30,7 @@ func WithWidth(width int) ContainerOption {
 	}
 }
 
-// WithRefreshRate overrides default 120ms refresh rate.
+// WithRefreshRate overrides default 150ms refresh rate.
 func WithRefreshRate(d time.Duration) ContainerOption {
 	return func(s *pState) {
 		s.rr = d
@@ -74,7 +73,7 @@ func WithShutdownNotifier(ch chan struct{}) ContainerOption {
 func WithOutput(w io.Writer) ContainerOption {
 	return func(s *pState) {
 		if w == nil {
-			s.output = ioutil.Discard
+			s.output = io.Discard
 			s.outputDiscarded = true
 			return
 		}

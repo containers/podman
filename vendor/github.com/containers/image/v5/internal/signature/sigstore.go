@@ -1,12 +1,23 @@
 package signature
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
+)
 
 const (
 	// from sigstore/cosign/pkg/types.SimpleSigningMediaType
 	SigstoreSignatureMIMEType = "application/vnd.dev.cosign.simplesigning.v1+json"
 	// from sigstore/cosign/pkg/oci/static.SignatureAnnotationKey
 	SigstoreSignatureAnnotationKey = "dev.cosignproject.cosign/signature"
+	// from sigstore/cosign/pkg/oci/static.BundleAnnotationKey
+	SigstoreSETAnnotationKey = "dev.sigstore.cosign/bundle"
+	// from sigstore/cosign/pkg/oci/static.CertificateAnnotationKey
+	SigstoreCertificateAnnotationKey = "dev.sigstore.cosign/certificate"
+	// from sigstore/cosign/pkg/oci/static.ChainAnnotationKey
+	SigstoreIntermediateCertificateChainAnnotationKey = "dev.sigstore.cosign/chain"
 )
 
 // Sigstore is a github.com/cosign/cosign signature.
@@ -34,13 +45,13 @@ type sigstoreJSONRepresentation struct {
 func SigstoreFromComponents(untrustedMimeType string, untrustedPayload []byte, untrustedAnnotations map[string]string) Sigstore {
 	return Sigstore{
 		untrustedMIMEType:    untrustedMimeType,
-		untrustedPayload:     copyByteSlice(untrustedPayload),
-		untrustedAnnotations: copyStringMap(untrustedAnnotations),
+		untrustedPayload:     slices.Clone(untrustedPayload),
+		untrustedAnnotations: maps.Clone(untrustedAnnotations),
 	}
 }
 
-// SigstoreFromBlobChunk converts a Sigstore signature, as returned by Sigstore.blobChunk, into a Sigstore object.
-func SigstoreFromBlobChunk(blobChunk []byte) (Sigstore, error) {
+// sigstoreFromBlobChunk converts a Sigstore signature, as returned by Sigstore.blobChunk, into a Sigstore object.
+func sigstoreFromBlobChunk(blobChunk []byte) (Sigstore, error) {
 	var v sigstoreJSONRepresentation
 	if err := json.Unmarshal(blobChunk, &v); err != nil {
 		return Sigstore{}, err
@@ -68,17 +79,9 @@ func (s Sigstore) UntrustedMIMEType() string {
 	return s.untrustedMIMEType
 }
 func (s Sigstore) UntrustedPayload() []byte {
-	return copyByteSlice(s.untrustedPayload)
+	return slices.Clone(s.untrustedPayload)
 }
 
 func (s Sigstore) UntrustedAnnotations() map[string]string {
-	return copyStringMap(s.untrustedAnnotations)
-}
-
-func copyStringMap(m map[string]string) map[string]string {
-	res := map[string]string{}
-	for k, v := range m {
-		res[k] = v
-	}
-	return res
+	return maps.Clone(s.untrustedAnnotations)
 }

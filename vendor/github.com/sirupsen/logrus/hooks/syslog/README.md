@@ -37,3 +37,45 @@ func main() {
   }
 }
 ```
+
+### Different log levels for local and remote logging
+
+By default `NewSyslogHook()` sends logs through the hook for all log levels. If you want to have
+different log levels between local logging and syslog logging (i.e. respect the `priority` argument
+passed to `NewSyslogHook()`), you need to implement the `logrus_syslog.SyslogHook` interface
+overriding `Levels()` to return only the log levels you're interested on.
+
+The following example shows how to log at **DEBUG** level for local logging and **WARN** level for
+syslog logging:
+
+```go
+package main
+
+import (
+	"log/syslog"
+
+	log "github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+)
+
+type customHook struct {
+	*logrus_syslog.SyslogHook
+}
+
+func (h *customHook) Levels() []log.Level {
+	return []log.Level{log.WarnLevel}
+}
+
+func main() {
+	log.SetLevel(log.DebugLevel)
+
+	hook, err := logrus_syslog.NewSyslogHook("tcp", "localhost:5140", syslog.LOG_WARNING, "myTag")
+	if err != nil {
+		panic(err)
+	}
+
+	log.AddHook(&customHook{hook})
+
+	//...
+}
+```

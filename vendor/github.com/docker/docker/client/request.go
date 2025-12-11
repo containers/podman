@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -50,6 +49,14 @@ func (cli *Client) postRaw(ctx context.Context, path string, query url.Values, b
 	return cli.sendRequest(ctx, http.MethodPost, path, query, body, headers)
 }
 
+func (cli *Client) put(ctx context.Context, path string, query url.Values, obj interface{}, headers map[string][]string) (serverResponse, error) {
+	body, headers, err := encodeBody(obj, headers)
+	if err != nil {
+		return serverResponse{}, err
+	}
+	return cli.sendRequest(ctx, http.MethodPut, path, query, body, headers)
+}
+
 // putRaw sends an http request to the docker API using the method PUT.
 func (cli *Client) putRaw(ctx context.Context, path string, query url.Values, body io.Reader, headers map[string][]string) (serverResponse, error) {
 	return cli.sendRequest(ctx, http.MethodPut, path, query, body, headers)
@@ -89,15 +96,13 @@ func (cli *Client) buildRequest(method, path string, body io.Reader, headers hea
 		return nil, err
 	}
 	req = cli.addHeaders(req, headers)
+	req.URL.Scheme = cli.scheme
+	req.URL.Host = cli.addr
 
 	if cli.proto == "unix" || cli.proto == "npipe" {
-		// For local communications, it doesn't matter what the host is. We just
-		// need a valid and meaningful host name. (See #189)
-		req.Host = "docker"
+		// Override host header for non-tcp connections.
+		req.Host = DummyHost
 	}
-
-	req.URL.Host = cli.addr
-	req.URL.Scheme = cli.scheme
 
 	if expectedPayload && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", "text/plain")
@@ -110,11 +115,16 @@ func (cli *Client) sendRequest(ctx context.Context, method, path string, query u
 	if err != nil {
 		return serverResponse{}, err
 	}
+
 	resp, err := cli.doRequest(ctx, req)
-	if err != nil {
-		return resp, errdefs.FromStatusCode(err, resp.statusCode)
+	switch {
+	case errors.Is(err, context.Canceled):
+		return serverResponse{}, errdefs.Cancelled(err)
+	case errors.Is(err, context.DeadlineExceeded):
+		return serverResponse{}, errdefs.Deadline(err)
+	case err == nil:
+		err = cli.checkResponseErr(resp)
 	}
-	err = cli.checkResponseErr(resp)
 	return resp, errdefs.FromStatusCode(err, resp.statusCode)
 }
 
@@ -129,7 +139,7 @@ func (cli *Client) doRequest(ctx context.Context, req *http.Request) (serverResp
 		}
 
 		if cli.scheme == "https" && strings.Contains(err.Error(), "bad certificate") {
-			return serverResp, errors.Wrap(err, "The server probably has client authentication (--tlsverify) enabled. Please check your TLS client certification settings")
+			return serverResp, errors.Wrap(err, "the server probably has client authentication (--tlsverify) enabled; check your TLS client certification settings")
 		}
 
 		// Don't decorate context sentinel errors; users may be comparing to
@@ -141,7 +151,7 @@ func (cli *Client) doRequest(ctx context.Context, req *http.Request) (serverResp
 		if nErr, ok := err.(*url.Error); ok {
 			if nErr, ok := nErr.Err.(*net.OpError); ok {
 				if os.IsPermission(nErr.Err) {
-					return serverResp, errors.Wrapf(err, "Got permission denied while trying to connect to the Docker daemon socket at %v", cli.host)
+					return serverResp, errors.Wrapf(err, "permission denied while trying to connect to the Docker daemon socket at %v", cli.host)
 				}
 			}
 		}
@@ -150,10 +160,8 @@ func (cli *Client) doRequest(ctx context.Context, req *http.Request) (serverResp
 			if err.Timeout() {
 				return serverResp, ErrorConnectionFailed(cli.host)
 			}
-			if !err.Temporary() {
-				if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "dial unix") {
-					return serverResp, ErrorConnectionFailed(cli.host)
-				}
+			if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "dial unix") {
+				return serverResp, ErrorConnectionFailed(cli.host)
 			}
 		}
 
@@ -170,10 +178,10 @@ func (cli *Client) doRequest(ctx context.Context, req *http.Request) (serverResp
 		if strings.Contains(err.Error(), `open //./pipe/docker_engine`) {
 			// Checks if client is running with elevated privileges
 			if f, elevatedErr := os.Open("\\\\.\\PHYSICALDRIVE0"); elevatedErr == nil {
-				err = errors.Wrap(err, "In the default daemon configuration on Windows, the docker client must be run with elevated privileges to connect.")
+				err = errors.Wrap(err, "in the default daemon configuration on Windows, the docker client must be run with elevated privileges to connect")
 			} else {
 				f.Close()
-				err = errors.Wrap(err, "This error may indicate that the docker daemon is not running.")
+				err = errors.Wrap(err, "this error may indicate that the docker daemon is not running")
 			}
 		}
 
@@ -201,7 +209,7 @@ func (cli *Client) checkResponseErr(serverResp serverResponse) error {
 			R: serverResp.body,
 			N: int64(bodyMax),
 		}
-		body, err = ioutil.ReadAll(bodyR)
+		body, err = io.ReadAll(bodyR)
 		if err != nil {
 			return err
 		}
@@ -236,16 +244,14 @@ func (cli *Client) addHeaders(req *http.Request, headers headers) *http.Request 
 	// Add CLI Config's HTTP Headers BEFORE we set the Docker headers
 	// then the user can't change OUR headers
 	for k, v := range cli.customHTTPHeaders {
-		if versions.LessThan(cli.version, "1.25") && k == "User-Agent" {
+		if versions.LessThan(cli.version, "1.25") && http.CanonicalHeaderKey(k) == "User-Agent" {
 			continue
 		}
 		req.Header.Set(k, v)
 	}
 
-	if headers != nil {
-		for k, v := range headers {
-			req.Header[k] = v
-		}
+	for k, v := range headers {
+		req.Header[http.CanonicalHeaderKey(k)] = v
 	}
 	return req
 }
@@ -263,7 +269,7 @@ func encodeData(data interface{}) (*bytes.Buffer, error) {
 func ensureReaderClosed(response serverResponse) {
 	if response.body != nil {
 		// Drain up to 512 bytes and close the body to let the Transport reuse the connection
-		io.CopyN(ioutil.Discard, response.body, 512)
+		io.CopyN(io.Discard, response.body, 512)
 		response.body.Close()
 	}
 }

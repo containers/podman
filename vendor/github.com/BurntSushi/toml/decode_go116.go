@@ -7,8 +7,8 @@ import (
 	"io/fs"
 )
 
-// DecodeFS is just like Decode, except it will automatically read the contents
-// of the file at `path` from a fs.FS instance.
+// DecodeFS reads the contents of a file from [fs.FS] and decodes it with
+// [Decode].
 func DecodeFS(fsys fs.FS, path string, v interface{}) (MetaData, error) {
 	fp, err := fsys.Open(path)
 	if err != nil {

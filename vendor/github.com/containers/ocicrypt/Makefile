@@ -28,6 +28,7 @@ vendor:
 	go mod tidy
 
 test:
+	go clean -testcache
 	go test ./... -test.v
 
 generate-protobuf:

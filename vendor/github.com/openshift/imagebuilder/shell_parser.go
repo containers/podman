@@ -269,7 +269,14 @@ func (sw *shellWord) processDollar() (string, error) {
 					newValue = word
 				}
 				return newValue, nil
-
+			case '?':
+				if newValue == "" {
+					newValue = word
+				}
+				if newValue == "" {
+					return "", fmt.Errorf("Failed to process `%s`: %s is not allowed to be unset", sw.word, name)
+				}
+				return newValue, nil
 			default:
 				return "", fmt.Errorf("Unsupported modifier (%c) in substitution: %s", modifier, sw.word)
 			}

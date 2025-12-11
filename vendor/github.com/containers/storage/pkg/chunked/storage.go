@@ -1,7 +1,6 @@
 package chunked
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -18,9 +17,9 @@ type ImageSourceSeekable interface {
 }
 
 // ErrBadRequest is returned when the request is not valid
-type ErrBadRequest struct {
+type ErrBadRequest struct { //nolint: errname
 }
 
 func (e ErrBadRequest) Error() string {
-	return fmt.Sprintf("bad request")
+	return "bad request"
 }

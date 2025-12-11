@@ -23,19 +23,19 @@ func CompleteCommandFlags(cmd *cobra.Command, flags FlagCompletions) {
 /* Autocomplete Functions for cobra ValidArgsFunction */
 
 // AutocompleteNone - Block the default shell completion (no paths)
-func AutocompleteNone(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNone(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteDefault - Use the default shell completion,
 // allows path completion.
-func AutocompleteDefault(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteDefault(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return nil, cobra.ShellCompDirectiveDefault
 }
 
 // AutocompleteCapabilities - Autocomplete linux capabilities options.
 // Used by --cap-add and --cap-drop.
-func AutocompleteCapabilities(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteCapabilities(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	caps := capabilities.AllCapabilities()
 
 	// convertCase will convert a string to lowercase only if the user input is lowercase
@@ -83,17 +83,17 @@ func autocompleteSubIDName(filename string) ([]string, cobra.ShellCompDirective)
 }
 
 // AutocompleteSubgidName - Autocomplete subgidname based on the names in the /etc/subgid file.
-func AutocompleteSubgidName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSubgidName(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return autocompleteSubIDName("/etc/subgid")
 }
 
 // AutocompleteSubuidName - Autocomplete subuidname based on the names in the /etc/subuid file.
-func AutocompleteSubuidName(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSubuidName(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return autocompleteSubIDName("/etc/subuid")
 }
 
 // AutocompleteArch - Autocomplete platform supported by container engines
-func AutocompletePlatform(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePlatform(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	completions := []string{
 		"linux/386",
 		"linux/amd64",
@@ -115,7 +115,7 @@ func AutocompletePlatform(cmd *cobra.Command, args []string, toComplete string) 
 }
 
 // AutocompleteArch - Autocomplete architectures supported by container engines
-func AutocompleteArch(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteArch(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	completions := []string{
 		"386",
 		"amd64",
@@ -135,19 +135,19 @@ func AutocompleteArch(cmd *cobra.Command, args []string, toComplete string) ([]s
 }
 
 // AutocompleteOS - Autocomplete OS supported by container engines
-func AutocompleteOS(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteOS(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	completions := []string{"linux", "windows"}
 	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteJSONFormat - Autocomplete format flag option.
 // -> "json"
-func AutocompleteJSONFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteJSONFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteOneArg - Autocomplete one random arg
-func AutocompleteOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteOneArg(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
 		return nil, cobra.ShellCompDirectiveDefault
 	}

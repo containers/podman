@@ -105,7 +105,7 @@ func (m *Message) ReadFrom(reader io.Reader) (int64, error) {
 			return 0, err
 		}
 	default:
-		return 0, fmt.Errorf("Unsupported opcode: %v", m.Type)
+		return 0, fmt.Errorf("unsupported opcode: %v", m.Type)
 	}
 	return m.Size, nil
 }

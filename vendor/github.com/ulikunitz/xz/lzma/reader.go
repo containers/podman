@@ -1,4 +1,4 @@
-// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2022 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -70,7 +70,7 @@ func (c ReaderConfig) NewReader(lzma io.Reader) (r *Reader, err error) {
 		return nil, err
 	}
 	if r.h.dictCap < MinDictCap {
-		return nil, errors.New("lzma: dictionary capacity too small")
+		r.h.dictCap = MinDictCap
 	}
 	dictCap := r.h.dictCap
 	if c.DictCap > dictCap {

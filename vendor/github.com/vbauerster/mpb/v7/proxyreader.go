@@ -2,7 +2,6 @@ package mpb
 
 import (
 	"io"
-	"io/ioutil"
 	"time"
 )
 
@@ -76,5 +75,5 @@ func toReadCloser(r io.Reader) io.ReadCloser {
 	if rc, ok := r.(io.ReadCloser); ok {
 		return rc
 	}
-	return ioutil.NopCloser(r)
+	return io.NopCloser(r)
 }

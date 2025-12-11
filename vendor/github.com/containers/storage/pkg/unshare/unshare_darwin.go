@@ -1,3 +1,4 @@
+//go:build darwin
 // +build darwin
 
 package unshare
@@ -22,6 +23,11 @@ func IsRootless() bool {
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
 	return os.Getuid()
+}
+
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	return os.Getgid()
 }
 
 // RootlessEnv returns the environment settings for the rootless containers

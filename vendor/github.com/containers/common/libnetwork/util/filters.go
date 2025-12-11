@@ -38,7 +38,7 @@ func createFilterFuncs(key string, filterValues []string) (types.FilterFunc, err
 	case "id":
 		// matches part of one id
 		return func(net types.Network) bool {
-			return util.StringMatchRegexSlice(net.ID, filterValues)
+			return filters.FilterID(net.ID, filterValues)
 		}, nil
 
 		// TODO: add dns enabled, internal filter
@@ -67,7 +67,7 @@ func createPruneFilterFuncs(key string, filterValues []string) (types.FilterFunc
 		}, nil
 	case "label!":
 		return func(net types.Network) bool {
-			return !filters.MatchLabelFilters(filterValues, net.Labels)
+			return filters.MatchNegatedLabelFilters(filterValues, net.Labels)
 		}, nil
 	case "until":
 		until, err := filters.ComputeUntilTimestamp(filterValues)

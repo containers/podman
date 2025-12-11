@@ -1,9 +1,14 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
 	"context"
+	"errors"
 
 	"github.com/containers/storage"
+	storageTypes "github.com/containers/storage/types"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -30,7 +35,19 @@ func (t *layerTree) node(layerID string) *layerNode {
 	return node
 }
 
+// ErrorIsImageUnknown returns true if the specified error indicates that an
+// image is unknown or has been partially removed (e.g., a missing layer).
+func ErrorIsImageUnknown(err error) bool {
+	return errors.Is(err, storage.ErrImageUnknown) ||
+		errors.Is(err, storageTypes.ErrLayerUnknown) ||
+		errors.Is(err, storageTypes.ErrSizeUnknown) ||
+		errors.Is(err, storage.ErrNotAnImage)
+}
+
 // toOCI returns an OCI image for the specified image.
+//
+// WARNING: callers are responsible for handling cases where the target image
+// has been (partially) removed and can use `ErrorIsImageUnknown` to detect it.
 func (t *layerTree) toOCI(ctx context.Context, i *Image) (*ociv1.Image, error) {
 	var err error
 	oci, exists := t.ociCache[i.ID()]
@@ -75,15 +92,17 @@ func (l *layerNode) repoTags() ([]string, error) {
 
 // layerTree extracts a layerTree from the layers in the local storage and
 // relates them to the specified images.
-func (r *Runtime) layerTree() (*layerTree, error) {
+func (r *Runtime) layerTree(images []*Image) (*layerTree, error) {
 	layers, err := r.store.Layers()
 	if err != nil {
 		return nil, err
 	}
 
-	images, err := r.ListImages(context.Background(), nil, nil)
-	if err != nil {
-		return nil, err
+	if images == nil {
+		images, err = r.ListImages(context.Background(), nil, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tree := layerTree{
@@ -126,6 +145,17 @@ func (r *Runtime) layerTree() (*layerTree, error) {
 	return &tree, nil
 }
 
+// layersOf returns all storage layers of the specified image.
+func (t *layerTree) layersOf(image *Image) []*storage.Layer {
+	var layers []*storage.Layer
+	node := t.node(image.TopLayer())
+	for node != nil {
+		layers = append(layers, node.layer)
+		node = node.parent
+	}
+	return layers
+}
+
 // children returns the child images of parent. Child images are images with
 // either the same top layer as parent or parent being the true parent layer.
 // Furthermore, the history of the parent and child images must match with the
@@ -142,6 +172,9 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 	parentID := parent.ID()
 	parentOCI, err := t.toOCI(ctx, parent)
 	if err != nil {
+		if ErrorIsImageUnknown(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -152,6 +185,9 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 		}
 		childOCI, err := t.toOCI(ctx, child)
 		if err != nil {
+			if ErrorIsImageUnknown(err) {
+				return false, nil
+			}
 			return false, err
 		}
 		// History check.
@@ -166,6 +202,17 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 	if parent.TopLayer() == "" {
 		for i := range t.emptyImages {
 			empty := t.emptyImages[i]
+			isManifest, err := empty.IsManifestList(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if isManifest {
+				// If this is a manifest list and is already
+				// marked as empty then no instance can be
+				// selected from this list therefore its
+				// better to skip this.
+				continue
+			}
 			isParent, err := checkParent(empty)
 			if err != nil {
 				return nil, err
@@ -242,6 +289,9 @@ func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 	childID := child.ID()
 	childOCI, err := t.toOCI(ctx, child)
 	if err != nil {
+		if ErrorIsImageUnknown(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -253,8 +303,22 @@ func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 			if childID == empty.ID() {
 				continue
 			}
+			isManifest, err := empty.IsManifestList(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if isManifest {
+				// If this is a manifest list and is already
+				// marked as empty then no instance can be
+				// selected from this list therefore its
+				// better to skip this.
+				continue
+			}
 			emptyOCI, err := t.toOCI(ctx, empty)
 			if err != nil {
+				if ErrorIsImageUnknown(err) {
+					return nil, nil
+				}
 				return nil, err
 			}
 			// History check.
@@ -287,6 +351,9 @@ func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 		}
 		parentOCI, err := t.toOCI(ctx, parent)
 		if err != nil {
+			if ErrorIsImageUnknown(err) {
+				return nil, nil
+			}
 			return nil, err
 		}
 		// History check.

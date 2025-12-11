@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/umask"
 	"github.com/containers/storage/pkg/idtools"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -28,9 +28,10 @@ var (
 	UserOverrideMountsFile = filepath.Join(os.Getenv("HOME"), ".config/containers/mounts.conf")
 )
 
-// subscriptionData stores the name of the file and the content read from it
+// subscriptionData stores the relative name of the file and the content read from it
 type subscriptionData struct {
-	name    string
+	// relPath is the relative path to the file
+	relPath string
 	data    []byte
 	mode    os.FileMode
 	dirMode os.FileMode
@@ -38,11 +39,16 @@ type subscriptionData struct {
 
 // saveTo saves subscription data to given directory
 func (s subscriptionData) saveTo(dir string) error {
-	path := filepath.Join(dir, s.name)
-	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil {
-		return err
+	// We need to join the path here and create all parent directories, only
+	// creating dir is not good enough as relPath could also contain directories.
+	path := filepath.Join(dir, s.relPath)
+	if err := umask.MkdirAllIgnoreUmask(filepath.Dir(path), s.dirMode); err != nil {
+		return fmt.Errorf("create subscription directory: %w", err)
 	}
-	return ioutil.WriteFile(path, s.data, s.mode)
+	if err := umask.WriteFileIgnoreUmask(path, s.data, s.mode); err != nil {
+		return fmt.Errorf("write subscription data: %w", err)
+	}
+	return nil
 }
 
 func readAll(root, prefix string, parentMode os.FileMode) ([]subscriptionData, error) {
@@ -50,7 +56,7 @@ func readAll(root, prefix string, parentMode os.FileMode) ([]subscriptionData, e
 
 	data := []subscriptionData{}
 
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return data, nil
@@ -90,12 +96,12 @@ func readFileOrDir(root, name string, parentMode os.FileMode) ([]subscriptionDat
 		}
 		return dirData, nil
 	}
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 	return []subscriptionData{{
-		name:    name,
+		relPath: name,
 		data:    bytes,
 		mode:    s.Mode(),
 		dirMode: parentMode,
@@ -153,7 +159,9 @@ func getMountsMap(path string) (string, string, error) { //nolint
 // containerRunDir: Private data for storing subscriptions on the host mounted in container.
 // mountFile: Additional mount points required for the container.
 // mountPoint: Container image mountpoint, or the directory from the hosts perspective that
-//   corresponds to `/` in the container.
+//
+//	corresponds to `/` in the container.
+//
 // uid: to assign to content created for subscriptions
 // gid: to assign to content created for subscriptions
 // rootless: indicates whether container is running in rootless mode
@@ -235,19 +243,14 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 		// In the event of a restart, don't want to copy subscriptions over again as they already would exist in ctrDirOrFileOnHost
 		_, err = os.Stat(ctrDirOrFileOnHost)
 		if errors.Is(err, os.ErrNotExist) {
-
 			hostDirOrFile, err = resolveSymbolicLink(hostDirOrFile)
 			if err != nil {
 				return nil, err
 			}
 
-			// Don't let the umask have any influence on the file and directory creation
-			oldUmask := umask.Set(0)
-			defer umask.Set(oldUmask)
-
 			switch mode := fileInfo.Mode(); {
 			case mode.IsDir():
-				if err = os.MkdirAll(ctrDirOrFileOnHost, mode.Perm()); err != nil {
+				if err = umask.MkdirAllIgnoreUmask(ctrDirOrFileOnHost, mode.Perm()); err != nil {
 					return nil, fmt.Errorf("making container directory: %w", err)
 				}
 				data, err := getHostSubscriptionData(hostDirOrFile, mode.Perm())
@@ -256,7 +259,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 				}
 				for _, s := range data {
 					if err := s.saveTo(ctrDirOrFileOnHost); err != nil {
-						return nil, fmt.Errorf("error saving data to container filesystem on host %q: %w", ctrDirOrFileOnHost, err)
+						return nil, fmt.Errorf("saving data to container filesystem on host %q: %w", ctrDirOrFileOnHost, err)
 					}
 				}
 			case mode.IsRegular():
@@ -265,10 +268,11 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 					return nil, err
 				}
 				for _, s := range data {
-					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), s.dirMode); err != nil {
-						return nil, err
+					dir := filepath.Dir(ctrDirOrFileOnHost)
+					if err := umask.MkdirAllIgnoreUmask(dir, s.dirMode); err != nil {
+						return nil, fmt.Errorf("create container dir: %w", err)
 					}
-					if err := ioutil.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
+					if err := umask.WriteFileIgnoreUmask(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
 						return nil, fmt.Errorf("saving data to container filesystem: %w", err)
 					}
 				}
@@ -278,7 +282,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 
 			err = label.Relabel(ctrDirOrFileOnHost, mountLabel, false)
 			if err != nil {
-				return nil, fmt.Errorf("error applying correct labels: %w", err)
+				return nil, fmt.Errorf("applying correct labels: %w", err)
 			}
 			if uid != 0 || gid != 0 {
 				if err := rchown(ctrDirOrFileOnHost, uid, gid); err != nil {
@@ -305,10 +309,10 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 // (i.e: be FIPs compliant).
 // It should only be called if /etc/system-fips exists on host.
 // It primarily does two things:
-// - creates /run/secrets/system-fips in the container root filesystem, and adds it to the `mounts` slice.
-// - If `/etc/crypto-policies/back-ends` already exists inside of the container, it creates
-//   `/usr/share/crypto-policies/back-ends/FIPS` inside the container as well.
-//   It is done from within the container to ensure to avoid policy incompatibility between the container and host.
+//   - creates /run/secrets/system-fips in the container root filesystem, and adds it to the `mounts` slice.
+//   - If `/etc/crypto-policies/back-ends` already exists inside of the container, it creates
+//     `/usr/share/crypto-policies/back-ends/FIPS` inside the container as well.
+//     It is done from within the container to ensure to avoid policy incompatibility between the container and host.
 func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint, mountLabel string, uid, gid int) error {
 	subscriptionsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerRunDir, subscriptionsDir)
@@ -342,7 +346,10 @@ func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint,
 
 	srcBackendDir := "/usr/share/crypto-policies/back-ends/FIPS"
 	destDir := "/etc/crypto-policies/back-ends"
-	srcOnHost := filepath.Join(mountPoint, srcBackendDir)
+	srcOnHost, err := securejoin.SecureJoin(mountPoint, srcBackendDir)
+	if err != nil {
+		return fmt.Errorf("resolve %s in the container: %w", srcBackendDir, err)
+	}
 	if _, err := os.Stat(srcOnHost); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
@@ -354,6 +361,35 @@ func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint,
 		m := rspec.Mount{
 			Source:      srcOnHost,
 			Destination: destDir,
+			Type:        "bind",
+			Options:     []string{"bind", "rprivate"},
+		}
+		*mounts = append(*mounts, m)
+	}
+
+	// Make sure we set the config to FIPS so that the container does not overwrite
+	// /etc/crypto-policies/back-ends when crypto-policies-scripts is reinstalled.
+	cryptoPoliciesConfigFile := filepath.Join(containerRunDir, "fips-config")
+	file, err := os.Create(cryptoPoliciesConfigFile)
+	if err != nil {
+		return fmt.Errorf("creating fips config file in container for FIPS mode: %w", err)
+	}
+	defer file.Close()
+	if _, err := file.WriteString("FIPS\n"); err != nil {
+		return fmt.Errorf("writing fips config file in container for FIPS mode: %w", err)
+	}
+	if err = label.Relabel(cryptoPoliciesConfigFile, mountLabel, false); err != nil {
+		return fmt.Errorf("applying correct labels on fips-config file: %w", err)
+	}
+	if err := file.Chown(uid, gid); err != nil {
+		return fmt.Errorf("chown fips-config file: %w", err)
+	}
+
+	policyConfig := "/etc/crypto-policies/config"
+	if !mountExists(*mounts, policyConfig) {
+		m := rspec.Mount{
+			Source:      cryptoPoliciesConfigFile,
+			Destination: policyConfig,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
 		}

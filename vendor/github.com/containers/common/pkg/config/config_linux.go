@@ -13,6 +13,13 @@ const (
 
 	// DefaultContainersConfig holds the default containers config path
 	DefaultContainersConfig = "/usr/share/" + _configPath
+
+	// DefaultSignaturePolicyPath is the default value for the
+	// policy.json file.
+	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
+
+	// Mount type for mounting host dir
+	_typeBind = "bind"
 )
 
 func selinuxEnabled() bool {
@@ -23,7 +30,7 @@ func customConfigFile() (string, error) {
 	if path, found := os.LookupEnv("CONTAINERS_CONF"); found {
 		return path, nil
 	}
-	if unshare.IsRootless() {
+	if unshare.GetRootlessUID() > 0 {
 		path, err := rootlessConfigPath()
 		if err != nil {
 			return "", err
@@ -34,7 +41,7 @@ func customConfigFile() (string, error) {
 }
 
 func ifRootlessConfigPath() (string, error) {
-	if unshare.IsRootless() {
+	if unshare.GetRootlessUID() > 0 {
 		path, err := rootlessConfigPath()
 		if err != nil {
 			return "", err

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/internal/blobinfocache"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/pkg/blobinfocache/internal/prioritize"
 	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
@@ -19,14 +20,14 @@ type locationKey struct {
 	blobDigest digest.Digest
 }
 
-// cache implements an in-memory-only BlobInfoCache
+// cache implements an in-memory-only BlobInfoCache.
 type cache struct {
 	mutex sync.Mutex
 	// The following fields can only be accessed with mutex held.
 	uncompressedDigests   map[digest.Digest]digest.Digest
-	digestsByUncompressed map[digest.Digest]map[digest.Digest]struct{}             // stores a set of digests for each uncompressed digest
+	digestsByUncompressed map[digest.Digest]*set.Set[digest.Digest]                // stores a set of digests for each uncompressed digest
 	knownLocations        map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
-	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Unknown, for each digest
+	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Unknown (not blobinfocache.UnknownCompression), for each digest
 }
 
 // New returns a BlobInfoCache implementation which is in-memory only.
@@ -44,10 +45,19 @@ func New() types.BlobInfoCache {
 func new2() *cache {
 	return &cache{
 		uncompressedDigests:   map[digest.Digest]digest.Digest{},
-		digestsByUncompressed: map[digest.Digest]map[digest.Digest]struct{}{},
+		digestsByUncompressed: map[digest.Digest]*set.Set[digest.Digest]{},
 		knownLocations:        map[locationKey]map[types.BICLocationReference]time.Time{},
 		compressors:           map[digest.Digest]string{},
 	}
+}
+
+// Open() sets up the cache for future accesses, potentially acquiring costly state. Each Open() must be paired with a Close().
+// Note that public callers may call the types.BlobInfoCache operations without Open()/Close().
+func (mem *cache) Open() {
+}
+
+// Close destroys state created by Open().
+func (mem *cache) Close() {
 }
 
 // UncompressedDigest returns an uncompressed digest corresponding to anyDigest.
@@ -67,7 +77,7 @@ func (mem *cache) uncompressedDigestLocked(anyDigest digest.Digest) digest.Diges
 	// Presence in digestsByUncompressed implies that anyDigest must already refer to an uncompressed digest.
 	// This way we don't have to waste storage space with trivial (uncompressed, uncompressed) mappings
 	// when we already record a (compressed, uncompressed) pair.
-	if m, ok := mem.digestsByUncompressed[anyDigest]; ok && len(m) > 0 {
+	if s, ok := mem.digestsByUncompressed[anyDigest]; ok && !s.Empty() {
 		return anyDigest
 	}
 	return ""
@@ -88,10 +98,10 @@ func (mem *cache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompre
 
 	anyDigestSet, ok := mem.digestsByUncompressed[uncompressed]
 	if !ok {
-		anyDigestSet = map[digest.Digest]struct{}{}
+		anyDigestSet = set.New[digest.Digest]()
 		mem.digestsByUncompressed[uncompressed] = anyDigestSet
 	}
-	anyDigestSet[anyDigest] = struct{}{} // Possibly writing the same struct{}{} presence marker again.
+	anyDigestSet.Add(anyDigest)
 }
 
 // RecordKnownLocation records that a blob with the specified digest exists within the specified (transport, scope) scope,
@@ -113,6 +123,9 @@ func (mem *cache) RecordKnownLocation(transport types.ImageTransport, scope type
 func (mem *cache) RecordDigestCompressorName(blobDigest digest.Digest, compressorName string) {
 	mem.mutex.Lock()
 	defer mem.mutex.Unlock()
+	if previous, ok := mem.compressors[blobDigest]; ok && previous != compressorName {
+		logrus.Warnf("Compressor for blob with digest %s previously recorded as %s, now %s", blobDigest, previous, compressorName)
+	}
 	if compressorName == blobinfocache.UnknownCompression {
 		delete(mem.compressors, blobDigest)
 		return
@@ -120,24 +133,39 @@ func (mem *cache) RecordDigestCompressorName(blobDigest digest.Digest, compresso
 	mem.compressors[blobDigest] = compressorName
 }
 
-// appendReplacementCandidates creates prioritize.CandidateWithTime values for (transport, scope, digest), and returns the result of appending them to candidates.
-func (mem *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest, requireCompressionInfo bool) []prioritize.CandidateWithTime {
+// appendReplacementCandidates creates prioritize.CandidateWithTime values for digest in memory
+// with corresponding compression info from mem.compressors, and returns the result of appending
+// them to candidates. v2Output allows including candidates with unknown location, and filters out
+// candidates with unknown compression.
+func (mem *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest, v2Output bool) []prioritize.CandidateWithTime {
+	compressorName := blobinfocache.UnknownCompression
+	if v, ok := mem.compressors[digest]; ok {
+		compressorName = v
+	}
+	if compressorName == blobinfocache.UnknownCompression && v2Output {
+		return candidates
+	}
 	locations := mem.knownLocations[locationKey{transport: transport.Name(), scope: scope, blobDigest: digest}] // nil if not present
-	for l, t := range locations {
-		compressorName, compressorKnown := mem.compressors[digest]
-		if !compressorKnown {
-			if requireCompressionInfo {
-				continue
-			}
-			compressorName = blobinfocache.UnknownCompression
+	if len(locations) > 0 {
+		for l, t := range locations {
+			candidates = append(candidates, prioritize.CandidateWithTime{
+				Candidate: blobinfocache.BICReplacementCandidate2{
+					Digest:         digest,
+					CompressorName: compressorName,
+					Location:       l,
+				},
+				LastSeen: t,
+			})
 		}
+	} else if v2Output {
 		candidates = append(candidates, prioritize.CandidateWithTime{
 			Candidate: blobinfocache.BICReplacementCandidate2{
-				Digest:         digest,
-				CompressorName: compressorName,
-				Location:       l,
+				Digest:          digest,
+				CompressorName:  compressorName,
+				UnknownLocation: true,
+				Location:        types.BICLocationReference{Opaque: ""},
 			},
-			LastSeen: t,
+			LastSeen: time.Time{},
 		})
 	}
 	return candidates
@@ -153,7 +181,7 @@ func (mem *cache) CandidateLocations(transport types.ImageTransport, scope types
 	return blobinfocache.CandidateLocationsFromV2(mem.candidateLocations(transport, scope, primaryDigest, canSubstitute, false))
 }
 
-// CandidateLocations2 returns a prioritized, limited, number of blobs and their locations that could possibly be reused
+// CandidateLocations2 returns a prioritized, limited, number of blobs and their locations (if known) that could possibly be reused
 // within the specified (transport scope) (if they still exist, which is not guaranteed).
 //
 // If !canSubstitute, the returned cadidates will match the submitted digest exactly; if canSubstitute,
@@ -163,22 +191,24 @@ func (mem *cache) CandidateLocations2(transport types.ImageTransport, scope type
 	return mem.candidateLocations(transport, scope, primaryDigest, canSubstitute, true)
 }
 
-func (mem *cache) candidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute, requireCompressionInfo bool) []blobinfocache.BICReplacementCandidate2 {
+func (mem *cache) candidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute, v2Output bool) []blobinfocache.BICReplacementCandidate2 {
 	mem.mutex.Lock()
 	defer mem.mutex.Unlock()
 	res := []prioritize.CandidateWithTime{}
-	res = mem.appendReplacementCandidates(res, transport, scope, primaryDigest, requireCompressionInfo)
+	res = mem.appendReplacementCandidates(res, transport, scope, primaryDigest, v2Output)
 	var uncompressedDigest digest.Digest // = ""
 	if canSubstitute {
 		if uncompressedDigest = mem.uncompressedDigestLocked(primaryDigest); uncompressedDigest != "" {
 			otherDigests := mem.digestsByUncompressed[uncompressedDigest] // nil if not present in the map
-			for d := range otherDigests {
-				if d != primaryDigest && d != uncompressedDigest {
-					res = mem.appendReplacementCandidates(res, transport, scope, d, requireCompressionInfo)
+			if otherDigests != nil {
+				for _, d := range otherDigests.Values() {
+					if d != primaryDigest && d != uncompressedDigest {
+						res = mem.appendReplacementCandidates(res, transport, scope, d, v2Output)
+					}
 				}
 			}
 			if uncompressedDigest != primaryDigest {
-				res = mem.appendReplacementCandidates(res, transport, scope, uncompressedDigest, requireCompressionInfo)
+				res = mem.appendReplacementCandidates(res, transport, scope, uncompressedDigest, v2Output)
 			}
 		}
 	}

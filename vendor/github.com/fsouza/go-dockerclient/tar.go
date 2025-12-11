@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/fileutils"
+	"github.com/moby/patternmatcher"
 )
 
 func createTarStream(srcPath, dockerfilePath string) (io.ReadCloser, error) {
@@ -44,7 +44,7 @@ func createTarStream(srcPath, dockerfilePath string) (io.ReadCloser, error) {
 		if includeFile == "" {
 			continue
 		}
-		keepThem, err := fileutils.Matches(includeFile, excludes)
+		keepThem, err := patternmatcher.Matches(includeFile, excludes)
 		if err != nil {
 			return nil, fmt.Errorf("cannot match .dockerfileignore: '%s', error: %w", includeFile, err)
 		}
@@ -73,7 +73,7 @@ func validateContextDirectory(srcPath string, excludes []string) error {
 		// skip this directory/file if it's not in the path, it won't get added to the context
 		if relFilePath, relErr := filepath.Rel(srcPath, filePath); relErr != nil {
 			return relErr
-		} else if skip, matchErr := fileutils.Matches(relFilePath, excludes); matchErr != nil {
+		} else if skip, matchErr := patternmatcher.Matches(relFilePath, excludes); matchErr != nil {
 			return matchErr
 		} else if skip {
 			if f.IsDir() {

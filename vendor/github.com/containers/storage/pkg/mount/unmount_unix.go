@@ -1,16 +1,29 @@
+//go:build !windows
 // +build !windows
 
 package mount
 
-import "golang.org/x/sys/unix"
+import (
+	"time"
+
+	"golang.org/x/sys/unix"
+)
 
 func unmount(target string, flags int) error {
-	err := unix.Unmount(target, flags)
-	if err == nil || err == unix.EINVAL {
-		// Ignore "not mounted" error here. Note the same error
-		// can be returned if flags are invalid, so this code
-		// assumes that the flags value is always correct.
-		return nil
+	var err error
+	for i := 0; i < 50; i++ {
+		err = unix.Unmount(target, flags)
+		switch err {
+		case unix.EBUSY:
+			time.Sleep(50 * time.Millisecond)
+			continue
+		case unix.EINVAL, nil:
+			// Ignore "not mounted" error here. Note the same error
+			// can be returned if flags are invalid, so this code
+			// assumes that the flags value is always correct.
+			return nil
+		}
+		break
 	}
 
 	return &mountError{

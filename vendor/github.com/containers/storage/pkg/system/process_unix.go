@@ -1,3 +1,4 @@
+//go:build linux || freebsd || solaris || darwin
 // +build linux freebsd solaris darwin
 
 package system

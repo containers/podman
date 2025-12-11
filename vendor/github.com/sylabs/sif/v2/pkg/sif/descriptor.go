@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2018-2023, Sylabs Inc. All rights reserved.
 // Copyright (c) 2017, SingularityWare, LLC. All rights reserved.
 // Copyright (c) 2017, Yannick Cote <yhcote@gmail.com> All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
@@ -10,12 +10,18 @@ package sif
 import (
 	"bytes"
 	"crypto"
+	"crypto/sha256"
+	"encoding"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"strings"
 	"time"
+
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
 // rawDescriptor represents an on-disk object descriptor.
@@ -44,6 +50,11 @@ type partition struct {
 	Arch     archType
 }
 
+// MarshalBinary encodes p into binary format.
+func (p partition) MarshalBinary() ([]byte, error) {
+	return binaryMarshaler{p}.MarshalBinary()
+}
+
 // signature represents the SIF signature data object descriptor.
 type signature struct {
 	Hashtype hashType
@@ -54,6 +65,65 @@ type signature struct {
 type cryptoMessage struct {
 	Formattype  FormatType
 	Messagetype MessageType
+}
+
+// sbom represents the SIF SBOM data object descriptor.
+type sbom struct {
+	Format SBOMFormat
+}
+
+// ociBlob represents the OCI Blob data object descriptor.
+type ociBlob struct {
+	hasher hash.Hash // accumulates hash while writing blob.
+	digest v1.Hash
+}
+
+// newOCIBlobDigest returns a new ociBlob, that accumulates the digest of an OCI blob as it is
+// read. The caller should take care to ensure that the entire contents of the blob have been
+// written to the returned ociBlob prior to calling MarshalBinary.
+func newOCIBlobDigest() *ociBlob {
+	return &ociBlob{
+		hasher: sha256.New(),
+		digest: v1.Hash{
+			Algorithm: "sha256",
+		},
+	}
+}
+
+// MarshalBinary encodes ob into binary format.
+func (ob *ociBlob) MarshalBinary() ([]byte, error) {
+	ob.digest.Hex = hex.EncodeToString(ob.hasher.Sum(nil))
+
+	return ob.digest.MarshalText()
+}
+
+// UnmarshalBinary decodes b into ob.
+func (ob *ociBlob) UnmarshalBinary(b []byte) error {
+	if before, _, ok := bytes.Cut(b, []byte{0x00}); ok {
+		b = before
+	}
+
+	return ob.digest.UnmarshalText(b)
+}
+
+// The binaryMarshaler type is an adapter that allows a type suitable for use with the
+// encoding/binary package to be used as an encoding.BinaryMarshaler.
+type binaryMarshaler struct{ any }
+
+// MarshalBinary encodes m into binary format.
+func (m binaryMarshaler) MarshalBinary() ([]byte, error) {
+	var b bytes.Buffer
+	err := binary.Write(&b, binary.LittleEndian, m.any)
+	return b.Bytes(), err
+}
+
+// The binaryUnmarshaler type is an adapter that allows a type suitable for use with the
+// encoding/binary package to be used as an encoding.BinaryUnmarshaler.
+type binaryUnmarshaler struct{ any }
+
+// UnmarshalBinary decodes b into u.
+func (u binaryUnmarshaler) UnmarshalBinary(b []byte) error {
+	return binary.Read(bytes.NewReader(b), binary.LittleEndian, u.any)
 }
 
 var errNameTooLarge = errors.New("name value too large")
@@ -73,39 +143,43 @@ func (d *rawDescriptor) setName(name string) error {
 
 var errExtraTooLarge = errors.New("extra value too large")
 
-// setExtra encodes v into the extra field of d.
-func (d *rawDescriptor) setExtra(v interface{}) error {
-	if v == nil {
+// setExtra marshals metadata from md into the "extra" field of d.
+func (d *rawDescriptor) setExtra(md encoding.BinaryMarshaler) error {
+	if md == nil {
 		return nil
 	}
 
-	if binary.Size(v) > len(d.Extra) {
-		return errExtraTooLarge
-	}
-
-	b := new(bytes.Buffer)
-	if err := binary.Write(b, binary.LittleEndian, v); err != nil {
+	extra, err := md.MarshalBinary()
+	if err != nil {
 		return err
 	}
 
-	for i := copy(d.Extra[:], b.Bytes()); i < len(d.Extra); i++ {
+	if len(extra) > len(d.Extra) {
+		return errExtraTooLarge
+	}
+
+	for i := copy(d.Extra[:], extra); i < len(d.Extra); i++ {
 		d.Extra[i] = 0
 	}
 
 	return nil
 }
 
+// getExtra unmarshals metadata from the "extra" field of d into md.
+func (d *rawDescriptor) getExtra(md encoding.BinaryUnmarshaler) error {
+	return md.UnmarshalBinary(d.Extra[:])
+}
+
 // getPartitionMetadata gets metadata for a partition data object.
-func (d rawDescriptor) getPartitionMetadata() (fs FSType, pt PartType, arch string, err error) {
+func (d rawDescriptor) getPartitionMetadata() (FSType, PartType, string, error) {
 	if got, want := d.DataType, DataPartition; got != want {
 		return 0, 0, "", &unexpectedDataTypeError{got, []DataType{want}}
 	}
 
 	var p partition
 
-	b := bytes.NewReader(d.Extra[:])
-	if err := binary.Read(b, binary.LittleEndian, &p); err != nil {
-		return 0, 0, "", fmt.Errorf("%w", err)
+	if err := d.getExtra(binaryUnmarshaler{&p}); err != nil {
+		return 0, 0, "", err
 	}
 
 	return p.Fstype, p.Parttype, p.Arch.GoArch(), nil
@@ -142,6 +216,8 @@ func (d Descriptor) GroupID() uint32 { return d.raw.GroupID &^ descrGroupMask }
 // LinkedID returns the object/group ID d is linked to, or zero if d does not contain a linked
 // ID. If isGroup is true, the returned id is an object group ID. Otherwise, the returned id is a
 // data object ID.
+//
+//nolint:nonamedreturns // Named returns effective as documentation.
 func (d Descriptor) LinkedID() (id uint32, isGroup bool) {
 	return d.raw.LinkedID &^ descrGroupMask, d.raw.LinkedID&descrGroupMask == descrGroupMask
 }
@@ -161,9 +237,23 @@ func (d Descriptor) ModifiedAt() time.Time { return time.Unix(d.raw.ModifiedAt, 
 // Name returns the name of the data object.
 func (d Descriptor) Name() string { return strings.TrimRight(string(d.raw.Name[:]), "\000") }
 
+// GetMetadata unmarshals metadata from the "extra" field of d into md.
+func (d Descriptor) GetMetadata(md encoding.BinaryUnmarshaler) error {
+	if err := d.raw.getExtra(md); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+	return nil
+}
+
 // PartitionMetadata gets metadata for a partition data object.
+//
+//nolint:nonamedreturns // Named returns effective as documentation.
 func (d Descriptor) PartitionMetadata() (fs FSType, pt PartType, arch string, err error) {
-	return d.raw.getPartitionMetadata()
+	fs, pt, arch, err = d.raw.getPartitionMetadata()
+	if err != nil {
+		return 0, 0, "", fmt.Errorf("%w", err)
+	}
+	return fs, pt, arch, err
 }
 
 var errHashUnsupported = errors.New("hash algorithm unsupported")
@@ -186,6 +276,8 @@ func getHashType(ht hashType) (crypto.Hash, error) {
 }
 
 // SignatureMetadata gets metadata for a signature data object.
+//
+//nolint:nonamedreturns // Named returns effective as documentation.
 func (d Descriptor) SignatureMetadata() (ht crypto.Hash, fp []byte, err error) {
 	if got, want := d.raw.DataType, DataSignature; got != want {
 		return ht, fp, &unexpectedDataTypeError{got, []DataType{want}}
@@ -193,8 +285,7 @@ func (d Descriptor) SignatureMetadata() (ht crypto.Hash, fp []byte, err error) {
 
 	var s signature
 
-	b := bytes.NewReader(d.raw.Extra[:])
-	if err := binary.Read(b, binary.LittleEndian, &s); err != nil {
+	if err := d.raw.getExtra(binaryUnmarshaler{&s}); err != nil {
 		return ht, fp, fmt.Errorf("%w", err)
 	}
 
@@ -203,6 +294,11 @@ func (d Descriptor) SignatureMetadata() (ht crypto.Hash, fp []byte, err error) {
 	}
 
 	fp = make([]byte, 20)
+
+	if bytes.Equal(s.Entity[:len(fp)], fp) {
+		return ht, nil, nil // Fingerprint not present.
+	}
+
 	copy(fp, s.Entity[:])
 
 	return ht, fp, nil
@@ -216,12 +312,41 @@ func (d Descriptor) CryptoMessageMetadata() (FormatType, MessageType, error) {
 
 	var m cryptoMessage
 
-	b := bytes.NewReader(d.raw.Extra[:])
-	if err := binary.Read(b, binary.LittleEndian, &m); err != nil {
+	if err := d.raw.getExtra(binaryUnmarshaler{&m}); err != nil {
 		return 0, 0, fmt.Errorf("%w", err)
 	}
 
 	return m.Formattype, m.Messagetype, nil
+}
+
+// SBOMMetadata gets metadata for a SBOM data object.
+func (d Descriptor) SBOMMetadata() (SBOMFormat, error) {
+	if got, want := d.raw.DataType, DataSBOM; got != want {
+		return 0, &unexpectedDataTypeError{got, []DataType{want}}
+	}
+
+	var s sbom
+
+	if err := d.raw.getExtra(binaryUnmarshaler{&s}); err != nil {
+		return 0, fmt.Errorf("%w", err)
+	}
+
+	return s.Format, nil
+}
+
+// OCIBlobDigest returns the digest for a OCI blob object.
+func (d Descriptor) OCIBlobDigest() (v1.Hash, error) {
+	if got := d.raw.DataType; got != DataOCIRootIndex && got != DataOCIBlob {
+		return v1.Hash{}, &unexpectedDataTypeError{got, []DataType{DataOCIRootIndex, DataOCIBlob}}
+	}
+
+	var o ociBlob
+
+	if err := d.raw.getExtra(&o); err != nil {
+		return v1.Hash{}, fmt.Errorf("%w", err)
+	}
+
+	return o.digest, nil
 }
 
 // GetData returns the data object associated with descriptor d.

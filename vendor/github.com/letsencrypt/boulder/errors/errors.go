@@ -1,7 +1,18 @@
+// Package errors provides internal-facing error types for use in Boulder. Many
+// of these are transformed directly into Problem Details documents by the WFE.
+// Some, like NotFound, may be handled internally. We avoid using Problem
+// Details documents as part of our internal error system to avoid layering
+// confusions.
+//
+// These errors are specifically for use in errors that cross RPC boundaries.
+// An error type that does not need to be passed through an RPC can use a plain
+// Go type locally. Our gRPC code is aware of these error types and will
+// serialize and deserialize them automatically.
 package errors
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/letsencrypt/boulder/identifier"
 )
@@ -12,7 +23,10 @@ import (
 // BoulderError wrapping one of these types.
 type ErrorType int
 
+// These numeric constants are used when sending berrors through gRPC.
 const (
+	// InternalServer is deprecated. Instead, pass a plain Go error. That will get
+	// turned into a probs.InternalServerError by the WFE.
 	InternalServer ErrorType = iota
 	_
 	Malformed
@@ -43,6 +57,10 @@ type BoulderError struct {
 	Type      ErrorType
 	Detail    string
 	SubErrors []SubBoulderError
+
+	// RetryAfter the duration a client should wait before retrying the request
+	// which resulted in this error.
+	RetryAfter time.Duration
 }
 
 // SubBoulderError represents sub-errors specific to an identifier that are
@@ -64,9 +82,10 @@ func (be *BoulderError) Unwrap() error {
 // provided subErrs to the existing BoulderError.
 func (be *BoulderError) WithSubErrors(subErrs []SubBoulderError) *BoulderError {
 	return &BoulderError{
-		Type:      be.Type,
-		Detail:    be.Detail,
-		SubErrors: append(be.SubErrors, subErrs...),
+		Type:       be.Type,
+		Detail:     be.Detail,
+		SubErrors:  append(be.SubErrors, subErrs...),
+		RetryAfter: be.RetryAfter,
 	}
 }
 
@@ -94,10 +113,35 @@ func NotFoundError(msg string, args ...interface{}) error {
 	return New(NotFound, msg, args...)
 }
 
-func RateLimitError(msg string, args ...interface{}) error {
+func RateLimitError(retryAfter time.Duration, msg string, args ...interface{}) error {
 	return &BoulderError{
-		Type:   RateLimit,
-		Detail: fmt.Sprintf(msg+": see https://letsencrypt.org/docs/rate-limits/", args...),
+		Type:       RateLimit,
+		Detail:     fmt.Sprintf(msg+": see https://letsencrypt.org/docs/rate-limits/", args...),
+		RetryAfter: retryAfter,
+	}
+}
+
+func DuplicateCertificateError(retryAfter time.Duration, msg string, args ...interface{}) error {
+	return &BoulderError{
+		Type:       RateLimit,
+		Detail:     fmt.Sprintf(msg+": see https://letsencrypt.org/docs/duplicate-certificate-limit/", args...),
+		RetryAfter: retryAfter,
+	}
+}
+
+func FailedValidationError(retryAfter time.Duration, msg string, args ...interface{}) error {
+	return &BoulderError{
+		Type:       RateLimit,
+		Detail:     fmt.Sprintf(msg+": see https://letsencrypt.org/docs/failed-validation-limit/", args...),
+		RetryAfter: retryAfter,
+	}
+}
+
+func RegistrationsPerIPError(retryAfter time.Duration, msg string, args ...interface{}) error {
+	return &BoulderError{
+		Type:       RateLimit,
+		Detail:     fmt.Sprintf(msg+": see https://letsencrypt.org/docs/too-many-registrations-for-this-ip/", args...),
+		RetryAfter: retryAfter,
 	}
 }
 

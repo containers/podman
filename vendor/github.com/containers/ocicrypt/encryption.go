@@ -19,23 +19,23 @@ package ocicrypt
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	keyproviderconfig "github.com/containers/ocicrypt/config/keyprovider-config"
-	"github.com/containers/ocicrypt/keywrap/keyprovider"
 	"io"
 	"strings"
 
 	"github.com/containers/ocicrypt/blockcipher"
 	"github.com/containers/ocicrypt/config"
+	keyproviderconfig "github.com/containers/ocicrypt/config/keyprovider-config"
 	"github.com/containers/ocicrypt/keywrap"
 	"github.com/containers/ocicrypt/keywrap/jwe"
+	"github.com/containers/ocicrypt/keywrap/keyprovider"
 	"github.com/containers/ocicrypt/keywrap/pgp"
 	"github.com/containers/ocicrypt/keywrap/pkcs11"
 	"github.com/containers/ocicrypt/keywrap/pkcs7"
 	"github.com/opencontainers/go-digest"
-	log "github.com/sirupsen/logrus"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // EncryptLayerFinalizer is a finalizer run to return the annotations to set for
@@ -133,16 +133,19 @@ func EncryptLayer(ec *config.EncryptConfig, encOrPlainLayerReader io.Reader, des
 			}
 			privOptsData, err = json.Marshal(opts.Private)
 			if err != nil {
-				return nil, errors.Wrapf(err, "could not JSON marshal opts")
+				return nil, fmt.Errorf("could not JSON marshal opts: %w", err)
 			}
 			pubOptsData, err = json.Marshal(opts.Public)
 			if err != nil {
-				return nil, errors.Wrapf(err, "could not JSON marshal opts")
+				return nil, fmt.Errorf("could not JSON marshal opts: %w", err)
 			}
 		}
 
 		newAnnotations := make(map[string]string)
 		keysWrapped := false
+		if len(keyWrapperAnnotations) == 0 {
+			return nil, errors.New("missing Annotations needed for decryption")
+		}
 		for annotationsID, scheme := range keyWrapperAnnotations {
 			b64Annotations := desc.Annotations[annotationsID]
 			keywrapper := GetKeyWrapper(scheme)
@@ -211,6 +214,9 @@ func DecryptLayer(dc *config.DecryptConfig, encLayerReader io.Reader, desc ocisp
 func decryptLayerKeyOptsData(dc *config.DecryptConfig, desc ocispec.Descriptor) ([]byte, error) {
 	privKeyGiven := false
 	errs := ""
+	if len(keyWrapperAnnotations) == 0 {
+		return nil, errors.New("missing Annotations needed for decryption")
+	}
 	for annotationsID, scheme := range keyWrapperAnnotations {
 		b64Annotation := desc.Annotations[annotationsID]
 		if b64Annotation != "" {
@@ -237,9 +243,9 @@ func decryptLayerKeyOptsData(dc *config.DecryptConfig, desc ocispec.Descriptor) 
 		}
 	}
 	if !privKeyGiven {
-		return nil, errors.New("missing private key needed for decryption")
+		return nil, fmt.Errorf("missing private key needed for decryption:\n%s", errs)
 	}
-	return nil, errors.Errorf("no suitable key unwrapper found or none of the private keys could be used for decryption:\n%s", errs)
+	return nil, fmt.Errorf("no suitable key unwrapper found or none of the private keys could be used for decryption:\n%s", errs)
 }
 
 func getLayerPubOpts(desc ocispec.Descriptor) ([]byte, error) {
@@ -270,7 +276,7 @@ func preUnwrapKey(keywrapper keywrap.KeyWrapper, dc *config.DecryptConfig, b64An
 		}
 		return optsData, nil
 	}
-	return nil, errors.Errorf("no suitable key found for decrypting layer key:\n%s", errs)
+	return nil, fmt.Errorf("no suitable key found for decrypting layer key:\n%s", errs)
 }
 
 // commonEncryptLayer is a function to encrypt the plain layer using a new random
@@ -305,7 +311,7 @@ func commonDecryptLayer(encLayerReader io.Reader, privOptsData []byte, pubOptsDa
 	privOpts := blockcipher.PrivateLayerBlockCipherOptions{}
 	err := json.Unmarshal(privOptsData, &privOpts)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "could not JSON unmarshal privOptsData")
+		return nil, "", fmt.Errorf("could not JSON unmarshal privOptsData: %w", err)
 	}
 
 	lbch, err := blockcipher.NewLayerBlockCipherHandler()
@@ -317,7 +323,7 @@ func commonDecryptLayer(encLayerReader io.Reader, privOptsData []byte, pubOptsDa
 	if len(pubOptsData) > 0 {
 		err := json.Unmarshal(pubOptsData, &pubOpts)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "could not JSON unmarshal pubOptsData")
+			return nil, "", fmt.Errorf("could not JSON unmarshal pubOptsData: %w", err)
 		}
 	}
 

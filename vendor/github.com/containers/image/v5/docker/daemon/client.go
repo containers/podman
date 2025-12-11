@@ -9,11 +9,6 @@ import (
 	"github.com/docker/go-connections/tlsconfig"
 )
 
-const (
-	// The default API version to be used in case none is explicitly specified
-	defaultAPIVersion = "1.22"
-)
-
 // NewDockerClient initializes a new API client based on the passed SystemContext.
 func newDockerClient(sys *types.SystemContext) (*dockerclient.Client, error) {
 	host := dockerclient.DefaultDockerHost
@@ -21,33 +16,49 @@ func newDockerClient(sys *types.SystemContext) (*dockerclient.Client, error) {
 		host = sys.DockerDaemonHost
 	}
 
-	// Sadly, unix:// sockets don't work transparently with dockerclient.NewClient.
-	// They work fine with a nil httpClient; with a non-nil httpClient, the transport’s
-	// TLSClientConfig must be nil (or the client will try using HTTPS over the PF_UNIX socket
-	// regardless of the values in the *tls.Config), and we would have to call sockets.ConfigureTransport.
+	opts := []dockerclient.Opt{
+		dockerclient.WithHost(host),
+		dockerclient.WithAPIVersionNegotiation(),
+	}
+
+	// We conditionalize building the TLS configuration only to TLS sockets:
 	//
-	// We don't really want to configure anything for unix:// sockets, so just pass a nil *http.Client.
+	// The dockerclient.Client implementation differentiates between
+	// - Client.proto, which is ~how the connection is establishe (IP / AF_UNIX/Windows)
+	// - Client.scheme, which is what is sent over the connection (HTTP with/without TLS).
 	//
-	// Similarly, if we want to communicate over plain HTTP on a TCP socket, we also need to set
-	// TLSClientConfig to nil. This can be achieved by using the form `http://`
-	url, err := dockerclient.ParseHostURL(host)
+	// Only Client.proto is set from the URL in dockerclient.WithHost(),
+	// Client.scheme is detected based on a http.Client.TLSClientConfig presence;
+	// dockerclient.WithHTTPClient with a client that has TLSClientConfig set
+	// will, by default, trigger an attempt to use TLS.
+	//
+	// So, don’t use WithHTTPClient for unix:// sockets at all.
+	//
+	// Similarly, if we want to communicate over plain HTTP on a TCP socket (http://),
+	// we also should not set TLSClientConfig.  We continue to use WithHTTPClient
+	// with our slightly non-default settings to avoid a behavior change on updates of c/image.
+	//
+	// Alternatively we could use dockerclient.WithScheme to drive the TLS/non-TLS logic
+	// explicitly, but we would still want to set WithHTTPClient (differently) for https:// and http:// ;
+	// so that would not be any simpler.
+	serverURL, err := dockerclient.ParseHostURL(host)
 	if err != nil {
 		return nil, err
 	}
-	var httpClient *http.Client
-	if url.Scheme != "unix" {
-		if url.Scheme == "http" {
-			httpClient = httpConfig()
-		} else {
-			hc, err := tlsConfig(sys)
-			if err != nil {
-				return nil, err
-			}
-			httpClient = hc
+	switch serverURL.Scheme {
+	case "unix": // Nothing
+	case "http":
+		hc := httpConfig()
+		opts = append(opts, dockerclient.WithHTTPClient(hc))
+	default:
+		hc, err := tlsConfig(sys)
+		if err != nil {
+			return nil, err
 		}
+		opts = append(opts, dockerclient.WithHTTPClient(hc))
 	}
 
-	return dockerclient.NewClient(host, defaultAPIVersion, httpClient, nil)
+	return dockerclient.NewClientWithOpts(opts...)
 }
 
 func tlsConfig(sys *types.SystemContext) (*http.Client, error) {

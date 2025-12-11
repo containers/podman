@@ -6,13 +6,10 @@ import (
 	"github.com/containers/storage/pkg/archive"
 )
 
-func chroot(path string) error {
-	return nil
-}
-
-func invokeUnpack(decompressedArchive io.ReadCloser,
+func invokeUnpack(decompressedArchive io.Reader,
 	dest string,
-	options *archive.TarOptions, root string) error {
+	options *archive.TarOptions, root string,
+) error {
 	return archive.Unpack(decompressedArchive, dest, options)
 }
 

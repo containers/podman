@@ -121,7 +121,6 @@ To assert that the command has exited it is more convenient to use the Exit matc
 
 When the process exits because it has received a particular signal, the exit code will be 128+signal-value
 (See http://www.tldp.org/LDP/abs/html/exitcodes.html and http://man7.org/linux/man-pages/man7/signal.7.html)
-
 */
 func (s *Session) ExitCode() int {
 	s.lock.Lock()
