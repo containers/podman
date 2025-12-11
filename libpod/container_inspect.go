@@ -192,10 +192,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		data.OCIConfigPath = c.state.ConfigPath
 	}
 
-	// Check if healthcheck is not nil and --no-healthcheck option is not set.
-	// If --no-healthcheck is set Test will be always set to `[NONE]`, so the
-	// inspect status should be set to nil.
-	if c.config.HealthCheckConfig != nil && (len(c.config.HealthCheckConfig.Test) != 1 || c.config.HealthCheckConfig.Test[0] != "NONE") {
+	if c.HasHealthCheck() {
 		// This container has a healthcheck defined in it; we need to add its state
 		healthCheckState, err := c.readHealthCheckLog()
 		if err != nil {

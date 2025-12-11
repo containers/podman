@@ -226,7 +226,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		if err != nil {
 			return err
 		}
-
+		
 		healthStatus, err = c.HealthCheckStatus()
 		if err != nil {
 			return err
