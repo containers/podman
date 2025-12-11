@@ -1,10 +1,12 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
 	"context"
+	"fmt"
 	"time"
-
-	"github.com/containers/storage"
 )
 
 // ImageHistory contains the history information of an image.
@@ -24,22 +26,24 @@ func (i *Image) History(ctx context.Context) ([]ImageHistory, error) {
 		return nil, err
 	}
 
-	layerTree, err := i.runtime.layerTree()
+	layerTree, err := i.runtime.layerTree(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var allHistory []ImageHistory
-	var layer *storage.Layer
+	var nextNode *layerNode
 	if i.TopLayer() != "" {
-		layer, err = i.runtime.store.Layer(i.TopLayer())
+		layer, err := i.runtime.store.Layer(i.TopLayer())
 		if err != nil {
 			return nil, err
 		}
+		nextNode = layerTree.node(layer.ID)
 	}
 
 	// Iterate in reverse order over the history entries, and lookup the
-	// corresponding image ID, size and get the next later if needed.
+	// corresponding image ID, size.  If it's a non-empty history entry,
+	// pick the next "storage" layer by walking the layer tree.
+	var allHistory []ImageHistory
 	numHistories := len(ociImage.History) - 1
 	usedIDs := make(map[string]bool) // prevents assigning images IDs more than once
 	for x := numHistories; x >= 0; x-- {
@@ -50,27 +54,25 @@ func (i *Image) History(ctx context.Context) ([]ImageHistory, error) {
 			Comment:   ociImage.History[x].Comment,
 		}
 
-		if layer != nil {
-			history.Tags = layer.Names
-			if !ociImage.History[x].EmptyLayer {
-				history.Size = layer.UncompressedSize
+		if nextNode != nil && len(nextNode.images) > 0 {
+			id := nextNode.images[0].ID() // always use the first one
+			if _, used := usedIDs[id]; !used {
+				history.ID = id
+				usedIDs[id] = true
 			}
-			// Query the layer tree if it's the top layer of an
-			// image.
-			node := layerTree.node(layer.ID)
-			if len(node.images) > 0 {
-				id := node.images[0].ID() // always use the first one
-				if _, used := usedIDs[id]; !used {
-					history.ID = id
-					usedIDs[id] = true
-				}
+			for i := range nextNode.images {
+				history.Tags = append(history.Tags, nextNode.images[i].Names()...)
 			}
-			if layer.Parent != "" && !ociImage.History[x].EmptyLayer {
-				layer, err = i.runtime.store.Layer(layer.Parent)
-				if err != nil {
-					return nil, err
-				}
+		}
+
+		if !ociImage.History[x].EmptyLayer {
+			if nextNode == nil { // If no layer's left, something's wrong.
+				return nil, fmt.Errorf("no layer left for non-empty history entry: %v", history)
 			}
+
+			history.Size = nextNode.layer.UncompressedSize
+
+			nextNode = nextNode.parent
 		}
 
 		allHistory = append(allHistory, history)

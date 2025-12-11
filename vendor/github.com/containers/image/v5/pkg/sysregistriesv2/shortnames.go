@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 // defaultShortNameMode is the default mode of registries.conf files if the
@@ -308,9 +309,7 @@ func newShortNameAliasCache(path string, conf *shortNameAliasConf) (*shortNameAl
 // updateWithConfigurationFrom updates c with configuration from updates.
 // In case of conflict, updates is preferred.
 func (c *shortNameAliasCache) updateWithConfigurationFrom(updates *shortNameAliasCache) {
-	for name, value := range updates.namedAliases {
-		c.namedAliases[name] = value
-	}
+	maps.Copy(c.namedAliases, updates.namedAliases)
 }
 
 func loadShortNameAliasConf(confPath string) (*shortNameAliasConf, *shortNameAliasCache, error) {

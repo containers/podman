@@ -1,5 +1,8 @@
 package config
 
+// DefaultInitPath is the default path to the container-init binary.
+var DefaultInitPath = "/usr/local/libexec/podman/catatonit"
+
 func getDefaultCgroupsMode() string {
 	return "enabled"
 }
@@ -22,4 +25,8 @@ func getLibpodTmpDir() string {
 // getDefaultMachineVolumes returns default mounted volumes (possibly with env vars, which will be expanded)
 func getDefaultMachineVolumes() []string {
 	return []string{"$HOME:$HOME"}
+}
+
+func getDefaultComposeProviders() []string {
+	return defaultUnixComposeProviders
 }

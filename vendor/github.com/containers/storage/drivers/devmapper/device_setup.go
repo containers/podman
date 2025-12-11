@@ -48,7 +48,7 @@ func validateLVMConfig(cfg directLVMConfig) error {
 func checkDevAvailable(dev string) error {
 	lvmScan, err := exec.LookPath("lvmdiskscan")
 	if err != nil {
-		logrus.Debug("could not find lvmdiskscan")
+		logrus.Debugf("could not find lvmdiskscan: %v", err)
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func checkDevAvailable(dev string) error {
 func checkDevInVG(dev string) error {
 	pvDisplay, err := exec.LookPath("pvdisplay")
 	if err != nil {
-		logrus.Debug("could not find pvdisplay")
+		logrus.Debugf("could not find pvdisplay: %v", err)
 		return nil
 	}
 
@@ -96,7 +96,7 @@ func checkDevInVG(dev string) error {
 func checkDevHasFS(dev string) error {
 	blkid, err := exec.LookPath("blkid")
 	if err != nil {
-		logrus.Debug("could not find blkid")
+		logrus.Debugf("could not find blkid %v", err)
 		return nil
 	}
 
@@ -177,7 +177,7 @@ func writeLVMConfig(root string, cfg directLVMConfig) error {
 	if err != nil {
 		return fmt.Errorf("marshalling direct lvm config: %w", err)
 	}
-	if err := os.WriteFile(p, b, 0600); err != nil {
+	if err := os.WriteFile(p, b, 0o600); err != nil {
 		return fmt.Errorf("writing direct lvm config to file: %w", err)
 	}
 	return nil
@@ -193,7 +193,7 @@ func setupDirectLVM(cfg directLVMConfig) error {
 		}
 	}
 
-	err := os.MkdirAll(lvmProfileDir, 0755)
+	err := os.MkdirAll(lvmProfileDir, 0o755)
 	if err != nil {
 		return fmt.Errorf("creating lvm profile directory: %w", err)
 	}
@@ -241,7 +241,7 @@ func setupDirectLVM(cfg directLVMConfig) error {
 	}
 
 	profile := fmt.Sprintf("activation{\nthin_pool_autoextend_threshold=%d\nthin_pool_autoextend_percent=%d\n}", cfg.AutoExtendThreshold, cfg.AutoExtendPercent)
-	err = os.WriteFile(lvmProfileDir+"/storage-thinpool.profile", []byte(profile), 0600)
+	err = os.WriteFile(lvmProfileDir+"/storage-thinpool.profile", []byte(profile), 0o600)
 	if err != nil {
 		return fmt.Errorf("writing storage thinp autoextend profile: %w", err)
 	}

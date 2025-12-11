@@ -337,9 +337,6 @@ type Authorization struct {
 	// slice and the order of these challenges may not be predictable.
 	Challenges []Challenge `json:"challenges,omitempty" db:"-"`
 
-	// This field is deprecated. It's filled in by WFE for the ACMEv1 API.
-	Combinations [][]int `json:"combinations,omitempty" db:"combinations"`
-
 	// Wildcard is a Boulder-specific Authorization field that indicates the
 	// authorization was created as a result of an order containing a name with
 	// a `*.`wildcard prefix. This will help convey to users that an

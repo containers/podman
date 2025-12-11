@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -9,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
+	"github.com/containers/common/libimage/platform"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	storageTransport "github.com/containers/image/v5/storage"
@@ -23,6 +28,17 @@ import (
 // Image represents an image in the containers storage and allows for further
 // operations and data manipulation.
 type Image struct {
+	// ListData that is being set by (*Runtime).ListImages().  Note that
+	// the data may be outdated.
+	ListData struct {
+		// Dangling indicates if the image is dangling.  Use
+		// `IsDangling()` to compute the latest state.
+		IsDangling *bool
+		// Parent points to the parent image.  Use `Parent()` to
+		// compute the latest state.
+		Parent *Image
+	}
+
 	// Backwards pointer to the runtime.
 	runtime *Runtime
 
@@ -80,13 +96,14 @@ func (i *Image) isCorrupted(name string) error {
 		return err
 	}
 
-	if _, err := ref.NewImage(context.Background(), nil); err != nil {
+	img, err := ref.NewImage(context.Background(), nil)
+	if err != nil {
 		if name == "" {
 			name = i.ID()[:12]
 		}
 		return fmt.Errorf("Image %s exists in local storage but may be corrupted (remove the image to resolve the issue): %v", name, err)
 	}
-	return nil
+	return img.Close()
 }
 
 // Names returns associated names with the image which may be a mix of tags and
@@ -133,6 +150,9 @@ func (i *Image) ID() string {
 // possibly many digests that we have stored for the image, so many
 // applications are better off using the entire list returned by Digests().
 func (i *Image) Digest() digest.Digest {
+	// TODO: we return the image digest or the one of the manifest list
+	// which can lead to issues depending on the callers' assumptions.
+	// Hence, deprecate in favor of Digest_s_.
 	return i.storageImage.Digest
 }
 
@@ -141,6 +161,28 @@ func (i *Image) Digest() digest.Digest {
 // set, its value is also in this list.
 func (i *Image) Digests() []digest.Digest {
 	return i.storageImage.Digests
+}
+
+// hasDigest returns whether the specified value matches any digest of the
+// image.
+func (i *Image) hasDigest(wantedDigest digest.Digest) bool {
+	for _, d := range i.Digests() {
+		if d == wantedDigest {
+			return true
+		}
+	}
+	return false
+}
+
+// containsDigestPrefix returns whether the specified value matches any digest of the
+// image. It checks for the prefix and not a full match.
+func (i *Image) containsDigestPrefix(wantedDigestPrefix string) bool {
+	for _, d := range i.Digests() {
+		if strings.HasPrefix(d.String(), wantedDigestPrefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsReadOnly returns whether the image is set read only.
@@ -216,10 +258,14 @@ func (i *Image) TopLayer() string {
 
 // Parent returns the parent image or nil if there is none
 func (i *Image) Parent(ctx context.Context) (*Image, error) {
-	tree, err := i.runtime.layerTree()
+	tree, err := i.runtime.layerTree(nil)
 	if err != nil {
 		return nil, err
 	}
+	return i.parent(ctx, tree)
+}
+
+func (i *Image) parent(ctx context.Context, tree *layerTree) (*Image, error) {
 	return tree.parent(ctx, i)
 }
 
@@ -246,7 +292,7 @@ func (i *Image) Children(ctx context.Context) ([]*Image, error) {
 // created for this invocation only.
 func (i *Image) getChildren(ctx context.Context, all bool, tree *layerTree) ([]*Image, error) {
 	if tree == nil {
-		t, err := i.runtime.layerTree()
+		t, err := i.runtime.layerTree(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -387,7 +433,7 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	// have a closer look at the errors.  On top, image removal should be
 	// tolerant toward corrupted images.
 	handleError := func(err error) error {
-		if errors.Is(err, storage.ErrImageUnknown) || errors.Is(err, storage.ErrNotAnImage) || errors.Is(err, storage.ErrLayerUnknown) {
+		if ErrorIsImageUnknown(err) {
 			// The image or layers of the image may already have been removed
 			// in which case we consider the image to be removed.
 			return nil
@@ -409,14 +455,12 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	numNames := len(i.Names())
 
 	// NOTE: the `numNames == 1` check is not only a performance
-	// optimization but also preserves exiting Podman/Docker behaviour.
+	// optimization but also preserves existing Podman/Docker behaviour.
 	// If image "foo" is used by a container and has only this tag/name,
 	// an `rmi foo` will not untag "foo" but instead attempt to remove the
 	// entire image.  If there's a container using "foo", we should get an
 	// error.
-	if referencedBy == "" || numNames == 1 {
-		// DO NOTHING, the image will be removed
-	} else {
+	if !(referencedBy == "" || numNames == 1) {
 		byID := strings.HasPrefix(i.ID(), referencedBy)
 		byDigest := strings.HasPrefix(referencedBy, "sha256:")
 		if !options.Force {
@@ -539,8 +583,7 @@ func (i *Image) Tag(name string) error {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageTag})
 	}
 
-	newNames := append(i.Names(), ref.String())
-	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
+	if err := i.runtime.store.AddNames(i.ID(), []string{ref.String()}); err != nil {
 		return err
 	}
 
@@ -564,7 +607,7 @@ func (i *Image) Untag(name string) error {
 
 	ref, err := NormalizeName(name)
 	if err != nil {
-		return fmt.Errorf("normalizing name %q: %w", name, err)
+		return err
 	}
 
 	// FIXME: this is breaking Podman CI but must be re-enabled once
@@ -579,26 +622,25 @@ func (i *Image) Untag(name string) error {
 
 	name = ref.String()
 
+	foundName := false
+	for _, n := range i.Names() {
+		if n == name {
+			foundName = true
+			break
+		}
+	}
+	// Return an error if the name is not found, the c/storage
+	// RemoveNames() API does not create one if no match is found.
+	if !foundName {
+		return fmt.Errorf("%s: %w", name, errTagUnknown)
+	}
+
 	logrus.Debugf("Untagging %q from image %s", ref.String(), i.ID())
 	if i.runtime.eventChannel != nil {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageUntag})
 	}
 
-	removedName := false
-	newNames := []string{}
-	for _, n := range i.Names() {
-		if n == name {
-			removedName = true
-			continue
-		}
-		newNames = append(newNames, n)
-	}
-
-	if !removedName {
-		return fmt.Errorf("%s: %w", name, errTagUnknown)
-	}
-
-	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
+	if err := i.runtime.store.RemoveNames(i.ID(), []string{name}); err != nil {
 		return err
 	}
 
@@ -643,6 +685,8 @@ func (i *Image) NamedTaggedRepoTags() ([]reference.NamedTagged, error) {
 // NamedRepoTags returns the repotags associated with the image as a
 // slice of reference.Named.
 func (i *Image) NamedRepoTags() ([]reference.Named, error) {
+	// FIXME: the NamedRepoTags name is a bit misleading as it can return
+	// repo@digest values if that’s how an image was pulled.
 	var repoTags []reference.Named
 	for _, name := range i.Names() {
 		parsed, err := reference.Parse(name)
@@ -656,32 +700,35 @@ func (i *Image) NamedRepoTags() ([]reference.Named, error) {
 	return repoTags, nil
 }
 
-// inRepoTags looks for the specified name/tag pair in the image's repo tags.
-func (i *Image) inRepoTags(namedTagged reference.NamedTagged) (reference.Named, error) {
+// referenceFuzzilyMatchingRepoAndTag checks if the image’s repo (and tag if requiredTag != "") matches a fuzzy short input,
+// and if so, returns the matching reference.
+//
+// DO NOT ADD ANY NEW USERS OF THIS SEMANTICS. Rely on existing libimage calls like LookupImage instead,
+// and handle unqualified the way it does (c/image/pkg/shortnames).
+func (i *Image) referenceFuzzilyMatchingRepoAndTag(requiredRepo reference.Named, requiredTag string) (reference.Named, error) {
 	repoTags, err := i.NamedRepoTags()
 	if err != nil {
 		return nil, err
 	}
 
-	pairs, err := ToNameTagPairs(repoTags)
-	if err != nil {
-		return nil, err
-	}
+	name := requiredRepo.Name()
+	for _, r := range repoTags {
+		if requiredTag != "" {
+			tagged, isTagged := r.(reference.NamedTagged)
+			if !isTagged || tagged.Tag() != requiredTag {
+				continue
+			}
+		}
 
-	name := namedTagged.Name()
-	tag := namedTagged.Tag()
-	for _, pair := range pairs {
-		if tag != pair.Tag {
+		repoName := r.Name()
+		if !strings.HasSuffix(repoName, name) {
 			continue
 		}
-		if !strings.HasSuffix(pair.Name, name) {
-			continue
+		if len(repoName) == len(name) { // full match
+			return r, nil
 		}
-		if len(pair.Name) == len(name) { // full match
-			return pair.named, nil
-		}
-		if pair.Name[len(pair.Name)-len(name)-1] == '/' { // matches at repo
-			return pair.named, nil
+		if repoName[len(repoName)-len(name)-1] == '/' { // matches at repo
+			return r, nil
 		}
 	}
 
@@ -722,7 +769,7 @@ func (i *Image) RepoDigests() ([]string, error) {
 // Mount the image with the specified mount options and label, both of which
 // are directly passed down to the containers storage.  Returns the fully
 // evaluated path to the mount point.
-func (i *Image) Mount(ctx context.Context, mountOptions []string, mountLabel string) (string, error) {
+func (i *Image) Mount(_ context.Context, mountOptions []string, mountLabel string) (string, error) {
 	if i.runtime.eventChannel != nil {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: "", Time: time.Now(), Type: EventTypeImageMount})
 	}
@@ -793,6 +840,9 @@ type HasDifferentDigestOptions struct {
 	// containers-auth.json(5) file to use when authenticating against
 	// container registries.
 	AuthFilePath string
+	// Allow contacting registries over HTTP, or HTTPS with failed TLS
+	// verification. Note that this does not affect other TLS connections.
+	InsecureSkipTLSVerify types.OptionalBool
 }
 
 // HasDifferentDigest returns true if the image specified by `remoteRef` has a
@@ -818,8 +868,15 @@ func (i *Image) HasDifferentDigest(ctx context.Context, remoteRef types.ImageRef
 		sys.VariantChoice = inspectInfo.Variant
 	}
 
-	if options != nil && options.AuthFilePath != "" {
-		sys.AuthFilePath = options.AuthFilePath
+	if options != nil {
+		if options.AuthFilePath != "" {
+			sys.AuthFilePath = options.AuthFilePath
+		}
+		if options.InsecureSkipTLSVerify != types.OptionalBoolUndefined {
+			sys.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
+			sys.OCIInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+			sys.DockerDaemonInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+		}
 	}
 
 	return i.hasDifferentDigestWithSystemContext(ctx, remoteRef, sys)
@@ -830,6 +887,7 @@ func (i *Image) hasDifferentDigestWithSystemContext(ctx context.Context, remoteR
 	if err != nil {
 		return false, err
 	}
+	defer remoteImg.Close()
 
 	rawManifest, rawManifestMIMEType, err := remoteImg.Manifest(ctx)
 	if err != nil {
@@ -965,4 +1023,36 @@ func getImageID(ctx context.Context, src types.ImageReference, sys *types.System
 		return "", fmt.Errorf("getting config info: %w", err)
 	}
 	return "@" + imageDigest.Encoded(), nil
+}
+
+// Checks whether the image matches the specified platform.
+// Returns
+//   - 1) a matching error that can be used for logging (or returning) what does not match
+//   - 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
+//   - 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
+func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (error, bool, error) {
+	if err := i.isCorrupted(""); err != nil {
+		return err, false, nil
+	}
+	inspectInfo, err := i.inspectInfo(ctx)
+	if err != nil {
+		return nil, false, fmt.Errorf("inspecting image: %w", err)
+	}
+
+	customPlatform := len(os)+len(arch)+len(variant) != 0
+
+	expected, err := platforms.Parse(platform.ToString(os, arch, variant))
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing host platform: %v", err)
+	}
+	fromImage, err := platforms.Parse(platform.ToString(inspectInfo.Os, inspectInfo.Architecture, inspectInfo.Variant))
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing image platform: %v", err)
+	}
+
+	if platforms.NewMatcher(expected).Match(fromImage) {
+		return nil, customPlatform, nil
+	}
+
+	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", platforms.Format(fromImage), platforms.Format(expected)), customPlatform, nil
 }

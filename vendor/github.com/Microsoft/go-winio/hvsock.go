@@ -23,7 +23,7 @@ import (
 const afHVSock = 34 // AF_HYPERV
 
 // Well known Service and VM IDs
-//https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/make-integration-service#vmid-wildcards
+// https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/user-guide/make-integration-service#vmid-wildcards
 
 // HvsockGUIDWildcard is the wildcard VmId for accepting connections from all partitions.
 func HvsockGUIDWildcard() guid.GUID { // 00000000-0000-0000-0000-000000000000
@@ -31,7 +31,7 @@ func HvsockGUIDWildcard() guid.GUID { // 00000000-0000-0000-0000-000000000000
 }
 
 // HvsockGUIDBroadcast is the wildcard VmId for broadcasting sends to all partitions.
-func HvsockGUIDBroadcast() guid.GUID { //ffffffff-ffff-ffff-ffff-ffffffffffff
+func HvsockGUIDBroadcast() guid.GUID { // ffffffff-ffff-ffff-ffff-ffffffffffff
 	return guid.GUID{
 		Data1: 0xffffffff,
 		Data2: 0xffff,
@@ -246,7 +246,7 @@ func (l *HvsockListener) Accept() (_ net.Conn, err error) {
 	var addrbuf [addrlen * 2]byte
 
 	var bytes uint32
-	err = syscall.AcceptEx(l.sock.handle, sock.handle, &addrbuf[0], 0 /*rxdatalen*/, addrlen, addrlen, &bytes, &c.o)
+	err = syscall.AcceptEx(l.sock.handle, sock.handle, &addrbuf[0], 0 /* rxdatalen */, addrlen, addrlen, &bytes, &c.o)
 	if _, err = l.sock.asyncIO(c, nil, bytes, err); err != nil {
 		return nil, l.opErr("accept", os.NewSyscallError("acceptex", err))
 	}
