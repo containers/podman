@@ -42,12 +42,13 @@ import (
 {{- if .ExcludeSpec }} --exclude-spec{{ end }}
 {{- if .DumpData }} --dump-data{{ end }}
 {{- if .StrictResponders }} --strict-responders{{ end }}
+{{- if .ReturnErrors }} --return-errors{{ end }}
 {{ end }}
 
 // This file auto configures the api backend implementation.
 // {{.ImplementationPackageAlias}} package must already exist.
 // {{.ImplementationPackageAlias}}.New() is implemented by user, and must return an object
-// or interface that implements Handler interface defined below. 
+// or interface that implements Handler interface defined below.
 var Impl Handler = {{.ImplementationPackageAlias}}.New()
 
 // Handler handles all api server backend configurations and requests
@@ -77,7 +78,7 @@ type Authable interface{
   {{- range .SecurityDefinitions }}
     {{- if .IsBasicAuth }}
   // Applies when the Authorization header is set with the Basic scheme
-  {{ pascalize .ID }}Auth(user string, pass string) ({{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error)
+  {{ pascalize .ID }}Auth(user string, password string) ({{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error)
     {{- else if .IsAPIKeyAuth }}
   // Applies when the "{{ .Name }}" {{ .Source }} is set
   {{ pascalize .ID }}Auth(token string) ({{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error)
@@ -101,7 +102,11 @@ type {{ pascalize .Name }}Handler interface {
 	{{ end -}}
 	{{ pascalize .Name }}(params {{ if ne .Package $package }}{{ .PackageAlias }}{{ else }}{{- $apipackagealias }}{{ end }}.
     {{- pascalize .Name }}Params {{- if .Authorized}}, principal {{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}{{end}})
-    {{- if $.GenOpts.StrictResponders }} {{.Package}}.{{ pascalize .Name }}Responder {{ else }} middleware.Responder {{ end }}
+      {{- if $.GenOpts.ReturnErrors }}
+        {{- if $.GenOpts.StrictResponders }} ({{.Package}}.{{ pascalize .Name }}Responder, error) {{ else }} (middleware.Responder, error) {{ end }}
+      {{ else }}
+        {{- if $.GenOpts.StrictResponders }} {{.Package}}.{{ pascalize .Name }}Responder {{ else }} middleware.Responder {{ end }}
+      {{ end -}}
 {{ end -}}
 }
 {{ end }}
@@ -120,7 +125,7 @@ func configureAPI(api *{{.APIPackageAlias}}.{{ pascalize .Name }}API) http.Handl
     {{- if .Implementation }}
   api.{{ pascalize .Name }}Consumer = {{ .Implementation }}
     {{- else }}
-  api.{{ pascalize .Name }}Consumer = runtime.ConsumerFunc(func(r io.Reader, target interface{}) error {
+  api.{{ pascalize .Name }}Consumer = runtime.ConsumerFunc(func(r io.Reader, target any) error {
     return Impl.{{ pascalize .Name }}Consume(r, target)
   })
     {{- end }}
@@ -129,7 +134,7 @@ func configureAPI(api *{{.APIPackageAlias}}.{{ pascalize .Name }}API) http.Handl
     {{- if .Implementation }}
   api.{{ pascalize .Name }}Producer = {{ .Implementation }}
     {{- else }}
-  api.{{ pascalize .Name }}Producer = runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+  api.{{ pascalize .Name }}Producer = runtime.ProducerFunc(func(w io.Writer, data any) error {
     return Impl.{{ pascalize .Name }}Produce(w, target)
   })
     {{- end }}
@@ -137,10 +142,10 @@ func configureAPI(api *{{.APIPackageAlias}}.{{ pascalize .Name }}API) http.Handl
   {{ range .SecurityDefinitions }}
     {{- if .IsBasicAuth }}
   // Applies when the Authorization header is set with the Basic scheme
-  api.{{ pascalize .ID }}Auth = func(user string, pass string) ({{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
-    return Impl.{{ pascalize .ID }}Auth(user, pass)
+  api.{{ pascalize .ID }}Auth = func(user string, password string) ({{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
+    return Impl.{{ pascalize .ID }}Auth(user, password)
   }
-  
+
     {{- else if .IsAPIKeyAuth }}
   // Applies when the "{{ .Name }}" {{ .Source }} is set
   api.{{ pascalize .ID }}Auth = func(token string) ({{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}, error) {
@@ -162,8 +167,12 @@ func configureAPI(api *{{.APIPackageAlias}}.{{ pascalize .Name }}API) http.Handl
     {{- else }}
       {{- $apipackagealias }}.{{- pascalize .Name }}HandlerFunc(func(params {{ $apipackagealias }}.{{- pascalize .Name }}Params
     {{- end }}
-    {{- if .Authorized}}, principal {{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}{{end}}) 
-      {{- if $.GenOpts.StrictResponders }} {{.Package}}.{{ pascalize .Name }}Responder { {{ else }} middleware.Responder { {{ end }}
+    {{- if .Authorized}}, principal {{ if .PrincipalIsNullable }}*{{ end }}{{.Principal}}{{end}})
+      {{- if $.GenOpts.ReturnErrors }}
+          {{- if $.GenOpts.StrictResponders }} ({{.Package}}.{{ pascalize .Name }}Responder, error) { {{ else }} (middleware.Responder, error) { {{ end }}
+      {{ else }}
+          {{- if $.GenOpts.StrictResponders }} {{.Package}}.{{ pascalize .Name }}Responder { {{ else }} middleware.Responder { {{ end }}
+      {{ end }}
       return Impl.{{ pascalize .Name }}(params {{- if .Authorized}}, principal {{ end }})
     })
   {{- end }}
