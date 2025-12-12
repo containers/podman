@@ -2,6 +2,7 @@ import os
 import tarfile
 import unittest
 from typing import cast
+from pathlib import Path
 
 import requests
 
@@ -21,6 +22,40 @@ class ArtifactTestCase(APITestCase):
         artifact = Artifact(self.uri(""), ARTIFACT_NAME, parameters, file)
 
         add_response = artifact.add()
+
+        # Assert correct response code
+        self.assertEqual(add_response.status_code, 201, add_response.text)
+
+        # Assert return response is json and contains digest
+        add_response_json = add_response.json()
+        self.assertIn("sha256:", cast(str, add_response_json["ArtifactDigest"]))
+
+        inspect_response_json = artifact.do_artifact_inspect_request().json()
+        artifact_layer = inspect_response_json["Manifest"]["layers"][0]
+
+        # Assert uploaded artifact blob is expected size
+        self.assertEqual(artifact_layer["size"], file.size)
+
+        # Assert uploaded artifact blob has expected title annotation
+        self.assertEqual(
+            artifact_layer["annotations"]["org.opencontainers.image.title"], file.name
+        )
+
+        # Assert blob media type fallback detection is working
+        self.assertEqual(artifact_layer["mediaType"], "application/octet-stream")
+
+    def test_add_local(self):
+        ARTIFACT_NAME = "quay.io/myimage/mylocalartifact:latest"
+        file = ArtifactFile()
+        parameters: dict[str, str | list[str]] = {
+            "name": ARTIFACT_NAME,
+            "fileName": file.name,
+            "path": Path(file.name).absolute(),
+        }
+
+        artifact = Artifact(self.uri(""), ARTIFACT_NAME, parameters, file)
+
+        add_response = artifact.add_local()
 
         # Assert correct response code
         self.assertEqual(add_response.status_code, 201, add_response.text)
@@ -317,6 +352,52 @@ class ArtifactTestCase(APITestCase):
             "name and file parameters are required",
         )
 
+    def test_add_local_with_not_existing_file(self):
+        ARTIFACT_NAME = "quay.io/myimage/myartifact:latest"
+        parameters: dict[str, str | list[str]] = {
+            "name": ARTIFACT_NAME,
+            "fileName": "notexistsfile",
+            "path": "/home/notexistsfile",
+        }
+
+        artifact = Artifact(self.uri(""), ARTIFACT_NAME, parameters, None)
+
+        r = artifact.add_local()
+
+        rjson = r.json()
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 404, r.text)
+
+        # Assert return error response is json and contains correct message
+        self.assertEqual(
+            rjson["cause"],
+            'file does not exist: "/home/notexistsfile"',
+        )
+
+    def test_add_local_with_not_absolute_path(self):
+        ARTIFACT_NAME = "quay.io/myimage/myartifact:latest"
+        parameters: dict[str, str | list[str]] = {
+            "name": ARTIFACT_NAME,
+            "fileName": "notexistsfile",
+            "path": "../../etc/passwd",
+        }
+
+        artifact = Artifact(self.uri(""), ARTIFACT_NAME, parameters, None)
+
+        r = artifact.add_local()
+
+        rjson = r.json()
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 400, r.text)
+
+        # Assert return error response is json and contains correct message
+        self.assertEqual(
+            rjson["cause"],
+            'path is not absolute',
+        )
+
     def test_inspect(self):
         ARTIFACT_NAME = "quay.io/myimage/myartifact_mime_type:latest"
 
@@ -545,7 +626,6 @@ class ArtifactTestCase(APITestCase):
             "artifact does not exist",
         )
 
-
     def test_remove_all(self):
         # Create some artifacts to remove
         artifact_names = [
@@ -595,7 +675,6 @@ class ArtifactTestCase(APITestCase):
 
         url = self.uri("/artifacts/remove")
         r = requests.delete(url, params=removeparameters)
-        rjson = r.json()
 
         # Assert correct response code
         self.assertEqual(r.status_code, 200, r.text)

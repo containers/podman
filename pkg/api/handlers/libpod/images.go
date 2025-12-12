@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/podman/v6/internal/localapi"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/api/handlers"
@@ -41,7 +42,6 @@ import (
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/chrootarchive"
-	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
 )
 
@@ -396,10 +396,13 @@ func ImagesLocalLoad(w http.ResponseWriter, r *http.Request) {
 
 	cleanPath := filepath.Clean(query.Path)
 	// Check if the path exists on server side.
-	// Note: fileutils.Exists returns nil if the file exists, not an error.
-	switch err := fileutils.Exists(cleanPath); {
+	// Note: localapi.ValidatePathForLocalAPI returns nil if the file exists and path is absolute, not an error.
+	switch err := localapi.ValidatePathForLocalAPI(cleanPath); {
 	case err == nil:
 		// no error -> continue
+	case errors.Is(err, localapi.ErrPathNotAbsolute):
+		utils.Error(w, http.StatusBadRequest, err)
+		return
 	case errors.Is(err, fs.ErrNotExist):
 		utils.Error(w, http.StatusNotFound, fmt.Errorf("file does not exist: %q", cleanPath))
 		return
