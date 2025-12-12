@@ -188,6 +188,7 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 	}
 
 	var idPair *idtools.IDPair
+	var userlessContainer bool
 	if chown {
 		// Make sure we chown the files to the container's main user and group ID.
 		user, err := getContainerUser(c, mountPoint)
@@ -196,6 +197,7 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 			return nil, err
 		}
 		idPair = &idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+		userlessContainer = user.UserlessContainer
 	}
 
 	decompressed, err := archive.DecompressStream(reader)
@@ -219,6 +221,7 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 			NoOverwriteDirNonDir: noOverwriteDirNonDir,
 			NoOverwriteNonDirDir: noOverwriteDirNonDir,
 			Rename:               rename,
+			UserlessContainer:    userlessContainer,
 		}
 
 		return c.joinMountAndExec(
@@ -311,9 +314,15 @@ func getContainerUser(container *Container, mountPoint string) (specs.User, erro
 
 	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
 	u := specs.User{
-		UID:      uid,
-		GID:      gid,
-		Username: userspec,
+		UID:               uid,
+		GID:               gid,
+		Username:          userspec,
+		UserlessContainer: false,
+	}
+
+	if errors.Is(err, chrootuser.ErrUserlessContainer) {
+		u.UserlessContainer = true
+		err = nil
 	}
 
 	if !strings.Contains(userspec, ":") {

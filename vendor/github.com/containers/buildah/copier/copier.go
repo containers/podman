@@ -451,6 +451,7 @@ type PutOptions struct {
 	NoOverwriteDirNonDir bool              // instead of quietly overwriting directories with non-directories, return an error
 	NoOverwriteNonDirDir bool              // instead of quietly overwriting non-directories with directories, return an error
 	Rename               map[string]string // rename items with the specified names, or under the specified names
+	UserlessContainer    bool              // indicates userless container
 }
 
 // Put extracts an archive from the bulkReader at the specified directory.
@@ -1943,7 +1944,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				hdr.Name = handleRename(req.PutOptions.Rename, hdr.Name)
 			}
 			// figure out who should own this new item
-			if idMappings != nil && !idMappings.Empty() {
+			if idMappings != nil && !idMappings.Empty() && !req.PutOptions.UserlessContainer {
 				containerPair := idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 				hostPair, err := idMappings.ToHost(containerPair)
 				if err != nil {
@@ -1956,7 +1957,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					hdr.Uid, hdr.Gid = dirUID, dirGID
 				}
 			} else {
-				if req.PutOptions.ChownFiles != nil {
+				if req.PutOptions.ChownFiles != nil && !req.PutOptions.UserlessContainer {
 					hdr.Uid, hdr.Gid = *fileUID, *fileGID
 				}
 			}
