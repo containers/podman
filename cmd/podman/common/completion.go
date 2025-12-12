@@ -1149,9 +1149,9 @@ func AutocompleteCgroupMode(_ *cobra.Command, _ []string, _ string) ([]string, c
 }
 
 // AutocompleteImageVolume - Autocomplete image volume options.
-// -> "bind", "tmpfs", "ignore"
+// -> "anonymous", "tmpfs", "ignore"
 func AutocompleteImageVolume(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	imageVolumes := []string{"bind", "tmpfs", "ignore"}
+	imageVolumes := []string{"anonymous", "tmpfs", "ignore"}
 	return imageVolumes, cobra.ShellCompDirectiveNoFileComp
 }
 
