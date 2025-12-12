@@ -66,7 +66,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	var preCPUStats CPUStats
 	if query.Stream {
 		preRead = time.Now()
-		systemUsage, _ := cgroups.GetSystemCPUUsage()
+		systemUsage, _ := cgroups.SystemCPUUsage()
 		preCPUStats = CPUStats{
 			CPUUsage: docker.CPUUsage{
 				TotalUsage:        stats.CPUNano,
@@ -150,7 +150,7 @@ streamLabel: // A label to flatten the scope
 			memoryLimit = uint64(memInfo.MemTotal)
 		}
 
-		systemUsage, _ := cgroups.GetSystemCPUUsage()
+		systemUsage, _ := cgroups.SystemCPUUsage()
 		s := StatsJSON{
 			Stats: Stats{
 				Read:    time.Now(),

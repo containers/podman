@@ -31,7 +31,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	}
 
 	// Get Map of all available controllers
-	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
+	availableControllers, err := cgroups.AvailableControllers(nil, unified)
 	if err != nil {
 		return fmt.Errorf("getting available cgroup controllers: %w", err)
 	}
@@ -41,7 +41,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	info.IDMappings = define.IDMappings{}
 	info.Security = define.SecurityInfo{
 		AppArmorEnabled:     apparmor.IsEnabled(),
-		DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
+		DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities.Get(), ","),
 		Rootless:            rootless.IsRootless(),
 		SECCOMPEnabled:      seccomp.IsEnabled(),
 		SECCOMPProfilePath:  seccompProfilePath,
