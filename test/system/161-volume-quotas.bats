@@ -40,6 +40,11 @@ function teardown() {
     skip_if_rootless "Quotas are only possible with root"
     skip_if_remote "Requires --root flag, not possible w/ remote"
 
+    OS_RELEASE_ID="${OS_RELEASE_ID:-$(source /etc/os-release; echo $ID)}"
+    if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
+        skip "FIXME #27759: There is a selinux problem with this test"
+    fi
+
     # Minimum XFS filesystem size is 300mb
     loop=$PODMAN_TMPDIR/disk.img
     fallocate -l 300m  ${loop}
