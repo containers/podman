@@ -24,14 +24,14 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-42"
+    FEDORA_NAME: "fedora-43"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
-    PRIOR_FEDORA_NAME: "fedora-41"
+    PRIOR_FEDORA_NAME: "fedora-42"
     RAWHIDE_NAME: "rawhide"
     DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20251120t131229z-f42f41d14"
+    IMAGE_SUFFIX: "c20251121t131714z-f43f42d14"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
