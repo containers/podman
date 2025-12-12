@@ -16,13 +16,11 @@ load helpers
     dockerfile=$tmpdir/Dockerfile
     cat >$dockerfile <<EOF
 FROM $IMAGE
-RUN apk add nginx
 RUN echo $rand_content > /$rand_filename
 EOF
 
-    # The 'apk' command can take a long time to fetch files; bump timeout
     imgname="b-$(safename)"
-    PODMAN_TIMEOUT=240 run_podman build -t $imgname --format=docker $tmpdir
+    run_podman build -t $imgname --format=docker $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     # $IMAGE is preloaded, so we should never re-pull
