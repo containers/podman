@@ -772,7 +772,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.2-0.20251209230740-724707234895
+# go.podman.io/common v0.66.2-0.20251209230740-724707234895 => github.com/baude/container-libs/common v0.0.0-20251212144029-4a95fa0801bc
 ## explicit; go 1.24.6
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -1217,3 +1217,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/common => github.com/baude/container-libs/common v0.0.0-20251212144029-4a95fa0801bc

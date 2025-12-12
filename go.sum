@@ -20,6 +20,8 @@ github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpH
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 h1:5L8Mj9Co9sJVgW3TpYk2gxGJnDjsYuboNTcRmbtGKGs=
 github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6/go.mod h1:3HgLJ9d18kXMLQlJvIY3+FszZYMxCz8WfE2MQ7hDY0w=
+github.com/baude/container-libs/common v0.0.0-20251212144029-4a95fa0801bc h1:I7m9bAdsUor/qrqDEtrrZI9M5n5SNQoedEARfPk1jzo=
+github.com/baude/container-libs/common v0.0.0-20251212144029-4a95fa0801bc/go.mod h1:kd6QjKtX/QHTRdelzVe4tgt8KaahqYLYpmi9k513Fmg=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
@@ -447,8 +449,6 @@ go.opentelemetry.io/otel/trace v1.38.0 h1:Fxk5bKrDZJUH+AMyyIXGcFAPah0oRcT+LuNtJr
 go.opentelemetry.io/otel/trace v1.38.0/go.mod h1:j1P9ivuFsTceSWe1oY+EeW3sc+Pp42sO++GHkg4wwhs=
 go.opentelemetry.io/proto/otlp v1.7.1 h1:gTOMpGDb0WTBOP8JaO72iL3auEZhVmAQg4ipjOVAtj4=
 go.opentelemetry.io/proto/otlp v1.7.1/go.mod h1:b2rVh6rfI/s2pHWNlB7ILJcRALpcNDzKhACevjI+ZnE=
-go.podman.io/common v0.66.2-0.20251209230740-724707234895 h1:ix4xy72RKL6A3dt2TY/1BiMdGRZ5KsCOFAj5fKFojss=
-go.podman.io/common v0.66.2-0.20251209230740-724707234895/go.mod h1:nvLoEmuBA9YEKCEQBjla0ymLB7nqP6Hrurw3lhcTAjM=
 go.podman.io/image/v5 v5.38.1-0.20251209230740-724707234895 h1:WWyrZFLYIg/BCCB5nVQJwPCbT8SbrmmhY6rUfM1EWzM=
 go.podman.io/image/v5 v5.38.1-0.20251209230740-724707234895/go.mod h1:aplZfUFBE3o4Ttj+hWH3QRmBRjPHOuaEnC9/yaMgxL0=
 go.podman.io/storage v1.61.1-0.20251209230740-724707234895 h1:v9uNYnaG3E6VArt6+6SZLzE1rvG6/7baZvE8jmijM6o=

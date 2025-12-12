@@ -232,6 +232,9 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	if options.Append && len(options.ArtifactMIMEType) > 0 {
 		return nil, errors.New("append option is not compatible with type option")
 	}
+	if options.Append && options.Replace {
+		return nil, errors.New("append and replace options are mutually exclusive")
+	}
 
 	locked := true
 	as.lock.Lock()
@@ -246,9 +249,58 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	fileNames := map[string]struct{}{}
 
 	arty, lookupErr := as.lookupArtifactLocked(ctx, dest.ToArtifactStoreReference())
-	if !options.Append {
-		// Check if artifact exists; in GetByName not getting an
-		// error means it exists
+
+	switch {
+	case options.Append:
+		// Append to existing artifact
+		if lookupErr != nil {
+			return nil, lookupErr
+		}
+		artifactManifest = arty.Manifest.Manifest
+		var err error
+		oldDigest, err = arty.GetDigest()
+		if err != nil {
+			return nil, err
+		}
+		for _, layer := range artifactManifest.Layers {
+			if value, ok := layer.Annotations[specV1.AnnotationTitle]; ok && value != "" {
+				fileNames[value] = struct{}{}
+			}
+		}
+	case options.Replace:
+		// Replace existing artifact - delete old one if it exists, then create new
+		if lookupErr == nil {
+			ir, err := layout.NewReference(as.storePath, dest.String())
+			if err != nil {
+				return nil, err
+			}
+			if err := ir.DeleteImage(ctx, as.SystemContext); err != nil {
+				return nil, err
+			}
+			var err2 error
+			oldDigest, err2 = arty.GetDigest()
+			if err2 != nil {
+				return nil, err2
+			}
+		}
+
+		// Create new manifest
+		annotations := make(map[string]string)
+		if options.Annotations != nil {
+			annotations = maps.Clone(options.Annotations)
+		}
+		annotations[specV1.AnnotationCreated] = time.Now().UTC().Format(time.RFC3339Nano)
+
+		artifactManifest = specV1.Manifest{
+			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
+			MediaType:    specV1.MediaTypeImageManifest,
+			ArtifactType: options.ArtifactMIMEType,
+			Config:       specV1.DescriptorEmptyJSON,
+			Layers:       make([]specV1.Descriptor, 0),
+			Annotations:  annotations,
+		}
+	default:
+		// Add new artifact - error if it already exists
 		if lookupErr == nil {
 			return nil, fmt.Errorf("%s: %w", dest.String(), libartTypes.ErrArtifactAlreadyExists)
 		}
@@ -268,21 +320,6 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 			Config:      specV1.DescriptorEmptyJSON,
 			Layers:      make([]specV1.Descriptor, 0),
 			Annotations: annotations,
-		}
-	} else {
-		if lookupErr != nil {
-			return nil, lookupErr
-		}
-		artifactManifest = arty.Manifest.Manifest
-		var err error
-		oldDigest, err = arty.GetDigest()
-		if err != nil {
-			return nil, err
-		}
-		for _, layer := range artifactManifest.Layers {
-			if value, ok := layer.Annotations[specV1.AnnotationTitle]; ok && value != "" {
-				fileNames[value] = struct{}{}
-			}
 		}
 	}
 
