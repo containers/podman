@@ -9,6 +9,7 @@ import (
 )
 
 var QemuCommand = "qemu-system-aarch64"
+var GenericQemuCommand = "qemu-kvm"
 
 func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	opts := []string{

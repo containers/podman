@@ -52,7 +52,7 @@ func (q *QEMUStubber) RequireExclusiveActive() bool {
 }
 
 func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
-	qemuBinary, err := findQEMUBinary()
+	qemuBinary, err := FindQEMUBinary()
 	if err != nil {
 		return err
 	}
@@ -118,11 +118,7 @@ func runStartVMCommand(cmd *exec.Cmd) error {
 	if err != nil {
 		// check if qemu was not found
 		// look up qemu again maybe the path was changed, https://github.com/containers/podman/issues/13394
-		cfg, err := config.Default()
-		if err != nil {
-			return err
-		}
-		qemuBinaryPath, err := cfg.FindHelperBinary(QemuCommand, true)
+		qemuBinaryPath, err := FindQEMUBinary()
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,10 @@
 
 package qemu
 
-var QemuCommand = "qemu-system-x86_64"
+var (
+	QemuCommand        = "qemu-system-x86_64"
+	GenericQemuCommand = "qemu-kvm"
+)
 
 func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	opts := []string{
