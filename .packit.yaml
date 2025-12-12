@@ -1,31 +1,21 @@
----
-# See the documentation for more information:
-# https://packit.dev/docs/configuration/
-
 downstream_package_name: podman
 upstream_tag_template: v{version}
-
-# These files get synced from upstream to downstream (Fedora / CentOS Stream) on every
-# propose-downstream job. This is done so tests maintained upstream can be run
-# downstream in Zuul CI and Bodhi.
-# Ref: https://packit.dev/docs/configuration#files_to_sync
 files_to_sync:
-  - src: rpm/gating.yaml
-    dest: gating.yaml
-    delete: true
-  - src: plans/
-    dest: plans/
-    delete: true
-    mkpath: true
-  - src: test/tmt/
-    dest: test/tmt/
-    delete: true
-    mkpath: true
-  - src: .fmf/
-    dest: .fmf/
-    delete: true
-  - .packit.yaml
-
+- src: rpm/gating.yaml
+  dest: gating.yaml
+  delete: true
+- src: plans/
+  dest: plans/
+  delete: true
+  mkpath: true
+- src: test/tmt/
+  dest: test/tmt/
+  delete: true
+  mkpath: true
+- src: .fmf/
+  dest: .fmf/
+  delete: true
+- .packit.yaml
 packages:
   podman-fedora:
     pkg_tool: fedpkg
@@ -35,21 +25,17 @@ packages:
     specfile_path: rpm/podman.spec
   podman-eln:
     specfile_path: rpm/podman.spec
-
-# Disable automatic merging for Copr builds (and subsequent Testing Farm)
 merge_pr_in_ci: false
-
 srpm_build_deps:
-  - git-archive-all
-  - make
-
+- git-archive-all
+- make
 actions:
   fix-spec-file: "bash contrib/packit-tmt/packit-copr-rpm.sh"
   pre-sync: "bash contrib/packit-tmt/packit-rpm-git-commit.sh"
 
 jobs:
   - job: copr_build
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications: &packit_generic_failure_notification
       failure_comment:
