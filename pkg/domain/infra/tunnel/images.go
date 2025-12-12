@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/filter"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
@@ -310,7 +310,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	mappedFilters := make(map[string][]string)
-	filters, err := libimage.ParseSearchFilter(opts.Filters)
+	filters, err := filter.ParseSearchFilter(opts.Filters)
 	if err != nil {
 		return nil, err
 	}

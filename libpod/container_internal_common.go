@@ -1994,7 +1994,7 @@ func (c *Container) generateResolvConf() error {
 	}
 
 	networkBackend := c.runtime.config.Network.NetworkBackend
-	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
+	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers.Get())+len(c.config.DNSServer))
 
 	// If NetworkBackend is `netavark` do not populate `/etc/resolv.conf`
 	// with custom dns server since after https://github.com/containers/netavark/pull/452
@@ -2004,7 +2004,7 @@ func (c *Container) generateResolvConf() error {
 	// Exception: Populate `/etc/resolv.conf` if container is not connected to any network
 	// ( i.e len(netStatus)==0 ) since in such case netavark is not invoked at all.
 	if networkBackend != string(types.Netavark) || len(netStatus) == 0 {
-		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers.Get()...)
 		for _, ip := range c.config.DNSServer {
 			nameservers = append(nameservers, ip.String())
 		}
@@ -2027,15 +2027,15 @@ func (c *Container) generateResolvConf() error {
 	// Set DNS search domains
 	search := networkSearchDomains
 
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
-		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches))
-		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches...)
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches.Get()) > 0 {
+		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches.Get()))
+		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches.Get()...)
 		customSearch = append(customSearch, c.config.DNSSearch...)
 		search = customSearch
 	}
 
-	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions))
-	options = append(options, c.runtime.config.Containers.DNSOptions...)
+	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions.Get()))
+	options = append(options, c.runtime.config.Containers.DNSOptions.Get()...)
 	options = append(options, c.config.DNSOption...)
 
 	destPath := filepath.Join(c.state.RunDir, "resolv.conf")

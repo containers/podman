@@ -988,8 +988,8 @@ func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
 	containerCaps = append(containerCaps, caps.Inheritable...)
 	containerCaps = append(containerCaps, caps.Permitted...)
 
-	calculatedCaps := determineCapAddDropFromCapabilities(defaultCaps, containerCaps)
-	return calculatedCaps, nil
+	calculatedCaps := determineCapAddDropFromCapabilities(c.runtime.config.Containers.DefaultCapabilities.Get(), containerCaps)
+	return calculatedCaps
 }
 
 // generateKubeSecurityContext generates a securityContext based on the existing container

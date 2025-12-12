@@ -34,13 +34,6 @@ func Env() []string {
 	return nil
 }
 
-func initPath() string {
-	if !registry.IsRemote() {
-		return containerConfig.InitPath()
-	}
-	return ""
-}
-
 func pidsLimit() int64 {
 	if !registry.IsRemote() {
 		return containerConfig.PidsLimit()
