@@ -330,7 +330,7 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr bsonrw.ValueReade
 	case reflect.Int64:
 		return reflect.ValueOf(i64), nil
 	case reflect.Int:
-		if int64(int(i64)) != i64 { // Can we fit this inside of an int
+		if i64 > math.MaxInt { // Can we fit this inside of an int
 			return emptyValue, fmt.Errorf("%d overflows int", i64)
 		}
 
@@ -434,7 +434,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 			return fmt.Errorf("%d overflows uint64", i64)
 		}
 	case reflect.Uint:
-		if i64 < 0 || int64(uint(i64)) != i64 { // Can we fit this inside of an uint
+		if i64 < 0 || uint64(i64) > uint64(math.MaxUint) { // Can we fit this inside of an uint
 			return fmt.Errorf("%d overflows uint", i64)
 		}
 	default:
@@ -1519,6 +1519,18 @@ func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr bsonrw.Val
 func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(_ DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tValueUnmarshaler) && !reflect.PtrTo(val.Type()).Implements(tValueUnmarshaler)) {
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
+	}
+
+	// If BSON value is null and the go value is a pointer, then don't call
+	// UnmarshalBSONValue. Even if the Go pointer is already initialized (i.e.,
+	// non-nil), encountering null in BSON will result in the pointer being
+	// directly set to nil here. Since the pointer is being replaced with nil,
+	// there is no opportunity (or reason) for the custom UnmarshalBSONValue logic
+	// to be called.
+	if vr.Type() == bsontype.Null && val.Kind() == reflect.Ptr {
+		val.Set(reflect.Zero(val.Type()))
+
+		return vr.ReadNull()
 	}
 
 	if val.Kind() == reflect.Ptr && val.IsNil() {

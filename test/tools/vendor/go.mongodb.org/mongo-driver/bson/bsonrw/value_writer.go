@@ -598,7 +598,7 @@ func (vw *valueWriter) writeLength() error {
 		return errMaxDocumentSizeExceeded{size: int64(len(vw.buf))}
 	}
 	frame := &vw.stack[vw.frame]
-	length = length - int(frame.start)
+	length -= int(frame.start)
 	start := frame.start
 
 	_ = vw.buf[start+3] // BCE
