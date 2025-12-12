@@ -39,6 +39,7 @@ type PodmanConfig struct {
 	ConmonPath               string         // --conmon flag will set Engine.ConmonPath
 	CPUProfile               string         // Hidden: Should CPU profile be taken
 	EngineMode               EngineMode     // ABI or Tunneling mode
+	HooksDir                 []string
 	Identity                 string         // ssh identity for connecting to server
 	MaxWorks                 int            // maximum number of parallel threads
 	MemoryProfile            string         // Hidden: Should memory profile be taken
