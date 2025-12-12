@@ -506,6 +506,9 @@ if [ "$(type -t $handler)" != "function" ]; then
     die "Unknown/Unsupported \$TEST_FLAVOR=$TEST_FLAVOR"
 fi
 
+# Unset NOTIFY_SOCKET based on: https://github.com/containers/podman/pull/27514#issuecomment-3529125596
+unset NOTIFY_SOCKET
+
 showrun $handler
 
 if [[ -n "$TRACER_PID" ]]; then
