@@ -60,6 +60,13 @@ func runLs(idLookup NameLookupFileLister, dirent os.FileInfo) string {
 		uid = lsFormatID(sys.UID)
 		gid = lsFormatID(sys.GID)
 	default:
+		if fiExt, ok := dirent.(FileInfoUidGid); ok {
+			uid = lsFormatID(fiExt.Uid())
+			gid = lsFormatID(fiExt.Gid())
+
+			break
+		}
+
 		numLinks, uid, gid = lsLinksUIDGID(dirent)
 	}
 

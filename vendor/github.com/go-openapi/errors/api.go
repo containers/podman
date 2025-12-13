@@ -112,7 +112,7 @@ func flattenComposite(errs *CompositeError) *CompositeError {
 	for _, er := range errs.Errors {
 		switch e := er.(type) {
 		case *CompositeError:
-			if len(e.Errors) > 0 {
+			if e != nil && len(e.Errors) > 0 {
 				flat := flattenComposite(e)
 				if len(flat.Errors) > 0 {
 					res = append(res, flat.Errors...)

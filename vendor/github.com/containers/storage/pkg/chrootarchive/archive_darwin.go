@@ -8,7 +8,8 @@ import (
 
 func invokeUnpack(decompressedArchive io.Reader,
 	dest string,
-	options *archive.TarOptions, root string) error {
+	options *archive.TarOptions, root string,
+) error {
 	return archive.Unpack(decompressedArchive, dest, options)
 }
 

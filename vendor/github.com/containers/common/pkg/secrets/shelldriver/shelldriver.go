@@ -58,7 +58,6 @@ func (cfg *driverConfig) ParseOpts(opts map[string]string) error {
 		cfg.ListCommand == "" ||
 		cfg.LookupCommand == "" ||
 		cfg.StoreCommand == "" {
-
 		return errMissingConfig
 	}
 	return nil
