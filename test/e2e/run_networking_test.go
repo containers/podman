@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -15,7 +14,6 @@ import (
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,13 +34,7 @@ var _ = Describe("Podman run networking", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"network", "inspect", net})
-		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(ExitCleanly())
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(session.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(net)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result.Subnets).To(HaveLen(1))
@@ -83,13 +75,7 @@ var _ = Describe("Podman run networking", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"network", "inspect", net})
-		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(ExitCleanly())
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(session.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(net)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result.Subnets).To(HaveLen(1))
@@ -113,12 +99,7 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"network", "inspect", net})
-		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(ExitCleanly())
-		err = json.Unmarshal([]byte(session.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results = podmanTest.InspectNetwork(net)
 		Expect(results).To(HaveLen(1))
 		Expect(results[0].NetworkDNSServers).To(Equal([]string{"127.0.0.253", "127.0.0.254", "127.0.0.255"}))
 
