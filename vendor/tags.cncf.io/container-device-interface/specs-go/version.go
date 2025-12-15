@@ -25,7 +25,7 @@ import (
 
 const (
 	// CurrentVersion is the current version of the Spec.
-	CurrentVersion = "1.0.0"
+	CurrentVersion = "1.1.0"
 
 	// vCurrent is the current version as a semver-comparable type
 	vCurrent version = "v" + CurrentVersion
@@ -150,11 +150,19 @@ func requiresV110(spec *Spec) bool {
 		}
 	}
 
+	if len(spec.ContainerEdits.NetDevices) > 0 {
+		return true
+	}
+
 	for _, dev := range spec.Devices {
 		if i := dev.ContainerEdits.IntelRdt; i != nil {
 			if i.Schemata != nil || i.EnableMonitoring {
 				return true
 			}
+		}
+
+		if len(dev.ContainerEdits.NetDevices) > 0 {
+			return true
 		}
 	}
 

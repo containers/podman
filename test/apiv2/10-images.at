@@ -502,7 +502,7 @@ t GET libpod/images/quay.io/libpod/busybox:latest/exists  204
 
 # Test with directory instead of file
 mkdir -p ${TMPD}/testdir
-t POST libpod/local/images/load?path="${TMPD}/testdir" 500
+t POST libpod/local/images/load?path="${TMPD}/testdir" 400
 
 cleanLoad
 
@@ -512,6 +512,6 @@ t POST libpod/local/images/load?invalid=arg 400
 
 t POST libpod/local/images/load?path="" 400
 
-t POST libpod/local/images/load?path="../../../etc/passwd" 404
+t POST libpod/local/images/load?path="../../../etc/passwd" 400
 
 # vim: filetype=sh

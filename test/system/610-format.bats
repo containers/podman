@@ -126,7 +126,8 @@ function check_subcommand() {
     ctrname="c-$(safename)"
     podname="p-$(safename)"
     secretname="s-$(safename)"
-    artifactname="a-$(safename)"
+    # Artifact strict typing requires fully qualified name
+    artifactname="foo.io/myrepo/$(safename)"
     # Setup: some commands need a container, pod, secret, ...
     run_podman run -d --name $ctrname $IMAGE top
     run_podman pod create $podname
