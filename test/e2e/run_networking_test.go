@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -1237,4 +1238,227 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 options ndots:1
 `))
 	})
+
+	It("podman network create with same subnets", func() {
+		netName := "multi-subnet-" + stringid.GenerateRandomID()
+		subnet := "10.64.0.0/16"
+
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet, "--subnet", subnet, netName})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).ShouldNot(ExitCleanly())
+		Expect(nc.ErrorToString()).To(ContainSubstring("duplicate subnets"))
+	})
+
+	It("podman network create with overlapping subnets", func() {
+		// Config file defines overlapping subnets:
+		// - 10.1.2.0/23 covers 10.1.2.0-10.1.3.255
+		// - 10.1.3.248/30 covers 10.1.3.248-10.1.3.251 (subset of the /23)
+
+		netName := "multi-subnet-" + stringid.GenerateRandomID()
+		subnetA := "10.1.2.0/23"
+		subnetB := "10.1.3.248/30"
+
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnetA, "--subnet", subnetB, netName})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).ShouldNot(ExitCleanly())
+		Expect(nc.ErrorToString()).To(ContainSubstring("overlapping subnets"))
+	})
+
+	// sortBySubnet reorders IPs to match the subnet order used in network creation.
+	// For multi-subnet networks, IPs are grouped by subnet in the order the subnets
+	// were defined with --subnet flags, regardless of the order IPs were specified.
+	// Returns a new slice with IPs sorted by their corresponding subnet.
+	sortBySubnet := func(ips []string, subnets []string) []string {
+		sortedExpectedIPs := make([]string, 0, len(ips))
+		for _, subnet := range subnets {
+			_, subnetNet, err := net.ParseCIDR(subnet)
+			Expect(err).ToNot(HaveOccurred())
+			for _, ip := range ips {
+				parsedIP := net.ParseIP(ip)
+				if subnetNet.Contains(parsedIP) {
+					sortedExpectedIPs = append(sortedExpectedIPs, ip)
+				}
+			}
+		}
+		return sortedExpectedIPs
+	}
+
+	type multiIPTestCase struct {
+		name               string
+		subnets            []string
+		staticIPs          []string
+		subnetGateways     map[string]string
+		hasDynamicIP       bool
+		numberOfDynamicIPs int
+	}
+
+	multiIPTests := []multiIPTestCase{
+		{
+			name:      "multiple static IPs in single subnet",
+			subnets:   []string{"10.86.0.0/16"},
+			staticIPs: []string{"10.86.0.10", "10.86.0.11", "10.86.0.12"},
+			subnetGateways: map[string]string{
+				"10.86.": "10.86.0.1",
+			},
+		},
+		{
+			name:      "multiple static IPs across multiple subnets",
+			subnets:   []string{"10.92.0.0/24", "10.91.0.0/24"},
+			staticIPs: []string{"10.92.0.21", "10.92.0.20", "10.91.0.10", "10.91.0.11"},
+			subnetGateways: map[string]string{
+				"10.91.": "10.91.0.1",
+				"10.92.": "10.92.0.1",
+			},
+		},
+		{
+			name:      "static IP on one subnet and dynamic IP on another",
+			subnets:   []string{"10.93.0.0/24", "10.94.0.0/24"},
+			staticIPs: []string{"10.93.0.50"},
+			subnetGateways: map[string]string{
+				"10.93.": "10.93.0.1",
+				"10.94.": "10.94.0.1",
+			},
+			hasDynamicIP:       true,
+			numberOfDynamicIPs: 1,
+		},
+		{
+			name:      "multiple static IPs across three subnets",
+			subnets:   []string{"10.95.0.0/24", "10.96.0.0/24", "10.97.0.0/24"},
+			staticIPs: []string{"10.95.0.10", "10.96.0.20", "10.97.0.30", "10.95.0.11", "10.96.0.21"},
+			subnetGateways: map[string]string{
+				"10.95.": "10.95.0.1",
+				"10.96.": "10.96.0.1",
+				"10.97.": "10.97.0.1",
+			},
+		},
+		{
+			name:      "single static IP in single subnet",
+			subnets:   []string{"10.98.0.0/24"},
+			staticIPs: []string{"10.98.0.100"},
+			subnetGateways: map[string]string{
+				"10.98.": "10.98.0.1",
+			},
+		},
+		{
+			name:      "two static IPs one per subnet",
+			subnets:   []string{"10.99.0.0/24", "10.100.0.0/24"},
+			staticIPs: []string{"10.99.0.50", "10.100.0.50"},
+			subnetGateways: map[string]string{
+				"10.99.":  "10.99.0.1",
+				"10.100.": "10.100.0.1",
+			},
+		},
+		{
+			name:      "many static IPs in single subnet",
+			subnets:   []string{"10.101.0.0/24"},
+			staticIPs: []string{"10.101.0.10", "10.101.0.11", "10.101.0.12", "10.101.0.13", "10.101.0.14", "10.101.0.15"},
+			subnetGateways: map[string]string{
+				"10.101.": "10.101.0.1",
+			},
+		},
+		{
+			name:      "single static IP with multiple dynamic IPs across three subnets",
+			subnets:   []string{"10.102.0.0/24", "10.103.0.0/24", "10.104.0.0/24"},
+			staticIPs: []string{"10.102.0.50"},
+			subnetGateways: map[string]string{
+				"10.102.": "10.102.0.1",
+				"10.103.": "10.103.0.1",
+				"10.104.": "10.104.0.1",
+			},
+			hasDynamicIP:       true,
+			numberOfDynamicIPs: 2,
+		},
+	}
+
+	for _, tc := range multiIPTests {
+		It(fmt.Sprintf("podman run container with %s", tc.name), func() {
+			netName := "test-net-" + stringid.GenerateRandomID()
+			netCreateArgs := []string{"network", "create"}
+			for _, subnet := range tc.subnets {
+				netCreateArgs = append(netCreateArgs, "--subnet", subnet)
+			}
+			netCreateArgs = append(netCreateArgs, netName)
+			podmanTest.PodmanExitCleanly(netCreateArgs...)
+			defer podmanTest.removeNetwork(netName)
+
+			ipsToUse := make([]string, len(tc.staticIPs))
+			copy(ipsToUse, tc.staticIPs)
+			rand.Shuffle(len(ipsToUse), func(i, j int) {
+				ipsToUse[i], ipsToUse[j] = ipsToUse[j], ipsToUse[i]
+			})
+			networkArg := fmt.Sprintf("%s:ip=%s", netName, strings.Join(ipsToUse, ",ip="))
+			cName := "test-ctr-" + stringid.GenerateRandomID()
+			podmanTest.PodmanExitCleanly("run", "-d", "--name", cName, "--network", networkArg, ALPINE, "top")
+			defer podmanTest.PodmanExitCleanly("rm", "-f", cName)
+
+			data := podmanTest.InspectContainer(cName)
+			Expect(data).To(HaveLen(1))
+			containerInspect := data[0]
+			containerID := data[0].ID
+
+			interfaceName := "eth0"
+			showIPs := podmanTest.PodmanExitCleanly("exec", cName, "sh", "-c",
+				fmt.Sprintf("ip addr show %s | awk ' /inet / {print $2}'", interfaceName))
+			outputIPs := showIPs.OutputToStringArray()
+
+			actualIPs := make([]string, len(outputIPs))
+			for i, ipCIDR := range outputIPs {
+				containerIP, _, err := net.ParseCIDR(ipCIDR)
+				Expect(err).ToNot(HaveOccurred())
+				actualIPs[i] = containerIP.String()
+			}
+
+			expectedIPs := sortBySubnet(ipsToUse, tc.subnets)
+			if tc.hasDynamicIP {
+				Expect(actualIPs).To(HaveLen(len(tc.staticIPs) + tc.numberOfDynamicIPs))
+				Expect(actualIPs[0]).To(Equal(tc.staticIPs[0]))
+
+				for i, dynamicIP := range actualIPs[1:] {
+					parsedDynamicIP := net.ParseIP(dynamicIP)
+					_, subnet2Net, err := net.ParseCIDR(tc.subnets[i+1])
+					Expect(err).ToNot(HaveOccurred())
+					Expect(subnet2Net.Contains(parsedDynamicIP)).To(BeTrue())
+
+					expectedIPs = append(expectedIPs, dynamicIP)
+				}
+				expectedIPs = sortBySubnet(expectedIPs, tc.subnets)
+			}
+			Expect(actualIPs).To(ConsistOf(expectedIPs))
+
+			Expect(containerInspect.NetworkSettings.Networks).To(HaveKey(netName))
+			network := containerInspect.NetworkSettings.Networks[netName]
+
+			primaryIP := expectedIPs[0]
+			expectedSecondaryIPs := expectedIPs[1:]
+			Expect(network.IPAddress).To(Equal(primaryIP))
+			Expect(network.SecondaryIPAddresses).To(HaveLen(len(expectedSecondaryIPs)))
+			for i, ip := range network.SecondaryIPAddresses {
+				Expect(ip.Addr).To(Equal(expectedSecondaryIPs[i]))
+			}
+
+			networkReports := podmanTest.InspectNetwork(netName)
+			Expect(networkReports).To(HaveLen(1))
+			netReport := networkReports[0]
+			Expect(netReport.Containers).To(HaveKey(containerID))
+
+			containerInfo := netReport.Containers[containerID]
+			Expect(containerInfo.Interfaces).To(HaveKey(interfaceName))
+
+			netInterface := containerInfo.Interfaces[interfaceName]
+			Expect(netInterface.Subnets).To(HaveLen(len(expectedIPs)))
+			for i, subnetInfo := range netInterface.Subnets {
+				ip := subnetInfo.IPNet.IP.String()
+				Expect(ip).To(Equal(expectedIPs[i]))
+				var expectedGateway string
+				for subnetPrefix, gateway := range tc.subnetGateways {
+					if strings.HasPrefix(ip, subnetPrefix) {
+						expectedGateway = gateway
+						break
+					}
+				}
+				Expect(expectedGateway).ToNot(BeEmpty())
+				Expect(subnetInfo.Gateway.String()).To(Equal(expectedGateway))
+			}
+		})
+	}
 })
