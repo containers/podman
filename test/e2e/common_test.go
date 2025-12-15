@@ -31,6 +31,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/inspect"
 	. "github.com/containers/podman/v6/test/utils"
 	"github.com/containers/podman/v6/utils"
@@ -687,6 +688,15 @@ func (p *PodmanTestIntegration) InspectArtifact(name string) libartifact.Artifac
 	return session.InspectArtifactToJSON()
 }
 
+// InspectNetwork returns a network's inspect data in JSON format
+func (p *PodmanTestIntegration) InspectNetwork(name string) []entities.NetworkInspectReport {
+	cmd := []string{"network", "inspect", name}
+	session := p.Podman(cmd)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(Exit(0))
+	return session.InspectNetworkToJSON()
+}
+
 // Pull a single field from a container using `podman inspect --format {{ field }}`,
 // and verify it against the given expected value.
 func (p *PodmanTestIntegration) CheckContainerSingleField(name, field, expected string) {
@@ -971,6 +981,13 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 	return i
 }
 
+func (s *PodmanSessionIntegration) InspectNetworkToJSON() []entities.NetworkInspectReport {
+	var out []entities.NetworkInspectReport
+	err := json.Unmarshal(s.Out.Contents(), &out)
+	Expect(err).ToNot(HaveOccurred())
+	return out
+}
+
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	var i []define.InspectPodData
@@ -1218,6 +1235,49 @@ func SkipIfConmonVersionLessThan(minVersion string) {
 	}
 	if current.Compare(minVer) < 0 {
 		Skip(fmt.Sprintf("[conmon]: need conmon >= %s; have %s", minVersion, fields[2]))
+	}
+}
+
+// SkipIfNetavarkVersionLessThan skips a test if the current network backend is
+// netavark and its version is less than the specified minimum version (e.g., "1.17.2").
+// The function is a no-op when netavark is not the active network backend.
+func SkipIfNetavarkVersionLessThan(minVersion string) {
+	session := podmanTest.PodmanExitCleanly("info", "--format", "{{.Host.NetworkBackendInfo.Backend}}=={{.Host.NetworkBackendInfo.Version}}")
+	out := strings.TrimSpace(session.OutputToString())
+
+	backend, rawVersion, ok := strings.Cut(out, "==")
+	if !ok {
+		Fail(fmt.Sprintf("[netavark]: unexpected podman info output: %q", out))
+	}
+	if backend != "netavark" {
+		return
+	}
+
+	rawVersion = strings.TrimSpace(rawVersion)
+	if rawVersion == "" {
+		Fail(fmt.Sprintf("[netavark]: unexpected empty version in podman info output: %q", out))
+	}
+
+	parts := strings.Fields(rawVersion)
+	if len(parts) == 0 {
+		Fail(fmt.Sprintf("[netavark]: unexpected netavark version format: %q", rawVersion))
+	}
+
+	versionStr := strings.TrimPrefix(parts[len(parts)-1], "v")
+
+	current, err := semver.Parse(versionStr)
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to parse netavark version %q: %v", rawVersion, err))
+	}
+
+	minVersion = strings.TrimPrefix(strings.TrimSpace(minVersion), "v")
+	minVer, err := semver.Parse(minVersion)
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to parse minimum version %q: %v", minVersion, err))
+	}
+
+	if current.Compare(minVer) < 0 {
+		Skip(fmt.Sprintf("[netavark]: need netavark >= %s; have %s", minVersion, versionStr))
 	}
 }
 
