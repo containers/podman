@@ -2,8 +2,6 @@ package libartifact
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/opencontainers/go-digest"
 	"go.podman.io/common/pkg/libartifact/types"
@@ -54,26 +52,3 @@ func (a *Artifact) GetDigest() (*digest.Digest, error) {
 }
 
 type ArtifactList []*Artifact
-
-// GetByNameOrDigest returns an artifact, if present, by a given name
-// Returns an error if not found.
-func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, error) {
-	// This is the hot route through
-	for _, artifact := range al {
-		if artifact.Name == nameOrDigest {
-			return artifact, false, nil
-		}
-	}
-	// Before giving up, check by digest
-	for _, artifact := range al {
-		artifactDigest, err := artifact.GetDigest()
-		if err != nil {
-			return nil, false, err
-		}
-		// If the artifact's digest matches or is a prefix of ...
-		if artifactDigest.Encoded() == nameOrDigest || strings.HasPrefix(artifactDigest.Encoded(), nameOrDigest) {
-			return artifact, true, nil
-		}
-	}
-	return nil, false, fmt.Errorf("%s: %w", nameOrDigest, types.ErrArtifactNotExist)
-}

@@ -109,19 +109,19 @@ var _ = Describe("Podman artifact", func() {
 
 		a := podmanTest.InspectArtifact(artifact1Name)
 
-		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Name).To(Equal(artifact1Name + ":latest"))
 
 		// Adding an artifact with an existing name should fail
 		addAgain := podmanTest.Podman([]string{"artifact", "add", artifact1Name, artifact1File})
 		addAgain.WaitWithDefaultTimeout()
-		Expect(addAgain).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact already exists", artifact1Name)))
+		Expect(addAgain).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact already exists", artifact1Name+":latest")))
 	})
 
 	It("podman artifact add with options", func() {
 		yamlType := "text/yaml"
-		artifact1Name := "localhost/test/artifact1"
-		artifact2Name := "localhost/test/artifact2"
-		artifact3Name := "localhost/test/artifact3"
+		artifact1Name := "localhost/test/artifact1:latest"
+		artifact2Name := "localhost/test/artifact2:latest"
+		artifact3Name := "localhost/test/artifact3:latest"
 		artifact1File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
 		artifact2File, err := createArtifactFile(1024)
@@ -167,7 +167,7 @@ var _ = Describe("Podman artifact", func() {
 		artifact1File2, err := createArtifactFile(8192)
 		Expect(err).ToNot(HaveOccurred())
 
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:123"
 
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File1, artifact1File2)
 
@@ -198,7 +198,7 @@ var _ = Describe("Podman artifact", func() {
 		}
 		Expect(err).ToNot(HaveOccurred())
 
-		artifact1Name := fmt.Sprintf("localhost:%s/test/artifact1", port)
+		artifact1Name := fmt.Sprintf("localhost:%s/test/artifact1:mytag", port)
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
 
 		podmanTest.PodmanExitCleanly("artifact", "push", "-q", "--tls-verify=false", artifact1Name)
@@ -263,7 +263,7 @@ var _ = Describe("Podman artifact", func() {
 
 		artifact1File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
-		artifact1Name := fmt.Sprintf("localhost:%s/test/artifact1", port)
+		artifact1Name := fmt.Sprintf("localhost:%s/test/artifact1:latest", port)
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
 
 		authPath := filepath.Join(podmanTest.TempDir, "auth")
@@ -312,7 +312,7 @@ var _ = Describe("Podman artifact", func() {
 		// Add an artifact to remove later
 		artifact1File, err := createArtifactFile(4192)
 		Expect(err).ToNot(HaveOccurred())
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:latest"
 		addArtifact1 := podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
 
 		// Removing that artifact should work
@@ -552,7 +552,7 @@ var _ = Describe("Podman artifact", func() {
 			filepath.Base(artifact3File): 0,
 		}
 
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:latest"
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
 
 		_ = podmanTest.InspectArtifact(artifact1Name)
@@ -635,7 +635,7 @@ var _ = Describe("Podman artifact", func() {
 		artifact1File, err := createArtifactFile(2048)
 		Expect(err).ToNot(HaveOccurred())
 
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:latest"
 
 		addFail := podmanTest.Podman([]string{"artifact", "add", artifact1Name, artifact1File, artifact1File})
 		addFail.WaitWithDefaultTimeout()
@@ -643,6 +643,7 @@ var _ = Describe("Podman artifact", func() {
 
 		inspectFail := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
 		inspectFail.WaitWithDefaultTimeout()
+		//   Error: localhost/test/artifact1:latest: artifact does not exist
 		Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
 	})
 
@@ -663,7 +664,7 @@ var _ = Describe("Podman artifact", func() {
 	})
 
 	It("podman artifact add with --append and --type", func() {
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:latest"
 		artifact1File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -699,7 +700,7 @@ var _ = Describe("Podman artifact", func() {
 		artifact2File, err := createArtifactFile(2048)
 		Expect(err).ToNot(HaveOccurred())
 
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:latest"
 
 		// Add artifact
 		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
@@ -731,7 +732,7 @@ var _ = Describe("Podman artifact", func() {
 	It("podman artifact inspect with --format", func() {
 		artifact1File, err := createArtifactFile(4192)
 		Expect(err).ToNot(HaveOccurred())
-		artifact1Name := "localhost/test/artifact1"
+		artifact1Name := "localhost/test/artifact1:latest"
 		addArtifact1 := podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
 
 		artifactDigest := addArtifact1.OutputToString()

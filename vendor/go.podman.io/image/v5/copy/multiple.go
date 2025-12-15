@@ -216,6 +216,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	case imgspecv1.MediaTypeImageManifest:
 		forceListMIMEType = imgspecv1.MediaTypeImageIndex
 	}
+	// FIXME: This does not take into account cannotModifyManifestListReason.
 	selectedListType, otherManifestMIMETypeCandidates, err := c.determineListConversion(manifestType, c.dest.SupportedManifestMIMETypes(), forceListMIMEType)
 	if err != nil {
 		return nil, fmt.Errorf("determining manifest list type to write to destination: %w", err)
@@ -284,7 +285,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	}
 
 	// Now reset the digest/size/types of the manifests in the list to account for any conversions that we made.
-	if err = updatedList.EditInstances(instanceEdits); err != nil {
+	if err = updatedList.EditInstances(instanceEdits, cannotModifyManifestListReason != ""); err != nil {
 		return nil, fmt.Errorf("updating manifest list: %w", err)
 	}
 
@@ -318,7 +319,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 		// If we can't just use the original value, but we have to change it, flag an error.
 		if !bytes.Equal(attemptedManifestList, originalManifestList) {
 			if cannotModifyManifestListReason != "" {
-				return nil, fmt.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", thisListType, cannotModifyManifestListReason)
+				return nil, fmt.Errorf("Manifest list was edited, but we cannot modify it: %q", cannotModifyManifestListReason)
 			}
 			logrus.Debugf("Manifest list has been updated")
 		} else {

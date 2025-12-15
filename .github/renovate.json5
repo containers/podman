@@ -42,17 +42,5 @@ and/or use the pre-commit hook: https://github.com/renovatebot/pre-commit-hooks
       "schedule": "before 11am",
       "matchPackageNames": ["github.com/containers{/,}**"]
     },
-
-    // Updates for c/common, c/image, and c/storage should be grouped into a single PR.
-    {
-      "matchCategories": ["golang"],
-      "groupName": "common, image, and storage deps",
-      "schedule": "before 11am",
-      "matchPackageNames": [
-        "/^github.com/containers/common/",
-        "/^github.com/containers/image/",
-        "/^github.com/containers/storage/"
-      ]
-    }
   ],
 }

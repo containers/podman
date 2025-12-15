@@ -58,6 +58,24 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		inStartPeriod bool
 	)
 
+	timeStart := time.Now()
+	if c.HealthCheckConfig().StartPeriod > 0 {
+		// there is a start-period we need to honor; we add startPeriod to container start time
+		startPeriodTime := c.state.StartedTime.Add(c.HealthCheckConfig().StartPeriod)
+		if timeStart.Before(startPeriodTime) {
+			// we are still in the start period, flip the inStartPeriod bool
+			inStartPeriod = true
+			logrus.Debugf("healthcheck for %s being run in start-period", c.ID())
+		}
+	}
+
+	// If we are playing a kube yaml then let's honor the start period time for
+	// both failing and succeeding cases to match kube behavior.
+	// So don't run the health check log till the start period is over
+	if _, ok := c.config.Spec.Annotations[define.KubeHealthCheckAnnotation]; ok && inStartPeriod && !isStartup {
+		return define.HealthCheckDefined, "", nil
+	}
+
 	hcCommand := c.HealthCheckConfig().Test
 	if isStartup {
 		logrus.Debugf("Running startup healthcheck for container %s", c.ID())
@@ -96,7 +114,6 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	hcResult := define.HealthCheckSuccess
 	config := new(ExecConfig)
 	config.Command = newCommand
-	timeStart := time.Now()
 	exitCode, hcErr := c.healthCheckExec(config, c.HealthCheckConfig().Timeout, streams)
 	timeEnd := time.Now()
 	if hcErr != nil {
@@ -144,16 +161,6 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		hcResult = define.HealthCheckContainerStopped
 	}
 
-	if c.HealthCheckConfig().StartPeriod > 0 {
-		// there is a start-period we need to honor; we add startPeriod to container start time
-		startPeriodTime := c.state.StartedTime.Add(c.HealthCheckConfig().StartPeriod)
-		if timeStart.Before(startPeriodTime) {
-			// we are still in the start period, flip the inStartPeriod bool
-			inStartPeriod = true
-			logrus.Debugf("healthcheck for %s being run in start-period", c.ID())
-		}
-	}
-
 	eventLog := output.String()
 	if c.HealthCheckMaxLogSize() != 0 && len(eventLog) > int(c.HealthCheckMaxLogSize()) {
 		eventLog = eventLog[:c.HealthCheckMaxLogSize()]
@@ -161,7 +168,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
 
-	healthCheckResult, err := c.updateHealthCheckLog(hcl, hcResult, inStartPeriod, isStartup)
+	healthCheckResult, err := c.updateHealthCheckLog(hcl, hcResult, inStartPeriod)
 	if err != nil {
 		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.getHealthCheckLogDestination(), c.ID(), err)
 	}
@@ -364,14 +371,7 @@ func (c *Container) isUnhealthy() (bool, error) {
 
 // UpdateHealthCheckLog parses the health check results and writes the log
 // NOTE: The caller must lock the container.
-func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, hcResult define.HealthCheckStatus, inStartPeriod, isStartup bool) (define.HealthCheckResults, error) {
-	// If we are playing a kube yaml then let's honor the start period time for
-	// both failing and succeeding cases to match kube behavior.
-	// So don't update the health check log till the start period is over
-	if _, ok := c.config.Spec.Annotations[define.KubeHealthCheckAnnotation]; ok && inStartPeriod && !isStartup {
-		return define.HealthCheckResults{}, nil
-	}
-
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, hcResult define.HealthCheckStatus, inStartPeriod bool) (define.HealthCheckResults, error) {
 	healthCheck, err := c.readHealthCheckLog()
 	if err != nil {
 		return define.HealthCheckResults{}, err

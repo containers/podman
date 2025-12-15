@@ -107,9 +107,16 @@ func GuessMIMEType(manifest []byte) string {
 	return ""
 }
 
-// Digest returns the a digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
+// Digest returns the digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
 // This is publicly visible as c/image/manifest.Digest.
 func Digest(manifest []byte) (digest.Digest, error) {
+	return DigestWithAlgorithm(manifest, digest.Canonical)
+}
+
+// DigestWithAlgorithm returns the digest of a docker manifest using the specified algorithm,
+// with any necessary implied transformations like stripping v1s1 signatures.
+// This is publicly visible as c/image/manifest.DigestWithAlgorithm.
+func DigestWithAlgorithm(manifest []byte, algo digest.Algorithm) (digest.Digest, error) {
 	if GuessMIMEType(manifest) == DockerV2Schema1SignedMediaType {
 		sig, err := libtrust.ParsePrettySignature(manifest, "signatures")
 		if err != nil {
@@ -122,8 +129,7 @@ func Digest(manifest []byte) (digest.Digest, error) {
 			return "", err
 		}
 	}
-
-	return digest.FromBytes(manifest), nil
+	return algo.FromBytes(manifest), nil
 }
 
 // MatchesDigest returns true iff the manifest matches expectedDigest.
