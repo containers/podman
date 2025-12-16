@@ -15,6 +15,6 @@ func syslogHook() {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "Logging to Syslog is not supported on %s", runtime.GOOS)
+	fmt.Fprintf(os.Stderr, "Logging to Syslog is not supported on %s\n", runtime.GOOS)
 	os.Exit(1)
 }
