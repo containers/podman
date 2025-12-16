@@ -441,16 +441,16 @@ func configHook() {
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			// Cases where the folder does not exist are allowed, BUT cases where some other Stat() error
 			// is returned should fail
-			fmt.Fprintf(os.Stderr, "Supplied --config folder (%s) exists but is not accessible: %s", dockerConfig, err.Error())
+			fmt.Fprintf(os.Stderr, "Supplied --config folder (%s) exists but is not accessible: %s\n", dockerConfig, err.Error())
 			os.Exit(1)
 		}
 		if err == nil && !statInfo.IsDir() {
 			// Cases where it does exist but is a file should fail
-			fmt.Fprintf(os.Stderr, "Supplied --config file (%s) is not a directory", dockerConfig)
+			fmt.Fprintf(os.Stderr, "Supplied --config file (%s) is not a directory\n", dockerConfig)
 			os.Exit(1)
 		}
 		if err := os.Setenv("DOCKER_CONFIG", dockerConfig); err != nil {
-			fmt.Fprintf(os.Stderr, "cannot set DOCKER_CONFIG=%s: %s", dockerConfig, err.Error())
+			fmt.Fprintf(os.Stderr, "cannot set DOCKER_CONFIG=%s: %s\n", dockerConfig, err.Error())
 			os.Exit(1)
 		}
 	}
