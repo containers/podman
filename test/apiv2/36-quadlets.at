@@ -27,8 +27,11 @@ quadlet_install_dir=$(get_quadlet_install_dir)
 ## Test list endpoint
 t GET libpod/quadlets/json 200
 
+# Test 405 for bad endpoint
+t GET libpod/quadlets/nonexistent.container 405
+
 # Test 404 for non-existent quadlet
-t GET libpod/quadlets/nonexistent.container 404
+t GET libpod/quadlets/nonexistent.container/file 404
 
 # Install a quadlet with a unique name
 quadlet_name=quadlet-test-$(cat /proc/sys/kernel/random/uuid)
@@ -47,6 +50,7 @@ EOF
 quadlet_build_file_content=$(cat << EOF
 [Build]
 ImageTag=localhost/$quadlet_name
+File=.
 EOF
 )
 
@@ -301,5 +305,68 @@ podman quadlet rm "$quadlet_1" \
 rm -f "$quadlet_install_dir/$containerfile_1"
 rm -f "$quadlet_install_dir/$containerfile_2"
 rm -rf $TMPD
+
+# DELETE endpoint tests
+TMPDIR=$(mktemp -d podman-apiv2-test.quadlets.XXXXXXXX)
+quadlet_1=quadlet-test-1-$(cat /proc/sys/kernel/random/uuid).container
+quadlet_1_content=$(cat << EOF
+[Container]
+ContainerName=quadlet-1
+Image=quay.io/podman/hello
+EOF
+)
+
+echo "$quadlet_1_content" > "$TMPDIR/$quadlet_1"
+podman quadlet install $TMPDIR/$quadlet_1
+
+t DELETE "libpod/quadlets/$quadlet_1" 200 \
+    '.Removed|length=1' \
+    '.QuadletErrors|length=0'
+
+t GET "libpod/quadlets/$quadlet_1/file" 404
+
+t DELETE "libpod/quadlets/nonexistent.container" 200 \
+    '.Removed|length=0' \
+    '.Errors|length=1' \
+    '.Errors~.*could not locate quadlet.*'
+
+t DELETE "libpod/quadlets/nonexistent.container?ignore=true" 200 \
+    '.Removed|length=1' \
+    '.Errors|length=0' \
+    '.Removed[0]=nonexistent.container'
+
+# Scenario: install a quadlet, then remove it with --force
+quadlet_2=quadlet-test-2-$(cat /proc/sys/kernel/random/uuid).container
+quadlet_2_content=$(cat << EOF
+[Container]
+ContainerName=quadlet-2
+Image=$IMAGE
+Exec=top
+EOF
+)
+echo "$quadlet_2_content" > "$TMPDIR/$quadlet_2"
+podman quadlet install $TMPDIR/$quadlet_2
+
+# these ifs will skip the tests when $DBUS_SESSION_BUS_ADDRESS and
+# $XDG_RUNTIME_DIR aren't properly defined, therefore running systemctl --user
+# is not possible without a hack
+if systemctl --user start "${quadlet_2%.*}.service" > /dev/null 2>&1; then
+    if systemctl --user is-active --quiet ${quadlet_2%.*}.service; then
+        t DELETE "libpod/quadlets/$quadlet_2" 400 \
+            .cause~.*'container'.*'is running and force is not set, refusing to remove'.*
+
+        t DELETE "libpod/quadlets/$quadlet_2?force=true" 200
+    fi
+fi
+
+# TODO: enable this test when we have a way to not delete all host's quadlets
+# https://issues.redhat.com/browse/RUN-4054
+# t DELETE "libpod/quadlets?all=true" 200
+
+# clean up
+rm -rf $TMPDIR
+
+# bunch of asset files might be left behind so we might need to clean them up
+find $quadlet_install_dir -type f -regextype posix-extended -regex '.*quadlet-test.*-[0-9a-f]{8}\b-[0-9a-f]{4}\b-[0-9a-f]{4}\b-[0-9a-f]{4}\b-[0-9a-f]{12}.*asset$' -delete;
 
 # vim: filetype=sh

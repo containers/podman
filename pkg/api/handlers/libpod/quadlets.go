@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.podman.io/storage/pkg/archive"
 
 	"github.com/containers/podman/v5/libpod"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -237,4 +239,116 @@ func InstallQuadlets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, installReport)
+}
+
+// RemoveQuadlet handles DELETE /libpod/quadlets/{name} to remove a quadlet file
+func RemoveQuadlet(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+
+	query := struct {
+		Force         bool `schema:"force"`
+		Ignore        bool `schema:"ignore"`
+		ReloadSystemd bool `schema:"reload-systemd"`
+	}{
+		ReloadSystemd: true, // Default to true like CLI
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	name := utils.GetName(r)
+	if name == "" {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("quadlet name must be provided"))
+		return
+	}
+
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	removeOptions := entities.QuadletRemoveOptions{
+		Force:         query.Force,
+		Ignore:        query.Ignore,
+		ReloadSystemd: query.ReloadSystemd,
+	}
+
+	removeReport, err := containerEngine.QuadletRemove(r.Context(), []string{name}, removeOptions)
+	if err != nil {
+		// For systemd connection errors and other internal errors
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	// Check if there are errors in the report for this specific quadlet
+	if err, ok := removeReport.Errors[name]; ok {
+		// If ignore=false and quadlet not found, return 404
+		if !query.Ignore && strings.Contains(err.Error(), "no such") {
+			utils.Error(w, http.StatusNotFound, fmt.Errorf("no such quadlet: %s: %w", name, err))
+			return
+		}
+		// If force=false and quadlet is running, return 400
+		if !query.Force && errors.Is(err, define.ErrQuadletRunning) {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("quadlet %s is running and force is not set, refusing to remove: %w", name, err))
+			return
+		}
+	}
+
+	utils.WriteResponse(w, http.StatusOK, removeReport)
+}
+
+// RemoveQuadlets handles DELETE /libpod/quadlets to remove quadlet files (batch operation)
+func RemoveQuadlets(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+
+	query := struct {
+		All           bool     `schema:"all"`
+		Force         bool     `schema:"force"`
+		Ignore        bool     `schema:"ignore"`
+		ReloadSystemd bool     `schema:"reload-systemd"`
+		Quadlets      []string `schema:"quadlets"`
+	}{
+		ReloadSystemd: true, // Default to true like CLI
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	// Validate that either all=true OR at least one quadlet name is provided
+	if !query.All && len(query.Quadlets) == 0 {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("must provide at least 1 quadlet to remove or set all=true"))
+		return
+	}
+
+	// Validate that both all and quadlets are not provided together
+	if query.All && len(query.Quadlets) > 0 {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("when setting all=true, you may not pass any quadlet names"))
+		return
+	}
+
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	removeOptions := entities.QuadletRemoveOptions{
+		Force:         query.Force,
+		All:           query.All,
+		Ignore:        query.Ignore,
+		ReloadSystemd: query.ReloadSystemd,
+	}
+
+	removeReport, err := containerEngine.QuadletRemove(r.Context(), query.Quadlets, removeOptions)
+	if err != nil {
+		// Check if it's a "must provide at least 1 quadlet" error (shouldn't happen due to validation above, but handle it)
+		if strings.Contains(err.Error(), "must provide at least 1 quadlet") {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+		// For systemd connection errors and other internal errors
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	// Return 200 with the report containing errors (if any)
+	// The CLI behavior returns success even with partial errors
+	utils.WriteResponse(w, http.StatusOK, removeReport)
 }
