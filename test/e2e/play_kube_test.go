@@ -283,6 +283,20 @@ spec:
     - containerPort: 80
 `
 
+var podWithoutAnImage = `
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: podDoesntHaveAnImage
+  name: podDoesntHaveAnImage
+spec:
+  containers:
+  - name: podDoesntHaveAnImage
+    ports:
+    - containerPort: 80
+`
+
 var subpathTestNamedVolume = `
 apiVersion: v1
 kind: Pod
@@ -2632,6 +2646,15 @@ var _ = Describe("Podman kube play", func() {
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitWithError(125, "pod does not have a name"))
+	})
+
+	It("should error if pod doesn't have an image", func() {
+		err := writeYaml(podWithoutAnImage, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitWithError(125, `container "podDoesntHaveAnImage" is missing the required 'image' field`))
 	})
 
 	It("support container liveness probe", func() {
