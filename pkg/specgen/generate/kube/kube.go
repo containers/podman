@@ -477,6 +477,17 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		envs[key] = val
 	}
 
+	// Process envFrom first (lower precedence)
+	for _, envFrom := range opts.Container.EnvFrom {
+		cmEnvs, err := envVarsFrom(envFrom, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		maps.Copy(envs, cmEnvs)
+	}
+
+	// Process env second (higher precedence, overrides envFrom)
 	for _, env := range opts.Container.Env {
 		value, err := envVarValue(env, opts)
 		if err != nil {
@@ -487,14 +498,6 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		if value != nil {
 			envs[env.Name] = *value
 		}
-	}
-	for _, envFrom := range opts.Container.EnvFrom {
-		cmEnvs, err := envVarsFrom(envFrom, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		maps.Copy(envs, cmEnvs)
 	}
 	s.Env = envs
 
