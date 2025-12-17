@@ -122,13 +122,13 @@ outside the host as both rootful and rootless.  It will also show how an outside
 client can connect to the container.
 
 ```
-(rootful) $ sudo podman run -dt --name webserver -p 8080:80 quay.io/libpod/banner
+(rootful) $ sudo podman run -d --name webserver -p 8080:80 quay.io/libpod/banner
 00f3440c7576aae2d5b193c40513c29c7964e96bf797cf0cc352c2b68ccbe66a
 ```
 
 Now run the container.
 ```
-$ podman run -dt --name webserver --network podman1 -p 8081:80 quay.io/libpod/banner
+$ podman run -d --name webserver --network podman1 -p 8081:80 quay.io/libpod/banner
 269fd0d6b2c8ed60f2ca41d7beceec2471d72fb9a33aa8ca45b81dc9a0abbb12
 ```
 Note in the above run command, the container’s port 80 (where the Nginx server is
@@ -216,7 +216,7 @@ Note that depending on the distribution, the binary location may differ.
 
 Now run the container and be certain to attach it to the network we created earlier.
 ```
-$ sudo podman run -dt --name webserver --network webnetwork quay.io/libpod/banner
+$ sudo podman run -d --name webserver --network webnetwork quay.io/libpod/banner
 03d82083c434d7e937fc0b87c25401f46ab5050007df403bf988e25e52c5cc40
 [baude@localhost ~]$ sudo podman exec webserver ip address show eth0
 2: eth0@if3: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state
@@ -270,7 +270,7 @@ network can communicate with the rootless web server.
 First, run the rootless web server and map port 80 from the container to a non-privileged
 port like 8080.
 ```
-$ podman run -dt --name webserver -p 8080:80 quay.io/libpod/banner
+$ podman run -d --name webserver -p 8080:80 quay.io/libpod/banner
 17ea33ccd7f55ff45766b3ec596b990a5f2ba66eb9159cb89748a85dc3cebfe0
 ```
 Because rootless containers cannot communicate with each other directly with TCP/IP
