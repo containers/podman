@@ -6,8 +6,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/containers/podman/v6)](https://goreportcard.com/report/github.com/containers/podman/v6)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10499/badge)](https://www.bestpractices.dev/projects/10499)
 
-[![LFX Health Score](https://insights.linuxfoundation.org/api/badge/health-score?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
-[![LFX Contributors](https://insights.linuxfoundation.org/api/badge/contributors?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
+[![LFX Health Score](https://insights.linuxfoundation.org/api/badge/health-score?project=podman-container-tools&repos=https://github.com/containers/podman)](https://insights.linuxfoundation.org/project/podman-container-tools/repository/containers-podman)
+[![LFX Contributors](https://insights.linuxfoundation.org/api/badge/contributors?project=podman-container-tools&repos=https://github.com/containers/podman)](https://insights.linuxfoundation.org/project/podman-container-tools/repository/containers-podman)
 
 
 <br/>
