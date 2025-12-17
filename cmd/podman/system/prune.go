@@ -36,7 +36,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example:           `podman system prune`,
 	}
-	force bool
+	force         bool
+	includePinned bool
 )
 
 func init() {
@@ -50,6 +51,7 @@ func init() {
 	flags.BoolVar(&pruneOptions.External, "external", false, "Remove container data in storage not controlled by podman")
 	flags.BoolVar(&pruneOptions.Build, "build", false, "Remove build containers")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
+	flags.BoolVar(&includePinned, "include-pinned", false, "Include pinned volumes in prune operation")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
@@ -79,6 +81,11 @@ func prune(_ *cobra.Command, _ []string) error {
 		if strings.ToLower(answer)[0] != 'y' {
 			return nil
 		}
+	}
+
+	// Set the include pinned flag for volume pruning
+	if pruneOptions.Volume {
+		pruneOptions.VolumePruneOptions.IncludePinned = includePinned
 	}
 
 	// Remove all unused pods, containers, images, networks, and volume data.
@@ -137,7 +144,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	}
 	return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s%s
+	- all networks not used by at least one container%s%s (optionally including pinned volumes)
 	- all dangling images
 	- all dangling build cache
 

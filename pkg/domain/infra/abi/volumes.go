@@ -50,6 +50,14 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 	if err != nil {
 		return nil, err
 	}
+
+	// Set pinned status after volume creation if requested
+	if opts.Pinned {
+		if err := vol.SetPinned(true); err != nil {
+			return nil, err
+		}
+	}
+
 	return &entities.IDOrNameResponse{IDOrName: vol.Name()}, nil
 }
 
@@ -82,6 +90,15 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 		}
 	}
 	for _, vol := range vols {
+		// Check if volume is pinned and --include-pinned flag is not set
+		if vol.IsPinned() && !opts.IncludePinned {
+			reports = append(reports, &entities.VolumeRmReport{
+				Err: fmt.Errorf("volume %s is pinned and cannot be removed without --include-pinned flag", vol.Name()),
+				Id:  vol.Name(),
+			})
+			continue
+		}
+
 		reports = append(reports, &entities.VolumeRmReport{
 			Err: ic.Libpod.RemoveVolume(ctx, vol, opts.Force, opts.Timeout),
 			Id:  vol.Name(),
@@ -141,11 +158,11 @@ func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.Vol
 		}
 		funcs = append(funcs, filterFunc)
 	}
-	return ic.pruneVolumesHelper(ctx, funcs)
+	return ic.pruneVolumesHelper(ctx, funcs, options.IncludePinned)
 }
 
-func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter) ([]*reports.PruneReport, error) {
-	pruned, err := ic.Libpod.PruneVolumes(ctx, filterFuncs)
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter, includePinned bool) ([]*reports.PruneReport, error) {
+	pruned, err := ic.Libpod.PruneVolumesWithOptions(ctx, filterFuncs, includePinned)
 	if err != nil {
 		return nil, err
 	}
@@ -263,6 +280,25 @@ func (ic *ContainerEngine) VolumeExport(_ context.Context, nameOrID string, opti
 	}
 
 	return nil
+}
+
+func (ic *ContainerEngine) VolumePin(_ context.Context, namesOrIds []string, opts entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
+	reports := make([]*entities.VolumePinReport, 0, len(namesOrIds))
+
+	for _, nameOrId := range namesOrIds {
+		report := &entities.VolumePinReport{Id: nameOrId}
+		
+		vol, err := ic.Libpod.LookupVolume(nameOrId)
+		if err != nil {
+			report.Err = err
+		} else {
+			report.Err = vol.SetPinned(!opts.Unpin)
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, nil
 }
 
 func (ic *ContainerEngine) VolumeImport(_ context.Context, nameOrID string, options entities.VolumeImportOptions) error {

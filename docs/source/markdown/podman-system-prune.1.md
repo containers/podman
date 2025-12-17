@@ -11,7 +11,7 @@ podman\-system\-prune - Remove all unused pods, containers, images, networks, an
 
 Use the **--all** option to delete all unused images.  Unused images are dangling images as well as any image that does not have any containers based on it.
 
-By default, volumes are not removed to prevent important data from being deleted if there is currently no container using the volume. Use the **--volumes** flag when running the command to prune volumes as well.
+By default, volumes are not removed to prevent important data from being deleted if there is currently no container using the volume. Use the **--volumes** flag when running the command to prune volumes as well. By default, pinned volumes are excluded from pruning even when **--volumes** is specified. Use the **--include-pinned** flag to include pinned volumes in the prune operation.
 
 By default, build containers are not removed to prevent interference with builds in progress. Use the **--build** flag when running the command to remove build containers as well.
 
@@ -58,6 +58,10 @@ Do not prompt for confirmation
 #### **--help**, **-h**
 
 Print usage statement
+
+#### **--include-pinned**
+
+Include pinned volumes in the prune operation when **--volumes** is specified. By default, pinned volumes are excluded from pruning to protect important data. This flag only has an effect when **--volumes** is also used.
 
 #### **--volumes**
 

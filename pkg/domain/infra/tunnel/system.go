@@ -40,7 +40,7 @@ func (ic *ContainerEngine) Renumber(_ context.Context) error {
 	return errors.New("lock renumbering is not supported on remote clients")
 }
 
-func (ic *ContainerEngine) Reset(_ context.Context) error {
+func (ic *ContainerEngine) Reset(_ context.Context, _ entities.SystemResetOptions) error {
 	return errors.New("system reset is not supported on remote clients")
 }
 
