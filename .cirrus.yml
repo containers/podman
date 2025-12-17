@@ -26,16 +26,20 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-36"
+    FEDORA_NAME: "fedora-41"
+    FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
+    PRIOR_FEDORA_NAME: "fedora-40"
+    RAWHIDE_NAME: "rawhide"
+    DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c6211193021923328"
+    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
 
+    FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
     ####
     #### Control variables that determine what to run and how to run it.
     #### N/B: Required ALL of these are set for every single task.
@@ -134,6 +138,30 @@ build_task:
             path: ./*-${STATS_LOGFILE_SFX}
             type: text/plain
 
+
+build_aarch64_task:
+    alias: 'build_aarch64'
+    name: 'Build for $DISTRO_NV'
+    ec2_instance: &standard_build_ec2_aarch64
+        image: ${VM_IMAGE_NAME}
+        type: ${EC2_INST_TYPE}
+        region: us-east-1
+        architecture: arm64  # CAUTION: This has to be "arm64", not "aarch64".
+    env: &stdenvars_aarch64
+        EC2_INST_TYPE: "t4g.xlarge"
+        DISTRO_NV: ${FEDORA_AARCH64_NAME}
+        VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        TEST_FLAVOR: build
+    clone_script: *full_clone
+    setup_script: *setup
+    main_script: *main
+    # Cirrus-CI is very slow uploading one file at time, and the repo contains
+    # thousands of files.  Speed this up by archiving into tarball first.
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
+    always: *runner_stats
+
 # This task is critical.  It updates the "last-used by" timestamp stored
 # in metadata for all VM images.  This mechanism functions in tandem with
 # an out-of-band pruning operation to remove disused VM images.
@@ -147,6 +175,7 @@ meta_task:
     env:
         # Space-separated list of images used by this repository state
         IMGNAMES: ${FEDORA_CACHE_IMAGE_NAME}
+        EC2IMGNAMES: ${FEDORA_AARCH64_AMI}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
         AWSINI: ENCRYPTED[a53616be7cafc6883ac619a26eda7bbd9f20ae99a9f9fe99137b18d780bde89bed7941e791e64d6e6b4d971011ca1d28]
@@ -167,6 +196,7 @@ success_task:
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
         - build
+        - build_aarch64
         - meta
     env:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
