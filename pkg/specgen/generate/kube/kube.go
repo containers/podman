@@ -219,6 +219,14 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		return nil, errors.New("got empty pod name on container creation when playing kube")
 	}
 
+	// We do validate against the Container spec however it has Image set as optional to allow
+	// higher level config management to default or override container images. Image is
+	// required for pods so we must manually validate here.
+	// https://github.com/kubernetes/kubernetes/pull/48406
+	if opts.Container.Image == "" {
+		return nil, fmt.Errorf("container %q is missing the required 'image' field", opts.Container.Name)
+	}
+
 	if opts.NoPodPrefix {
 		s.Name = opts.Container.Name
 	} else {
