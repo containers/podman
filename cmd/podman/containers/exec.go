@@ -52,6 +52,13 @@ var (
 	execDetach        bool
 	execCidFile       string
 	execNoSession     bool
+	// Resource limit CLI variables
+	execCPUs       string
+	execMemory     string
+	execCPUShares  uint64
+	execCPUSetCPUs string
+	execCPUSetMems string
+	execMemorySwap string
 )
 
 func execFlags(cmd *cobra.Command) {
@@ -108,6 +115,31 @@ func execFlags(cmd *cobra.Command) {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
 	}
+
+	// Resource limit flags
+	cpusFlagName := "cpus"
+	flags.StringVar(&execCPUs, cpusFlagName, "", "Number of CPUs for the exec session")
+	_ = cmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
+
+	memoryFlagName := "memory"
+	flags.StringVarP(&execMemory, memoryFlagName, "m", "", "Memory limit for the exec session (format: <number>[<unit>], where unit = b, k, m or g)")
+	_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	cpuSharesFlagName := "cpu-shares"
+	flags.Uint64Var(&execCPUShares, cpuSharesFlagName, 0, "CPU shares (relative weight) for the exec session")
+	_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
+
+	cpusetCpusFlagName := "cpuset-cpus"
+	flags.StringVar(&execCPUSetCPUs, cpusetCpusFlagName, "", "CPUs in which to allow execution (0-3, 0,1)")
+	_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
+
+	cpusetMemsFlagName := "cpuset-mems"
+	flags.StringVar(&execCPUSetMems, cpusetMemsFlagName, "", "Memory nodes (MEMs) in which to allow execution (0-3, 0,1)")
+	_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
+
+	memorySwapFlagName := "memory-swap"
+	flags.StringVar(&execMemorySwap, memorySwapFlagName, "", "Swap limit equal to memory plus swap: '-1' to enable unlimited swap")
+	_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
 }
 
 func init() {
@@ -154,6 +186,14 @@ func exec(cmd *cobra.Command, args []string) error {
 	}
 
 	execOpts.Envs = envLib.Join(execOpts.Envs, cliEnv)
+
+	// Set resource limits from CLI flags
+	execOpts.CPUs = execCPUs
+	execOpts.Memory = execMemory
+	execOpts.CPUShares = execCPUShares
+	execOpts.CPUSetCPUs = execCPUSetCPUs
+	execOpts.CPUSetMems = execCPUSetMems
+	execOpts.MemorySwap = execMemorySwap
 
 	for _, fd := range execOpts.PreserveFD {
 		if !rootless.IsFdInherited(int(fd)) {

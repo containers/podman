@@ -32,13 +32,22 @@ import (
 	"github.com/containers/podman/v6/pkg/specgen/generate"
 	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/containers/podman/v6/pkg/util"
+	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/stringid"
 	"go.podman.io/storage/pkg/unshare"
 	"go.podman.io/storage/types"
+)
+
+const (
+	// execCgroupPathFormat is the format string for exec session cgroup paths.
+	// Format: exec-<containerID>-<randomID>
+	execCgroupPathFormat = "exec-%s-%s"
 )
 
 type getContainersOptions struct {
@@ -872,7 +881,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	return nil
 }
 
-func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime, noSession bool) (*libpod.ExecConfig, error) {
+func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime, ctr *libpod.Container, noSession bool) (*libpod.ExecConfig, error) {
 	execConfig := new(libpod.ExecConfig)
 	execConfig.Command = options.Cmd
 	execConfig.Terminal = options.Tty
@@ -884,6 +893,23 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime, noSession 
 	execConfig.PreserveFDs = options.PreserveFDs
 	execConfig.PreserveFD = options.PreserveFD
 	execConfig.AttachStdin = options.Interactive
+
+	// Parse and set resource limits if any are specified
+	resources, err := makeExecResources(options)
+	if err != nil {
+		return nil, fmt.Errorf("creating resource limits for exec session: %w", err)
+	}
+	if resources != nil {
+		execConfig.Resources = resources
+		// Generate a unique cgroup path for this exec session
+		// The cgroup will be created as a sub-cgroup of the container's cgroup
+		// Include container ID prefix for easier debugging
+		containerID := ctr.ID()
+		if len(containerID) > 12 {
+			containerID = containerID[:12]
+		}
+		execConfig.CgroupPath = fmt.Sprintf(execCgroupPathFormat, containerID, stringid.GenerateRandomID())
+	}
 
 	// Only set up exit command for regular exec sessions, not no-session mode
 	if !noSession {
@@ -902,6 +928,83 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime, noSession 
 	}
 
 	return execConfig, nil
+}
+
+// makeExecResources converts entities.ExecOptions resource limit strings
+// into an OCI LinuxResources struct for use in exec sessions.
+func makeExecResources(options entities.ExecOptions) (*spec.LinuxResources, error) {
+	hasLimits := false
+	resources := &spec.LinuxResources{}
+
+	// CPU limits
+	if options.CPUs != "" {
+		cpus, err := strconv.ParseFloat(options.CPUs, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for --cpus: %w", err)
+		}
+		period, quota := util.CoresToPeriodAndQuota(cpus)
+		if resources.CPU == nil {
+			resources.CPU = &spec.LinuxCPU{}
+		}
+		resources.CPU.Period = &period
+		resources.CPU.Quota = &quota
+		hasLimits = true
+	}
+
+	if options.CPUShares > 0 {
+		if resources.CPU == nil {
+			resources.CPU = &spec.LinuxCPU{}
+		}
+		resources.CPU.Shares = &options.CPUShares
+		hasLimits = true
+	}
+
+	if options.CPUSetCPUs != "" {
+		if resources.CPU == nil {
+			resources.CPU = &spec.LinuxCPU{}
+		}
+		resources.CPU.Cpus = options.CPUSetCPUs
+		hasLimits = true
+	}
+
+	if options.CPUSetMems != "" {
+		if resources.CPU == nil {
+			resources.CPU = &spec.LinuxCPU{}
+		}
+		resources.CPU.Mems = options.CPUSetMems
+		hasLimits = true
+	}
+
+	// Memory limits
+	if options.Memory != "" {
+		memLimit, err := units.RAMInBytes(options.Memory)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for --memory: %w", err)
+		}
+		if resources.Memory == nil {
+			resources.Memory = &spec.LinuxMemory{}
+		}
+		resources.Memory.Limit = &memLimit
+		hasLimits = true
+	}
+
+	if options.MemorySwap != "" {
+		if resources.Memory == nil {
+			resources.Memory = &spec.LinuxMemory{}
+		}
+		memSwap, err := units.RAMInBytes(options.MemorySwap)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for --memory-swap: %w", err)
+		}
+		resources.Memory.Swap = &memSwap
+		hasLimits = true
+	}
+
+	if !hasLimits {
+		return nil, nil
+	}
+
+	return resources, nil
 }
 
 func checkExecPreserveFDs(options entities.ExecOptions) error {
@@ -949,7 +1052,7 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 		util.ExecAddTERM(ctr.Env(), options.Envs)
 	}
 
-	execConfig, err := makeExecConfig(options, ic.Libpod, false)
+	execConfig, err := makeExecConfig(options, ic.Libpod, ctr.Container, false)
 	if err != nil {
 		return ec, err
 	}
@@ -978,7 +1081,7 @@ func (ic *ContainerEngine) ContainerExecNoSession(_ context.Context, nameOrID st
 		util.ExecAddTERM(ctr.Env(), options.Envs)
 	}
 
-	execConfig, err := makeExecConfig(options, ic.Libpod, true)
+	execConfig, err := makeExecConfig(options, ic.Libpod, ctr.Container, true)
 	if err != nil {
 		return ec, err
 	}
@@ -1003,7 +1106,7 @@ func (ic *ContainerEngine) ContainerExecDetached(_ context.Context, nameOrID str
 	}
 	ctr := containers[0]
 
-	execConfig, err := makeExecConfig(options, ic.Libpod, false)
+	execConfig, err := makeExecConfig(options, ic.Libpod, ctr.Container, false)
 	if err != nil {
 		return "", err
 	}

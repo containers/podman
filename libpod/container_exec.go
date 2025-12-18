@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/pidhandle"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/resize"
 	"go.podman.io/common/pkg/util"
@@ -80,6 +81,12 @@ type ExecConfig struct {
 	// exiting, and the exit command being executed. If set to 0, there is
 	// no delay. If set, ExitCommand must also be set.
 	ExitCommandDelay uint `json:"exitCommandDelay,omitempty"`
+	// CgroupPath is a relative path to a sub-cgroup to create for the exec session.
+	// If empty, no cgroup will be created. The path is relative to the container's cgroup.
+	CgroupPath string `json:"cgroupPath,omitempty"`
+	// Resources are the resource limits to apply to the exec session's cgroup.
+	// Only used if CgroupPath is set.
+	Resources *spec.LinuxResources `json:"resources,omitempty"`
 }
 
 // ExecSession contains information on a single exec session attached to a given
@@ -1187,6 +1194,12 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.ExitCommand = session.Config.ExitCommand
 	opts.ExitCommandDelay = session.Config.ExitCommandDelay
 	opts.Privileged = session.Config.Privileged
+
+	// Set resource limits and cgroup path for exec session
+	if session.Config.CgroupPath != "" && session.Config.Resources != nil {
+		opts.CgroupPath = session.Config.CgroupPath
+		opts.Resources = session.Config.Resources
+	}
 
 	return opts, nil
 }

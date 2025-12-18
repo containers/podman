@@ -427,6 +427,15 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	args = append(args, "--exec-attach")
 	args = append(args, "--exec-process-spec", processFile.Name())
 
+	// If a cgroup path is specified for resource limits, pass it to the runtime.
+	// The value of options.CgroupPath is interpreted as relative to the
+	// container's existing cgroup, not as an absolute cgroup path. The OCI
+	// runtime is expected to resolve this by joining the provided value with
+	// the container's cgroup path in the cgroup hierarchy.
+	if options.CgroupPath != "" && options.Resources != nil {
+		args = append(args, "--cgroup", options.CgroupPath)
+	}
+
 	if len(options.ExitCommand) > 0 {
 		args = append(args, "--exit-command", options.ExitCommand[0])
 		for _, arg := range options.ExitCommand[1:] {
