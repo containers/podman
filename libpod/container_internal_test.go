@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -204,4 +205,12 @@ func TestPostDeleteHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, strings.TrimSuffix(string(content), "\n"), dir)
+}
+
+func init() {
+	if runtime.GOOS != "windows" {
+		hookPath = "/bin/sh"
+	} else {
+		panic("we need a reliable executable path on Windows")
+	}
 }
