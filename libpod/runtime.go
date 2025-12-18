@@ -325,10 +325,14 @@ func getDBState(runtime *Runtime) (State, error) {
 	case config.DBBackendDefault:
 		// for backwards compatibility check if boltdb exists, if it does not we use sqlite
 		if _, err := os.Stat(boltDBPath); err != nil {
-			// Return error here some other problem with the boltdb file, rather than silently
-			// switch to sqlite which would be hard to debug for the user return the error back
-			// as this likely a real bug.
-			return nil, err
+			// Only return error if it's not a "file not found" error.
+			// If the file doesn't exist, we'll create it with NewBoltState.
+			if !errors.Is(err, os.ErrNotExist) {
+				// Return error here some other problem with the boltdb file, rather than silently
+				// switch to sqlite which would be hard to debug for the user return the error back
+				// as this likely a real bug.
+				return nil, err
+			}
 		}
 		runtime.config.Engine.DBBackend = config.DBBackendBoltDB.String()
 		fallthrough
@@ -361,6 +365,14 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 	if runtime.doReset && runtime.doRenumber {
 		return fmt.Errorf("cannot perform system reset while renumbering locks: %w", define.ErrInvalidArg)
+	}
+
+	// Ensure StaticDir and VolumePath are set (defensive check for older vendor code)
+	if runtime.config.Engine.StaticDir == "" {
+		runtime.config.Engine.StaticDir = filepath.Join(runtime.storageConfig.GraphRoot, "libpod")
+	}
+	if runtime.config.Engine.VolumePath == "" {
+		runtime.config.Engine.VolumePath = filepath.Join(runtime.storageConfig.GraphRoot, "volumes")
 	}
 
 	// Make the static files directory if it does not exist
