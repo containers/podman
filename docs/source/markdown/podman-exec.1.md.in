@@ -17,7 +17,7 @@ podman\-exec - Execute a command in a running container
 
 Read the ID of the target container from the specified *file*.
 
-@@option cpus
+@@option cpus.container
 
 @@option cpu-shares
 
