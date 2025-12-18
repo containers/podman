@@ -71,7 +71,6 @@ func TestValidateAnnotations(t *testing.T) {
 	}
 
 	for i := range totalSizeErrorCases {
-
 		if err := Validate(totalSizeErrorCases[i]); err == nil {
 			t.Errorf("case[%d] expected failure", i)
 		}
