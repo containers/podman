@@ -147,7 +147,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.39.5
+# github.com/containers/buildah v1.39.7
 ## explicit; go 1.22.8
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -162,6 +162,7 @@ github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
 github.com/containers/buildah/internal/open
 github.com/containers/buildah/internal/parse
+github.com/containers/buildah/internal/pty
 github.com/containers/buildah/internal/sbom
 github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util
@@ -445,7 +446,7 @@ github.com/crc-org/vfkit/pkg/util
 # github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
-# github.com/cyphar/filepath-securejoin v0.5.1
+# github.com/cyphar/filepath-securejoin v0.5.2
 ## explicit; go 1.18
 github.com/cyphar/filepath-securejoin
 github.com/cyphar/filepath-securejoin/internal/consts
@@ -915,7 +916,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.2.8
+# github.com/opencontainers/runc v1.2.9
 ## explicit; go 1.22
 github.com/opencontainers/runc/internal/pathrs
 github.com/opencontainers/runc/libcontainer/apparmor
