@@ -212,6 +212,65 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/artifacts/add"), s.APIHandler(libpod.AddArtifact)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/artifacts/local/add libpod ArtifactLocalLibpod
+	// ---
+	// tags:
+	//  - artifacts
+	// summary: Add a local file as an artifact
+	// description: |
+	//   Add a file from the local filesystem as a new OCI artifact, or append to an existing artifact if 'append' is true.
+	// produces:
+	//   - application/json
+	// parameters:
+	//   - name: name
+	//     in: query
+	//     description: Mandatory reference to the artifact (e.g., quay.io/image/artifact:tag)
+	//     required: true
+	//     type: string
+	//   - name: path
+	//     in: query
+	//     description: Absolute path to the local file on the server filesystem to be added
+	//     required: true
+	//     type: string
+	//   - name: fileName
+	//     in: query
+	//     description: Name/title of the file within the artifact
+	//     required: true
+	//     type: string
+	//   - name: fileMIMEType
+	//     in: query
+	//     description: Optionally set the MIME type of the file
+	//     type: string
+	//   - name: annotations
+	//     in: query
+	//     description: Array of annotation strings e.g "test=true"
+	//     type: array
+	//     items:
+	//       type: string
+	//   - name: artifactMIMEType
+	//     in: query
+	//     description: Use type to describe an artifact
+	//     type: string
+	//   - name: append
+	//     in: query
+	//     description: Append files to an existing artifact
+	//     type: boolean
+	//     default: false
+	//   - name: replace
+	//     in: query
+	//     description: Replace an existing artifact with the same name
+	//     type: boolean
+	//     default: false
+	// responses:
+	//   201:
+	//     $ref: "#/responses/artifactAddResponse"
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   404:
+	//     $ref: "#/responses/artifactNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.Handle(VersionedPath("/libpod/artifacts/local/add"), s.APIHandler(libpod.AddLocalArtifact)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/artifacts/{name}/push libpod ArtifactPushLibpod
 	// ---
 	// tags:
