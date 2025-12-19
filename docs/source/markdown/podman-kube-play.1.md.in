@@ -314,6 +314,10 @@ Ctrl-C or receiving any other interrupt signals.
 All pods, containers, and volumes created with `podman kube play` is removed
 upon exit.
 
+#### **--labels**
+
+Add Podman-specific labels to pods created by Podman (key=value)
+
 ## EXAMPLES
 
 Recreate the pod and containers described in the specified host YAML file.

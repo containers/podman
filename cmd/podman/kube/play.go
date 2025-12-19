@@ -112,13 +112,13 @@ func playFlags(cmd *cobra.Command) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 
-	labelFlagName := "label"
+	labelsFlagName := "labels"
 	flags.StringArrayVar(
 		&playOptions.labels,
-		labelFlagName, []string{},
+		labelsFlagName, []string{},
 		"Add Podman-specific labels to pods created by Podman (key=value)",
 	)
-	_ = cmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(labelsFlagName, completion.AutocompleteNone)
 
 	credsFlagName := "creds"
 	flags.StringVar(&playOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
