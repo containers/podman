@@ -66,6 +66,10 @@ func TestValidateAnnotations(t *testing.T) {
 
 	totalSizeErrorCases := []map[string]string{
 		{"a": strings.Repeat("b", define.TotalAnnotationSizeLimitB)},
+		{
+			"a": strings.Repeat("b", define.TotalAnnotationSizeLimitB/2),
+			"c": strings.Repeat("d", define.TotalAnnotationSizeLimitB/2),
+		},
 		{"ab": strings.Repeat("b", define.TotalAnnotationSizeLimitB)},
 		{"abc": strings.Repeat("b", define.TotalAnnotationSizeLimitB)},
 	}

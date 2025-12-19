@@ -12,11 +12,9 @@ import (
 // Validate validates a set of key values are correctly defined for
 // kubernetes specifications.
 func Validate(kv map[string]string) error {
+	var totalSize int64
 	for k, v := range kv {
-		totalSize := len(k) + len(v)
-		if totalSize > define.TotalAnnotationSizeLimitB {
-			return fmt.Errorf("size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
-		}
+		totalSize += (int64)(len(k)) + (int64)(len(v))
 
 		// The rule is QualifiedName except that case doesn't matter,
 		// so convert to lowercase before checking.
@@ -24,6 +22,11 @@ func Validate(kv map[string]string) error {
 			return err
 		}
 	}
+
+	if totalSize > int64(define.TotalAnnotationSizeLimitB) {
+		return fmt.Errorf("size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
+	}
+
 	return nil
 }
 
