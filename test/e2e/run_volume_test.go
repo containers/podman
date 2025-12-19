@@ -1,17 +1,20 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // in-container mount point: using a path that is definitely not present
@@ -425,9 +428,27 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(separateVolumeSession).Should(ExitCleanly())
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
 
-		copySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol3:/etc/apk:copy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
-		copySession.WaitWithDefaultTimeout()
-		Expect(copySession).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("run", "--name", "testctr", "-v", "testvol3:/etc/apk:copy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch")
+
+		inspect := podmanTest.PodmanExitCleanly("container", "inspect", "testctr", "--format", "{{.OCIConfigPath}}")
+
+		// Make extra check that the OCI config does not contain the copy opt, runc 1.3.0 fails on that while crun does not.
+		// We only test crun upstream so make sure the spec is sane: https://github.com/containers/podman/issues/26938
+		f, err := os.Open(inspect.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
+		var spec specs.Spec
+		err = json.NewDecoder(f).Decode(&spec)
+		Expect(err).ToNot(HaveOccurred())
+
+		found := false
+		for _, m := range spec.Mounts {
+			if m.Destination == "/etc/apk" {
+				found = true
+				Expect(m.Options).To(Equal([]string{"rprivate", "nosuid", "nodev", "rbind"}))
+			}
+		}
+		Expect(found).To(BeTrue(), "OCI spec contains /etc/apk mount")
 
 		noCopySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol4:/etc/apk:nocopy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
 		noCopySession.WaitWithDefaultTimeout()
@@ -845,14 +866,17 @@ VOLUME /test/`, ALPINE)
 	It("podman run with --mount and named volume with driver-opts", func() {
 		// anonymous volume mount with driver opts
 		vol := "type=volume,source=test_vol,dst=/test,volume-opt=type=tmpfs,volume-opt=device=tmpfs,volume-opt=o=nodev"
-		session := podmanTest.Podman([]string{"run", "--rm", "--mount", vol, ALPINE, "echo", "hello"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		// Loop twice to cover both the initial code path that creates the volume and the ones which reuses it.
+		for i := range 2 {
+			name := "testctr" + strconv.Itoa(i)
+			podmanTest.PodmanExitCleanly("run", "--name", name, "--mount", vol, ALPINE, "echo", "hello")
 
-		inspectVol := podmanTest.Podman([]string{"volume", "inspect", "test_vol"})
-		inspectVol.WaitWithDefaultTimeout()
-		Expect(inspectVol).Should(ExitCleanly())
-		Expect(inspectVol.OutputToString()).To(ContainSubstring("nodev"))
+			inspectVol := podmanTest.PodmanExitCleanly("volume", "inspect", "test_vol")
+			Expect(inspectVol.OutputToString()).To(ContainSubstring("nodev"))
+
+			inspect := podmanTest.PodmanExitCleanly("container", "inspect", name, "--format", "{{range .Mounts}}{{.Options}}{{end}}")
+			Expect(inspect.OutputToString()).To(ContainSubstring("[nosuid nodev rbind]"))
+		}
 	})
 
 	It("volume permissions after run", func() {
