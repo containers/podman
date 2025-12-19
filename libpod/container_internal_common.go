@@ -454,6 +454,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		var gidMappings []idtools.IDMap
 
 		switch {
+		case c.config.IDMappings.AutoUserNs && len(c.config.IDMappings.GIDMap) == 0:
+			// With userns=auto, the GID mappings are allocated later by storage,
+			// so we can't determine which supplementary GIDs will be available.
+			// Skip adding them to avoid setgroups() errors.
+			gidMappings = []idtools.IDMap{}
 		case len(c.config.IDMappings.GIDMap) > 0:
 			gidMappings = c.config.IDMappings.GIDMap
 		case rootless.IsRootless():
@@ -485,7 +490,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			if isGIDAvailable {
 				g.AddProcessAdditionalGid(uint32(gid))
 			} else {
-				logrus.Warnf("Additional gid=%d is not present in the user namespace, skip setting it", gid)
+				if len(gidMappings) > 0 {
+					logrus.Warnf("Additional gid=%d is not present in the user namespace, skip setting it", gid)
+				}
 			}
 		}
 	}
