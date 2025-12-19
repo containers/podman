@@ -2,6 +2,18 @@
 
 # Changelog
 
+## v1.39.7 (2025-12-11)
+
+    [release-1.39] Bump runc to v1.2.9
+
+## v1.39.6 (2025-11-18)
+
+    CI: run integration tests on Fedora with both crun and runc
+    buildah-build(1): clarify that --cgroup-parent affects RUN instructions
+    runUsingRuntime: use named constants for runtime states
+    Add a dummy "runtime" that just dumps its config file
+    run: handle relabeling bind mounts ourselves
+
 ## v1.39.5 (2025-11-06)
 
     [release-1.39] Bump runc to v1.2.8 - CVE-2025-52881
