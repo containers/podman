@@ -26,7 +26,6 @@ type applyLayerResponse struct {
 // used on Windows as it does not support chroot, hence no point sandboxing
 // through chroot and rexec.
 func applyLayer() {
-
 	var (
 		tmpDir  string
 		err     error

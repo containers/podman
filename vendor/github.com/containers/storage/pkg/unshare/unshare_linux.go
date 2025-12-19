@@ -33,9 +33,9 @@ type Cmd struct {
 	*exec.Cmd
 	UnshareFlags               int
 	UseNewuidmap               bool
-	UidMappings                []specs.LinuxIDMapping // nolint: golint
+	UidMappings                []specs.LinuxIDMapping // nolint: revive,golint
 	UseNewgidmap               bool
-	GidMappings                []specs.LinuxIDMapping // nolint: golint
+	GidMappings                []specs.LinuxIDMapping // nolint: revive,golint
 	GidMappingsEnableSetgroups bool
 	Setsid                     bool
 	Setpgrp                    bool
@@ -129,7 +129,7 @@ func (c *Cmd) Start() error {
 	if err != nil {
 		pidRead.Close()
 		pidWrite.Close()
-		return fmt.Errorf("creating pid pipe: %w", err)
+		return fmt.Errorf("creating continue read/write pipe: %w", err)
 	}
 	c.Env = append(c.Env, fmt.Sprintf("_Containers-continue-pipe=%d", len(c.ExtraFiles)+3))
 	c.ExtraFiles = append(c.ExtraFiles, continueRead)
@@ -175,12 +175,11 @@ func (c *Cmd) Start() error {
 	pidWrite = nil
 
 	// Read the child's PID from the pipe.
-	pidString := ""
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, pidRead); err != nil {
 		return fmt.Errorf("reading child PID: %w", err)
 	}
-	pidString = b.String()
+	pidString := b.String()
 	pid, err := strconv.Atoi(pidString)
 	if err != nil {
 		fmt.Fprintf(continueWrite, "error parsing PID %q: %v", pidString, err)
@@ -442,6 +441,16 @@ func GetRootlessUID() int {
 	return os.Getuid()
 }
 
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	gidEnv := getenv("_CONTAINERS_ROOTLESS_GID")
+	if gidEnv != "" {
+		u, _ := strconv.Atoi(gidEnv)
+		return u
+	}
+	return os.Getgid()
+}
+
 // RootlessEnv returns the environment settings for the rootless containers
 func RootlessEnv() []string {
 	return append(os.Environ(), UsernsEnvName+"=done")
@@ -451,7 +460,7 @@ type Runnable interface {
 	Run() error
 }
 
-func bailOnError(err error, format string, a ...interface{}) { // nolint: golint,goprintffuncname
+func bailOnError(err error, format string, a ...interface{}) { // nolint: revive,goprintffuncname
 	if err != nil {
 		if format != "" {
 			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)

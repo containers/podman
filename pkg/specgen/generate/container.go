@@ -1,3 +1,5 @@
+//go:build !remote
+
 package generate
 
 import (
@@ -231,7 +233,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		}
 	}
 
-	for _, v := range rtc.Containers.Annotations {
+	for _, v := range rtc.Containers.Annotations.Get() {
 		split := strings.SplitN(v, "=", 2)
 		k := split[0]
 		v := ""

@@ -454,27 +454,26 @@ func IsCreditCard(str string) bool {
 	if !rxCreditCard.MatchString(sanitized) {
 		return false
 	}
-	var sum int64
-	var digit string
-	var tmpNum int64
-	var shouldDouble bool
-	for i := len(sanitized) - 1; i >= 0; i-- {
-		digit = sanitized[i:(i + 1)]
-		tmpNum, _ = ToInt(digit)
-		if shouldDouble {
-			tmpNum *= 2
-			if tmpNum >= 10 {
-				sum += (tmpNum % 10) + 1
-			} else {
-				sum += tmpNum
-			}
-		} else {
-			sum += tmpNum
-		}
-		shouldDouble = !shouldDouble
-	}
+	
+	number, _ := ToInt(sanitized)
+	number, lastDigit := number / 10, number % 10	
 
-	return sum%10 == 0
+	var sum int64
+	for i:=0; number > 0; i++ {
+		digit := number % 10
+		
+		if i % 2 == 0 {
+			digit *= 2
+			if digit > 9 {
+				digit -= 9
+			}
+		}
+		
+		sum += digit
+		number = number / 10
+	}
+	
+	return (sum + lastDigit) % 10 == 0
 }
 
 // IsISBN10 checks if the string is an ISBN version 10.

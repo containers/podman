@@ -27,7 +27,7 @@ func untar() {
 
 	var options archive.TarOptions
 
-	//read the options from the pipe "ExtraFiles"
+	// read the options from the pipe "ExtraFiles"
 	if err := json.NewDecoder(os.NewFile(3, "options")).Decode(&options); err != nil {
 		fatal(err)
 	}
@@ -99,7 +99,7 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 		return fmt.Errorf("untar error on re-exec cmd: %w", err)
 	}
 
-	//write the options to the pipe for the untar exec to read
+	// write the options to the pipe for the untar exec to read
 	if err := json.NewEncoder(w).Encode(options); err != nil {
 		w.Close()
 		return fmt.Errorf("untar json encode to pipe failed: %w", err)

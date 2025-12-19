@@ -52,6 +52,6 @@ func (c *linuxCpusetHandler) Destroy(ctr *CgroupControl) error {
 }
 
 // Stat fills a metrics structure with usage stats for the controller
-func (c *linuxCpusetHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
+func (c *linuxCpusetHandler) Stat(_ *CgroupControl, _ *cgroups.Stats) error {
 	return nil
 }

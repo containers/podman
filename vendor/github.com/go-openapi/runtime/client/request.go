@@ -161,15 +161,22 @@ func (r *request) buildHTTP(mediaType, basePath string, producers map[string]run
 			}()
 			for fn, f := range r.fileFields {
 				for _, fi := range f {
-					// Need to read the data so that we can detect the content type
-					buf := make([]byte, 512)
-					size, err := fi.Read(buf)
-					if err != nil {
-						logClose(err, pw)
-						return
+					var fileContentType string
+					if p, ok := fi.(interface {
+						ContentType() string
+					}); ok {
+						fileContentType = p.ContentType()
+					} else {
+						// Need to read the data so that we can detect the content type
+						buf := make([]byte, 512)
+						size, err := fi.Read(buf)
+						if err != nil {
+							logClose(err, pw)
+							return
+						}
+						fileContentType = http.DetectContentType(buf)
+						fi = runtime.NamedReader(fi.Name(), io.MultiReader(bytes.NewReader(buf[:size]), fi))
 					}
-					fileContentType := http.DetectContentType(buf)
-					newFi := runtime.NamedReader(fi.Name(), io.MultiReader(bytes.NewReader(buf[:size]), fi))
 
 					// Create the MIME headers for the new part
 					h := make(textproto.MIMEHeader)
@@ -183,7 +190,7 @@ func (r *request) buildHTTP(mediaType, basePath string, producers map[string]run
 						logClose(err, pw)
 						return
 					}
-					if _, err := io.Copy(wrtr, newFi); err != nil {
+					if _, err := io.Copy(wrtr, fi); err != nil {
 						logClose(err, pw)
 					}
 				}
