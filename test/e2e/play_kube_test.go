@@ -6470,4 +6470,16 @@ spec:
 		inspect := podmanTest.PodmanExitCleanly("inspect", "simpleWithoutPodPrefix")
 		Expect(inspect.InspectContainerToJSON()[0].Name).Should(Equal("simpleWithoutPodPrefix"))
 	})
+
+	It("test labels flag to inject into Pod", func() {
+		podName := "mypod"
+		podLabels := "l1=v1"
+		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+
+		podmanTest.PodmanExitCleanly("pod", "create", podName)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile, "--labels", podLabels)
+
+		pod := getPod(withPodName(podName))
+		Expect(pod.Labels).To(Equal(podLabels))
+	})
 })
