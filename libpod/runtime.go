@@ -752,6 +752,8 @@ func (r *Runtime) libimageEvents() {
 		for {
 			// Make sure to read and write all events before
 			// shutting down.
+			// Collect all pending events to sort them chronologically
+			var pendingEvents []events.Event
 			for len(eventChannel) > 0 {
 				libimageEvent := <-eventChannel
 				e := events.Event{
@@ -761,6 +763,25 @@ func (r *Runtime) libimageEvents() {
 					Time:   libimageEvent.Time,
 					Type:   events.Image,
 				}
+				pendingEvents = append(pendingEvents, e)
+			}
+
+			// Sort events by timestamp to ensure chronological order.
+			// This prevents race conditions where events complete out of order
+			// and arrive at the channel in non-chronological sequence.
+			if len(pendingEvents) > 1 {
+				// Simple bubble sort - events list is typically small
+				for i := 0; i < len(pendingEvents)-1; i++ {
+					for j := i + 1; j < len(pendingEvents); j++ {
+						if pendingEvents[i].Time.After(pendingEvents[j].Time) {
+							pendingEvents[i], pendingEvents[j] = pendingEvents[j], pendingEvents[i]
+						}
+					}
+				}
+			}
+
+			// Write events in chronological order
+			for _, e := range pendingEvents {
 				if err := r.eventer.Write(e); err != nil {
 					logrus.Errorf("Unable to write image event: %q", err)
 				}
