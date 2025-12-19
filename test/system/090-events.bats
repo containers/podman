@@ -69,36 +69,42 @@ load helpers
     run_podman --events-backend=file load -i $tarball
 
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0
-    is "$output" ".*image push $imageID dir:$pushedDir
-.*image save $imageID $tarball
-.*image loadfromarchive *$tarball
-.*image pull *docker-archive:$tarball
-.*image tag $imageID $tag
-.*image untag $imageID $tag:latest
-.*image tag $imageID $tag
-.*image untag $imageID $IMAGE
-.*image untag $imageID $tag:latest
-.*image remove $imageID $imageID" \
-       "podman events"
+    # Check that all expected events are present (order checked more precisely below)
+    assert "$output" =~ "image push $imageID dir:$pushedDir" "push event"
+    assert "$output" =~ "image save $imageID $tarball" "save event"
+    assert "$output" =~ "image pull.*docker-archive:$tarball" "pull event"
+    assert "$output" =~ "image tag $imageID $tag" "tag event"
+    assert "$output" =~ "image untag $imageID $tag:latest" "untag event"
+    assert "$output" =~ "image untag $imageID $IMAGE" "untag IMAGE event"
+    assert "$output" =~ "image remove $imageID $imageID" "remove event"
+    # Check for two loadfromarchive events
+    run grep -c "image loadfromarchive.*$tarball" <<<"$output"
+    assert "$output" = "2" "two loadfromarchive events"
 
     # With --format we can check the _exact_ output, not just substrings
-    local -a expect=("push--dir:$pushedDir"
-                     "save--$tarball"
-                     "loadfromarchive--$tarball"
-                     "pull--docker-archive:$tarball"
-                     "tag--$tag"
-                     "untag--$tag:latest"
-                     "tag--$tag"
-                     "untag--$IMAGE"
-                     "untag--$tag:latest"
-                     "remove--$imageID"
-                     "loadfromarchive--$tarball"
-                    )
+    # Note: rmi generates remove and untag events that may appear in the file
+    # in non-deterministic order due to race conditions during concurrent writes.
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0 --format '{{.Status}}--{{.Name}}'
-    for i in $(seq 0 ${#expect[@]}); do
-        assert "${lines[$i]}" = "${expect[$i]}" "events, line $i"
-    done
-    assert "${#lines[@]}" = "${#expect[@]}" "Total lines of output"
+
+    # Check deterministic events in order
+    assert "${lines[0]}" = "push--dir:$pushedDir" "event 0"
+    assert "${lines[1]}" = "save--$tarball" "event 1"
+    assert "${lines[2]}" = "loadfromarchive--$tarball" "event 2"
+    assert "${lines[3]}" = "pull--docker-archive:$tarball" "event 3"
+    assert "${lines[4]}" = "tag--$tag" "event 4"
+    assert "${lines[5]}" = "untag--$tag:latest" "event 5"
+    assert "${lines[6]}" = "tag--$tag" "event 6"
+
+    # Events 7-9 are from rmi -f and may appear in any order
+    # They should be: remove, untag (tag:latest), untag (IMAGE)
+    local rmi_events="${lines[7]} ${lines[8]} ${lines[9]}"
+    assert "$rmi_events" =~ "remove--$imageID" "remove event present"
+    assert "$rmi_events" =~ "untag--$tag:latest" "untag tag:latest event present"
+    assert "$rmi_events" =~ "untag--$IMAGE" "untag IMAGE event present"
+
+    # Final event should be the second loadfromarchive
+    assert "${lines[10]}" = "loadfromarchive--$tarball" "event 10"
+    assert "${#lines[@]}" = "11" "Total lines of output"
 }
 
 function _events_disjunctive_filters() {

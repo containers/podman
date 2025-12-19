@@ -379,7 +379,7 @@ _EOF
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
 
-    cd $PODMAN_TMPDIR
+    pushd $PODMAN_TMPDIR
     run_podman play kube --replace --build --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
     is "$output" bin "expect container within pod to run as the bin user"
@@ -387,6 +387,7 @@ _EOF
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
+    popd
 }
 
 @test "podman kube --annotation" {
