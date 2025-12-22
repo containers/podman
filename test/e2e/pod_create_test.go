@@ -422,14 +422,10 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod and print id to external file", func() {
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(os.TempDir())).To(Succeed())
+		GinkgoT().Chdir(os.TempDir())
 
 		targetFile := filepath.Join(podmanTest.TempDir, "idFile")
 		defer Expect(os.RemoveAll(targetFile)).To(BeNil())
-		defer Expect(os.Chdir(cwd)).To(BeNil())
 
 		session := podmanTest.Podman([]string{"pod", "create", "--name=abc", "--pod-id-file", targetFile})
 		session.WaitWithDefaultTimeout()
