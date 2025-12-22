@@ -23,7 +23,7 @@ var createCmd = &cobra.Command{
 	RunE:  create,
 	Args:  cobra.ExactArgs(2),
 	Example: `podman secret create mysecret /path/to/secret
-		printf "secretdata" | podman secret create mysecret -`,
+  printf "secretdata" | podman secret create mysecret -`,
 	ValidArgsFunction: common.AutocompleteSecretCreate,
 }
 
