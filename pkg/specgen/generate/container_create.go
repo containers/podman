@@ -24,8 +24,6 @@ import (
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/pasta"
 	"go.podman.io/common/libnetwork/slirp4netns"
-	"go.podman.io/common/pkg/libartifact/store"
-	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"tags.cncf.io/container-device-interface/pkg/parser"
 )
 
@@ -512,7 +510,15 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 
 	if len(s.ArtifactVolumes) != 0 {
 		// Validate artifacts exist before creating the container
-		if err := validateArtifactVolumes(ctx, rt, s.ArtifactVolumes); err != nil {
+		mounts := make([]libpod.ArtifactMountValidation, len(s.ArtifactVolumes))
+		for i, av := range s.ArtifactVolumes {
+			mounts[i] = libpod.ArtifactMountValidation{
+				Source: av.Source,
+				Title:  av.Title,
+				Digest: av.Digest,
+			}
+		}
+		if err := rt.ValidateArtifactMounts(ctx, mounts); err != nil {
 			return nil, err
 		}
 
@@ -761,40 +767,4 @@ func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runti
 		s.ShmSize = nil
 	}
 	return options, infraSpec, compatibleOptions, nil
-}
-
-// validateArtifactVolumes checks that all artifacts exist and are accessible
-// at container creation time, preventing creation of containers that can never start.
-func validateArtifactVolumes(ctx context.Context, rt *libpod.Runtime, artifactVolumes []*specgen.ArtifactVolume) error {
-	if len(artifactVolumes) == 0 {
-		return nil
-	}
-
-	artStore, err := rt.ArtifactStore()
-	if err != nil {
-		return fmt.Errorf("accessing artifact store: %w", err)
-	}
-
-	for _, artifactMount := range artifactVolumes {
-		// Use the same artifact store resolution logic as at start time
-		// to ensure consistent validation behavior
-		asr, err := store.NewArtifactStorageReference(artifactMount.Source)
-		if err != nil {
-			return fmt.Errorf("invalid artifact reference %q: %w", artifactMount.Source, err)
-		}
-
-		// Validate artifact exists using the same logic as container start.
-		// This ensures consistent behavior between creation and start time.
-		_ /*paths*/, err = artStore.BlobMountPaths(ctx, asr, &libartTypes.BlobMountPathOptions{
-			FilterBlobOptions: libartTypes.FilterBlobOptions{
-				Title:  artifactMount.Title,
-				Digest: artifactMount.Digest,
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("validating artifact %q: %w", artifactMount.Source, err)
-		}
-	}
-
-	return nil
 }
