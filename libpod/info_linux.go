@@ -50,10 +50,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 
 	info.CgroupsVersion = "v2"
 
-	slirp4netnsPath := r.config.Engine.NetworkCmdPath
-	if slirp4netnsPath == "" {
-		slirp4netnsPath, _ = r.config.FindHelperBinary(slirp4netns.BinaryName, true)
-	}
+	slirp4netnsPath, _ := r.config.FindHelperBinary(slirp4netns.BinaryName, true)
 	if slirp4netnsPath != "" {
 		ver, err := version.Program(slirp4netnsPath)
 		if err != nil {

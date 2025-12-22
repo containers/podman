@@ -31333,10 +31333,6 @@ msgid ""
 "Windows (excluding WSL2) machines"
 msgstr ""
 
-#: ../../source/markdown/podman.1.md:98
-msgid "**--network-cmd-path**=*path*"
-msgstr ""
-
 #: ../../source/markdown/podman.1.md:99
 msgid ""
 "Path to the `slirp4netns(1)` command binary to use for setting up a "

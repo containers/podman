@@ -180,20 +180,6 @@ func WithConmonPath(path string) RuntimeOption {
 	}
 }
 
-// WithNetworkCmdPath specifies the path to the slirp4netns binary which manages the
-// runtime.
-func WithNetworkCmdPath(path string) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return define.ErrRuntimeFinalized
-		}
-
-		rt.config.Engine.NetworkCmdPath = path
-
-		return nil
-	}
-}
-
 // WithNetworkBackend specifies the name of the network backend.
 func WithNetworkBackend(name string) RuntimeOption {
 	return func(rt *Runtime) error {
