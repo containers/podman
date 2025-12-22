@@ -611,7 +611,7 @@ flag. For example, an httpd port 80 can be mapped to the host port 8080 using th
 following:
 
 ```
-$ podman run -p 8080:80 -d -i -t fedora/httpd
+$ podman run -p 8080:80 -d fedora/httpd
 ```
 
 ### Mounting External Volumes

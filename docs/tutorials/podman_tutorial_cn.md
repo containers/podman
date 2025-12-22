@@ -23,7 +23,7 @@ Podman是由libpod库提供一个实用的程序，可以被用于创建和管�
 这个示例容器会运行一个简单的只有主页的 httpd 服务器。
 
 ```console
-podman run --name basic_httpd -dt -p 8080:80/tcp docker.io/nginx
+podman run --name basic_httpd -d -p 8080:80/tcp docker.io/nginx
 ```
 
 因为命令中的 *-d* 参数表明容器以 "detached" 模式运行，所以 Podman 会在容器运行后打印容器的 ID。

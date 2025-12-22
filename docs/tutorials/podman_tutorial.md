@@ -21,7 +21,7 @@ For installing or building Podman, see the [installation instructions](https://p
 This sample container will run a very basic httpd server (named basic_httpd) that serves only its index
 page.
 ```console
-podman run --name basic_httpd -dt -p 8080:80/tcp docker.io/nginx
+podman run --name basic_httpd -d -p 8080:80/tcp docker.io/nginx
 ```
 Because the container is being run in detached mode, represented by the *-d* in the `podman run` command, Podman
 will print the container ID after it has run. Note that we use port forwarding to be able to
