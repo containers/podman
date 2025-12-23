@@ -534,3 +534,10 @@ type quadletFileResponse struct {
 	// in:body
 	Body string
 }
+
+// Auto Update
+// swagger:response
+type autoupdateResponse struct {
+	// in:body
+	Body handlers.LibpodAutoUpdateReports
+}
