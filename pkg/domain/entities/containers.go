@@ -293,6 +293,13 @@ type ExecOptions struct {
 	Tty         bool
 	User        string
 	WorkDir     string
+	// Resource limits for the exec session
+	CPUs       string // Number of CPUs (e.g., "0.5", "2")
+	Memory     string // Memory limit (e.g., "256m", "1g")
+	CPUShares  uint64 // CPU shares (relative weight)
+	CPUSetCPUs string // CPUs in which to allow execution (0-3, 0,1)
+	CPUSetMems string // Memory nodes (MEMs) in which to allow execution (0-3, 0,1)
+	MemorySwap string // Total memory (memory + swap)
 }
 
 // ContainerExistsOptions describes the cli values to check if a container exists
