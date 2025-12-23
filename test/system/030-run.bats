@@ -939,17 +939,15 @@ EOF
     run_podman 1 run --rm $IMAGE grep $user /etc/passwd
     run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
 
-    # find a user with a uid > 100 that is a valid octal
     # Issue #19800
-    octal_user=$(awk -F\: '$1!="nobody" && $3>100 && $3~/^[0-7]+$/ {print $1 " " $3; exit}' /etc/passwd)
-    # test only if a valid user was found
-    if test -n "$octal_user"; then
-        read octal_username octal_userid <<< $octal_user
-        run_podman run --user=$octal_username --hostuser=$octal_username --rm $IMAGE id -u
+    # test uid if octal
+    octal_userid=$(id -u)
+    if [[ $octal_userid =~ ^[0-7]+$ ]]; then
+        run_podman run --user=$user --hostuser=$user --rm $IMAGE id -u
         is "$output" "$octal_userid"
     fi
 
-    user=$(id -u)
+    user=$octal_userid
 
     userspec=$(id -un):$(id -g)
     run_podman run --hostuser=$user --user $userspec --rm $IMAGE sh -c 'echo $(id -un):$(id -g)'
