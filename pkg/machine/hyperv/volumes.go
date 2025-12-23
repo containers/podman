@@ -39,9 +39,13 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 		}
 		args = append(args, "machine", "client9p", fmt.Sprintf("%d", *mount.VSockNumber), strconv.Quote(mount.Target))
 
+		logrus.Debugf("Starting shares for VM: %s: %v", mc.Name, args)
+
 		if err := machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
+			logrus.Debugf("Error starting shares for VM: %s: %v", mc.Name, err)
 			return err
 		}
+		logrus.Debugf("Started shares for VM: %s: %v", mc.Name, args)
 	}
 	return nil
 }

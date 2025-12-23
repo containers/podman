@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package hypervctl
 
@@ -10,13 +9,13 @@ type NetworkSettingsBuilder struct {
 
 type SyntheticEthernetPortSettingsBuilder struct {
 	networkSettingsBuilder *NetworkSettingsBuilder
-	portSettings           *SyntheticEthernetPortSettings
+	portSettings           *NetworkAdapterParams
 	err                    error
 }
 
 type EthernetPortAllocationSettingsBuilder struct {
 	portSettingsBuilder *SyntheticEthernetPortSettingsBuilder
-	allocSettings       *EthernetPortAllocationSettings
+	allocSettings       *NetworkAdapterParams
 	err                 error
 }
 
@@ -24,18 +23,22 @@ func NewNetworkSettingsBuilder(systemSettings *SystemSettings) *NetworkSettingsB
 	return &NetworkSettingsBuilder{systemSettings: systemSettings}
 }
 
-func (builder *NetworkSettingsBuilder) AddSyntheticEthernetPort(beforeAdd func(*SyntheticEthernetPortSettings)) *SyntheticEthernetPortSettingsBuilder {
+func (builder *NetworkSettingsBuilder) AddSyntheticEthernetPort(beforeAdd func(*NetworkAdapterParams)) *SyntheticEthernetPortSettingsBuilder {
 	if builder.err != nil {
 		return &SyntheticEthernetPortSettingsBuilder{networkSettingsBuilder: builder, err: builder.err}
 	}
 
-	portSettings, err := builder.systemSettings.AddSyntheticEthernetPort(beforeAdd)
-	builder.setErr(err)
+	portSettings := &NetworkAdapterParams{
+		VMName: builder.systemSettings.Name,
+	}
+	if beforeAdd != nil {
+		beforeAdd(portSettings)
+	}
 
 	return &SyntheticEthernetPortSettingsBuilder{
 		networkSettingsBuilder: builder,
 		portSettings:           portSettings,
-		err:                    err,
+		err:                    nil,
 	}
 }
 
@@ -71,12 +74,12 @@ func (builder *SyntheticEthernetPortSettingsBuilder) setErr(err error) {
 	builder.networkSettingsBuilder.setErr(err)
 }
 
-func (builder *EthernetPortAllocationSettingsBuilder) Get(s **EthernetPortAllocationSettings) *EthernetPortAllocationSettingsBuilder {
+func (builder *EthernetPortAllocationSettingsBuilder) Get(s **NetworkAdapterParams) *EthernetPortAllocationSettingsBuilder {
 	*s = builder.allocSettings
 	return builder
 }
 
-func (builder *SyntheticEthernetPortSettingsBuilder) Get(s **SyntheticEthernetPortSettings) *SyntheticEthernetPortSettingsBuilder {
+func (builder *SyntheticEthernetPortSettingsBuilder) Get(s **NetworkAdapterParams) *SyntheticEthernetPortSettingsBuilder {
 	*s = builder.portSettings
 	return builder
 }

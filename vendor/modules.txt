@@ -137,7 +137,7 @@ github.com/containers/gvisor-tap-vsock/pkg/types
 ## explicit; go 1.23.3
 github.com/containers/libhvee/pkg/hypervctl
 github.com/containers/libhvee/pkg/kvp/ginsu
-github.com/containers/libhvee/pkg/wmiext
+github.com/containers/libhvee/pkg/powershell
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust

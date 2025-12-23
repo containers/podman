@@ -1,12 +1,12 @@
 //go:build windows
-// +build windows
 
 package hypervctl
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/containers/libhvee/pkg/wmiext"
+	"github.com/containers/libhvee/pkg/powershell"
 )
 
 type SystemSettingsBuilder struct {
@@ -27,7 +27,7 @@ func (builder *SystemSettingsBuilder) PrepareSystemSettings(name string, beforeA
 
 	if builder.systemSettings == nil {
 		settings := DefaultSystemSettings()
-		settings.ElementName = name
+		settings.Name = name
 		builder.systemSettings = settings
 	}
 
@@ -56,6 +56,8 @@ func (builder *SystemSettingsBuilder) PrepareProcessorSettings(beforeAdd func(*P
 		beforeAdd(builder.processorSettings)
 	}
 
+	builder.processorSettings.VMName = builder.systemSettings.Name
+
 	return builder
 }
 
@@ -77,85 +79,48 @@ func (builder *SystemSettingsBuilder) PrepareMemorySettings(beforeAdd func(*Memo
 		beforeAdd(builder.memorySettings)
 	}
 
+	builder.memorySettings.VMName = builder.systemSettings.Name
+
 	return builder
 }
 
 func (builder *SystemSettingsBuilder) Build() (*SystemSettings, error) {
-	var service *wmiext.Service
+
 	var err error
-
-	if builder.PrepareSystemSettings("unnamed-vm", nil).
-		PrepareProcessorSettings(nil).
-		PrepareMemorySettings(nil).err != nil {
-		return nil, err
-	}
-
-	if service, err = NewLocalHyperVService(); err != nil {
-		return nil, err
-	}
-	defer service.Close()
-
-	systemSettingsInst, err := service.SpawnInstance("Msvm_VirtualSystemSettingData")
-	if err != nil {
-		return nil, err
-	}
-	defer systemSettingsInst.Close()
-
-	err = systemSettingsInst.PutAll(builder.systemSettings)
-	if err != nil {
-		return nil, err
-	}
-
-	memoryStr, err := createMemorySettings(builder.memorySettings)
-	if err != nil {
-		return nil, err
-	}
-
-	processorStr, err := createProcessorSettings(builder.processorSettings)
-	if err != nil {
-		return nil, err
-	}
-
-	vsms, err := service.GetSingletonInstance(VirtualSystemManagementService)
-	if err != nil {
-		return nil, err
-	}
-	defer vsms.Close()
-
-	systemStr := systemSettingsInst.GetCimText()
-
-	var job *wmiext.Instance
-	var res int32
-	var resultingSystem string
-	err = vsms.BeginInvoke("DefineSystem").
-		In("SystemSettings", systemStr).
-		In("ResourceSettings", []string{memoryStr, processorStr}).
-		Execute().
-		Out("Job", &job).
-		Out("ResultingSystem", &resultingSystem).
-		Out("ReturnValue", &res).End()
+	// New-VM add network adapter to the vm, so we need to remove it before setting the vm, as some users(podman) don't want to have a network adapter on the vm by default.
+	_, stderr, err := powershell.Execute("Hyper-V\\New-VM", "-Name", builder.systemSettings.Name, "-Generation", "2", "|", "Get-VMNetworkAdapter", "|", "Remove-VMNetworkAdapter")
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to define system: %w", err)
+		return nil, NewPSError(stderr)
 	}
 
-	err = waitVMResult(res, service, job, "failed to define system", nil)
+	cliArgs := getCLI(builder.systemSettings)
+	args := append([]string{"Hyper-V\\Set-VM"}, cliArgs...)
+	_, stderr, err = powershell.Execute(args...)
+
 	if err != nil {
-		return nil, err
+		fmt.Fprintf(os.Stderr, "error setting vm: %s\n", err)
+		return nil, NewPSError(stderr)
 	}
 
-	newSettings, err := service.FindFirstRelatedInstance(resultingSystem, "Msvm_VirtualSystemSettingData")
+	_, stderr, err = powershell.Execute("Hyper-V\\Set-VMFirmware", "-VMName", builder.systemSettings.Name, "-PreferredNetworkBootProtocol", string(builder.systemSettings.NetworkBootPreferredProtocol), "-EnableSecureBoot", "Off")
+
 	if err != nil {
-		return nil, err
+		fmt.Fprintf(os.Stderr, "error setting vm firmware: %s\n", err)
+		return nil, NewPSError(stderr)
 	}
-	path, err := newSettings.Path()
+
+	err = updateVMMemory(builder.systemSettings.Name, builder.memorySettings)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "error setting vm memory: %s\n", err)
 		return nil, err
 	}
 
-	if err = service.GetObjectAsObject(path, builder.systemSettings); err != nil {
+	err = updateVMProcessor(builder.systemSettings.Name, builder.processorSettings)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error setting vm processor: %s\n", err)
 		return nil, err
 	}
 
-	return builder.systemSettings, nil
+	return GetVMFromName(builder.systemSettings.Name)
 }
