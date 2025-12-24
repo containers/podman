@@ -15,14 +15,18 @@ import (
 )
 
 func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string, netStatus map[string]types.StatusBlock) error {
-	var err error
-	if !ctr.config.PostConfigureNetNS {
+	// Only create pipes if they don't exist yet
+	if ctr.rootlessPortSyncR == nil {
+		var err error
 		ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 		if err != nil {
 			return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
 		}
 	}
-	defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
+	// Only defer close if not in PostConfigureNetNS mode to avoid double-close
+	if !ctr.config.PostConfigureNetNS {
+		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
+	}
 	return slirp4netns.SetupRootlessPortMappingViaRLK(&slirp4netns.SetupOptions{
 		Config:                r.config,
 		ContainerID:           ctr.ID(),
