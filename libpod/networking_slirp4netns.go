@@ -23,10 +23,9 @@ func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath strin
 			return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
 		}
 	}
-	// Only defer close if not in PostConfigureNetNS mode to avoid double-close
-	if !ctr.config.PostConfigureNetNS {
-		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-	}
+	// Always close the read end in the parent after passing to child
+	// The rootlessport child process inherits this fd and the write end stays open
+	defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
 	return slirp4netns.SetupRootlessPortMappingViaRLK(&slirp4netns.SetupOptions{
 		Config:                r.config,
 		ContainerID:           ctr.ID(),

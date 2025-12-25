@@ -1163,6 +1163,17 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// by the container and conmon will keep the ports busy so that another
 		// process cannot use them.
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+
+		// For rootless port forwarding, create sync pipe and leak write end to conmon
+		if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 {
+			ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
+			if err != nil {
+				return 0, fmt.Errorf("failed to create rootless port sync pipe: %w", err)
+			}
+			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
+			// Leak one end in conmon, the other one will be used by rootlessport
+			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncW)
+		}
 	} else {
 		// ports were bound in ctr.prepare() as we must do it before the netns setup
 		filesToClose = append(filesToClose, ctr.reservedPorts...)
