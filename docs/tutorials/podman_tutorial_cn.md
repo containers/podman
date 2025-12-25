@@ -28,7 +28,7 @@ podman run --name basic_httpd -d -p 8080:80/tcp docker.io/nginx
 
 因为命令中的 *-d* 参数表明容器以 "detached" 模式运行，所以 Podman 会在容器运行后打印容器的 ID。
 
-注意为了访问这个 HTTP 服务器，我们将使用端口转发。成功运行需要 slirp4netns 的 v0.3.0+ 版本。
+注意为了访问这个 HTTP 服务器，我们将使用端口转发。
 
 Podman 的 *ps* 命令用于列出正在创建和运行的容器。
 
