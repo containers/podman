@@ -11,7 +11,6 @@ import (
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/storage/pkg/stringid"
 )
@@ -521,25 +520,6 @@ var _ = Describe("Podman network create", func() {
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).To(ExitWithError(125, "unsupported bridge network option foo"))
-	})
-
-	It("podman CNI network create with internal should not have dnsname", func() {
-		SkipIfNetavark(podmanTest)
-		net := "internal-test" + stringid.GenerateRandomID()
-		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
-		nc.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		// Cannot ExitCleanly(): "dnsname and internal networks are incompatible"
-		Expect(nc).Should(Exit(0))
-		// Not performing this check on remote tests because it is a logrus error which does
-		// not come back via stderr on the remote client.
-		if !IsRemote() {
-			Expect(nc.ErrorToString()).To(ContainSubstring("dnsname and internal networks are incompatible"))
-		}
-		nc = podmanTest.Podman([]string{"network", "inspect", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(ExitCleanly())
-		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
 	})
 
 	It("podman Netavark network create with internal should have dnsname", func() {

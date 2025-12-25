@@ -1020,20 +1020,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).To(ExitWithError(125, "faccessat /run/netns/xxy: no such file or directory"))
 	})
 
-	It("podman run in custom CNI network with --static-ip", func() {
-		netName := stringid.GenerateRandomID()
-		ipAddr := "10.25.30.128"
-		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
-		create.WaitWithDefaultTimeout()
-		Expect(create).Should(ExitCleanly())
-		defer podmanTest.removeNetwork(netName)
-
-		run := podmanTest.Podman([]string{"run", "--rm", "--net", netName, "--ip", ipAddr, ALPINE, "ip", "addr"})
-		run.WaitWithDefaultTimeout()
-		Expect(run).Should(ExitCleanly())
-		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
-	})
-
 	It("podman network works across user ns", func() {
 		netName := createNetworkName("")
 		create := podmanTest.Podman([]string{"network", "create", netName})
