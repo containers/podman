@@ -31,21 +31,7 @@ Valid _mode_ values are:
 
 - **ns:**_path_: Path to a network namespace to join.
 
-- **private**: Create a new namespace for the container. This uses the **bridge** mode for rootful containers and **slirp4netns** for rootless ones.
-
-- **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack. It is possible to specify these additional options, they can also be set with `network_cmd_options` in containers.conf:
-
-  - **allow_host_loopback=true|false**: Allow slirp4netns to reach the host loopback IP (default is 10.0.2.2 or the second IP from slirp4netns cidr subnet when changed, see the cidr option below). The default is false.
-  - **mtu=**_MTU_: Specify the MTU to use for this network. (Default is `65520`).
-  - **cidr=**_CIDR_: Specify ip range to use for this network. (Default is `10.0.2.0/24`).
-  - **enable_ipv6=true|false**: Enable IPv6. Default is true. (Required for `outbound_addr6`).
-  - **outbound_addr=**_INTERFACE_: Specify the outbound interface slirp binds to (ipv4 traffic only).
-  - **outbound_addr=**_IPv4_: Specify the outbound ipv4 address slirp binds to.
-  - **outbound_addr6=**_INTERFACE_: Specify the outbound interface slirp binds to (ipv6 traffic only).
-  - **outbound_addr6=**_IPv6_: Specify the outbound ipv6 address slirp binds to.
-  - **port_handler=rootlesskit**: Use rootlesskit for port forwarding. Default. \
-  Note: Rootlesskit changes the source IP address of incoming packets to an IP address in the container network namespace, usually `10.0.2.100`. If the application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
-  - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
+- **private**: Create a new namespace for the container. This uses the **bridge** mode for rootful containers and **pasta** for rootless ones.
 
 - **pasta[:OPTIONS,...]**: use **pasta**(1) to create a user-mode networking
     stack. \
@@ -79,14 +65,12 @@ Valid _mode_ values are:
         gateway address.
     - **pasta:--mtu,1500**: Specify a 1500 bytes MTU for the _tap_ interface in
         the container.
-    - **pasta:--ipv4-only,-a,10.0.2.0,-n,24,-g,10.0.2.2,--dns-forward,10.0.2.3,-m,1500,--no-ndp,--no-dhcpv6,--no-dhcp**,
-        equivalent to default slirp4netns(1) options: disable IPv6, assign
-        `10.0.2.0/24` to the `tap0` interface in the container, with gateway
-        `10.0.2.3`, enable DNS forwarder reachable at `10.0.2.3`, set MTU to 1500
-        bytes, disable NDP, DHCPv6 and DHCP support.
-    - **pasta:-I,tap0,--ipv4-only,-a,10.0.2.0,-n,24,-g,10.0.2.2,--dns-forward,10.0.2.3,--no-ndp,--no-dhcpv6,--no-dhcp**,
-        equivalent to default slirp4netns(1) options with Podman overrides: same as
-        above, but leave the MTU to 65520 bytes
+    - **pasta:--ipv4-only,-a,10.0.2.0,-n,24,-g,10.0.2.2,--dns-forward,10.0.2.3,-m,1500,--no-ndp,--no-dhcpv6,--no-dhcp**:
+        disable IPv6, assign `10.0.2.0/24` to the `tap0` interface in the container,
+        with gateway `10.0.2.3`, enable DNS forwarder reachable at `10.0.2.3`,
+        set MTU to 1500 bytes, disable NDP, DHCPv6 and DHCP support.
+    - **pasta:-I,tap0,--ipv4-only,-a,10.0.2.0,-n,24,-g,10.0.2.2,--dns-forward,10.0.2.3,--no-ndp,--no-dhcpv6,--no-dhcp**:
+        same as above, but leave the MTU to 65520 bytes
     - **pasta:-t,auto,-u,auto,-T,auto,-U,auto**: enable automatic port forwarding
         based on observed bound ports from both host and container sides
     - **pasta:-T,5201**: enable forwarding of TCP port 5201 from container to

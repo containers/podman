@@ -16,12 +16,9 @@ Each setup is supported with an example.
 One of the guiding factors on networking for containers with Podman is going to
 be whether or not the container is run by a root user or not. This is because
 unprivileged users cannot create networking interfaces on the host. Therefore,
-for rootless containers, the default network mode is slirp4netns. Because of the
-limited privileges, slirp4netns lacks some of the features of networking
-compared to rootful Podman's networking; for example, slirp4netns cannot give
-containers a routable IP address. The default networking mode for rootful
-containers on the other side is netavark, which allows a container to have a
-routable IP address.
+for rootless containers, the default network mode is pasta. The default
+networking mode for rootful containers is netavark, which allows a container
+to have a routable IP address.
 
 ## Firewalls
 
@@ -45,10 +42,9 @@ the container on an internal bridge network, which is then connected to the inte
 via Network Address Translation(NAT).  We also see users wanting to use `macvlan`
 for networking as well. The `macvlan` plugin forwards an entire network interface
 from the host into the container, allowing it access to the network the host is connected
-to. And finally, the default network configuration for rootless containers is slirp4netns.
-The slirp4netns network mode has limited capabilities but can be run on users without
-root privileges. It creates a tunnel from the host into the container to forward
-traffic.
+to. And finally, the default network configuration for rootless containers is pasta.
+The pasta network mode can be run on users without root privileges and provides
+user-mode networking for containers.
 
 ### Bridge
 
@@ -78,10 +74,10 @@ command. Containers can be joined to a network when they are created with the
 `--network` flag, or after they are created via the `podman network connect` and
 `podman network disconnect` commands.
 
-As mentioned earlier, slirp4netns is the default network configuration for rootless
-users.  But as of Podman version 4.0, rootless users can also use netavark.
+As mentioned earlier, pasta is the default network configuration for rootless
+users. Rootless users can also use netavark for bridge networking.
 The user experience of rootless netavark is very akin to a rootful netavark, except that
-there is no default network configuration provided.  You simply need to create a
+there is no default network configuration provided. You simply need to create a
 network, and the one will be created as a bridge network.
 
 ```
@@ -220,24 +216,25 @@ managed by firewalld, no change to the firewall is needed.
 
 
 
-### Slirp4netns
+### Pasta
 
-Slirp4netns is the default network setup for rootless containers and pods.  It was
-invented because unprivileged users are not allowed to make network interfaces on
-the host.  Slirp4netns creates a TAP device in the container’s network namespace
-and connects to the usermode TCP/IP stack.  Consider the following illustration.
+Pasta is the default network setup for rootless containers and pods. It was
+designed to provide user-mode networking for unprivileged users who are not
+allowed to make network interfaces on the host. Pasta creates a TAP device in
+the container's network namespace and provides a user-mode TCP/IP stack.
+Consider the following illustration.
 
-![slirp_network](podman_rootless_default.png)
+![pasta_network](podman_rootless_default.png)
 
 The unprivileged user on this laptop has created two containers: a DB container and
-a web container.  Both of these containers have the ability to access content on
-networks outside the laptop.  And outside clients can access the containers if the
-container is bound to a host port and the laptop firewall allows it.  Remember, unprivileged
+a web container. Both of these containers have the ability to access content on
+networks outside the laptop. And outside clients can access the containers if the
+container is bound to a host port and the laptop firewall allows it. Remember, unprivileged
 users must use ports 1024 through 65535 as lower ports require root privileges. (CAP_NET_BIND_SERVICE)
 Note: this can be adjusted using the `sysctl net.ipv4.ip_unprivileged_port_start`
 
-One of the drawbacks of slirp4netns is that the containers are completely isolated
-from each other.  Unlike the bridge approach, there is no virtual network.  For containers
+One of the drawbacks of pasta networking is that containers are isolated from each
+other by default. Unlike the bridge approach, there is no virtual network. For containers
 to communicate with each other, they can use the port mappings with the host system,
 or they can be put into a Pod where they share the same network namespace. See [Communicating
 between containers and pods](#Communicating-between-containers-and-pods) for more information.
