@@ -264,9 +264,9 @@ container then runs with less privileges.
 
 ### Native network performance over the socket-activated socket
 
-When using rootless Podman, network traffic is normally passed through slirp4netns. This comes with
-a performance penalty. Fortunately, communication over the socket-activated socket does not pass through
-slirp4netns so it has the same performance characteristics as the normal network on the host.
+When using rootless Podman, network traffic is normally passed through pasta. Fortunately, communication
+over the socket-activated socket does not pass through pasta so it has the same performance characteristics
+as the normal network on the host.
 
 ### Starting a socket-activated service
 
