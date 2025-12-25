@@ -65,7 +65,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet and static route", func() {
-		SkipIfCNI(podmanTest)
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{
 			"network",
@@ -105,7 +104,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet and static route and metric", func() {
-		SkipIfCNI(podmanTest)
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{
 			"network",
@@ -145,7 +143,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet and two static routes", func() {
-		SkipIfCNI(podmanTest)
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{
 			"network",
@@ -191,7 +188,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet and static route (ipv6)", func() {
-		SkipIfCNI(podmanTest)
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{
 			"network",
@@ -231,7 +227,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with name and subnet with --opt no_default_route=1", func() {
-		SkipIfCNI(podmanTest)
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{
 			"network",
@@ -523,7 +518,6 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman Netavark network create with internal should have dnsname", func() {
-		SkipIfCNI(podmanTest)
 		net := "internal-test" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
 		nc.WaitWithDefaultTimeout()

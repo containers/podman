@@ -331,18 +331,9 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 
 	dbBackend := "sqlite"
 
-	networkBackend := Netavark
 	networkConfigDir := "/etc/containers/networks"
 	if isRootless() {
 		networkConfigDir = filepath.Join(root, "etc", "networks")
-	}
-
-	if strings.ToLower(os.Getenv("NETWORK_BACKEND")) == "cni" {
-		networkBackend = CNI
-		networkConfigDir = "/etc/cni/net.d"
-		if isRootless() {
-			networkConfigDir = filepath.Join(os.Getenv("HOME"), ".config/cni/net.d")
-		}
 	}
 
 	if err := os.MkdirAll(root, 0o755); err != nil {
@@ -378,7 +369,6 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 			RemoteTest:         target != PodmanTestCreateUtilTargetLocal,
 			ImageCacheFS:       storageFs,
 			ImageCacheDir:      ImageCacheDir,
-			NetworkBackend:     networkBackend,
 			DatabaseBackend:    dbBackend,
 		},
 		ConmonBinary:        conmonBinary,
@@ -753,10 +743,9 @@ func GetPortLock(port string) *lockfile.LockFile {
 // Used by tests which want to use "--ip SOMETHING-SAFE". Picking at random
 // just doesn't work: we get occasional collisions. Our current approach
 // allocates a /24 subnet for each ginkgo process, starting at .128.x, see
-// BeforeEach() above. Unfortunately, CNI remembers each address assigned
-// and assigns <previous+1> by default -- so other parallel jobs may
-// get IPs in our block. The +10 leaves a gap for that. (Netavark works
-// differently, allocating sequentially from .0.0, hence our .128.x).
+// BeforeEach() above. Netavark allocates sequentially from .0.0, hence
+// our .128.x starting point leaves room for parallel test execution.
+// The +10 leaves a gap for other parallel jobs that may get IPs in our block.
 // This heuristic will fail if run in parallel on >127 processors or if
 // one test calls us more than 25 times or if some other test runs more
 // than ten networked containers at the same time as any test that
@@ -1220,18 +1209,6 @@ func SkipIfNotActive(unit string, reason string) {
 	Skip(fmt.Sprintf("[systemd]: unit %s is not active (%v): %s", unit, err, reason))
 }
 
-func SkipIfCNI(p *PodmanTestIntegration) {
-	if p.NetworkBackend == CNI {
-		Skip("this test is not compatible with the CNI network backend")
-	}
-}
-
-func SkipIfNetavark(p *PodmanTestIntegration) {
-	if p.NetworkBackend == Netavark {
-		Skip("This test is not compatible with the netavark network backend")
-	}
-}
-
 // PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
 func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
@@ -1348,7 +1325,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 	}
 
 	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType), " ")
+		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, "netavark", p.CgroupManager, p.TmpDir, eventsType), " ")
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {
@@ -1381,45 +1358,13 @@ func removeConf(confPath string) {
 	}
 }
 
-// generateNetworkConfig generates a CNI or Netavark config with a random name
+// generateNetworkConfig generates a Netavark config with a random name
 // it returns the network name and the filepath
 func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
-	var (
-		path string
-		conf string
-	)
 	// generate a random name to prevent conflicts with other tests
 	name := "net" + stringid.GenerateRandomID()
-	if p.NetworkBackend != Netavark {
-		path = filepath.Join(p.NetworkConfigDir, fmt.Sprintf("%s.conflist", name))
-		conf = fmt.Sprintf(`{
-		"cniVersion": "0.3.0",
-		"name": "%s",
-		"plugins": [
-		  {
-			"type": "bridge",
-			"bridge": "cni1",
-			"isGateway": true,
-			"ipMasq": true,
-			"ipam": {
-				"type": "host-local",
-				"subnet": "10.99.0.0/16",
-				"routes": [
-					{ "dst": "0.0.0.0/0" }
-				]
-			}
-		  },
-		  {
-			"type": "portmap",
-			"capabilities": {
-			  "portMappings": true
-			}
-		  }
-		]
-	}`, name)
-	} else {
-		path = filepath.Join(p.NetworkConfigDir, fmt.Sprintf("%s.json", name))
-		conf = fmt.Sprintf(`
+	path := filepath.Join(p.NetworkConfigDir, fmt.Sprintf("%s.json", name))
+	conf := fmt.Sprintf(`
 {
      "name": "%s",
      "id": "e1ef2749024b88f5663ca693a9118e036d6bfc48bcfe460faf45e9614a513e5c",
@@ -1440,7 +1385,6 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
      }
 }
 `, name)
-	}
 	writeConf([]byte(conf), path)
 	return name, path
 }

@@ -143,20 +143,17 @@ var _ = Describe("Podman network", func() {
 
 	It("podman network ID test", func() {
 		net := "networkIDTest"
-		// the network id should be the sha256 hash of the network name
-		netID := "6073aefe03cdf8f29be5b23ea9795c431868a3a22066a6290b187691614fee84"
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
 		Expect(session).Should(ExitCleanly())
 
-		if podmanTest.NetworkBackend == Netavark {
-			// netavark uses a different algo for determining the id and it is not repeatable
-			getid := podmanTest.Podman([]string{"network", "inspect", net, "--format", "{{.ID}}"})
-			getid.WaitWithDefaultTimeout()
-			Expect(getid).Should(ExitCleanly())
-			netID = getid.OutputToString()
-		}
+		// Get the network ID
+		getid := podmanTest.Podman([]string{"network", "inspect", net, "--format", "{{.ID}}"})
+		getid.WaitWithDefaultTimeout()
+		Expect(getid).Should(ExitCleanly())
+		netID := getid.OutputToString()
+
 		// Tests Default Table Output
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "id=" + netID})
 		session.WaitWithDefaultTimeout()
