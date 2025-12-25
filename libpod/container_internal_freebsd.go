@@ -296,10 +296,6 @@ func (c *Container) addSpecialDNS(nameservers []string) []string {
 	return nameservers
 }
 
-func (c *Container) isSlirp4netnsIPv6() bool {
-	return false
-}
-
 // check for net=none
 func (c *Container) hasNetNone() bool {
 	return c.state.NetNS == ""
