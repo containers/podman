@@ -62,8 +62,7 @@ For `macvlan` and `ipvlan`, it is the parent device on the host. It is the same 
 
 #### **--internal**
 
-Restrict external access of this network when using a `bridge` network. Note when using the CNI backend
-DNS will be automatically disabled, see **--disable-dns**.
+Restrict external access of this network when using a `bridge` network.
 
 When using the `macvlan` or `ipvlan` driver with this option no default route will be added to the container.
 Because it bypasses the host network stack no additional restrictions can be set by podman and if a
@@ -92,9 +91,8 @@ ipam driver automatically based on the network driver.
 
 Valid values are:
 
- - `dhcp`: IP addresses are assigned from a dhcp server on the network. When using the netavark backend
-  the `netavark-dhcp-proxy.socket` must be enabled in order to start the dhcp-proxy when a container is
-  started, for CNI use the `cni-dhcp.socket` unit instead.
+ - `dhcp`: IP addresses are assigned from a dhcp server on the network. The `netavark-dhcp-proxy.socket`
+  must be enabled in order to start the dhcp-proxy when a container is started.
  - `host-local`: IP addresses are assigned locally.
  - `none`: No ip addresses are assigned to the interfaces.
 
