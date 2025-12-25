@@ -30,6 +30,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	envLib "github.com/containers/podman/v6/pkg/env"
 	"github.com/containers/podman/v6/pkg/lookup"
+	"github.com/containers/podman/v6/pkg/namespaces"
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/selinux"
 	"github.com/containers/podman/v6/pkg/systemd/notifyproxy"
@@ -41,6 +42,8 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/etchosts"
+	"go.podman.io/common/libnetwork/pasta"
+	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/pkg/chown"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/hooks"
@@ -833,6 +836,16 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr 
 		}
 	}
 
+	// Auto-migrate slirp4netns to pasta
+	if migrated, err := c.migrateSlirp4netnsToPasta(); err != nil {
+		return err
+	} else if migrated {
+		// Sync the updated container config
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
 	defer func() {
 		if retErr != nil {
 			if err := c.cleanup(ctx); err != nil {
@@ -1015,6 +1028,63 @@ func (c *Container) completeNetworkSetup() error {
 	}
 
 	return c.addResolvConf()
+}
+
+// migrateSlirp4netnsToPasta automatically migrates containers using slirp4netns
+// to pasta. This is a one-time migration that happens transparently on container start.
+func (c *Container) migrateSlirp4netnsToPasta() (bool, error) {
+	if !c.config.NetMode.IsSlirp4netns() {
+		return false, nil
+	}
+
+	logrus.Infof("Auto-migrating container %s from slirp4netns to pasta", c.ID())
+
+	// 1. Convert NetMode
+	c.config.NetMode = namespaces.NetworkMode("pasta")
+
+	// 2. Map options
+	slirpOpts, ok := c.config.NetworkOptions[slirp4netns.BinaryName]
+	if !ok {
+		slirpOpts = []string{}
+	}
+	pastaOpts := []string{}
+
+	for _, opt := range slirpOpts {
+		key, value, _ := strings.Cut(opt, "=")
+		switch key {
+		case "enable_ipv6":
+			if value == "false" {
+				pastaOpts = append(pastaOpts, "--ipv4-only")
+			}
+		case "mtu":
+			pastaOpts = append(pastaOpts, "--mtu", value)
+		case "outbound_addr", "outbound_addr6":
+			pastaOpts = append(pastaOpts, "--outbound", value)
+		case "cidr":
+			logrus.Warnf("Container %s: cidr option not supported by pasta, ignoring", c.ID())
+		case "allow_host_loopback":
+			if value == "true" {
+				logrus.Warnf("Container %s: allow_host_loopback option not supported by pasta, ignoring", c.ID())
+			}
+		case "port_handler":
+			// Skip port_handler option, pasta uses RootlessKit by default
+		default:
+			logrus.Warnf("Container %s: unknown slirp4netns option %s, ignoring", c.ID(), key)
+		}
+	}
+
+	// 3. Update NetworkOptions
+	delete(c.config.NetworkOptions, slirp4netns.BinaryName)
+	if len(pastaOpts) > 0 {
+		c.config.NetworkOptions[pasta.BinaryName] = pastaOpts
+	}
+
+	// 4. Save to disk
+	if err := c.save(); err != nil {
+		return false, fmt.Errorf("failed to save migrated config for container %s: %w", c.ID(), err)
+	}
+
+	return true, nil
 }
 
 // Initialize a container, creating it in the runtime
