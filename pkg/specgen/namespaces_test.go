@@ -58,10 +58,10 @@ func TestParseNetworkFlag(t *testing.T) {
 			},
 		},
 		{
-			name:     "slirp4netns mode",
-			args:     []string{"slirp4netns"},
-			nsmode:   Namespace{NSMode: Slirp},
-			networks: map[string]types.PerNetworkOptions{},
+			name:   "slirp4netns mode",
+			args:   []string{"slirp4netns"},
+			nsmode: Namespace{},
+			err:    "slirp4netns is no longer supported, please use pasta instead",
 		},
 		{
 			name:     "from pod mode",
@@ -88,13 +88,10 @@ func TestParseNetworkFlag(t *testing.T) {
 			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
-			name:     "slirp4netns mode with options",
-			args:     []string{"slirp4netns:cidr=10.0.0.0/24"},
-			nsmode:   Namespace{NSMode: Slirp},
-			networks: map[string]types.PerNetworkOptions{},
-			options: map[string][]string{
-				"slirp4netns": {"cidr=10.0.0.0/24"},
-			},
+			name:   "slirp4netns mode with options",
+			args:   []string{"slirp4netns:cidr=10.0.0.0/24"},
+			nsmode: Namespace{},
+			err:    "slirp4netns is no longer supported, please use pasta instead",
 		},
 		{
 			name:   "bridge mode with options 1",

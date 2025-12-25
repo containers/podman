@@ -443,21 +443,6 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 					specg.Expose = toExpose
 					specg.PortMappings = conf.PortMappings
 					specg.NetNS = specgen.Namespace{NSMode: specgen.Bridge}
-				case conf.NetMode.IsSlirp4netns():
-					toExpose := make(map[uint16]string, len(conf.ExposedPorts))
-					for _, expose := range []map[uint16][]string{conf.ExposedPorts} {
-						for port, proto := range expose {
-							toExpose[port] = strings.Join(proto, ",")
-						}
-					}
-					specg.Expose = toExpose
-					specg.PortMappings = conf.PortMappings
-					netMode := strings.Split(string(conf.NetMode), ":")
-					var val string
-					if len(netMode) > 1 {
-						val = netMode[1]
-					}
-					specg.NetNS = specgen.Namespace{NSMode: specgen.Slirp, Value: val}
 				case conf.NetMode.IsPrivate():
 					specg.NetNS = specgen.Namespace{NSMode: specgen.Private}
 				case conf.NetMode.IsDefault():
@@ -631,7 +616,7 @@ func CheckName(rt *libpod.Runtime, n string, kind bool) string {
 // Note: Update `podman run --publish | -p` docs when modifying this function.
 func isPortMappingCompatibleNetNSMode(nsMode specgen.NamespaceMode) bool {
 	switch nsMode {
-	case specgen.Bridge, specgen.Slirp, specgen.Pasta:
+	case specgen.Bridge, specgen.Pasta:
 		return true
 	default:
 		return false
