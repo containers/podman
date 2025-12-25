@@ -2286,7 +2286,7 @@ func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) bool {
 		return c.pastaResult.IPv6
 	}
 
-	return c.isSlirp4netnsIPv6()
+	return false
 }
 
 // Add a new nameserver to the container's resolv.conf, ensuring that it is the
@@ -2337,7 +2337,7 @@ func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
 }
 
 // getHostsEntries returns the container ip host entries for the correct netmode
-func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
+func (c *Container) getHostsEntries() etchosts.HostEntries {
 	var entries etchosts.HostEntries
 	names := []string{c.Hostname(), c.config.Name}
 	switch {
@@ -2345,21 +2345,15 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
 	case c.config.NetMode.IsPasta():
 		// this should never be the case but check just to be sure and not panic
-		if len(c.pastaResult.IPAddresses) > 0 {
+		if c.pastaResult != nil && len(c.pastaResult.IPAddresses) > 0 {
 			entries = etchosts.HostEntries{{IP: c.pastaResult.IPAddresses[0].String(), Names: names}}
 		}
-	case c.config.NetMode.IsSlirp4netns():
-		ip, err := getSlirp4netnsIP(c.slirp4netnsSubnet)
-		if err != nil {
-			return nil, err
-		}
-		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
 	default:
 		if c.hasNetNone() {
 			entries = etchosts.HostEntries{{IP: "127.0.0.1", Names: names}}
 		}
 	}
-	return entries, nil
+	return entries
 }
 
 func (c *Container) createHostsFile() error {
@@ -2378,10 +2372,7 @@ func (c *Container) addHosts() error {
 		// no host file nothing to do
 		return nil
 	}
-	containerIPsEntries, err := c.getHostsEntries()
-	if err != nil {
-		return fmt.Errorf("failed to get container ip host entries: %w", err)
-	}
+	containerIPsEntries := c.getHostsEntries()
 
 	// Consider container level BaseHostsFile configuration first.
 	// If it is empty, fallback to containers.conf level configuration.
