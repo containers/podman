@@ -35,6 +35,7 @@ Print results with a Go template.
 | .App            | Name of application if Quadlet is part of an app |
 | .Name           | Name of the Quadlet file                         |
 | .Path           | Quadlet file path on disk                        |
+| .Pod            | Pod name (if the quadlet is part of a pod - only applicable to .container files)|
 | .Status         | Quadlet status corresponding to systemd unit     |
 | .UnitName       | Systemd unit name corresponding to quadlet       |
 
