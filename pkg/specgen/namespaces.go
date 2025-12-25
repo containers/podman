@@ -45,7 +45,7 @@ const (
 	// be joined.  loopback should still exist.
 	// Only used with the network namespace, invalid otherwise.
 	NoNetwork NamespaceMode = "none"
-	// Bridge indicates that the network backend (CNI/netavark)
+	// Bridge indicates that the network backend (netavark)
 	// should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Bridge NamespaceMode = "bridge"
