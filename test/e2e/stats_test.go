@@ -149,29 +149,6 @@ var _ = Describe("Podman stats", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
-	It("podman stats on container with forced slirp4netns", func() {
-		// This will force the slirp4netns net mode to be tested as root
-		session := podmanTest.Podman([]string{"run", "-d", "--net", "slirp4netns", ALPINE, "top"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-	})
-
-	It("podman reads slirp4netns network stats", func() {
-		session := podmanTest.Podman([]string{"run", "-d", "--network", "slirp4netns", ALPINE, "top"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		cid := session.OutputToString()
-
-		stats := podmanTest.Podman([]string{"stats", "--format", "'{{.NetIO}}'", "--no-stream", cid})
-		stats.WaitWithDefaultTimeout()
-		Expect(stats).Should(ExitCleanly())
-		Expect(stats.OutputToString()).To(Not(ContainSubstring("-- / --")))
-	})
-
 	// Regression test for #8265
 	It("podman stats with custom memory limits", func() {
 		// Run three containers. One with a memory limit.  Make sure

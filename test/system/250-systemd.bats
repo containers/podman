@@ -340,7 +340,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     pasta_iface=$(default_ifname 4)
     assert "$pasta_iface" != "" "pasta_iface is set"
 
-    # now check that the rootless netns slirp4netns process is still alive and working
+    # now check that the rootless netns pasta process is still alive and working
     run_podman unshare --rootless-netns ip addr
     is "$output" ".*$pasta_iface.*" "pasta interface exists in the netns"
     run_podman exec $cname2 nslookup google.com
