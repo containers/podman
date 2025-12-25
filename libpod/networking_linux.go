@@ -29,10 +29,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		logrus.Warnf("Container %s still using slirp4netns mode - should have been migrated to pasta", ctr.ID())
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
-	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)
 	}
@@ -69,7 +65,11 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 		// make sure to fix this in container.handleRestartPolicy() as well
 		// Important we have to call this after r.setUpNetwork() so that
 		// we can use the proper netStatus
+		logrus.Debugf("Setting up rootless port mapping for container %s", ctr.ID())
 		err = r.setupRootlessPortMappingViaRLK(ctr, ctrNS, netStatus)
+	} else {
+		logrus.Debugf("Skipping rootless port setup: rootless=%v ports=%d netStatus=%v",
+			rootless.IsRootless(), len(ctr.config.PortMappings), ctr.getNetworkStatus())
 	}
 	return netStatus, err
 }
