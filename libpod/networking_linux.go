@@ -29,10 +29,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		logrus.Warnf("Container %s still using slirp4netns mode - should have been migrated to pasta", ctr.ID())
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
-	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)
 	}

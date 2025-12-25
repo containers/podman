@@ -1170,7 +1170,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		ctr.reservedPorts = nil
 	}
 
-	if ctr.config.NetMode.IsSlirp4netns() || rootless.IsRootless() {
+	if rootless.IsRootless() {
 		if ctr.config.PostConfigureNetNS {
 			havePortMapping := len(ctr.config.PortMappings) > 0
 			if havePortMapping {

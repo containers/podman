@@ -201,13 +201,6 @@ func (n NetworkMode) IsBridge() bool {
 	return n == bridgeType
 }
 
-// IsSlirp4netns indicates if we are running a rootless network stack
-// Deprecated: slirp4netns is no longer supported, use IsPasta instead
-func (n NetworkMode) IsSlirp4netns() bool {
-	// Check for slirp4netns mode (deprecated, will be auto-migrated to pasta)
-	return n == "slirp4netns" || strings.HasPrefix(string(n), "slirp4netns:")
-}
-
 // IsPasta indicates if we are running a rootless network stack using pasta
 func (n NetworkMode) IsPasta() bool {
 	return n == pastaType || strings.HasPrefix(string(n), pastaType+":")
@@ -231,5 +224,5 @@ func (n NetworkMode) IsPod() bool {
 
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns() && !n.IsPasta() && !n.IsNS()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsPasta() && !n.IsNS()
 }
