@@ -1009,4 +1009,57 @@ EOF
     is "$output" ".*${pasta_iface}.*"
 }
 
+@test "podman auto-migrates slirp4netns to pasta on container start" {
+    skip_if_not_rootless "migration only applies to rootless"
+    skip_if_remote "remote does not support --network=slirp4netns"
+
+    # Create a container config that looks like it was created with slirp4netns
+    # We'll do this by directly creating with slirp4netns mode
+    cname=migrate-$(safename)
+
+    # First verify we can create a container - it should auto-migrate on start
+    run_podman create --name $cname --network slirp4netns $IMAGE top
+
+    # Container should initially have slirp4netns network mode in config
+    run_podman inspect $cname --format '{{.HostConfig.NetworkMode}}'
+    is "$output" "slirp4netns" "initial network mode is slirp4netns"
+
+    # Start container - should trigger migration
+    run_podman start $cname
+
+    # After start, verify migration to pasta occurred
+    run_podman inspect $cname --format '{{.HostConfig.NetworkMode}}'
+    is "$output" "pasta" "network mode migrated to pasta after start"
+
+    # Verify container is functional after migration
+    run_podman exec $cname echo "migration successful"
+    is "$output" "migration successful" "container functional after migration"
+
+    # Cleanup
+    run_podman rm -f -t0 $cname
+}
+
+@test "podman migration preserves port mappings" {
+    skip_if_not_rootless "migration only applies to rootless"
+    skip_if_remote "remote does not support --network=slirp4netns"
+
+    # Create container with slirp4netns and port mapping
+    cname=migrate-ports-$(safename)
+    run_podman create --name $cname -p 8080:80 --network slirp4netns $IMAGE top
+
+    # Start to trigger migration
+    run_podman start $cname
+
+    # Verify migration occurred
+    run_podman inspect $cname --format '{{.HostConfig.NetworkMode}}'
+    is "$output" "pasta" "network mode migrated to pasta"
+
+    # Verify port mapping still configured
+    run_podman port $cname
+    assert "$output" =~ "80/tcp.*8080" "port mapping preserved after migration"
+
+    # Cleanup
+    run_podman rm -f -t0 $cname
+}
+
 # vim: filetype=sh
