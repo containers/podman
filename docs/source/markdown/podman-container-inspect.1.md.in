@@ -239,7 +239,7 @@ $ podman container inspect foobar
                 "Tag": "",
                 "Size": "0B"
             },
-            "NetworkMode": "slirp4netns",
+            "NetworkMode": "pasta",
             "PortBindings": {},
             "RestartPolicy": {
                 "Name": "",
