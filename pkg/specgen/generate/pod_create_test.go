@@ -133,23 +133,6 @@ func TestMapSpecNetworkOptions(t *testing.T) {
 			mustError: true,
 		},
 		{
-			name:           "Slirp",
-			podSpec:        createPodSpec(specgen.Slirp),
-			expectedNSMode: specgen.Slirp,
-		},
-		{
-			name: "Slirp but if infra spec NS mode is Host",
-			podSpec: specgen.PodSpecGenerator{
-				InfraContainerSpec: &specgen.SpecGenerator{
-					ContainerNetworkConfig: specgen.ContainerNetworkConfig{NetNS: specgen.Namespace{NSMode: host}},
-				},
-				PodNetworkConfig: specgen.PodNetworkConfig{
-					NetNS: specgen.Namespace{NSMode: specgen.Slirp},
-				},
-			},
-			expectedNSMode: specgen.Host,
-		},
-		{
 			name:            "Path",
 			podSpec:         createPodSpecWithNetNsPath("/var/run/netns/bla"),
 			expectedNSMode:  specgen.Path,

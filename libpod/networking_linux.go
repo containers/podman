@@ -5,6 +5,7 @@ package libpod
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/rootless"
@@ -28,8 +29,8 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
+	if strings.HasPrefix(string(ctr.config.NetMode), "slirp4netns") {
+		return nil, fmt.Errorf("slirp4netns support has been removed, run `podman system migrate` to update this container to use pasta")
 	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)

@@ -58,10 +58,9 @@ func TestParseNetworkFlag(t *testing.T) {
 			},
 		},
 		{
-			name:     "slirp4netns mode",
-			args:     []string{"slirp4netns"},
-			nsmode:   Namespace{NSMode: Slirp},
-			networks: map[string]types.PerNetworkOptions{},
+			name: "slirp4netns mode",
+			args: []string{"slirp4netns"},
+			err:  "slirp4netns support has been removed, use --network=pasta instead; for existing containers, run `podman system migrate`",
 		},
 		{
 			name:     "from pod mode",
@@ -88,13 +87,9 @@ func TestParseNetworkFlag(t *testing.T) {
 			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
-			name:     "slirp4netns mode with options",
-			args:     []string{"slirp4netns:cidr=10.0.0.0/24"},
-			nsmode:   Namespace{NSMode: Slirp},
-			networks: map[string]types.PerNetworkOptions{},
-			options: map[string][]string{
-				"slirp4netns": {"cidr=10.0.0.0/24"},
-			},
+			name: "slirp4netns mode with options",
+			args: []string{"slirp4netns:cidr=10.0.0.0/24"},
+			err:  "slirp4netns support has been removed, use --network=pasta instead; for existing containers, run `podman system migrate`",
 		},
 		{
 			name:   "bridge mode with options 1",
