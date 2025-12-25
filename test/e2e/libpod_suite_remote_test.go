@@ -123,7 +123,7 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	networkDir := p.NetworkConfigDir
 	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, networkDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, "file"), " ")
+		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, networkDir, "netavark", p.CgroupManager, p.TmpDir, "file"), " ")
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
