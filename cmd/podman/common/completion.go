@@ -1768,13 +1768,6 @@ func AutocompleteEventBackend(_ *cobra.Command, _ []string, _ string) ([]string,
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
-// AutocompleteNetworkBackend - Autocomplete network backend options.
-// -> "cni", "netavark"
-func AutocompleteNetworkBackend(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	types := []string{string(types.CNI), string(types.Netavark)}
-	return types, cobra.ShellCompDirectiveNoFileComp
-}
-
 // AutocompleteLogLevel - Autocomplete log level options.
 // -> "trace", "debug", "info", "warn", "error", "fatal", "panic"
 func AutocompleteLogLevel(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {

@@ -607,9 +607,11 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(namespaceFlagName, completion.AutocompleteNone)
 		_ = pFlags.MarkHidden(namespaceFlagName)
 
+		// Keep network-backend flag as hidden for backward compatibility with cleanup commands from 5.x containers
 		networkBackendFlagName := "network-backend"
-		pFlags.StringVar(&podmanConfig.ContainersConf.Network.NetworkBackend, networkBackendFlagName, podmanConfig.ContainersConfDefaultsRO.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)
-		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, common.AutocompleteNetworkBackend)
+		var networkBackendDeprecated string
+		pFlags.StringVar(&networkBackendDeprecated, networkBackendFlagName, "", "Deprecated: Network backend (flag kept for backward compatibility)")
+		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, completion.AutocompleteNone)
 		_ = pFlags.MarkHidden(networkBackendFlagName)
 
 		rootFlagName := "root"
