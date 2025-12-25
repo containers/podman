@@ -3257,29 +3257,6 @@ msgid ""
 "supported for rootful users."
 msgstr ""
 
-#: ../../source/markdown/podman-build.1.md:694
-#: ../../source/markdown/podman-create.1.md:1187
-#: ../../source/markdown/podman-kube-play.1.md:291
-#: ../../source/markdown/podman-pod-create.1.md:410
-#: ../../source/markdown/podman-run.1.md:1214
-msgid ""
-"**slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user "
-"network stack. This is the default for rootless containers. It is "
-"possible to specify these additional options, they can also be set with "
-"`network_cmd_options` in containers.conf:"
-msgstr ""
-
-#: ../../source/markdown/podman-build.1.md:695
-#: ../../source/markdown/podman-create.1.md:1188
-#: ../../source/markdown/podman-kube-play.1.md:292
-#: ../../source/markdown/podman-pod-create.1.md:411
-#: ../../source/markdown/podman-run.1.md:1215
-msgid ""
-"**allow_host_loopback=true|false**: Allow slirp4netns to reach the host "
-"loopback IP (default is 10.0.2.2 or the second IP from slirp4netns cidr "
-"subnet when changed, see the cidr option below). The default is false."
-msgstr ""
-
 #: ../../source/markdown/podman-build.1.md:696
 #: ../../source/markdown/podman-create.1.md:1189
 #: ../../source/markdown/podman-kube-play.1.md:293
@@ -3308,42 +3285,6 @@ msgstr ""
 msgid ""
 "**enable_ipv6=true|false**: Enable IPv6. Default is true. (Required for "
 "`outbound_addr6`)."
-msgstr ""
-
-#: ../../source/markdown/podman-build.1.md:699
-#: ../../source/markdown/podman-create.1.md:1192
-#: ../../source/markdown/podman-kube-play.1.md:296
-#: ../../source/markdown/podman-pod-create.1.md:415
-#: ../../source/markdown/podman-run.1.md:1219
-msgid ""
-"**outbound_addr=INTERFACE**: Specify the outbound interface slirp binds "
-"to (ipv4 traffic only)."
-msgstr ""
-
-#: ../../source/markdown/podman-build.1.md:700
-#: ../../source/markdown/podman-create.1.md:1193
-#: ../../source/markdown/podman-kube-play.1.md:297
-#: ../../source/markdown/podman-pod-create.1.md:416
-#: ../../source/markdown/podman-run.1.md:1220
-msgid "**outbound_addr=IPv4**: Specify the outbound ipv4 address slirp binds to."
-msgstr ""
-
-#: ../../source/markdown/podman-build.1.md:701
-#: ../../source/markdown/podman-create.1.md:1194
-#: ../../source/markdown/podman-kube-play.1.md:298
-#: ../../source/markdown/podman-pod-create.1.md:417
-#: ../../source/markdown/podman-run.1.md:1221
-msgid ""
-"**outbound_addr6=INTERFACE**: Specify the outbound interface slirp binds "
-"to (ipv6 traffic only)."
-msgstr ""
-
-#: ../../source/markdown/podman-build.1.md:702
-#: ../../source/markdown/podman-create.1.md:1195
-#: ../../source/markdown/podman-kube-play.1.md:299
-#: ../../source/markdown/podman-pod-create.1.md:418
-#: ../../source/markdown/podman-run.1.md:1222
-msgid "**outbound_addr6=IPv6**: Specify the outbound ipv6 address slirp binds to."
 msgstr ""
 
 #: ../../source/markdown/podman-build.1.md:703
@@ -3394,8 +3335,8 @@ msgstr ""
 #: ../../source/markdown/podman-run.1.md:1252
 msgid ""
 "**pasta:--ipv4-only,-a,10.0.2.0,-n,24,-g,10.0.2.2,--dns-"
-"forward,10.0.2.3,-m,1500,--no-ndp,--no-dhcpv6,--no-dhcp**,   equivalent "
-"to default slirp4netns(1) options: disable IPv6, assign   `10.0.2.0/24` "
+"forward,10.0.2.3,-m,1500,--no-ndp,--no-dhcpv6,--no-dhcp**,   "
+"assign   `10.0.2.0/24` "
 "to the `tap0` interface in the container, with gateway   `10.0.2.3`, "
 "enable DNS forwarder reachable at `10.0.2.3`, set MTU to 1500   bytes, "
 "disable NDP, DHCPv6 and DHCP support."
@@ -3408,8 +3349,8 @@ msgstr ""
 #: ../../source/markdown/podman-run.1.md:1257
 msgid ""
 "**pasta:-I,tap0,--ipv4-only,-a,10.0.2.0,-n,24,-g,10.0.2.2,--dns-"
-"forward,10.0.2.3,--no-ndp,--no-dhcpv6,--no-dhcp**,   equivalent to "
-"default slirp4netns(1) options with Podman overrides: same as   above, "
+"forward,10.0.2.3,--no-ndp,--no-dhcpv6,--no-dhcp**,   "
+"same as   above, "
 "but leave the MTU to 65520 bytes"
 msgstr ""
 
@@ -9586,8 +9527,7 @@ msgstr ""
 #: ../../source/markdown/podman-run.1.md:1213
 msgid ""
 "**private**: Create a new namespace for the container. This uses the "
-"**bridge** mode for rootful containers and **slirp4netns** for rootless "
-"ones."
+"**bridge** mode for rootful containers."
 msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:1196
@@ -9602,16 +9542,6 @@ msgid ""
 "e.g. web server logs, use the slirp4netns port handler. The rootlesskit "
 "port handler is also used for rootless containers when connected to user-"
 "defined networks."
-msgstr ""
-
-#: ../../source/markdown/podman-create.1.md:1198
-#: ../../source/markdown/podman-kube-play.1.md:302
-#: ../../source/markdown/podman-pod-create.1.md:421
-#: ../../source/markdown/podman-run.1.md:1225
-msgid ""
-"**port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is "
-"slower than rootlesskit but preserves the correct source IP address. This"
-" port handler cannot be used for user-defined networks."
 msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:1200
@@ -12214,7 +12144,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:2453
 msgid ""
-"Rootless Podman works better if the fuse-overlayfs and slirp4netns "
+"Rootless Podman works better if the fuse-overlayfs and pasta "
 "packages are installed. The fuse-overlayfs package provides a userspace "
 "overlay storage driver, otherwise users need to use the vfs storage "
 "driver, which can be disk space expensive and less performant than other "
@@ -12224,7 +12154,7 @@ msgstr ""
 #: ../../source/markdown/podman-create.1.md:2458
 #: ../../source/markdown/podman-run.1.md:2836
 msgid ""
-"To enable VPN on the container, slirp4netns or pasta needs to be "
+"To enable VPN on the container, pasta needs to be "
 "specified; without either, containers need to be run with the "
 "--network=host flag."
 msgstr ""
@@ -12342,8 +12272,7 @@ msgid ""
 " "
 "**[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,"
 " **[setsebool(8)](https://man7.org/linux/man-"
-"pages/man8/setsebool.8.html)**, **[slirp4netns(1)](https://github.com"
-"/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md)**, "
+"pages/man8/setsebool.8.html)**,"
 "**[pasta(1)](https://passt.top/builds/latest/web/passt.1.html)**, "
 "**[fuse-overlayfs(1)](https://github.com/containers/fuse-"
 "overlayfs/blob/main/fuse-overlayfs.1.md)**, **proc(5)**, "
@@ -20795,24 +20724,14 @@ msgid ""
 " that this is only done when no containers are running."
 msgstr ""
 
-#: ../../source/markdown/podman-network.1.md:45
-msgid "Slirp4netns"
-msgstr ""
-
 #: ../../source/markdown/podman-network.1.md:46
 msgid ""
 "When Podman is run as rootless, the internet connectivity is provided "
-"with slirp4netns by default. Slirp4nents uses 10.0.2.0/24 for its default"
+"with Pasta by default. Slirp4nents uses 10.0.2.0/24 for its default"
 " network. This can also be changed in "
 "**[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**"
 " but under the `[engine]` section. Use the `network_cmd_options` key and "
-"add `[\"cidr=X.X.X.X/24\"]` as a value. Note that slirp4netns needs a "
-"network prefix size between 1 and 25. This option accepts an array, so "
-"more options can be added in a comma-separated string as described on the"
-" **[podman-network-create(1)](podman-network-create.1.md)** man page. To "
-"change the CIDR for just one container, specify it on the cli using the "
-"`--network` option like this: `--network "
-"slirp4netns:cidr=192.168.1.0/24`."
+"add `[\"cidr=X.X.X.X/24\"]` as a value."
 msgstr ""
 
 #: ../../source/markdown/podman-network.1.md:48
@@ -25500,7 +25419,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-run.1.md:2831
 msgid ""
-"Rootless Podman works better if the fuse-overlayfs and slirp4netns "
+"Rootless Podman works better if the fuse-overlayfs and pasta "
 "packages are installed. The **fuse-overlayfs** package provides a "
 "userspace overlay storage driver, otherwise users need to use the **vfs**"
 " storage driver, which can be disk space expensive and less performant "
@@ -26526,13 +26445,6 @@ msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:101
 msgid "Do not truncate output"
-msgstr ""
-
-#: ../../source/markdown/podman-stats.1.md:146
-msgid ""
-"Note: When using a slirp4netns network with the rootlesskit port handler,"
-" the traffic sent via the port forwarding is accounted to the `lo` "
-"device.  Traffic accounted to `lo` is not accounted in the stats output."
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:156
@@ -31333,14 +31245,8 @@ msgid ""
 "Windows (excluding WSL2) machines"
 msgstr ""
 
-#: ../../source/markdown/podman.1.md:99
-msgid ""
-"Path to the `slirp4netns(1)` command binary to use for setting up a "
-"slirp4netns network. If \"\" is used, then the binary will first be "
-"searched using the `helper_binaries_dir` option in `containers.conf`, and"
-" second using the `$PATH` environment variable. **Note:** This option is "
-"deprecated and will be removed with Podman 5.0. Use the "
-"`helper_binaries_dir` option in `containers.conf` instead."
+#: ../../source/markdown/podman.1.md:98
+msgid "**--network-cmd-path**=*path*"
 msgstr ""
 
 #: ../../source/markdown/podman.1.md:103
@@ -31957,7 +31863,7 @@ msgstr ""
 
 #: ../../source/markdown/podman.1.md:444
 msgid ""
-"Currently slirp4netns or pasta is required to be installed to create a "
+"Currently pasta is required to be installed to create a "
 "network device, otherwise rootless containers need to run in the network "
 "namespace of the host."
 msgstr ""
@@ -32029,8 +31935,6 @@ msgid ""
 "**[runc(8)](https://github.com/opencontainers/runc/blob/main/man/runc.8.md)**,"
 " **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, "
 "**[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, "
-"**[slirp4netns(1)](https://github.com/rootless-"
-"containers/slirp4netns/blob/master/slirp4netns.1.md)**, "
 "**[pasta(1)](https://passt.top/builds/latest/web/passt.1.html)**, "
 "**[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**"
 msgstr ""

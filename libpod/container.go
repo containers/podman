@@ -107,9 +107,6 @@ type Container struct {
 	runtime    *Runtime
 	ociRuntime OCIRuntime
 
-	rootlessSlirpSyncR *os.File
-	rootlessSlirpSyncW *os.File
-
 	rootlessPortSyncR *os.File
 	rootlessPortSyncW *os.File
 
@@ -126,8 +123,7 @@ type Container struct {
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
 
-	slirp4netnsSubnet *net.IPNet
-	pastaResult       *pasta.SetupResult
+	pastaResult *pasta.SetupResult
 }
 
 // ContainerState contains the current state of the container

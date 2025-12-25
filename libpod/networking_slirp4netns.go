@@ -5,7 +5,6 @@ package libpod
 import (
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 
@@ -15,60 +14,34 @@ import (
 	"go.podman.io/common/libnetwork/types"
 )
 
-// setupSlirp4netns can be called in rootful as well as in rootless
-func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
-	ports := ctr.convertPortMappings()
-
-	if !ctr.config.PostConfigureNetNS {
-		var err error
-		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
-		if err != nil {
-			return fmt.Errorf("failed to create rootless network sync pipe: %w", err)
-		}
-		if len(ports) > 0 {
-			ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
-			if err != nil {
-				return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
-			}
-		}
-	}
-	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-	if ctr.rootlessPortSyncR != nil {
-		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-	}
-
-	res, err := slirp4netns.Setup(&slirp4netns.SetupOptions{
-		Config:                r.config,
-		ContainerID:           ctr.ID(),
-		Netns:                 netns,
-		Ports:                 ports,
-		ExtraOptions:          ctr.config.NetworkOptions[slirp4netns.BinaryName],
-		Slirp4netnsExitPipeR:  ctr.rootlessSlirpSyncR,
-		RootlessPortExitPipeR: ctr.rootlessPortSyncR,
-	})
-	if err != nil {
-		return err
-	}
-	ctr.slirp4netnsSubnet = res.Subnet
-	return nil
-}
-
 func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string, netStatus map[string]types.StatusBlock) error {
-	var err error
-	if !ctr.config.PostConfigureNetNS {
+	// Only create pipes if they don't exist yet
+	if ctr.rootlessPortSyncR == nil {
+		logrus.Debugf("Creating rootlessPortSync pipes for container %s", ctr.ID())
+		var err error
 		ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 		if err != nil {
 			return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
 		}
+	} else {
+		logrus.Debugf("rootlessPortSync pipes already exist for container %s", ctr.ID())
 	}
+	// Always close the read end in the parent after passing to child
+	// The rootlessport child process inherits this fd and the write end stays open
 	defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-	return slirp4netns.SetupRootlessPortMappingViaRLK(&slirp4netns.SetupOptions{
+
+	logrus.Debugf("Calling vendor SetupRootlessPortMappingViaRLK for container %s with netns %s", ctr.ID(), netnsPath)
+	err := slirp4netns.SetupRootlessPortMappingViaRLK(&slirp4netns.SetupOptions{
 		Config:                r.config,
 		ContainerID:           ctr.ID(),
 		Netns:                 netnsPath,
 		Ports:                 ctr.convertPortMappings(),
 		RootlessPortExitPipeR: ctr.rootlessPortSyncR,
 	}, nil, netStatus)
+	if err != nil {
+		logrus.Errorf("SetupRootlessPortMappingViaRLK failed for container %s: %v", ctr.ID(), err)
+	}
+	return err
 }
 
 // reloadRootlessRLKPortMapping will trigger a reload for the port mappings in the rootlessport process.
@@ -99,8 +72,4 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 		return fmt.Errorf("port reloading failed: %s", data)
 	}
 	return nil
-}
-
-func getSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
-	return slirp4netns.GetIP(subnet)
 }
