@@ -22,21 +22,6 @@ class NetworkTestCase(APITestCase):
                 "Cmd": ["top"],
                 "Image": "alpine:latest",
                 "NetworkDisabled": False,
-                # FIXME adding these 2 lines cause: (This is sampled from docker-py)
-                #   "network already exists","message":"container
-                #  01306e499df5441560d70071a54342611e422a94de20865add50a9565fd79fb9 is already connected to CNI
-                #  network \"TestDefaultNetwork\": network already exists"
-                # "HostConfig": {"NetworkMode": "TestDefaultNetwork"},
-                # "NetworkingConfig": {"EndpointsConfig": {"TestDefaultNetwork": None}},
-                # FIXME These two lines cause:
-                # CNI network \"TestNetwork\" not found","message":"error configuring network namespace for container
-                # 369ddfa7d3211ebf1fbd5ddbff91bd33fa948858cea2985c133d6b6507546dff: CNI network \"TestNetwork\" not
-                # found"
-                # "HostConfig": {"NetworkMode": "TestNetwork"},
-                # "NetworkingConfig": {"EndpointsConfig": {"TestNetwork": None}},
-                # FIXME no networking defined cause: (note this error is from the container inspect below)
-                # "internal libpod error","message":"network inspection mismatch: asked to join 2 CNI network(s) [
-                # TestDefaultNetwork podman], but have information on 1 network(s): internal libpod error"
             },
         )
         self.assertEqual(create.status_code, 201, create.text)

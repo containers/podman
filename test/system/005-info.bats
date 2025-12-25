@@ -85,8 +85,7 @@ host.slirp4netns.executable | $expr_path
 @test "podman info - confirm desired network backend" {
     if [[ -z "$CI_DESIRED_NETWORK" ]]; then
         # When running on RHEL, CI_DESIRED_NETWORK *must* be defined
-        # in gating.yaml because some versions of RHEL use CNI, some
-        # use netavark.
+        # in gating.yaml for RHEL testing.
         local osrelease=/etc/os-release
         if [[ -e $osrelease ]]; then
             local osname=$(source $osrelease; echo $NAME)
