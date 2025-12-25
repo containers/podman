@@ -1179,6 +1179,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		filesToClose = append(filesToClose, ctr.reservedPorts...)
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.reservedPorts...)
 		ctr.reservedPorts = nil
+
+		// For rootless port forwarding, leak write end to conmon
+		// The pipes were created earlier in ctr.prepare() before network setup
+		if ctr.rootlessPortSyncW != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
+			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncW)
+		}
 	}
 
 	var runtimeRestoreStarted time.Time

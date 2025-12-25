@@ -17,22 +17,31 @@ import (
 func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string, netStatus map[string]types.StatusBlock) error {
 	// Only create pipes if they don't exist yet
 	if ctr.rootlessPortSyncR == nil {
+		logrus.Debugf("Creating rootlessPortSync pipes for container %s", ctr.ID())
 		var err error
 		ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 		if err != nil {
 			return fmt.Errorf("failed to create rootless port sync pipe: %w", err)
 		}
+	} else {
+		logrus.Debugf("rootlessPortSync pipes already exist for container %s", ctr.ID())
 	}
 	// Always close the read end in the parent after passing to child
 	// The rootlessport child process inherits this fd and the write end stays open
 	defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
-	return slirp4netns.SetupRootlessPortMappingViaRLK(&slirp4netns.SetupOptions{
+
+	logrus.Debugf("Calling vendor SetupRootlessPortMappingViaRLK for container %s with netns %s", ctr.ID(), netnsPath)
+	err := slirp4netns.SetupRootlessPortMappingViaRLK(&slirp4netns.SetupOptions{
 		Config:                r.config,
 		ContainerID:           ctr.ID(),
 		Netns:                 netnsPath,
 		Ports:                 ctr.convertPortMappings(),
 		RootlessPortExitPipeR: ctr.rootlessPortSyncR,
 	}, nil, netStatus)
+	if err != nil {
+		logrus.Errorf("SetupRootlessPortMappingViaRLK failed for container %s: %v", ctr.ID(), err)
+	}
+	return err
 }
 
 // reloadRootlessRLKPortMapping will trigger a reload for the port mappings in the rootlessport process.

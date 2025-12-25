@@ -89,6 +89,16 @@ func (c *Container) prepare() error {
 				return
 			}
 
+			// Create rootlessport sync pipes for rootless containers with port mappings
+			// These need to exist before network setup since port forwarding is configured during createNetNS
+			if rootless.IsRootless() && len(c.config.PortMappings) > 0 {
+				c.rootlessPortSyncR, c.rootlessPortSyncW, createNetNSErr = os.Pipe()
+				if createNetNSErr != nil {
+					createNetNSErr = fmt.Errorf("failed to create rootless port sync pipe: %w", createNetNSErr)
+					return
+				}
+			}
+
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
 				return
