@@ -307,15 +307,6 @@ func (rs *Ruleset) AddUncountable(word string) {
 	rs.uncountables[strings.ToLower(word)] = true
 }
 
-func (rs *Ruleset) isUncountable(word string) bool {
-	// handle multiple words by using the last one
-	words := strings.Split(word, " ")
-	if _, exists := rs.uncountables[strings.ToLower(words[len(words)-1])]; exists {
-		return true
-	}
-	return false
-}
-
 // returns the plural form of a singular word
 func (rs *Ruleset) Pluralize(word string) string {
 	if len(word) == 0 {
@@ -383,20 +374,6 @@ func (rs *Ruleset) Titleize(word string) string {
 	return strings.Join(words, " ")
 }
 
-func (rs *Ruleset) safeCaseAcronyms(word string) string {
-	// convert an acroymn like HTML into Html
-	for _, rule := range rs.acronyms {
-		word = strings.ReplaceAll(word, rule.suffix, rule.replacement)
-	}
-	return word
-}
-
-func (rs *Ruleset) seperatedWords(word, sep string) string {
-	word = rs.safeCaseAcronyms(word)
-	words := splitAtCaseChange(word)
-	return strings.Join(words, sep)
-}
-
 // lowercase underscore version "BigBen" -> "big_ben"
 func (rs *Ruleset) Underscore(word string) string {
 	return rs.seperatedWords(word, "_")
@@ -452,6 +429,74 @@ func (rs *Ruleset) ParameterizeJoin(word, sep string) string {
 	return word
 }
 
+// transforms latin characters like é -> e
+func (rs *Ruleset) Asciify(word string) string {
+	for repl, regex := range lookalikes {
+		word = regex.ReplaceAllString(word, repl)
+	}
+	return word
+}
+
+var tablePrefix = regexp.MustCompile(`^[^.]*\.`)
+
+// "something_like_this" -> "SomethingLikeThis"
+func (rs *Ruleset) Typeify(word string) string {
+	word = tablePrefix.ReplaceAllString(word, "")
+	return rs.Camelize(rs.Singularize(word))
+}
+
+// "SomeText" -> "some-text"
+func (rs *Ruleset) Dasherize(word string) string {
+	return rs.seperatedWords(word, "-")
+}
+
+// "1031" -> "1031st"
+//
+//nolint:mnd
+func (rs *Ruleset) Ordinalize(str string) string {
+	number, err := strconv.Atoi(str)
+	if err != nil {
+		return str
+	}
+	switch abs(number) % 100 {
+	case 11, 12, 13:
+		return fmt.Sprintf("%dth", number)
+	default:
+		switch abs(number) % 10 {
+		case 1:
+			return fmt.Sprintf("%dst", number)
+		case 2:
+			return fmt.Sprintf("%dnd", number)
+		case 3:
+			return fmt.Sprintf("%drd", number)
+		}
+	}
+	return fmt.Sprintf("%dth", number)
+}
+
+func (rs *Ruleset) isUncountable(word string) bool {
+	// handle multiple words by using the last one
+	words := strings.Split(word, " ")
+	if _, exists := rs.uncountables[strings.ToLower(words[len(words)-1])]; exists {
+		return true
+	}
+	return false
+}
+
+func (rs *Ruleset) safeCaseAcronyms(word string) string {
+	// convert an acroymn like HTML into Html
+	for _, rule := range rs.acronyms {
+		word = strings.ReplaceAll(word, rule.suffix, rule.replacement)
+	}
+	return word
+}
+
+func (rs *Ruleset) seperatedWords(word, sep string) string {
+	word = rs.safeCaseAcronyms(word)
+	words := splitAtCaseChange(word)
+	return strings.Join(words, sep)
+}
+
 var lookalikes = map[string]*regexp.Regexp{
 	"A":  regexp.MustCompile(`À|Á|Â|Ã|Ä|Å`),
 	"AE": regexp.MustCompile(`Æ`),
@@ -476,49 +521,6 @@ var lookalikes = map[string]*regexp.Regexp{
 	"s":  regexp.MustCompile(`ş`),
 	"u":  regexp.MustCompile(`ù|ú|û|ü|ũ|ū|ŭ|ů|ű|ų`),
 	"y":  regexp.MustCompile(`ý|ÿ`),
-}
-
-// transforms latin characters like é -> e
-func (rs *Ruleset) Asciify(word string) string {
-	for repl, regex := range lookalikes {
-		word = regex.ReplaceAllString(word, repl)
-	}
-	return word
-}
-
-var tablePrefix = regexp.MustCompile(`^[^.]*\.`)
-
-// "something_like_this" -> "SomethingLikeThis"
-func (rs *Ruleset) Typeify(word string) string {
-	word = tablePrefix.ReplaceAllString(word, "")
-	return rs.Camelize(rs.Singularize(word))
-}
-
-// "SomeText" -> "some-text"
-func (rs *Ruleset) Dasherize(word string) string {
-	return rs.seperatedWords(word, "-")
-}
-
-// "1031" -> "1031st"
-func (rs *Ruleset) Ordinalize(str string) string {
-	number, err := strconv.Atoi(str)
-	if err != nil {
-		return str
-	}
-	switch abs(number) % 100 {
-	case 11, 12, 13:
-		return fmt.Sprintf("%dth", number)
-	default:
-		switch abs(number) % 10 {
-		case 1:
-			return fmt.Sprintf("%dst", number)
-		case 2:
-			return fmt.Sprintf("%dnd", number)
-		case 3:
-			return fmt.Sprintf("%drd", number)
-		}
-	}
-	return fmt.Sprintf("%dth", number)
 }
 
 /////////////////////////////////////////
