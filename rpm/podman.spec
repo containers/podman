@@ -323,6 +323,9 @@ cp -pav test/system %{buildroot}%{_datadir}/%{name}/test/
 %ifarch %{machine_arches}
 # symlink virtiofsd in %%{name} libexecdir for machine subpackage
 ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
+%if !%{defined qemu}
+ln -s ../qemu-kvm %{buildroot}%{_libexecdir}/%{name}/qemu-system-%{arch}
+%endif
 %endif
 
 #define license tag if not already defined
@@ -379,6 +382,9 @@ ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
 %files machine
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/virtiofsd
+%if !%{defined qemu}
+%{_libexecdir}/%{name}/qemu-system-%{arch}
+%endif
 %endif
 
 %changelog
