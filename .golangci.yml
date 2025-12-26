@@ -76,6 +76,9 @@ linters:
       - path: _test\.go
         linters:
           - prealloc
+      - linters:
+          - unused
+        text: "(rootlessPortSyncR|rootlessPortSyncW)"
 
 issues:
   max-issues-per-linter: 0
