@@ -29,9 +29,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
-	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)
 	}
@@ -122,7 +119,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	// Do not check the error here, we want to always umount the netns
 	// This will ensure that the container interface will be deleted
-	// even when there is a CNI or netavark bug.
+	// even when there is a network backend bug.
 	prevErr := r.teardownNetwork(ctr)
 
 	// First unmount the namespace
