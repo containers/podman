@@ -82,9 +82,7 @@ As mentioned earlier, slirp4netns is the default network configuration for rootl
 users.  But as of Podman version 4.0, rootless users can also use netavark.
 The user experience of rootless netavark is very akin to a rootful netavark, except that
 there is no default network configuration provided.  You simply need to create a
-network, and the one will be created as a bridge network. If you would like to switch from
-CNI networking to netavark, you must issue the `podman system reset --force` command.
-This will delete all of your images, containers, and custom networks.
+network, and the one will be created as a bridge network.
 
 ```
 $ podman network create
@@ -185,17 +183,10 @@ The next step is to ensure that the DHCP service is running. This handles
 the DHCP leases from the network. If DHCP is not needed, the `--subnet` option
 can be used to assign a static subnet in the `network create` command above.
 
-CNI and netavark both use their own DHCP service; therefore, you need to know
-what backend you are using. To see what you are using, run this command:
-```
-$ sudo podman info --format {{.Host.NetworkBackend}}
-```
-If this command does not work, you are using an older version prior to Podman
-v4.0 which means you are using CNI.
-If the netavark backend is used, at least Podman v4.5 with netavark v1.6 is
-required to use DHCP.
+Podman uses netavark for networking, which requires netavark v1.6 or later with Podman v4.5+
+to use DHCP.
 
-For netavark use:
+To enable DHCP with netavark:
 ```
 $ sudo systemctl enable --now netavark-dhcp-proxy.socket
 ```
@@ -203,16 +194,6 @@ Or if the system doesn't use systemd, start the daemon manually:
 ```
 $ /usr/libexec/podman/netavark dhcp-proxy --activity-timeout 0
 ```
-
-With CNI use:
-```
-$ sudo systemctl enable --now cni-dhcp.socket
-```
-Or if the system doesn't use systemd, start the daemon manually:
-```
-$ sudo /usr/libexec/cni/dhcp daemon
-```
-Note that depending on the distribution, the binary location may differ.
 
 Now run the container and be certain to attach it to the network we created earlier.
 ```

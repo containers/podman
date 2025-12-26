@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
@@ -72,7 +72,7 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 	return opts
 }
 
-// setUpNetwork will set up the networks, on error it will also tear down the cni
+// setUpNetwork will set up the networks, on error it will also tear down the
 // networks. If rootless it will join/create the rootless network namespace.
 func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
 	return r.network.Setup(ns, types.SetupOptions{NetworkOptions: opts})
@@ -146,15 +146,23 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 
 	err := r.teardownNetwork(ctr)
 	if err != nil {
-		// teardownNetwork will error if the iptables rules do not exist and this is the case after
+		// teardownNetwork will error if the iptables/nftables rules do not exist and this is the case after
 		// a firewall reload. The purpose of network reload is to recreate the rules if they do
-		// not exists so we should not log this specific error as error. This would confuse users otherwise.
-		// iptables-legacy and iptables-nft will create different errors. Make sure to match both.
-		b, rerr := regexp.MatchString("Couldn't load target `CNI-[a-f0-9]{24}':No such file or directory|Chain 'CNI-[a-f0-9]{24}' does not exist", err.Error())
-		if rerr == nil && !b {
-			logrus.Error(err)
-		} else {
+		// not exist so we should not log this specific error as error. This would confuse users otherwise.
+		// Match both CNI and netavark chain errors for iptables-legacy, iptables-nft, and nftables.
+		// Note: We keep the CNI pattern for backwards compatibility during migration.
+		errMsg := err.Error()
+		isExpectedError := strings.Contains(errMsg, "Couldn't load target") ||
+			strings.Contains(errMsg, "does not exist") ||
+			strings.Contains(errMsg, "No such file or directory") ||
+			strings.Contains(errMsg, "table inet netavark") ||
+			strings.Contains(errMsg, "NETAVARK-") ||
+			strings.Contains(errMsg, "CNI-")
+
+		if isExpectedError {
 			logrus.Info(err)
+		} else {
+			logrus.Error(err)
 		}
 	}
 
@@ -172,7 +180,7 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 			for _, netAddress := range netInt.Subnets {
 				perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
 			}
-			// Normally interfaces have a length of 1, only for some special cni configs we could get more.
+			// Normally interfaces have a length of 1, only for some special network configs we could get more.
 			// For now just use the first interface to get the ips this should be good enough for most cases.
 			break
 		}
@@ -251,10 +259,10 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		if len(networks) > 0 {
 			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
 			for net, opts := range networks {
-				cniNet := new(define.InspectAdditionalNetwork)
-				cniNet.NetworkID = getNetworkID(net)
-				cniNet.Aliases = opts.Aliases
-				settings.Networks[net] = cniNet
+				netInfo := new(define.InspectAdditionalNetwork)
+				netInfo.NetworkID = getNetworkID(net)
+				netInfo.Aliases = opts.Aliases
+				settings.Networks[net] = netInfo
 			}
 		} else {
 			setDefaultNetworks()
@@ -313,8 +321,8 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	return settings, nil
 }
 
-// resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
-// result
+// resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a
+// network result
 func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNetworkConfig {
 	config := define.InspectBasicNetworkConfig{}
 	interfaceNames := make([]string, 0, len(result.Interfaces))
@@ -358,7 +366,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNet
 
 // NetworkDisconnect removes a container from the network
 func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
-	// only the bridge mode supports cni networks
+	// only the bridge mode supports networks
 	if err := isBridgeNetMode(c.config.NetMode); err != nil {
 		return err
 	}
@@ -372,7 +380,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 	}
 
 	// check if network exists and if the input is an ID we get the name
-	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
+	// The libpod db only uses names so it is important that we only use the name
 	netName, _, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
 		return err
@@ -495,7 +503,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	}
 
 	// check if network exists and if the input is an ID we get the name
-	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
+	// The libpod db only uses names so it is important that we only use the name
 	var nicName string
 	netName, nicName, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
