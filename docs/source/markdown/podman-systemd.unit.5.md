@@ -88,8 +88,8 @@ and add the unit file to one of the above rootless unit search paths.
 When a Quadlet unit starts, Podman may need to pull or build container images, which can take significantly longer
 than systemd's default 90-second service startup limit. If this causes the unit to fail, you can either pre-pull the
 required images or increase the service's startup timeout using the *TimeoutStartSec* option. Keep in mind, however,
-that *TimeoutStartSec* cannot be used with units that specify `Type=oneshot` (their startup timeout is disabled by
-default). For further details on *TimeoutStartSec*, see `systemd.service(5)`.
+that for units that specify `Type=oneshot`, the startup timeout is disabled by default (set to infinity), so
+*TimeoutStartSec* must be explicitly configured if a timeout is desired. For further details on *TimeoutStartSec*, see `systemd.service(5)`.
 
 Adding the following snippet to a Quadlet file extends the startup timeout to 15 minutes.
 
