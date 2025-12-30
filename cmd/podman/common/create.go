@@ -149,14 +149,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(exposeFlagName, completion.AutocompleteNone)
 
-		groupAddFlagName := "group-add"
-		createFlags.StringSliceVar(
-			&cf.GroupAdd,
-			groupAddFlagName, []string{},
-			"Add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
-
 		createFlags.BoolVar(
 			&cf.HTTPProxy,
 			"http-proxy", podmanConfig.ContainersConfDefaultsRO.Containers.HTTPProxy,
@@ -771,6 +763,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		gpuFlagName := "gpus"
 		createFlags.StringSliceVar(&cf.GPUs, gpuFlagName, []string{}, "GPU devices to add to the container ('all' to pass all GPUs)")
 		_ = cmd.RegisterFlagCompletionFunc(gpuFlagName, completion.AutocompleteNone)
+
+		groupAddFlagName := "group-add"
+		createFlags.StringSliceVar(
+			&cf.GroupAdd,
+			groupAddFlagName, []string{},
+			"Add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
 
 		uidmapFlagName := "uidmap"
 		createFlags.StringSliceVar(
