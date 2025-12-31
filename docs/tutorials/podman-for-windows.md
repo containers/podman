@@ -133,12 +133,11 @@ Cannot connect to Podman. Please verify your connection to the Linux system usin
 Error: unable to connect to Podman socket: Get "http://d/v5.7.1/libpod/_ping": ssh: rejected: connect failed (open failed)
 ```
 
-try to recreate the machine in rootful mode like this:
+try to restart the machine in rootful mode like this:
 
 ```
 podman machine stop
-podman machine rm
-podman machine init --rootful
+podman machine set --rootful
 podman machine start
 podman run ubi8-micro date
 ```
