@@ -19,34 +19,15 @@ import (
 
 	crypto_rand "crypto/rand"
 
-	"github.com/sirupsen/logrus"
-
 	. "github.com/onsi/ginkgo/v2"    //nolint:staticcheck // ST1001: should not use dot imports
 	. "github.com/onsi/gomega"       //nolint:staticcheck // ST1001: should not use dot imports
 	. "github.com/onsi/gomega/gexec" //nolint:staticcheck // ST1001: should not use dot imports
 )
 
-type NetworkBackend int
-
 const (
-	// Container Networking backend
-	CNI NetworkBackend = iota
-	// Netavark network backend
-	Netavark NetworkBackend = iota
 	// Env variable for creating time files.
 	EnvTimeDir = "_PODMAN_TIME_DIR"
 )
-
-func (n NetworkBackend) ToString() string {
-	switch n {
-	case CNI:
-		return "cni"
-	case Netavark:
-		return "netavark"
-	}
-	logrus.Errorf("unknown network backend: %q", n)
-	return ""
-}
 
 var (
 	DefaultWaitTimeout   = 90
@@ -66,7 +47,6 @@ type PodmanTestCommon interface {
 type PodmanTest struct {
 	ImageCacheDir           string
 	ImageCacheFS            string
-	NetworkBackend          NetworkBackend
 	DatabaseBackend         string
 	PodmanBinary            string
 	PodmanMakeOptions       func(args []string, options PodmanExecOptions) []string
