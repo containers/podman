@@ -143,6 +143,11 @@ var _ = Describe("Podman privileged container tests", func() {
 			Skip("Can't determine NoNewPrivs")
 		}
 
+		fields := strings.Fields(cap.OutputToString())
+		if fields[1] != "0" {
+			Skip("NoNewPrivs set")
+		}
+
 		session := podmanTest.Podman([]string{"run", BB, "grep", "NoNewPrivs", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
