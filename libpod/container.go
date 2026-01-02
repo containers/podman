@@ -108,9 +108,6 @@ type Container struct {
 	runtime    *Runtime
 	ociRuntime OCIRuntime
 
-	rootlessSlirpSyncR *os.File
-	rootlessSlirpSyncW *os.File
-
 	rootlessPortSyncR *os.File
 	rootlessPortSyncW *os.File
 
