@@ -26,6 +26,7 @@ import (
 //   - not short names: "quay.io/image", "localhost/image:tag",
 //     "server.org:5000/lib/image", "image@sha256:..."
 func IsShortName(input string) bool {
+	_ = configureSingleNameRegistries(nil)
 	isShort, _, _ := parseUnnormalizedShortName(input)
 	return isShort
 }
@@ -57,6 +58,17 @@ func parseUnnormalizedShortName(input string) (bool, reference.Named, error) {
 	return true, named, nil
 }
 
+// configureSingleNameRegistries sets extra registry names that should be
+// treated as fully-qualified even if they do not contain dots.
+func configureSingleNameRegistries(ctx *types.SystemContext) error {
+	registries, _, err := sysregistriesv2.SingleNameRegistriesWithOrigin(ctx)
+	if err != nil {
+		return err
+	}
+	reference.SetAdditionalDefaultDomains(registries)
+	return nil
+}
+
 // splitUserInput parses the user-specified reference.  Namely, it strips off
 // the tag or digest and stores it in the return values so that both can be
 // re-added to a possible resolved alias' or USRs at a later point.
@@ -80,6 +92,9 @@ func splitUserInput(named reference.Named) (isTagged bool, isDigested bool, norm
 // Add records the specified name-value pair as a new short-name alias to the
 // user-specific aliases.conf.  It may override an existing alias for `name`.
 func Add(ctx *types.SystemContext, name string, value reference.Named) error {
+	if err := configureSingleNameRegistries(ctx); err != nil {
+		return err
+	}
 	isShort, _, err := parseUnnormalizedShortName(name)
 	if err != nil {
 		return err
@@ -95,6 +110,9 @@ func Add(ctx *types.SystemContext, name string, value reference.Named) error {
 // short-name-alias.conf.  In such case, the alias must be specified in one of
 // the registries.conf files, which is the users' responsibility.
 func Remove(ctx *types.SystemContext, name string) error {
+	if err := configureSingleNameRegistries(ctx); err != nil {
+		return err
+	}
 	isShort, _, err := parseUnnormalizedShortName(name)
 	if err != nil {
 		return err
@@ -239,6 +257,9 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 		ctx = &copy
 	}
 	resolved.systemContext = ctx
+	if err := configureSingleNameRegistries(ctx); err != nil {
+		return nil, err
+	}
 
 	// Detect which mode we're running in.
 	mode, err := sysregistriesv2.GetShortNameMode(ctx)
@@ -401,6 +422,9 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 // normalized with the "latest" tag. The returned slice contains at least one
 // item.
 func ResolveLocally(ctx *types.SystemContext, name string) ([]reference.Named, error) {
+	if err := configureSingleNameRegistries(ctx); err != nil {
+		return nil, err
+	}
 	isShort, shortRef, err := parseUnnormalizedShortName(name)
 	if err != nil {
 		return nil, err
