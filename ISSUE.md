@@ -34,13 +34,13 @@ feature or enhancement is when you would like Podman to behave differently.
 When you report an issue on the upstream repository, be sure to fill out the entire template.
 You must provide the required `podman info` wherever possible as it helps us diagnose
 your report.  If possible, always provide a _reliable reproducer_.  This is extremely
-helpful for us during triage and bug fixing.  Good examples of a reliable repoducer are:
+helpful for us during triage and bug fixing.  Good examples of a reliable reproducer are:
 
 * Provide precise Podman commands
 * Use generic images (like fedora/alpine/debian) where possible to reduce the chance your
 container images was a contributor. Abstracting away from the functional purpose helps
 diagnoses and reduces noise for us.
-* If using the RESTFUL API, providing curl commands as a repoducer is preferred.  Be sure
+* If using the RESTFUL API, providing curl commands as a reproducer is preferred.  Be sure
 to provide the same data (or sample data) for things like POST.
 * Not requiring the use of a third party tool to reproduce the problem
 
@@ -83,7 +83,7 @@ In order of judgment, from least to most.
 
 ##### &rarr; stale
 
-Issues are marked with the label *stale-issue* by a [github action](https://github.com/containers/podman/blob/main/.github/workflows/stale.yml) that runs daily at 00:00 UT. This also triggers an email alert to subscribers on that issue.
+Issues are marked with the label *stale-issue* by a [github action](https://github.com/containers/podman/blob/main/.github/workflows/stale.yml) that runs daily at 00:00 UTC. This also triggers an email alert to subscribers on that issue.
 
 Judgment: typically a team member will skim the issue, then decide whether to:
 
