@@ -395,6 +395,24 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
 	}
 
+	if c.StartupHCCmd == "" &&
+		c.StartupHCInterval != "" &&
+		c.HealthStartPeriod != "" &&
+		c.HealthCmd != "" {
+		tmpHcConfig, err := MakeHealthCheckFromCli(c.HealthCmd, c.StartupHCInterval, c.StartupHCRetries, c.HealthTimeout, c.HealthStartPeriod, true)
+		if err != nil {
+			return err
+		}
+
+		s.StartupHealthConfig = new(define.StartupHealthCheck)
+		s.StartupHealthConfig.Test = tmpHcConfig.Test
+		s.StartupHealthConfig.Interval = tmpHcConfig.Interval
+		s.StartupHealthConfig.StartPeriod = tmpHcConfig.StartPeriod
+		s.StartupHealthConfig.Timeout = tmpHcConfig.Timeout
+		s.StartupHealthConfig.Retries = tmpHcConfig.Retries
+		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
+	}
+
 	if len(s.Pod) == 0 || len(c.Pod) > 0 {
 		s.Pod = c.Pod
 	}
