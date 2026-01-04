@@ -23,7 +23,7 @@ don't take them beyond that.
   archive](https://api.cirrus-ci.com/v1/artifact/github/containers/podman/Artifacts/binary.zip)
   containing every binary produced in CI from the most recent successful run.
   *Warning*: This file is pretty large, expect a 700+MB download.  However,
-  it's guaranteed to contain everything, where as the items below can change
+  it's guaranteed to contain everything, whereas the items below can change
   or become unavailable due to somebody forgetting to update this doc.
 
 <!--
