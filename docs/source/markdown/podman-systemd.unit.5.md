@@ -1602,13 +1602,13 @@ Valid options for `[Volume]` are listed below:
 | Device=tmpfs                        | --opt device=tmpfs                        |
 | Driver=image                        | --driver=image                            |
 | GlobalArgs=--log-level=debug        | --log-level=debug                         |
-| Group=192                           | --opt group=192                           |
+| Group=192                           | --opt "o=group=192"                       |
 | Image=quay.io/centos/centos\:latest | --opt image=quay.io/centos/centos\:latest |
 | Label="foo=bar"                     | --label "foo=bar"                         |
 | Options=XYZ                         | --opt "o=XYZ"                             |
 | PodmanArgs=--driver=image           | --driver=image                            |
 | Type=type                           | Filesystem type of Device                 |
-| User=123                            | --opt uid=123                             |
+| User=123                            | --opt "o=uid=123"                         |
 | VolumeName=foo                      | podman volume create foo                  |
 
 Supported keys in `[Volume]` section are:
