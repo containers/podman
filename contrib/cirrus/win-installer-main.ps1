@@ -46,28 +46,3 @@ $command += "-msiPath `"${installer_folder}\podman-$ENV:WIN_INST_VER.msi`" "
 $command += "-nextMsiPath `"${installer_folder}\podman-$NEXT_WIN_INST_VER.msi`" "
 $command += "-previousSetupExePath `"$env:PREV_SETUP_EXE_PATH`""
 Run-Command "${command}"
-
-#########################################################
-# Build and test the legacy windows installer setup bundle
-#########################################################
-
-$installer_folder = Resolve-Path -Path "$WIN_INST_FOLDER-legacy"
-
-Push-Location "${installer_folder}"
-
-# Note: consumes podman-remote-release-windows_amd64.zip from repo.tar.zst
-Run-Command ".\build.ps1 $Env:WIN_INST_VER dev `"$RELEASE_DIR`""
-
-# Build a v9.9.10 installer to test an update from current to next version
-Run-Command ".\build.ps1 `"$NEXT_WIN_INST_VER`" dev `"$RELEASE_DIR`""
-
-Pop-Location
-
-# Run the installer silently and WSL/HyperV install options disabled (prevent reboots)
-$command = "${installer_folder}\test-installer.ps1 "
-$command += "-scenario all "
-$command += "-provider $ENV:CONTAINERS_MACHINE_PROVIDER "
-$command += "-setupExePath `"${installer_folder}\podman-$ENV:WIN_INST_VER-dev-setup.exe`" "
-$command += "-previousSetupExePath `"$env:PREV_SETUP_EXE_PATH`" "
-$command += "-nextSetupExePath `"${installer_folder}\podman-$NEXT_WIN_INST_VER-dev-setup.exe`" "
-Run-Command "${command}"
