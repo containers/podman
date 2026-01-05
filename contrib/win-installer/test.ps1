@@ -117,6 +117,9 @@ $WindowsPathsToTestPerUser = @($PodmanExePathPerUser,
     "$PodmanFolderPathPerUser\win-sshproxy.exe",
     'HKCU:\SOFTWARE\Podman')
 
+# Install-Podman-Bundle installs the legacy Podman installer that is no longer
+# released but we want to keep it to test the update from a version of Podman
+# installed with it.
 function Install-Podman-Bundle {
     param (
         [ValidateScript({ Test-Path $_ -PathType Leaf })]
