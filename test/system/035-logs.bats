@@ -43,13 +43,6 @@ function _log_test_tail() {
     assert "$log1" =~ "^[0-9-]+T[0-9:.]+([\+-][0-9:]+|Z) test2" \
            "logs should only show last line"
 
-    # Sigh. I hate doing this, but podman-remote --timestamp only has 1-second
-    # resolution (regular podman has sub-second). For the timestamps-differ
-    # check below, we need to force a different second.
-    if is_remote; then
-        sleep 2
-    fi
-
     run_podman restart $cid
     run_podman wait $cid
 
