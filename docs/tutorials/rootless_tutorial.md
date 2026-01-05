@@ -29,7 +29,7 @@ Alternatively, slirp4netns can be installed in the same fashion either from your
 The major user-facing difference between the two is outlined in [this blog post](https://blog.podman.io/2024/03/podman-5-0-breaking-changes-in-detail/) and expanded upon in **[podman-network(1)](https://github.com/containers/podman/blob/main/docs/source/markdown/podman-network.1.md#pasta)**.
 
 > [!note]
-> pasta's default situation of not being being able to communicate between the container and the host has been fixed in Podman 5.3: see [Podman 5.3 changes for improved networking experience with pasta](https://blog.podman.io/2024/10/podman-5-3-changes-for-improved-networking-experience-with-pasta/).
+> pasta's default situation of not being able to communicate between the container and the host has been fixed in Podman 5.3: see [Podman 5.3 changes for improved networking experience with pasta](https://blog.podman.io/2024/10/podman-5-3-changes-for-improved-networking-experience-with-pasta/).
 
 The default rootless networking tool can be selected in **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** under the `[network]` section with `default_rootless_network_cmd`, which can be set to `pasta` (default) or `slirp4netns`.
 
