@@ -212,6 +212,25 @@ func (t *quadletTestcase) assertKeyIsRegex(args []string, unit *parser.UnitFile)
 	return true
 }
 
+func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(3))
+	group := args[0]
+	key := args[1]
+	value := args[2]
+
+	realValues := unit.LookupAll(group, key)
+	for _, realValue := range realValues {
+		if strings.Contains(realValue, value) {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *quadletTestcase) assertKeyNotContains(args []string, unit *parser.UnitFile) bool {
+	return !t.assertKeyContains(args, unit)
+}
+
 func (t *quadletTestcase) assertLastKeyIsRegex(args []string, unit *parser.UnitFile) bool {
 	Expect(len(args)).To(BeNumerically(">=", 3))
 	group := args[0]
@@ -557,6 +576,10 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertKeyIsEmpty(args, unit)
 	case "assert-key-is-regex":
 		ok = t.assertKeyIsRegex(args, unit)
+	case "assert-key-contains":
+		ok = t.assertKeyContains(args, unit)
+	case "assert-key-not-contains":
+		ok = t.assertKeyNotContains(args, unit)
 	case "assert-last-key-contains":
 		ok = t.assertLastKeyContains(args, unit)
 	case "assert-last-key-not-contains":
@@ -1288,7 +1311,16 @@ BOGUS=foo
 		Entry("Pod - Quadlet Volume", "volume.pod", []string{"basic.volume"}),
 		Entry("Pod - Quadlet Network overriding service name", "network.servicename.quadlet.pod", []string{"service-name.network"}),
 		Entry("Pod - Quadlet Volume overriding service name", "volume.servicename.pod", []string{"service-name.volume"}),
-		Entry("Pod - Do not autostart a container with pod", "startwithpod.pod", []string{"startwithpod_no.container", "startwithpod_yes.container"}),
+		Entry(
+			"Pod - Do not autostart a container with pod",
+			"startwithpod.pod",
+			[]string{
+				"startwithpod_no.container",
+				"startwithpod_yes.container",
+				"startwithpod@.container",
+				"startwithpod@foo.container",
+			},
+		),
 		Entry(
 			"Pod - Dependency between quadlet units",
 			"dependent.pod",
