@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package hypervctl
 
@@ -28,13 +27,13 @@ type SyntheticDvdDriveSettingsBuilder struct {
 
 type VirtualHardDiskStorageSettingsBuilder struct {
 	driveBuilder *SyntheticDiskDriveSettingsBuilder
-	diskSettings *VirtualHardDiskStorageSettings
+	diskSettings *HardDiskDriveSettings
 	err          error
 }
 
 type VirtualDvdDiskStorageSettingsBuilder struct {
 	driveBuilder *SyntheticDvdDriveSettingsBuilder
-	diskSettings *VirtualDvdDiskStorageSettings
+	diskSettings *DvdDriveSettings
 	err          error
 }
 
@@ -87,7 +86,7 @@ func (builder *ControllerSettingsBuilder) AddSyntheticDvdDrive(slot uint) *Synth
 	}
 }
 
-func (builder *SyntheticDiskDriveSettingsBuilder) DefineVirtualHardDisk(vhdxFile string, beforeAdd func(*VirtualHardDiskStorageSettings)) *VirtualHardDiskStorageSettingsBuilder {
+func (builder *SyntheticDiskDriveSettingsBuilder) DefineVirtualHardDisk(vhdxFile string, beforeAdd func(*HardDiskDriveSettings)) *VirtualHardDiskStorageSettingsBuilder {
 	if builder.err != nil {
 		return &VirtualHardDiskStorageSettingsBuilder{driveBuilder: builder, err: builder.err}
 	}
@@ -156,12 +155,12 @@ func (builder *SyntheticDvdDriveSettingsBuilder) Finish() *ControllerSettingsBui
 	return builder.controllerBuilder
 }
 
-func (builder *VirtualHardDiskStorageSettingsBuilder) Get(s **VirtualHardDiskStorageSettings) *VirtualHardDiskStorageSettingsBuilder {
+func (builder *VirtualHardDiskStorageSettingsBuilder) Get(s **HardDiskDriveSettings) *VirtualHardDiskStorageSettingsBuilder {
 	*s = builder.diskSettings
 	return builder
 }
 
-func (builder *VirtualDvdDiskStorageSettingsBuilder) Get(s **VirtualDvdDiskStorageSettings) *VirtualDvdDiskStorageSettingsBuilder {
+func (builder *VirtualDvdDiskStorageSettingsBuilder) Get(s **DvdDriveSettings) *VirtualDvdDiskStorageSettingsBuilder {
 	*s = builder.diskSettings
 	return builder
 }
