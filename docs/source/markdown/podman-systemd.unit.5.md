@@ -2412,8 +2412,8 @@ Exec=sh -c "echo 'setup starting'; sleep 2; echo 'setup complete'"
 `app.container`
 ```
 [Unit]
-Requires=startup-task.container
-After=startup-task.container
+Requires=startup-task.service
+After=startup-task.service
 
 [Container]
 Pod=test.pod
