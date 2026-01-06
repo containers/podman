@@ -8,10 +8,11 @@ Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
 bind mounts `/HOST-DIR` from the host into `/CONTAINER-DIR` in the Podman
 container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` mounts the named
 volume from the host into the container. If no such named volume exists,
-Podman creates one. If no source is given, the volume is created
-as an anonymously named volume with a randomly generated name, and is
-removed when the <<container|pod>> is removed via the `--rm` flag or
-the `podman rm --volumes` command.
+Podman creates one. The **nocreate** option can be used to disable this
+behavior and require the volume to already exist. If no source is given,
+the volume is created as an anonymously named volume with a randomly
+generated name, and is removed when the <<container|pod>> is removed via
+the `--rm` flag or the `podman rm --volumes` command.
 
 (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes are mounted from the remote server, not necessarily the client machine.)
 
@@ -28,6 +29,7 @@ The _OPTIONS_ is a comma-separated list and can be one or more of:
 * [**r**]**bind**
 * [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable** <sup>[[1]](#Footnote1)</sup>
 * **idmap**[=**options**]
+* **nocreate**
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
 is mounted into the container at this directory.
@@ -42,6 +44,13 @@ Any source that does not begin with a `.` or `/` is treated as the name of
 a named volume. If a volume with that name does not exist, it is created.
 Volumes created with names are not anonymous, and they are not removed by the `--rm`
 option and the `podman rm --volumes` command.
+
+The **nocreate** option can be specified for named volumes to prevent automatic
+volume creation. If **nocreate** is set and the volume does not exist, Podman
+returns an error instead of creating the volume. This is useful when you want
+to ensure that a volume was explicitly created before use.
+
+    $ podman <<fullsubcommand>> -v myvolume:/data:nocreate alpine
 
 Specify multiple **-v** options to mount one or more volumes into a
 <<container|pod>>.

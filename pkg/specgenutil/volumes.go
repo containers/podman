@@ -504,6 +504,11 @@ func parseMountOptions(mountType string, args []string) (*universalMount, error)
 				return nil, fmt.Errorf("%q option not supported for %q mount types", name, mountType)
 			}
 			mnt.mount.Options = append(mnt.mount.Options, arg)
+		case "nocreate":
+			if mountType != define.TypeVolume {
+				return nil, fmt.Errorf("%q option not supported for %q mount types", name, mountType)
+			}
+			mnt.mount.Options = append(mnt.mount.Options, "nocreate")
 		default:
 			return nil, fmt.Errorf("%s: %w", name, util.ErrBadMntOption)
 		}

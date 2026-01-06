@@ -1164,4 +1164,94 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 		output = session.OutputToString()
 		Expect(output).ToNot(ContainSubstring("noatime"))
 	})
+
+	It("podman run -v with nocreate option fails when volume doesn't exist", func() {
+		volName := "testvol-nocreate-nonexistent"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Run with nocreate option should error
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/mnt:nocreate", volName), ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("volume %s does not exist", volName)))
+	})
+
+	It("podman run -v with nocreate option succeeds when volume exists", func() {
+		volName := "testvol-nocreate-exists"
+		// Create volume first
+		session := podmanTest.Podman([]string{"volume", "create", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Run with nocreate option should succeed since volume exists
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/mnt:nocreate", volName), ALPINE, "touch", "/mnt/testfile"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Cleanup
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run --mount type=volume with nocreate option fails when volume doesn't exist", func() {
+		volName := "testvol-mount-nocreate-nonexistent"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Run with nocreate option should error
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/mnt,nocreate", volName), ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("volume %s does not exist", volName)))
+	})
+
+	It("podman run --mount type=volume with nocreate option succeeds when volume exists", func() {
+		volName := "testvol-mount-nocreate-exists"
+		// Create volume first
+		session := podmanTest.Podman([]string{"volume", "create", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Run with nocreate option should succeed since volume exists
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dst=/mnt,nocreate", volName), ALPINE, "touch", "/mnt/testfile"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Cleanup
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run -v with nocreate combined with other options", func() {
+		volName := "testvol-nocreate-combo"
+		// Create volume first
+		session := podmanTest.Podman([]string{"volume", "create", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Run with nocreate and ro options should succeed
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/mnt:ro,nocreate", volName), ALPINE, "ls", "/mnt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Cleanup
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman create -v with nocreate option fails when volume doesn't exist", func() {
+		volName := "testvol-create-nocreate"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Create with nocreate option should error
+		session = podmanTest.Podman([]string{"create", "-v", fmt.Sprintf("%s:/mnt:nocreate", volName), ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("volume %s does not exist", volName)))
+	})
 })
