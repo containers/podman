@@ -17,6 +17,7 @@ Maintainers and Reviewers for the Skopeo and Buildah projects are found in their
 | Giuseppe Scrivano | [giuseppe](https://github.com/giuseppe)                  | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
 | Miloslav Trmač    | [mtrmac](https://github.com/mtrmac)                      | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
 | Mohan Boddu       | [mohanboddu](https://github.com/mohanboddu)              | Community Manager                | [Red Hat](https://github.com/RedHatOfficial) |
+| David Darrah      | [ddarrah](https://github.com/ddarrah)                    | Community Manager                | [Red Hat](https://github.com/RedHatOfficial) |
 | Neil Smith        | [actionmancan](https://github.com/actionmancan)          | Community Manager                | [Red Hat](https://github.com/RedHatOfficial) |
 | Tom Sweeney       | [TomSweeneyRedHat](https://github.com/TomSweeneyRedHat/) | Maintainer and Community Manager | [Red Hat](https://github.com/RedHatOfficial) |
 | Ygal Blum         | [ygalblum](https://github.com/ygalblum)                  | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
