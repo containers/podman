@@ -42,6 +42,8 @@ type universalMount struct {
 	mount spec.Mount
 	// Used only with Named Volume type mounts
 	subPath string
+	// NoCreate indicates that the volume must already exist (Named Volume only)
+	noCreate bool
 }
 
 // Parse all volume-related options in the create config into a set of mounts
@@ -504,6 +506,11 @@ func parseMountOptions(mountType string, args []string) (*universalMount, error)
 				return nil, fmt.Errorf("%q option not supported for %q mount types", name, mountType)
 			}
 			mnt.mount.Options = append(mnt.mount.Options, arg)
+		case "nocreate":
+			if mountType != define.TypeVolume {
+				return nil, fmt.Errorf("%q option not supported for %q mount types", name, mountType)
+			}
+			mnt.noCreate = true
 		default:
 			return nil, fmt.Errorf("%s: %w", name, util.ErrBadMntOption)
 		}
@@ -656,6 +663,7 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 	newVolume.SubPath = mnt.subPath
 	newVolume.Name = mnt.mount.Source
 	newVolume.Dest = mnt.mount.Destination
+	newVolume.NoCreate = mnt.noCreate
 	return newVolume, nil
 }
 
