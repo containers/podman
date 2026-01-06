@@ -1343,6 +1343,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 				Options:     mountOpts,
 				IsAnonymous: vol.IsAnonymous,
 				SubPath:     vol.SubPath,
+				NoCreate:    vol.NoCreate,
 			})
 		}
 
