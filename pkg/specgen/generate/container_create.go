@@ -522,6 +522,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithArtifactVolumes(vols))
 	}
 
+	if len(s.VolumeMode) > 0 {
+		options = append(options, libpod.WithVolumeMode(define.VolumeMode(s.VolumeMode)))
+	}
+
 	if s.Command != nil {
 		options = append(options, libpod.WithCommand(s.Command))
 	}

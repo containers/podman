@@ -900,6 +900,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Mount volumes from the specified container(s)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
+
+		volumeModeFlagName := "volume-mode"
+		createFlags.StringVar(
+			&cf.VolumeMode,
+			volumeModeFlagName, "",
+			`Control named volume behavior: "create" (default) auto-creates missing volumes, "fail" errors if volume doesn't exist`,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(volumeModeFlagName, AutocompleteVolumeMode)
 	}
 
 	if mode == entities.CloneMode || mode == entities.CreateMode {

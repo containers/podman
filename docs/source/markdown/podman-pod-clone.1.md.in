@@ -98,6 +98,8 @@ clone process has completed. All containers within the pod are started.
 
 @@option volume
 
+@@option volume-mode
+
 @@option volumes-from
 
 ## EXAMPLES

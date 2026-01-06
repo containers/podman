@@ -779,6 +779,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.VolumesFrom = c.VolumesFrom
 	}
 
+	if len(s.VolumeMode) == 0 || len(c.VolumeMode) != 0 {
+		s.VolumeMode = c.VolumeMode
+	}
+
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
 	containerMounts, err := parseVolumes(rtc, c.Volume, c.Mount, c.TmpFS)

@@ -260,6 +260,7 @@ type ContainerCreateOptions struct {
 	UTS                  string
 	Mount                []string
 	Volume               []string `json:"volume,omitempty"`
+	VolumeMode           string   `json:"volume_mode,omitempty"`
 	VolumesFrom          []string `json:"volumes_from,omitempty"`
 	Workdir              string
 	SeccompPolicy        string

@@ -183,6 +183,10 @@ type ContainerRootFSConfig struct {
 	// treated as root directories. Standard bind mounts will be mounted
 	// into paths relative to these directories.
 	ChrootDirs []string `json:"chroot_directories,omitempty"`
+	// VolumeMode controls the behavior when a named volume is not found.
+	// "create" (default) creates the volume if it doesn't exist.
+	// "fail" causes an error if the volume doesn't exist.
+	VolumeMode define.VolumeMode `json:"volume_mode,omitempty"`
 }
 
 // ContainerSecurityConfig is an embedded sub-config providing security configuration

@@ -443,6 +443,8 @@ echo "asdf" | podman run --rm -i someimage /bin/cat
 
 Use the **--group-add keep-groups** option to pass the user's supplementary group access into the container.
 
+@@option volume-mode
+
 @@option volumes-from
 
 @@option workdir

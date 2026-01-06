@@ -1155,6 +1155,13 @@ func AutocompleteImageVolume(_ *cobra.Command, _ []string, _ string) ([]string, 
 	return imageVolumes, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteVolumeMode - Autocomplete volume mode options.
+// -> "create", "fail"
+func AutocompleteVolumeMode(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	volumeModes := []string{"create", "fail"}
+	return volumeModes, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteLogDriver - Autocomplete log-driver options.
 // -> "journald", "none", "k8s-file", "passthrough", "passthrough-tty"
 func AutocompleteLogDriver(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {

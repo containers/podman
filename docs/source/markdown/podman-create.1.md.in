@@ -402,6 +402,8 @@ the container when it exits. The default is **false**.
 
 Use the **--group-add keep-groups** option to pass the user's supplementary group access into the container.
 
+@@option volume-mode
+
 @@option volumes-from
 
 @@option workdir

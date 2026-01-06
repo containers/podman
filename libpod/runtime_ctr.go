@@ -511,6 +511,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			} else if !errors.Is(err, define.ErrNoSuchVolume) {
 				return nil, fmt.Errorf("retrieving named volume %s for new container: %w", vol.Name, err)
 			}
+			// Volume does not exist - check if we should fail
+			if ctr.config.VolumeMode == define.VolumeModeFail {
+				return nil, fmt.Errorf("volume %s does not exist and --volume-mode is set to fail: %w", vol.Name, define.ErrNoSuchVolume)
+			}
 		}
 		if vol.IsAnonymous {
 			// If SetAnonymous is true, make this an anonymous volume
