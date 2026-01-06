@@ -146,6 +146,7 @@ Description: Community managers are responsible for the project’s community in
     * Managing the project website and gathering associated metrics
     * Managing the project’s social media accounts and mailing lists and gathering associated metrics
     * Creating and publishing minutes from Core Maintainer meetings
+	* Assisting in triage of upstream issues
 * Requirements
     * Sustained high level of contribution to the community, including attending and engaging in community meetings, contributions to the website, and contributions to documentation, for at least six months
     * Is able to exercise judgment for the good of the project, independent of their employer, friends, or team
