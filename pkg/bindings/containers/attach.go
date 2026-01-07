@@ -100,16 +100,11 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	outFile, outOk := stdout.(*os.File)
 	needTTY := ok && outOk && terminal.IsTerminal(int(file.Fd())) && ctnr.Config.Tty
 	if needTTY {
-		state, err := setRawTerminal(file)
+		cleanup, err := setupTTYRawMode(file)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := terminal.Restore(int(file.Fd()), state); err != nil {
-				logrus.Errorf("Unable to restore terminal: %q", err)
-			}
-			logrus.SetFormatter(&logrus.TextFormatter{})
-		}()
+		defer cleanup()
 	}
 
 	cw, socket, err := newUpgradeRequest(ctx, conn, nil, fmt.Sprintf("/containers/%s/attach", nameOrID), params)
@@ -357,6 +352,25 @@ func setRawTerminal(file *os.File) (*terminal.State, error) {
 	return state, err
 }
 
+// setupTTYRawMode sets up raw terminal mode for the given file and returns
+// a cleanup function that should be deferred.
+// This helper function eliminates code duplication between Attach() and ExecStartAndAttach().
+func setupTTYRawMode(file *os.File) (func(), error) {
+	state, err := setRawTerminal(file)
+	if err != nil {
+		return nil, err
+	}
+
+	cleanup := func() {
+		if err := terminal.Restore(int(file.Fd()), state); err != nil {
+			logrus.Errorf("Unable to restore terminal: %q", err)
+		}
+		logrus.SetFormatter(&logrus.TextFormatter{})
+	}
+
+	return cleanup, nil
+}
+
 // ExecStartAndAttach starts and attaches to a given exec session.
 //
 // NOTE: When options.GetAttachInput() is true, this function currently leaks a goroutine reading from that stream
@@ -398,7 +412,6 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	}
 
 	// If we are in TTY mode, we need to set raw mode for the terminal.
-	// TODO: Share all of this with Attach() for containers.
 	needTTY := terminalFile != nil && terminal.IsTerminal(int(terminalFile.Fd())) && isTerm
 
 	body := struct {
@@ -412,16 +425,12 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	}
 
 	if needTTY {
-		state, err := setRawTerminal(terminalFile)
+		cleanup, err := setupTTYRawMode(terminalFile)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err := terminal.Restore(int(terminalFile.Fd()), state); err != nil {
-				logrus.Errorf("Unable to restore terminal: %q", err)
-			}
-			logrus.SetFormatter(&logrus.TextFormatter{})
-		}()
+		defer cleanup()
+
 		w, h, err := getTermSize(terminalFile, terminalOutFile)
 		if err != nil {
 			logrus.Warnf("Failed to obtain TTY size: %v", err)
