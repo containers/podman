@@ -24,7 +24,7 @@ func (m *MachineOS) Apply(image string, _ ApplyOptions) error {
 	var off bool
 	args := []string{"podman", "machine", "os", "apply", image}
 
-	if err := machine.LocalhostSSH(m.VM.SSH.RemoteUsername, m.VM.SSH.IdentityPath, m.VMName, m.VM.SSH.Port, args); err != nil {
+	if err := machine.LocalhostSSHShellForceTerm(m.VM.SSH.RemoteUsername, m.VM.SSH.IdentityPath, m.VMName, m.VM.SSH.Port, args); err != nil {
 		return err
 	}
 

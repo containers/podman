@@ -20,8 +20,13 @@ func LocalhostSSH(username, identityPath, name string, sshPort int, inputArgs []
 	return localhostBuiltinSSH(username, identityPath, name, sshPort, inputArgs, true, os.Stdin)
 }
 
+// LocalhostSSHShellForceTerm runs the native ssh shell client and forces a terminal (-t)
+func LocalhostSSHShellForceTerm(username, identityPath, name string, sshPort int, inputArgs []string) error {
+	return localhostNativeSSH(username, identityPath, name, sshPort, inputArgs, os.Stdin, true)
+}
+
 func LocalhostSSHShell(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return localhostNativeSSH(username, identityPath, name, sshPort, inputArgs, os.Stdin)
+	return localhostNativeSSH(username, identityPath, name, sshPort, inputArgs, os.Stdin, false)
 }
 
 func LocalhostSSHSilent(username, identityPath, name string, sshPort int, inputArgs []string) error {
@@ -117,13 +122,18 @@ func createLocalhostConfig(user string, identityPath string) (*ssh.ClientConfig,
 	}, nil
 }
 
-func localhostNativeSSH(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader) error {
+func localhostNativeSSH(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader, forceTerm bool) error {
 	sshDestination := username + "@localhost"
 	port := strconv.Itoa(sshPort)
 	interactive := true
 
 	args := append([]string{"-i", identityPath, "-p", port, sshDestination}, LocalhostSSHArgs()...) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
 	if len(inputArgs) > 0 {
+		// on the other condition, the term is forced
+		// anyway
+		if forceTerm {
+			args = append(args, "-t")
+		}
 		interactive = false
 		args = append(args, inputArgs...)
 	} else {
