@@ -265,6 +265,21 @@ func (h HyperVStubber) canRemove(mc *vmconfigs.MachineConfig) error {
 	return ErrHypervRegistryRemoveRequiresElevation
 }
 
+// canStartOrStop checks if the machine can be started or stopped.
+// Legacy machines require admin rights to start or stop.
+func (h HyperVStubber) canStartOrStop(mc *vmconfigs.MachineConfig) error {
+	if windows.HasAdminRights() {
+		return nil
+	}
+
+	// if machine is legacy (machineName field), require admin rights to start or stop
+	if isLegacyMachine(mc) {
+		return ErrHypervLegacyMachineRequiresElevation
+	}
+
+	return nil
+}
+
 // countMachinesWithToolname counts only machines that have a toolname field with value "podman".
 func (h HyperVStubber) countMachinesWithToolname() (int, error) {
 	dirs, err := env.GetMachineDirs(h.VMType())
@@ -345,7 +360,9 @@ func (h HyperVStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy
 }
 
 func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
-	var err error
+	if err := h.canStartOrStop(mc); err != nil {
+		return nil, nil, err
+	}
 
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {
@@ -412,6 +429,10 @@ func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status
 }
 
 func (h HyperVStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
+	if err := h.canStartOrStop(mc); err != nil {
+		return err
+	}
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	vm, err := vmm.GetMachine(mc.Name)
 	if err != nil {
