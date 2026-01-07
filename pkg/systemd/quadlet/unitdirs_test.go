@@ -172,7 +172,7 @@ func TestUnitDirs(t *testing.T) {
 		assert.NoError(t, err)
 		defer rootF.Close()
 		defer func() {
-			err := rootF.Chdir()
+			err := rootF.Chdir() //nolint:usetesting
 			assert.NoError(t, err)
 			err = syscall.Chroot(".")
 			assert.NoError(t, err)

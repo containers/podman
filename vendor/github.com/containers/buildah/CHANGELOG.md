@@ -2,6 +2,19 @@
 
 # Changelog
 
+## v1.41.8 (2026-01-06)
+
+    [release-1.41] Bump Go in tests/tools to 1.24
+    [release-1.41] CVE-2025-47913 x/crypto
+
+## v1.41.7 (2025-12-11)
+
+    [release-1.41] Bump runc to v1.3.4
+
+## v1.41.6 (2025-11-06)
+
+    [release-1.41] Bump runc to v1.3.3 - CVE-2025-52881
+
 ## v1.41.5 (2025-09-29)
 
     [release-1.41] Run: create parent directories of mount targets with mode 0755
