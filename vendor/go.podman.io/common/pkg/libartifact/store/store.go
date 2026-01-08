@@ -226,11 +226,55 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest ArtifactReference, o
 	return artifactDigest, nil
 }
 
+// createNewArtifactManifest creates a new manifest with annotations.
+func createNewArtifactManifest(options *libartTypes.AddOptions) specV1.Manifest {
+	// Set creation timestamp and other annotations
+	annotations := make(map[string]string)
+	if options.Annotations != nil {
+		annotations = maps.Clone(options.Annotations)
+	}
+	annotations[specV1.AnnotationCreated] = time.Now().UTC().Format(time.RFC3339Nano)
+
+	return specV1.Manifest{
+		Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
+		MediaType:    specV1.MediaTypeImageManifest,
+		ArtifactType: options.ArtifactMIMEType, // TODO This should probably be configurable once the CLI is capable
+		Config:       specV1.DescriptorEmptyJSON,
+		Layers:       make([]specV1.Descriptor, 0),
+		Annotations:  annotations,
+	}
+}
+
+// cleanupAfterAppend removes previous image when doing an append.
+func cleanupAfterAppend(ctx context.Context, oldDigest *digest.Digest, as ArtifactStore) error {
+	lrs, err := layout.List(as.storePath)
+	if err != nil {
+		return err
+	}
+
+	for _, l := range lrs {
+		if oldDigest.String() == l.ManifestDescriptor.Digest.String() {
+			if _, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
+				continue
+			}
+
+			if err := l.Reference.DeleteImage(ctx, as.SystemContext); err != nil {
+				return err
+			}
+			break
+		}
+	}
+	return nil
+}
+
 // Add takes one or more artifact blobs and add them to the local artifact store.  The empty
 // string input is for possible custom artifact types.
 func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifactBlobs []libartTypes.ArtifactBlob, options *libartTypes.AddOptions) (*digest.Digest, error) {
 	if options.Append && len(options.ArtifactMIMEType) > 0 {
 		return nil, errors.New("append option is not compatible with type option")
+	}
+	if options.Append && options.Replace {
+		return nil, errors.New("append and replace options are mutually exclusive")
 	}
 
 	locked := true
@@ -245,37 +289,17 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	var oldDigest *digest.Digest
 	fileNames := map[string]struct{}{}
 
-	arty, lookupErr := as.lookupArtifactLocked(ctx, dest.ToArtifactStoreReference())
-	if !options.Append {
-		// Check if artifact exists; in GetByName not getting an
-		// error means it exists
-		if lookupErr == nil {
-			return nil, fmt.Errorf("%s: %w", dest.String(), libartTypes.ErrArtifactAlreadyExists)
-		}
+	existingArtifact, lookupErr := as.lookupArtifactLocked(ctx, dest.ToArtifactStoreReference())
 
-		// Set creation timestamp and other annotations
-		annotations := make(map[string]string)
-		if options.Annotations != nil {
-			annotations = maps.Clone(options.Annotations)
-		}
-		annotations[specV1.AnnotationCreated] = time.Now().UTC().Format(time.RFC3339Nano)
-
-		artifactManifest = specV1.Manifest{
-			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
-			MediaType:    specV1.MediaTypeImageManifest,
-			ArtifactType: options.ArtifactMIMEType,
-			// TODO This should probably be configurable once the CLI is capable
-			Config:      specV1.DescriptorEmptyJSON,
-			Layers:      make([]specV1.Descriptor, 0),
-			Annotations: annotations,
-		}
-	} else {
+	switch {
+	case options.Append:
+		// Append to existing artifact
 		if lookupErr != nil {
 			return nil, lookupErr
 		}
-		artifactManifest = arty.Manifest.Manifest
+		artifactManifest = existingArtifact.Manifest.Manifest
 		var err error
-		oldDigest, err = arty.GetDigest()
+		oldDigest, err = existingArtifact.GetDigest()
 		if err != nil {
 			return nil, err
 		}
@@ -284,6 +308,26 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 				fileNames[value] = struct{}{}
 			}
 		}
+	case options.Replace:
+		// Replace existing artifact - delete old one if it exists, then create new
+		if lookupErr == nil {
+			ir, err := layout.NewReference(as.storePath, dest.String())
+			if err != nil {
+				return nil, err
+			}
+			if err := ir.DeleteImage(ctx, as.SystemContext); err != nil {
+				return nil, err
+			}
+		}
+
+		// Create new manifest
+		artifactManifest = createNewArtifactManifest(options)
+	default:
+		// Add new artifact - error if it already exists
+		if lookupErr == nil {
+			return nil, fmt.Errorf("%s: %w", dest.String(), libartTypes.ErrArtifactAlreadyExists)
+		}
+		artifactManifest = createNewArtifactManifest(options)
 	}
 
 	for _, artifact := range artifactBlobs {
@@ -313,7 +357,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
 	// This works for the oci/layout transport we hard-code.
 	for _, artifactBlob := range artifactBlobs {
-		if artifactBlob.BlobFilePath == "" && artifactBlob.BlobReader == nil || artifactBlob.BlobFilePath != "" && artifactBlob.BlobReader != nil {
+		if (artifactBlob.BlobFilePath == "" && artifactBlob.BlobReader == nil) || (artifactBlob.BlobFilePath != "" && artifactBlob.BlobReader != nil) {
 			return nil, errors.New("Artifact.BlobFile or Artifact.BlobReader must be provided")
 		}
 
@@ -393,22 +437,8 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 
 	// Clean up after append. Remove previous artifact from store.
 	if oldDigest != nil {
-		lrs, err := layout.List(as.storePath)
-		if err != nil {
+		if err := cleanupAfterAppend(ctx, oldDigest, as); err != nil {
 			return nil, err
-		}
-
-		for _, l := range lrs {
-			if oldDigest.String() == l.ManifestDescriptor.Digest.String() {
-				if _, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
-					continue
-				}
-
-				if err := l.Reference.DeleteImage(ctx, as.SystemContext); err != nil {
-					return nil, err
-				}
-				break
-			}
 		}
 	}
 	return &artifactManifestDigest, nil
@@ -742,7 +772,7 @@ func copyTrustedImageBlobToTarStream(ctx context.Context, imgSrc types.ImageSour
 	now := time.Now()
 	header := tar.Header{
 		Name:       filename,
-		Mode:       600,
+		Mode:       0o600,
 		Size:       srcSize,
 		ModTime:    now,
 		ChangeTime: now,

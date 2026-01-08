@@ -245,13 +245,10 @@ func createBasicSlirpCmdArgs(options *networkOptions, features *slirpFeatures) (
 // Setup can be called in rootful as well as in rootless.
 // Spawns the slirp4netns process and setup port forwarding if ports are given.
 func Setup(opts *SetupOptions) (*SetupResult, error) {
-	path := opts.Config.Engine.NetworkCmdPath
-	if path == "" {
-		var err error
-		path, err = opts.Config.FindHelperBinary(BinaryName, true)
-		if err != nil {
-			return nil, fmt.Errorf("could not find slirp4netns, the network namespace can't be configured: %w", err)
-		}
+	var err error
+	path, err := opts.Config.FindHelperBinary(BinaryName, true)
+	if err != nil {
+		return nil, fmt.Errorf("could not find slirp4netns, the network namespace can't be configured: %w", err)
 	}
 
 	syncR, syncW, err := os.Pipe()
