@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/inspect"
 	. "github.com/containers/podman/v6/test/utils"
 	"github.com/containers/podman/v6/utils"
@@ -696,6 +697,15 @@ func (p *PodmanTestIntegration) InspectArtifact(name string) libartifact.Artifac
 	return session.InspectArtifactToJSON()
 }
 
+// InspectNetwork returns a network's inspect data in JSON format
+func (p *PodmanTestIntegration) InspectNetwork(name string) []entities.NetworkInspectReport {
+	cmd := []string{"network", "inspect", name}
+	session := p.Podman(cmd)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(Exit(0))
+	return session.InspectNetworkToJSON()
+}
+
 // Pull a single field from a container using `podman inspect --format {{ field }}`,
 // and verify it against the given expected value.
 func (p *PodmanTestIntegration) CheckContainerSingleField(name, field, expected string) {
@@ -979,6 +989,13 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
+}
+
+func (s *PodmanSessionIntegration) InspectNetworkToJSON() []entities.NetworkInspectReport {
+	var out []entities.NetworkInspectReport
+	err := json.Unmarshal(s.Out.Contents(), &out)
+	Expect(err).ToNot(HaveOccurred())
+	return out
 }
 
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
