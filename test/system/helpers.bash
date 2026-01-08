@@ -177,6 +177,9 @@ function run_podman() {
         [0-9])           expected_rc=$1; shift;;
         [1-9][0-9])      expected_rc=$1; shift;;
         [12][0-9][0-9])  expected_rc=$1; shift;;
+        [0-9]+w)         expected_rc=${1%+w}; shift;;  # exit code with warnings allowed
+        [1-9][0-9]+w)    expected_rc=${1%+w}; shift;;  # exit code with warnings allowed
+        [12][0-9][0-9]+w) expected_rc=${1%+w}; shift;; # exit code with warnings allowed
         '?')             expected_rc=  ; shift;;  # ignore exit code
     esac
 
