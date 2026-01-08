@@ -14,10 +14,15 @@ import (
 
 func (r *Runtime) stopPauseProcess() error {
 	if rootless.IsRootless() {
-		pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+		stateDir, err := util.GetRootlessStateDir()
 		if err != nil {
-			return fmt.Errorf("could not get pause process pid file path: %w", err)
+			return fmt.Errorf("could not get rootless state directory: %w", err)
 		}
+
+		nsHandlesPath := rootless.GetNamespaceHandlesPath(stateDir)
+		_ = os.Remove(nsHandlesPath)
+
+		pausePidPath := rootless.GetPausePidPath(stateDir)
 		data, err := os.ReadFile(pausePidPath)
 		if err != nil {
 			if os.IsNotExist(err) {

@@ -212,7 +212,9 @@ function __run_healthcheck_container() {
 
     kill -9 ${conmon_pid}
 
-    run_podman rm -f -t0 $cname
+    # When conmon is killed, the ns_handles may become stale and produce a warning
+    # about creating a new rootless user namespace. This is expected behavior.
+    run_podman 0+w rm -f -t0 $cname
 
     run_podman 125 container inspect $cname
     assert "$output" =~ "no such container \"$cname\"" "Container should be removed"
