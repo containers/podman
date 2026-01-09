@@ -2,6 +2,12 @@
 
 # Changelog
 
+## v1.33.14 (2026-01-06)
+
+    [release-1.33] tests/run.bats: "run masks" test: accept "unreadable"
+    [release-1.33] Adjust cpu-shares check test for weight
+    [release-1.33] CVE-2025-49713 x/crypto
+
 ## v1.33.13 (2025-12-08)
 
     Fix linter errors
