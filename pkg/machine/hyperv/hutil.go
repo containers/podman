@@ -15,6 +15,7 @@ var (
 	ErrHypervRegistryInitRequiresElevation   = errors.New("the first time Podman initializes a Hyper-V machine, it requires admin rights. Please run Podman as an administrator")
 	ErrHypervRegistryRemoveRequiresElevation = errors.New("removing this Hyper-V machine requires admin rights to clean up the Windows Registry. Please run Podman as an administrator")
 	ErrHypervRegistryUpdateRequiresElevation = errors.New("this machine's configuration requires additional Hyper-V networking (hvsock) entries in the Windows Registry. Please run Podman as an administrator")
+	ErrHypervLegacyMachineRequiresElevation  = errors.New("starting or stopping Hyper-V machines created with Podman 5.x or earlier requires admin rights. Please run Podman as an administrator")
 )
 
 func HasHyperVAdminRights() bool {
