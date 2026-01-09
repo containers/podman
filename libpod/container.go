@@ -10,6 +10,7 @@ import (
 	"maps"
 	"net"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -541,12 +542,7 @@ func (c *Container) Dependencies() []string {
 		return []string{}
 	}
 
-	depends := make([]string, 0, len(dependsCtrs))
-	for ctr := range dependsCtrs {
-		depends = append(depends, ctr)
-	}
-
-	return depends
+	return slices.Collect(maps.Keys(dependsCtrs))
 }
 
 // NewNetNS returns whether the container will create a new network namespace
