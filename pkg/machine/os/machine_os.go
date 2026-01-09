@@ -39,3 +39,17 @@ func (m *MachineOS) Apply(image string, _ ApplyOptions) error {
 	}
 	return nil
 }
+
+func (m *MachineOS) Upgrade(opts UpgradeOptions) error {
+	args := []string{"podman", "machine", "os", "upgrade", "--host-version=" + opts.ClientVersion.String()}
+	if opts.DryRun {
+		args = append(args, "-n")
+	}
+	if opts.Format != "" {
+		args = append(args, "-f", opts.Format)
+	}
+	if err := machine.LocalhostSSHShellForceTerm(m.VM.SSH.RemoteUsername, m.VM.SSH.IdentityPath, m.VMName, m.VM.SSH.Port, args); err != nil {
+		return err
+	}
+	return nil
+}
