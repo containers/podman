@@ -218,7 +218,7 @@ spelled with complete minutiae.
    1. When the tag was pushed, an automated build was created. Locate this
       by starting from
       `https://github.com/containers/podman/tags` and finding the recent entry
-      for the pushed tag.  Under the tag name will be a timestamp and abbrieviated
+      for the pushed tag.  Under the tag name will be a timestamp and abbreviated
       commit hash, for example `<> 5b2585f`.  Click the commit-hash link.
    1. In the upper-left most corner, just to the left of the "Bump to vX.Y"
       text, will be a small status icon (Yellow circle, Red "X", or green check).
