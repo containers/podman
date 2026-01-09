@@ -230,6 +230,10 @@ type V2RegistriesConf struct {
 	Registries []Registry `toml:"registry"`
 	// An array of host[:port] (not prefix!) entries to use for resolving unqualified image references
 	UnqualifiedSearchRegistries []string `toml:"unqualified-search-registries"`
+	// An array of host[:port] entries that should be treated as fully-qualified
+	// registry names even if they contain no dots. This allows using single-label
+	// hostnames on local networks without triggering short-name resolution.
+	SingleNameRegistries []string `toml:"single-name-registries"`
 	// An array of global credential helpers to use for authentication
 	// (e.g., ["pass", "secretservice"]).  The helpers are consulted in the
 	// specified order.  Note that "containers-auth.json" is a reserved
@@ -269,6 +273,9 @@ func (config *V2RegistriesConf) Nonempty() bool {
 	if copy.UnqualifiedSearchRegistries != nil && len(copy.UnqualifiedSearchRegistries) == 0 {
 		copy.UnqualifiedSearchRegistries = nil
 	}
+	if copy.SingleNameRegistries != nil && len(copy.SingleNameRegistries) == 0 {
+		copy.SingleNameRegistries = nil
+	}
 	if copy.CredentialHelpers != nil && len(copy.CredentialHelpers) == 0 {
 		copy.CredentialHelpers = nil
 	}
@@ -298,6 +305,8 @@ type parsedConfig struct {
 	partialV2 V2RegistriesConf
 	// Absolute path to the configuration file that set the UnqualifiedSearchRegistries.
 	unqualifiedSearchRegistriesOrigin string
+	// Absolute path to the configuration file that set the SingleNameRegistries.
+	singleNameRegistriesOrigin string
 	// Result of parsing of partialV2.ShortNameMode.
 	// NOTE: May be ShortNameModeInvalid to represent ShortNameMode == "" in intermediate values;
 	// the full configuration in configCache / getConfig() always contains a valid value.
@@ -499,6 +508,30 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 			return &InvalidRegistries{fmt.Sprintf("Invalid unqualified-search-registries entry %#v", registry)}
 		}
 		config.UnqualifiedSearchRegistries[i] = registry
+	}
+
+	if len(config.SingleNameRegistries) > 0 {
+		seen := make(map[string]struct{}, len(config.SingleNameRegistries))
+		unique := make([]string, 0, len(config.SingleNameRegistries))
+		for _, entry := range config.SingleNameRegistries {
+			registry, err := parseLocation(entry)
+			if err != nil {
+				return err
+			}
+			if registry == "" {
+				return &InvalidRegistries{s: "invalid single-name registry: cannot be empty"}
+			}
+			if strings.ContainsAny(registry, "/@") {
+				return &InvalidRegistries{s: fmt.Sprintf("invalid single-name registry %q: must not include '/' or '@'", registry)}
+			}
+			registry = strings.ToLower(registry)
+			if _, exists := seen[registry]; exists {
+				continue
+			}
+			seen[registry] = struct{}{}
+			unique = append(unique, registry)
+		}
+		config.SingleNameRegistries = unique
 	}
 
 	// Registries are ordered and the first longest prefix always wins,
@@ -802,6 +835,23 @@ func UnqualifiedSearchRegistriesWithOrigin(ctx *types.SystemContext) ([]string, 
 	return config.partialV2.UnqualifiedSearchRegistries, config.unqualifiedSearchRegistriesOrigin, nil
 }
 
+// SingleNameRegistries returns registries that should be treated as
+// fully-qualified even if they do not contain dots.
+func SingleNameRegistries(ctx *types.SystemContext) ([]string, error) {
+	registries, _, err := SingleNameRegistriesWithOrigin(ctx)
+	return registries, err
+}
+
+// SingleNameRegistriesWithOrigin returns single-name registries together with
+// a description of where they were configured.
+func SingleNameRegistriesWithOrigin(ctx *types.SystemContext) ([]string, string, error) {
+	config, err := getConfig(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	return config.partialV2.SingleNameRegistries, config.singleNameRegistriesOrigin, nil
+}
+
 // parseShortNameMode translates the string into well-typed
 // types.ShortNameMode.
 func parseShortNameMode(mode string) (types.ShortNameMode, error) {
@@ -991,6 +1041,9 @@ func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
 	}
 
 	res.unqualifiedSearchRegistriesOrigin = path
+	if res.partialV2.SingleNameRegistries != nil {
+		res.singleNameRegistriesOrigin = path
+	}
 
 	if len(res.partialV2.ShortNameMode) > 0 {
 		mode, err := parseShortNameMode(res.partialV2.ShortNameMode)
@@ -1059,6 +1112,12 @@ func (c *parsedConfig) updateWithConfigurationFrom(updates *parsedConfig) {
 	if updates.partialV2.UnqualifiedSearchRegistries != nil {
 		c.partialV2.UnqualifiedSearchRegistries = updates.partialV2.UnqualifiedSearchRegistries
 		c.unqualifiedSearchRegistriesOrigin = updates.unqualifiedSearchRegistriesOrigin
+	}
+
+	// == Merge SingleNameRegistries:
+	if updates.partialV2.SingleNameRegistries != nil {
+		c.partialV2.SingleNameRegistries = updates.partialV2.SingleNameRegistries
+		c.singleNameRegistriesOrigin = updates.singleNameRegistriesOrigin
 	}
 
 	// == Merge credential helpers:
