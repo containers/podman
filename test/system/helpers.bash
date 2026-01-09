@@ -369,19 +369,33 @@ function journald_unavailable() {
         return 1
     fi
 
-    run journalctl -n 1
-    if [[ $status -eq 0 ]]; then
-        return 1
-    fi
+    # Test what quadlet/auto-update actually need: reading user systemd unit logs
+    # Create a dummy user unit to test if we can read its logs
+    local test_unit="podman-journald-test-$RANDOM.service"
+    systemctl --user start "$test_unit" 2>/dev/null || true
 
-    if [[ $output =~ permission ]]; then
+    run journalctl --user -n 1 --unit="$test_unit"
+    local journal_status=$status
+    local journal_output="$output"
+
+    systemctl --user stop "$test_unit" 2>/dev/null || true
+
+    # Check output for known error messages
+    if [[ $journal_output =~ permission ]]; then
         return 0
     fi
 
-    # This should never happen; if it does, it's likely that a subsequent
-    # test will fail. This output may help track that down.
-    echo "WEIRD: 'journalctl -n 1' failed with a non-permission error:"
-    echo "$output"
+    # Also treat "No journal files" as unavailable (rhel systems)
+    if [[ $journal_output =~ "No journal files" ]]; then
+        return 0
+    fi
+
+    # If we got a non-zero exit and output indicates failure, unavailable
+    if [[ $journal_status -ne 0 ]] && [[ $journal_output =~ (Failed|Cannot|Error) ]]; then
+        return 0
+    fi
+
+    # If we can read user unit logs (or the unit just doesn't exist, which is fine), available
     return 1
 }
 
