@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/libhvee/pkg/hypervctl"
+	"github.com/containers/libhvee/pkg/powershell"
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/hyperv"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
@@ -76,14 +76,11 @@ func IsInstalled(provider define.VMType) (bool, error) {
 	case define.WSLVirt:
 		return wutil.IsWSLInstalled(), nil
 	case define.HyperVVirt:
-		service, err := hypervctl.NewLocalHyperVService()
-		if err == nil {
-			return true, nil
+		err := powershell.HypervAvailable()
+		if err != nil {
+			return false, err
 		}
-		if service != nil {
-			defer service.Close()
-		}
-		return false, nil
+		return true, nil
 	default:
 		return false, nil
 	}
