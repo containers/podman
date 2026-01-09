@@ -1327,26 +1327,10 @@ func AutocompleteNetworkFlag(cmd *cobra.Command, _ []string, toComplete string) 
 		"none":    nil,
 		"host":    nil,
 		"private": nil,
-		"slirp4netns:": func(s string) ([]string, cobra.ShellCompDirective) {
-			skv := keyValueCompletion{
-				"allow_host_loopback=": getBoolCompletion,
-				"cidr=":                nil,
-				"enable_ipv6=":         getBoolCompletion,
-				"mtu=":                 nil,
-				"outbound_addr=":       nil,
-				"outbound_addr6=":      nil,
-				"port_handler=": func(_ string) ([]string, cobra.ShellCompDirective) {
-					return []string{"rootlesskit", "slirp4netns"}, cobra.ShellCompDirectiveNoFileComp
-				},
-			}
-			return completeKeyValues(s, skv)
-		},
 	}
 
 	networks, _ := getNetworks(cmd, toComplete, completeDefault)
 	suggestions, dir := completeKeyValues(toComplete, kv)
-	// add slirp4netns here it does not work correct if we add it to the kv map
-	suggestions = append(suggestions, "slirp4netns")
 	return append(networks, suggestions...), dir
 }
 
@@ -1765,13 +1749,6 @@ func AutocompleteContainersConfModules(_ *cobra.Command, _ []string, toComplete 
 // -> "file", "journald", "none"
 func AutocompleteEventBackend(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{events.LogFile.String(), events.Journald.String(), events.Null.String()}
-	return types, cobra.ShellCompDirectiveNoFileComp
-}
-
-// AutocompleteNetworkBackend - Autocomplete network backend options.
-// -> "cni", "netavark"
-func AutocompleteNetworkBackend(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	types := []string{string(types.CNI), string(types.Netavark)}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 

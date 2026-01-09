@@ -107,9 +107,6 @@ type Container struct {
 	runtime    *Runtime
 	ociRuntime OCIRuntime
 
-	rootlessSlirpSyncR *os.File
-	rootlessSlirpSyncW *os.File
-
 	rootlessPortSyncR *os.File
 	rootlessPortSyncW *os.File
 
@@ -126,8 +123,7 @@ type Container struct {
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
 
-	slirp4netnsSubnet *net.IPNet
-	pastaResult       *pasta.SetupResult
+	pastaResult *pasta.SetupResult
 }
 
 // ContainerState contains the current state of the container
@@ -217,8 +213,8 @@ type ContainerState struct {
 	// and not delegated to the OCI runtime.
 	ExtensionStageHooks map[string][]spec.Hook `json:"extensionStageHooks,omitempty"`
 
-	// NetInterfaceDescriptions describe the relationship between a CNI
-	// network and an interface names
+	// NetInterfaceDescriptions describe the relationship between a
+	// network and an interface name
 	NetInterfaceDescriptions ContainerNetworkDescriptions `json:"networkDescriptions,omitempty"`
 
 	// Service indicates that container is the service container of a
@@ -323,7 +319,7 @@ type ContainerSecret struct {
 	Target string
 }
 
-// ContainerNetworkDescriptions describes the relationship between the CNI
+// ContainerNetworkDescriptions describes the relationship between the
 // network and the ethN where N is an integer
 type ContainerNetworkDescriptions map[string]int
 
