@@ -929,12 +929,16 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 	return service, warnings, nil
 }
 
+func isTemplateUnit(unit *parser.UnitFile) bool {
+	return strings.Contains(unit.Filename, "@")
+}
+
 // Get the unresolved container name that may contain '%'.
 func getContainerName(container *parser.UnitFile) string {
 	containerName, ok := container.Lookup(ContainerGroup, KeyContainerName)
 	if !ok || len(containerName) == 0 {
 		// By default, We want to name the container by the service name.
-		if strings.Contains(container.Filename, "@") {
+		if isTemplateUnit(container) {
 			containerName = "systemd-%p_%i"
 		} else {
 			containerName = "systemd-%N"
@@ -949,7 +953,7 @@ func getResourceName(unit *parser.UnitFile, group, key string) string {
 	if !ok || len(resourceName) == 0 {
 		resourceName = removeExtension(unit.Filename, "systemd-", "")
 		// By default, We want to name the resource by the service name.
-		if strings.Contains(unit.Filename, "@") {
+		if isTemplateUnit(unit) {
 			resourceName = resourceName[:len(resourceName)-1] + "-%i"
 		}
 	}
@@ -2198,7 +2202,8 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 
 		// If we want to start the container with the pod, we add it to this list.
 		// This creates corresponding Wants=/Before= statements in the pod service.
-		if quadletUnitFile.LookupBooleanWithDefault(groupName, KeyStartWithPod, true) {
+		// Do not add this for template units as dependency cannot be created for them.
+		if !isTemplateUnit(quadletUnitFile) && quadletUnitFile.LookupBooleanWithDefault(groupName, KeyStartWithPod, true) {
 			podInfo.ContainersToStart = append(podInfo.ContainersToStart, serviceUnitFile.Filename)
 		}
 	}
