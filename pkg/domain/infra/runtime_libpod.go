@@ -164,9 +164,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("tmpdir") {
 		options = append(options, libpod.WithTmpDir(cfg.ContainersConf.Engine.TmpDir))
 	}
-	if fs.Changed("network-backend") {
-		options = append(options, libpod.WithNetworkBackend(cfg.ContainersConf.Network.NetworkBackend))
-	}
 
 	if fs.Changed("events-backend") {
 		options = append(options, libpod.WithEventsLogger(cfg.ContainersConf.Engine.EventsLogger))
@@ -207,8 +204,6 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if opts.config.ContainersConfDefaultsRO.Engine.StaticDir != "" {
 		options = append(options, libpod.WithStaticDir(opts.config.ContainersConfDefaultsRO.Engine.StaticDir))
 	}
-
-	// TODO flag to set CNI plugins dir?
 
 	if !opts.withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
