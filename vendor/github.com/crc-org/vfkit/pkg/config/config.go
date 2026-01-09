@@ -16,7 +16,6 @@ import (
 	"math"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -32,6 +31,7 @@ type VirtualMachine struct {
 	Devices    []VirtioDevice `json:"devices,omitempty"`
 	Timesync   *TimeSync      `json:"timesync,omitempty"`
 	Ignition   *Ignition      `json:"ignition,omitempty"`
+	Nested     bool           `json:"nested,omitempty"`
 }
 
 // TimeSync enables synchronization of the host time to the linux guest after the host was suspended.
@@ -42,7 +42,8 @@ type TimeSync struct {
 
 type Ignition struct {
 	ConfigPath string `json:"configPath"`
-	SocketPath string `json:"socketPath"`
+	SocketPath string `json:"socketPath,omitempty"`
+	VsockPort  uint32 `json:"-"`
 }
 
 // The VMComponent interface represents a VM element (device, bootloader, ...)
@@ -53,8 +54,9 @@ type VMComponent interface {
 }
 
 const (
-	ignitionVsockPort  uint   = 1024
-	ignitionSocketName string = "ignition.sock"
+	// the ignition vsock port is hardcoded to 1024 in ignition source code:
+	// https://github.com/coreos/ignition/blob/d4ff84b2c28a28ad828b974befe3575563faacdd/internal/providers/applehv/applehv.go#L59-L68
+	ignitionVsockPort uint32 = 1024
 )
 
 // NewVirtualMachine creates a new VirtualMachine instance. The virtual machine
@@ -112,6 +114,10 @@ func (vm *VirtualMachine) ToCmdLine() ([]string, error) {
 		args = append(args, "--ignition", vm.Ignition.ConfigPath)
 	}
 
+	if vm.Nested {
+		args = append(args, "--nested")
+	}
+
 	return args, nil
 }
 
@@ -156,26 +162,30 @@ func (vm *VirtualMachine) AddDevicesFromCmdLine(cmdlineOpts []string) error {
 	return nil
 }
 
-func (vm *VirtualMachine) VirtioGPUDevices() []*VirtioGPU {
-	gpuDevs := []*VirtioGPU{}
+func FilterDevices[V VMComponent](vm *VirtualMachine) []V {
+	devs := []V{}
 	for _, dev := range vm.Devices {
-		if gpuDev, isVirtioGPU := dev.(*VirtioGPU); isVirtioGPU {
-			gpuDevs = append(gpuDevs, gpuDev)
+		if dev, isV := dev.(V); isV {
+			devs = append(devs, dev)
 		}
 	}
+	return devs
+}
 
-	return gpuDevs
+func (vm *VirtualMachine) VirtioGPUDevices() []*VirtioGPU {
+	return FilterDevices[*VirtioGPU](vm)
 }
 
 func (vm *VirtualMachine) VirtioVsockDevices() []*VirtioVsock {
-	vsockDevs := []*VirtioVsock{}
-	for _, dev := range vm.Devices {
-		if vsockDev, isVirtioVsock := dev.(*VirtioVsock); isVirtioVsock {
-			vsockDevs = append(vsockDevs, vsockDev)
-		}
-	}
+	return FilterDevices[*VirtioVsock](vm)
+}
 
-	return vsockDevs
+func (vm *VirtualMachine) VirtioInputDevices() []*VirtioInput {
+	return FilterDevices[*VirtioInput](vm)
+}
+
+func (vm *VirtualMachine) VirtioNetDevices() []*VirtioNet {
+	return FilterDevices[*VirtioNet](vm)
 }
 
 func (vm *VirtualMachine) NetworkBlockDevice(deviceID string) *NetworkBlockDevice {
@@ -217,13 +227,13 @@ func (vm *VirtualMachine) TimeSync() *TimeSync {
 	return vm.Timesync
 }
 
-func IgnitionNew(configPath string, socketPath string) (*Ignition, error) {
-	if configPath == "" || socketPath == "" {
-		return nil, fmt.Errorf("config path and socket path cannot be empty")
+func IgnitionNew(configPath string, _ string) (*Ignition, error) {
+	if configPath == "" {
+		return nil, fmt.Errorf("config path cannot be empty")
 	}
 	return &Ignition{
 		ConfigPath: configPath,
-		SocketPath: socketPath,
+		VsockPort:  ignitionVsockPort,
 	}, nil
 }
 
@@ -233,16 +243,10 @@ func (vm *VirtualMachine) AddIgnitionFileFromCmdLine(cmdlineOpts string) error {
 	}
 	opts := strings.Split(cmdlineOpts, ",")
 	if len(opts) != 1 {
-		return fmt.Errorf("ignition only accept one option in command line argument")
+		return fmt.Errorf("ignition only accepts one option in command line argument")
 	}
 
-	socketPath := filepath.Join(os.TempDir(), ignitionSocketName)
-	dev, err := VirtioVsockNew(ignitionVsockPort, socketPath, true)
-	if err != nil {
-		return err
-	}
-	vm.Devices = append(vm.Devices, dev)
-	ignition, err := IgnitionNew(opts[0], socketPath)
+	ignition, err := IgnitionNew(opts[0], "")
 	if err != nil {
 		return err
 	}
@@ -256,7 +260,7 @@ func TimeSyncNew(vsockPort uint) (VMComponent, error) {
 		return nil, fmt.Errorf("invalid vsock port: %d", vsockPort)
 	}
 	return &TimeSync{
-		VsockPort: uint32(vsockPort), //#nosec G115 -- was compared to math.MaxUint32
+		VsockPort: uint32(vsockPort),
 	}, nil
 }
 
@@ -276,7 +280,7 @@ func (ts *TimeSync) FromOptions(options []option) error {
 			if err != nil {
 				return err
 			}
-			ts.VsockPort = uint32(vsockPort) //#nosec G115 -- ParseUint(_, _, 32) guarantees no overflow
+			ts.VsockPort = uint32(vsockPort)
 		default:
 			return fmt.Errorf("unknown option for timesync parameter: %s", option.key)
 		}

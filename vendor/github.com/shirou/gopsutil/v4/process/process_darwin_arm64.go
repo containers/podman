@@ -211,6 +211,51 @@ type ProcTaskInfo struct {
 	Priority          int32
 }
 
+type vinfoStat struct {
+	Dev           uint32
+	Mode          uint16
+	Nlink         uint16
+	Ino           uint64
+	Uid           uint32
+	Gid           uint32
+	Atime         int64
+	Atimensec     int64
+	Mtime         int64
+	Mtimensec     int64
+	Ctime         int64
+	Ctimensec     int64
+	Birthtime     int64
+	Birthtimensec int64
+	Size          int64
+	Blocks        int64
+	Blksize       int32
+	Flags         uint32
+	Gen           uint32
+	Rdev          uint32
+	Qspare        [2]int64
+}
+
+type fsid struct {
+	Val [2]int32
+}
+
+type vnodeInfo struct {
+	Stat vinfoStat
+	Type int32
+	Pad  int32
+	Fsid fsid
+}
+
+type vnodeInfoPath struct {
+	Vi   vnodeInfo
+	Path [1024]int8
+}
+
+type vnodePathInfo struct {
+	Cdir vnodeInfoPath
+	Rdir vnodeInfoPath
+}
+
 type AuditinfoAddr struct {
 	Auid   uint32
 	Mask   AuMask

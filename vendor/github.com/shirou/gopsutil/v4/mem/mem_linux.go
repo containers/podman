@@ -138,6 +138,12 @@ func fillFromMeminfoWithContext(ctx context.Context) (*VirtualMemoryStat, *ExVir
 				return ret, retEx, err
 			}
 			retEx.Unevictable = t * 1024
+		case "Percpu":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
+			retEx.Percpu = t * 1024
 		case "Writeback":
 			t, err := strconv.ParseUint(value, 10, 64)
 			if err != nil {

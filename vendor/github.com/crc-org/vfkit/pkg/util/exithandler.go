@@ -28,22 +28,24 @@ func RegisterExitHandler(handler func()) {
 // SetupExitSignalHandling sets up a signal channel to listen for termination or interruption signals.
 // When one of these signals is received, all the registered exit handlers will be invoked, just
 // before terminating the program.
-func SetupExitSignalHandling() {
-	setupExitSignalHandling(true)
+func SetupExitSignalHandling(shutdownFunc func()) {
+	setupExitSignalHandling(shutdownFunc)
 }
 
 // setupExitSignalHandling sets up a signal channel to listen for termination or interruption signals.
 // When one of these signals is received, all the registered exit handlers will be invoked.
 // It is possible to prevent the program from exiting by setting the doExit param to false (used for testing)
-func setupExitSignalHandling(doExit bool) {
+func setupExitSignalHandling(shutdownFunc func()) {
 	sigChan := make(chan os.Signal, 2)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
+		defer func() {
+			signal.Stop(sigChan)
+		}()
 		for sig := range sigChan {
 			log.Printf("captured %v, calling exit handlers and exiting..", sig)
-			ExecuteExitHandlers()
-			if doExit {
-				os.Exit(1)
+			if shutdownFunc != nil {
+				shutdownFunc()
 			}
 		}
 	}()
