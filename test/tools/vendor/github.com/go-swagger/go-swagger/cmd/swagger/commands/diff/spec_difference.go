@@ -46,7 +46,6 @@ func equalNodes(a, b *Node) bool {
 		a.IsArray == b.IsArray &&
 		a.TypeName == b.TypeName &&
 		equalNodes(a.ChildNode, b.ChildNode)
-
 }
 
 // BreakingChangeCount Calculates the breaking change count
@@ -187,7 +186,7 @@ func (sd SpecDifferences) ReportAllDiffs(fmtJSON bool) (io.Reader, error, error)
 	if fmtJSON {
 		b, err := JSONMarshal(sd)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't print results: %v", err), nil
+			return nil, fmt.Errorf("couldn't print results: %w", err), nil
 		}
 		out, err := prettyprint(b)
 		return out, err, nil
