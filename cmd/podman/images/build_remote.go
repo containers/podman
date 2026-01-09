@@ -363,6 +363,14 @@ func build(cmd *cobra.Command, args []string) error {
 		defer logfile.Close()
 	}
 
+	// Set output destinations: logfile if specified, otherwise stdout/stderr
+	stdout := os.Stdout
+	stderr := os.Stderr
+	if logfile != nil {
+		stdout = logfile
+		stderr = logfile
+	}
+
 	opts := entities.BuildOptions{
 		BuildOptions: buildahDefine.BuildOptions{
 			CommonBuildOpts: &buildahDefine.CommonBuildOptions{
@@ -376,11 +384,12 @@ func build(cmd *cobra.Command, args []string) error {
 			AdditionalTags:          tags,
 			Args:                    buildArgs,
 			ContextDirectory:        contextDir,
+			Err:                     stderr,
 			Excludes:                excludes,
 			ForceRmIntermediateCtrs: buildOpts.ForceRm,
 			Layers:                  layers,
 			NoCache:                 buildOpts.NoCache,
-			Out:                     logfile,
+			Out:                     stdout,
 			Output:                  output,
 			PullPolicy:              pullPolicy,
 			Quiet:                   buildOpts.Quiet,
@@ -392,13 +401,9 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	// Call the engine to perform the build (which will use bindings for remote)
-	report, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, opts)
+	_, err := registry.ImageEngine().Build(registry.GetContext(), containerFiles, opts)
 	if err != nil {
 		return err
-	}
-
-	if cmd.Flag("quiet").Changed {
-		fmt.Println(report.ID)
 	}
 
 	return nil
