@@ -2,6 +2,12 @@
 
 # Changelog
 
+## v1.37.8 (2026-01-06)
+
+    [release-1.37] tests/run.bats: "run masks" test: accept "unreadable"
+    [release-1.37] Adjust cpu-shares check test for weight
+    [release-1.37] CVE-2025-49713 x/crypto
+
 ## v1.37.7 (2025-12-09)
 
     [release-1.37] CI: run integration tests on Fedora with both crun and
