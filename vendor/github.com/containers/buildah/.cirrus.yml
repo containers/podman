@@ -29,11 +29,11 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-41"
-    PRIOR_FEDORA_NAME: "fedora-40"
+    FEDORA_NAME: "fedora-42"
+    PRIOR_FEDORA_NAME: "fedora-41"
     UBUNTU_NAME: "ubuntu-2204"
 
-    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
+    IMAGE_SUFFIX: "c20250910t092246z-f42f41d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -121,7 +121,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.22
+        image: docker.io/library/golang:1.24.2
         cpu: 1
         memory: 1
 
