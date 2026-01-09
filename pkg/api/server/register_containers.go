@@ -681,7 +681,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//   - containers (compat)
-	// summary: Update configuration of an existing container
+	// summary: Update configuration of an existing container, allowing changes to resource limits
 	// description: Change configuration settings for an existing container without requiring recreation.
 	// parameters:
 	//  - in: path
