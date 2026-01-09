@@ -1402,6 +1402,24 @@ func WithArtifactVolumes(volumes []*ContainerArtifactVolume) CtrCreateOption {
 	}
 }
 
+// WithVolumeMode sets the volume mode for the container.
+// This controls the behavior when a named volume is not found.
+func WithVolumeMode(mode define.VolumeMode) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		if err := mode.Validate(); err != nil {
+			return err
+		}
+
+		ctr.config.VolumeMode = mode
+
+		return nil
+	}
+}
+
 // WithHealthCheck adds the healthcheck to the container config
 func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
 	return func(ctr *Container) error {

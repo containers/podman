@@ -8,7 +8,7 @@ Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
 bind mounts `/HOST-DIR` from the host into `/CONTAINER-DIR` in the Podman
 container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` mounts the named
 volume from the host into the container. If no such named volume exists,
-Podman creates one. If no source is given, the volume is created
+Podman creates one. This behavior can be changed with the **--volume-mode** option. If no source is given, the volume is created
 as an anonymously named volume with a randomly generated name, and is
 removed when the <<container|pod>> is removed via the `--rm` flag or
 the `podman rm --volumes` command.

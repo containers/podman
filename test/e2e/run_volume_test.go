@@ -1164,4 +1164,96 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 		output = session.OutputToString()
 		Expect(output).ToNot(ContainSubstring("noatime"))
 	})
+
+	It("podman run --volume-mode=create auto-creates missing volume", func() {
+		volName := "testvol-create-mode"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Run with --volume-mode=create (default behavior)
+		session = podmanTest.Podman([]string{"run", "--rm", "--volume-mode=create", "-v", fmt.Sprintf("%s:/mnt", volName), ALPINE, "touch", "/mnt/testfile"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Verify volume was created
+		session = podmanTest.Podman([]string{"volume", "exists", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Cleanup
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run --volume-mode=fail errors on missing volume", func() {
+		volName := "testvol-fail-mode-nonexistent"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Run with --volume-mode=fail should error
+		session = podmanTest.Podman([]string{"run", "--rm", "--volume-mode=fail", "-v", fmt.Sprintf("%s:/mnt", volName), ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("volume %s does not exist", volName)))
+	})
+
+	It("podman run --volume-mode=fail succeeds with existing volume", func() {
+		volName := "testvol-fail-mode-exists"
+		// Create volume first
+		session := podmanTest.Podman([]string{"volume", "create", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Run with --volume-mode=fail should succeed since volume exists
+		session = podmanTest.Podman([]string{"run", "--rm", "--volume-mode=fail", "-v", fmt.Sprintf("%s:/mnt", volName), ALPINE, "touch", "/mnt/testfile"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Cleanup
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run without --volume-mode auto-creates missing volume (default)", func() {
+		volName := "testvol-default-mode"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Run without --volume-mode (should default to create behavior)
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/mnt", volName), ALPINE, "touch", "/mnt/testfile"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Verify volume was created
+		session = podmanTest.Podman([]string{"volume", "exists", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Cleanup
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run --volume-mode with invalid value fails", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--volume-mode=invalid", "-v", "testvol:/mnt", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `invalid volume mode "invalid"`))
+	})
+
+	It("podman create --volume-mode=fail errors on missing volume", func() {
+		volName := "testvol-create-fail-mode"
+		// Ensure volume doesn't exist
+		session := podmanTest.Podman([]string{"volume", "rm", "-f", volName})
+		session.WaitWithDefaultTimeout()
+
+		// Create with --volume-mode=fail should error
+		session = podmanTest.Podman([]string{"create", "--volume-mode=fail", "-v", fmt.Sprintf("%s:/mnt", volName), ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("volume %s does not exist", volName)))
+	})
 })

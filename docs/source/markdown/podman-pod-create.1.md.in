@@ -183,6 +183,8 @@ Note: This option conflicts with the **--share=cgroup** option since that option
 
 @@option volume
 
+@@option volume-mode
+
 @@option volumes-from
 
 ## EXAMPLES

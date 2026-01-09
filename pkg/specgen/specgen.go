@@ -358,6 +358,12 @@ type ContainerStorageConfig struct {
 	// into paths relative to these directories.
 	// Optional.
 	ChrootDirs []string `json:"chroot_directories,omitempty"`
+	// VolumeMode controls the behavior when a named volume is not found.
+	// Supported modes are "create" (create the volume if it doesn't exist,
+	// which is the default behavior) and "fail" (return an error if the
+	// volume doesn't exist).
+	// Optional.
+	VolumeMode string `json:"volume_mode,omitempty"`
 }
 
 // ContainerSecurityConfig is a container's security features, including

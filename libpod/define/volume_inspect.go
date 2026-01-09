@@ -1,8 +1,36 @@
 package define
 
 import (
+	"fmt"
 	"time"
 )
+
+// VolumeMode controls the behavior when a named volume is not found during
+// container creation.
+type VolumeMode string
+
+const (
+	// VolumeModeCreate causes Podman to create the volume if it doesn't exist.
+	// This is the default behavior.
+	VolumeModeCreate VolumeMode = "create"
+	// VolumeModeFail causes Podman to fail if the volume doesn't exist.
+	VolumeModeFail VolumeMode = "fail"
+)
+
+// String returns the string representation of the VolumeMode.
+func (v VolumeMode) String() string {
+	return string(v)
+}
+
+// Validate checks if the VolumeMode is valid.
+func (v VolumeMode) Validate() error {
+	switch v {
+	case VolumeModeCreate, VolumeModeFail, "":
+		return nil
+	default:
+		return fmt.Errorf("invalid volume mode %q: must be %q or %q", v, VolumeModeCreate, VolumeModeFail)
+	}
+}
 
 // InspectVolumeData is the output of Inspect() on a volume. It is matched to
 // the format of 'docker volume inspect'.
