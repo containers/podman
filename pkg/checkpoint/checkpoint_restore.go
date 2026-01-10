@@ -10,10 +10,10 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/podman/v6/libpod"
-	ann "github.com/containers/podman/v6/pkg/annotations"
 	"github.com/containers/podman/v6/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v6/pkg/criu"
 	"github.com/containers/podman/v6/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/kube"
 	"github.com/containers/podman/v6/pkg/specgen/generate"
 	"github.com/containers/podman/v6/pkg/specgenutil"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -173,9 +173,9 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		}
 		ctrConfig.CgroupParent = cgroupPath
 
-		oldPodID := dumpSpec.Annotations[ann.SandboxID]
+		oldPodID := dumpSpec.Annotations[kube.SandboxID]
 		// Fix up SandboxID in the annotations
-		dumpSpec.Annotations[ann.SandboxID] = ctrConfig.Pod
+		dumpSpec.Annotations[kube.SandboxID] = ctrConfig.Pod
 		// Fix up CreateCommand
 		for i, c := range ctrConfig.CreateCommand {
 			if c == oldPodID {
