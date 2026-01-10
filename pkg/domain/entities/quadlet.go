@@ -41,6 +41,8 @@ type ListQuadlet struct {
 	// If multiple quadlets were installed together they will belong
 	// to common App.
 	App string
+	// Pod is the name of the pod this quadlet belongs to
+	Pod string
 }
 
 // QuadletRemoveOptions contains parameters for removing Quadlets
