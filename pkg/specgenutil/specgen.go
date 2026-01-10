@@ -986,7 +986,10 @@ func MakeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 
 	var concat string
 	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestCmd || strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // this is for compat, we are already split properly for most compat cases
-		cmdArr = strings.Fields(inCmd)
+		// Only re-split if the input was not already a JSON array (isArr == false); otherwise preserve the unmarshaled array structure
+		if !isArr {
+			cmdArr = strings.Fields(inCmd)
+		}
 	} else if strings.ToUpper(cmdArr[0]) != define.HealthConfigTestCmdShell { // this is for podman side of things, won't contain the keywords
 		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
 			cmdArr = append([]string{define.HealthConfigTestCmd}, cmdArr...)
