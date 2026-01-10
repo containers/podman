@@ -233,13 +233,8 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 		return nil, errors.New("append option is not compatible with type option")
 	}
 
-	locked := true
 	as.lock.Lock()
-	defer func() {
-		if locked {
-			as.lock.Unlock()
-		}
-	}()
+	defer as.lock.Unlock()
 
 	var artifactManifest specV1.Manifest
 	var oldDigest *digest.Digest
@@ -305,10 +300,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 	}
 	defer imageDest.Close()
 
-	// Unlock around the actual pull of the blobs.
-	// This is ugly as hell, but should be safe.
-	locked = false
-	as.lock.Unlock()
+	// Keep the lock held during blob copying to prevent concurrent artifact adds
+	// from racing on the OCI layout index file. The lock was previously released
+	// here as an optimization, but this created a race condition where concurrent
+	// artifact additions could overwrite each other's index entries.
+	// See: https://github.com/containers/podman/issues/27569
 
 	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
 	// This works for the oci/layout transport we hard-code.
@@ -367,8 +363,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest ArtifactReference, artifac
 		artifactManifest.Layers = append(artifactManifest.Layers, newLayer)
 	}
 
-	as.lock.Lock()
-	locked = true
+	// Lock is still held from the beginning of the function
 
 	rawData, err := json.Marshal(artifactManifest)
 	if err != nil {
