@@ -1,0 +1,50 @@
+---
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+jobs:
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: &packit_failure_notification
+      failure_comment:
+        message: "Packit jobs failed. @containers/packit-build please check."
+    targets: &test_targets
+      epel-10-x86_64:
+        distros: [RHEL-10.0-Nightly]
+      epel-10-aarch64:
+        distros: [RHEL-10.0-Nightly]
+      epel-9-x86_64:
+        distros: [RHEL-9.6.0-Nightly]
+      epel-9-aarch64:
+        distros: [RHEL-9.6.0-Nightly]
+    tmt_plan: "/plans/system/root-local"
+    identifier: "sys-local-root"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/system/rootless-local"
+    identifier: "sys-local-rootless"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/system/root-remote"
+    identifier: "sys-remote-root"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/system/rootless-remote"
+    identifier: "sys-remote-rootless"
