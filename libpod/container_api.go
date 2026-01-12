@@ -545,7 +545,7 @@ func (c *Container) Export(out io.Writer) error {
 		return fmt.Errorf("cannot mount container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
-	defer c.newContainerEvent(events.Mount)
+	defer c.newContainerEvent(events.Export)
 	return c.export(out)
 }
 
