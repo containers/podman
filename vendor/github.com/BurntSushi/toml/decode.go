@@ -206,6 +206,13 @@ func markDecodedRecursive(md *MetaData, tmap map[string]any) {
 			markDecodedRecursive(md, tmap)
 			md.context = md.context[0 : len(md.context)-1]
 		}
+		if tarr, ok := tmap[key].([]map[string]any); ok {
+			for _, elm := range tarr {
+				md.context = append(md.context, key)
+				markDecodedRecursive(md, elm)
+				md.context = md.context[0 : len(md.context)-1]
+			}
+		}
 	}
 }
 
@@ -423,7 +430,7 @@ func (md *MetaData) unifyString(data any, rv reflect.Value) error {
 		if i, ok := data.(int64); ok {
 			rv.SetString(strconv.FormatInt(i, 10))
 		} else if f, ok := data.(float64); ok {
-			rv.SetString(strconv.FormatFloat(f, 'f', -1, 64))
+			rv.SetString(strconv.FormatFloat(f, 'g', -1, 64))
 		} else {
 			return md.badtype("string", data)
 		}

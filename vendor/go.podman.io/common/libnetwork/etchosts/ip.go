@@ -28,6 +28,9 @@ type HostContainersInternalOptions struct {
 	// lower priority than the containers.conf config option.
 	// This is used for the pasta --map-guest-addr ip.
 	PreferIP string
+	// HostNetwork should be set to true when the container runs in the host netns.
+	// When this is set we will use 127.0.0.1 as returned ip address.
+	HostNetwork bool
 }
 
 // Lookup "host.containers.internal" dns name so we can add it to /etc/hosts when running inside podman machine.
@@ -59,6 +62,10 @@ func GetHostContainersInternalIP(opts HostContainersInternalOptions) string {
 		return ""
 	default:
 		return opts.Conf.Containers.HostContainersInternalIP
+	}
+
+	if opts.HostNetwork {
+		return "127.0.0.1"
 	}
 
 	// caller has a specific ip it prefers

@@ -27,13 +27,13 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder**          | **Description**                                    |
-| ------------------------ | -------------------------------------------------- |
-| .Artifact ...            | Artifact details (nested struct)                   |
-| .Digest                  | Artifact digest (sha256:+64-char hash)             |
-| .Manifest ...            | Artifact manifest details (struct)                 |
-| .Name                    | Artifact name (string)                             |
-| .TotalSizeBytes          | Total Size of the artifact in bytes                |
+| **Placeholder**  | **Description**                        |
+|------------------|----------------------------------------|
+| .Artifact ...    | Artifact details (nested struct)       |
+| .Digest          | Artifact digest (sha256:+64-char hash) |
+| .Manifest ...    | Artifact manifest details (struct)     |
+| .Name            | Artifact name (string)                 |
+| .TotalSizeBytes  | Total Size of the artifact in bytes    |
 
 #### **--help**, **-h**
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 	"strings"
 	"time"
 
@@ -147,6 +148,11 @@ func (b *Bar) SetRefill(amount int64) {
 	case b.operateState <- func(s *bState) { s.refill = min(amount, s.current) }:
 	case <-b.ctx.Done():
 	}
+}
+
+// SetRefillCurrent sets refill to the current amount.
+func (b *Bar) SetRefillCurrent() {
+	b.SetRefill(math.MaxInt64)
 }
 
 // TraverseDecorators traverses available decorators and calls `cb`
