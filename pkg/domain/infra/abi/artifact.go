@@ -14,7 +14,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
-	"go.podman.io/common/pkg/libartifact/store"
+	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/common/pkg/libartifact/types"
 )
 
@@ -23,7 +23,7 @@ func (ir *ImageEngine) ArtifactInspect(ctx context.Context, name string, _ entit
 	if err != nil {
 		return nil, err
 	}
-	asr, err := store.NewArtifactStorageReference(name)
+	asr, err := libartifact.NewArtifactStorageReference(name)
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +31,7 @@ func (ir *ImageEngine) ArtifactInspect(ctx context.Context, name string, _ entit
 	if err != nil {
 		return nil, err
 	}
-	artDigest, err := art.GetDigest()
-	if err != nil {
-		return nil, err
-	}
+	artDigest := art.GetDigest()
 	artInspectReport := entities.ArtifactInspectReport{
 		Artifact: art,
 		Digest:   artDigest.String(),
@@ -62,7 +59,7 @@ func (ir *ImageEngine) ArtifactList(ctx context.Context, _ entities.ArtifactList
 }
 
 func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entities.ArtifactPullOptions) (*entities.ArtifactPullReport, error) {
-	artRefToPull, err := store.NewArtifactReference(name)
+	artRefToPull, err := libartifact.NewArtifactReference(name)
 	if err != nil {
 		return nil, err
 	}
@@ -117,11 +114,7 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 		for _, art := range allArtifacts {
 			// Using the digest here instead of name to protect against
 			// an artifact that lacks a name
-			manifestDigest, err := art.GetDigest()
-			if err != nil {
-				return nil, err
-			}
-			namesOrDigests = append(namesOrDigests, manifestDigest.Encoded())
+			namesOrDigests = append(namesOrDigests, art.GetDigest().Encoded())
 		}
 	}
 
@@ -132,7 +125,7 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 
 	artifactDigests := make([]*digest.Digest, 0, len(namesOrDigests))
 	for _, nameOrDigest := range namesOrDigests {
-		asr, err := store.NewArtifactStorageReference(nameOrDigest)
+		asr, err := libartifact.NewArtifactStorageReference(nameOrDigest)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +199,7 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 		IdentityToken:                    "",
 		Writer:                           opts.Writer,
 	}
-	artRef, err := store.NewArtifactReference(name)
+	artRef, err := libartifact.NewArtifactReference(name)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +219,7 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlo
 		return nil, err
 	}
 
-	artToAdd, err := store.NewArtifactReference(name)
+	artToAdd, err := libartifact.NewArtifactReference(name)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +259,7 @@ func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target 
 		},
 	}
 
-	asr, err := store.NewArtifactStorageReference(name)
+	asr, err := libartifact.NewArtifactStorageReference(name)
 	if err != nil {
 		return err
 	}
@@ -286,7 +279,7 @@ func (ir *ImageEngine) ArtifactExtractTarStream(ctx context.Context, w io.Writer
 		ExcludeTitle: opts.ExcludeTitle,
 	}
 
-	asr, err := store.NewArtifactStorageReference(name)
+	asr, err := libartifact.NewArtifactStorageReference(name)
 	if err != nil {
 		return err
 	}
