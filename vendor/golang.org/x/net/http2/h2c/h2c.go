@@ -132,11 +132,8 @@ func (s h2cHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // of the body, and reforward the client preface on the net.Conn this function
 // creates.
 func initH2CWithPriorKnowledge(w http.ResponseWriter) (net.Conn, error) {
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		return nil, errors.New("h2c: connection does not support Hijack")
-	}
-	conn, rw, err := hijacker.Hijack()
+	rc := http.NewResponseController(w)
+	conn, rw, err := rc.Hijack()
 	if err != nil {
 		return nil, err
 	}
@@ -163,10 +160,6 @@ func h2cUpgrade(w http.ResponseWriter, r *http.Request) (_ net.Conn, settings []
 	if err != nil {
 		return nil, nil, err
 	}
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		return nil, nil, errors.New("h2c: connection does not support Hijack")
-	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -174,7 +167,8 @@ func h2cUpgrade(w http.ResponseWriter, r *http.Request) (_ net.Conn, settings []
 	}
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	conn, rw, err := hijacker.Hijack()
+	rc := http.NewResponseController(w)
+	conn, rw, err := rc.Hijack()
 	if err != nil {
 		return nil, nil, err
 	}
