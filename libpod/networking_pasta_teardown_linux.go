@@ -14,22 +14,101 @@
 package libpod
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
+	// maxTerminationWaitIterations is the maximum number of iterations to wait for
+	// pasta process termination after SIGTERM before sending SIGKILL
+	maxTerminationWaitIterations = 50
+
+	// terminationPollInterval is the interval between checks for process termination
+	terminationPollInterval = 20 * time.Millisecond
+
 	// procReadBatchSize is the number of /proc entries to read at once
 	// -1 means read all entries at once, which is acceptable for /proc
 	procReadBatchSize = -1
 )
 
+// teardownPasta terminates the pasta process for the given container.
+// This is necessary because pasta may not exit immediately when the netns
+// is deleted, causing "address already in use" errors on restart.
+func (r *Runtime) teardownPasta(ctr *Container) error {
+	if ctr.state.NetNS == "" {
+		return nil
+	}
+
+	// Find the pasta process by looking for processes with our netns path
+	pid, err := findPastaProcess(ctr.state.NetNS)
+	if err != nil {
+		logrus.Debugf("Could not find pasta process for container %s: %v", ctr.ID(), err)
+		return nil // Not finding the process is not an error
+	}
+
+	if pid == 0 {
+		logrus.Debugf("No pasta process found for container %s", ctr.ID())
+		return nil
+	}
+
+	logrus.Debugf("Found pasta process %d for container %s, terminating", pid, ctr.ID())
+
+	// Send SIGTERM to the pasta process
+	// Note: There's a potential TOCTOU race between finding the process and signaling it,
+	// but this is acceptable as the worst case is an ESRCH error which we handle gracefully.
+	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+		if err == syscall.ESRCH {
+			// Process already gone
+			return nil
+		}
+		// Log the error but continue to wait loop - the process might still exit
+		logrus.Warnf("Failed to send SIGTERM to pasta process %d: %v, will continue waiting", pid, err)
+	}
+
+	// Wait for the process to exit (with timeout)
+	// Total wait time: maxTerminationWaitIterations * terminationPollInterval = 1 second
+	for i := 0; i < maxTerminationWaitIterations; i++ {
+		if err := syscall.Kill(pid, 0); err == syscall.ESRCH {
+			logrus.Debugf("Pasta process %d exited successfully", pid)
+			return nil
+		}
+		time.Sleep(terminationPollInterval)
+	}
+
+	// If still running after timeout, send SIGKILL
+	logrus.Warnf("Pasta process %d did not exit after SIGTERM, sending SIGKILL", pid)
+	if err := syscall.Kill(pid, syscall.SIGKILL); err != nil && err != syscall.ESRCH {
+		return fmt.Errorf("failed to send SIGKILL to pasta process %d: %w", pid, err)
+	}
+
+	// Wait briefly for SIGKILL to take effect before returning.
+	// This ensures the port is actually freed before we proceed.
+	for i := 0; i < 10; i++ {
+		if err := syscall.Kill(pid, 0); err == syscall.ESRCH {
+			logrus.Debugf("Pasta process %d terminated after SIGKILL", pid)
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// Process still exists after 100ms - unusual but not fatal, log and continue
+	logrus.Warnf("Pasta process %d may still be running after SIGKILL", pid)
+	return nil
+}
+
 // matchPastaCmdline checks if the given command line arguments represent a pasta
 // process using the specified network namespace path.
-// Returns true if the args contain "pasta" in any argument (to match both "pasta"
-// and "/usr/bin/pasta") AND have "--netns" followed by the matching netnsPath.
+// Returns true if the args contain "pasta" as the executable name (exact match or
+// path ending with "/pasta") AND have "--netns" followed by the matching netnsPath.
+// This prevents false positives from processes that merely have "pasta" in their
+// arguments (e.g., "--config=/etc/pasta.conf").
 func matchPastaCmdline(args []string, netnsPath string) bool {
 	if len(args) == 0 || netnsPath == "" {
 		return false
@@ -39,7 +118,8 @@ func matchPastaCmdline(args []string, netnsPath string) bool {
 	hasOurNetns := false
 
 	for i, arg := range args {
-		if strings.Contains(arg, "pasta") {
+		// Match only if arg is exactly "pasta" or ends with "/pasta" (full path)
+		if arg == "pasta" || strings.HasSuffix(arg, "/pasta") {
 			isPasta = true
 		}
 		if arg == "--netns" && i+1 < len(args) && args[i+1] == netnsPath {
