@@ -111,8 +111,20 @@ func (r *Runtime) teardownNetwork(ctr *Container) error {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsSlirp4netns() &&
-		!ctr.config.NetMode.IsPasta() && len(networks) > 0 {
+	// For pasta mode, we need to explicitly terminate the pasta process
+	// before unmounting the netns to avoid race conditions on restart.
+	// Pasta mode does not use the standard network backend (CNI/netavark),
+	// so we return early after terminating the pasta process. No additional
+	// network backend cleanup is needed for pasta.
+	if ctr.config.NetMode.IsPasta() {
+		if err := r.teardownPasta(ctr); err != nil {
+			logrus.Errorf("Failed to teardown pasta for container %s: %v", ctr.ID(), err)
+			// Don't return error, continue with cleanup
+		}
+		return nil
+	}
+
+	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
 		netOpts := ctr.getNetworkOptions(networks)
 		return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
 	}

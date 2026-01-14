@@ -194,6 +194,12 @@ func (c *Container) cleanupNetwork() error {
 	c.state.NetNS = ""
 	c.state.NetworkStatus = nil
 
+	// Clear pasta result to ensure clean state for restart.
+	// The pasta process is explicitly terminated in teardownPasta().
+	if c.config.NetMode.IsPasta() {
+		c.pastaResult = nil
+	}
+
 	// always save even when there was an error
 	err = c.save()
 	if err != nil {
