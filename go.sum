@@ -57,8 +57,8 @@ github.com/containernetworking/cni v1.3.0 h1:v6EpN8RznAZj9765HhXQrtXgX+ECGebEYEm
 github.com/containernetworking/cni v1.3.0/go.mod h1:Bs8glZjjFfGPHMw6hQu82RUgEPNGEaBb9KS5KtNMnJ4=
 github.com/containernetworking/plugins v1.8.0 h1:WjGbV/0UQyo8A4qBsAh6GaDAtu1hevxVxsEuqtBqUFk=
 github.com/containernetworking/plugins v1.8.0/go.mod h1:JG3BxoJifxxHBhG3hFyxyhid7JgRVBu/wtooGEvWf1c=
-github.com/containers/buildah v1.42.0 h1:hS+/sq6g74wNNYvX6d5/jx4awkwqibBxUxJ/P2oOETk=
-github.com/containers/buildah v1.42.0/go.mod h1:azIYkIUVSEiVVQi4hPm9ZsxuVNqb8HdSMlvaBzr8MtU=
+github.com/containers/buildah v1.42.1 h1:L4jH4Uv6vg6N1QbjnFC6N42izZ+BO3q5yOMA9QXBKgQ=
+github.com/containers/buildah v1.42.1/go.mod h1:Lb5bkGcOZWklx4kyMSnEt0mnslKuSswsIGDQwo/zbiQ=
 github.com/containers/common v0.62.2 h1:xO45OOoeq17EZMIDZoSyRqg7GXGcRHa9sXlrr75zH+U=
 github.com/containers/common v0.62.2/go.mod h1:veFiR9iq2j3CHXtB4YnPHuOkSRdhIQ3bAY8AFMP/5bE=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
