@@ -84,13 +84,6 @@ func create(_ *cobra.Command, args []string) error {
 		}
 		reader = strings.NewReader(envValue)
 	case path == "-" || path == "/dev/stdin":
-		stat, err := os.Stdin.Stat()
-		if err != nil {
-			return err
-		}
-		if (stat.Mode() & os.ModeNamedPipe) == 0 {
-			return errors.New("if `-` is used, data must be passed into stdin")
-		}
 		reader = os.Stdin
 	default:
 		file, err := os.Open(path)
