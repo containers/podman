@@ -52,14 +52,14 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	volumeConfigs := make([]*docker_api_types.Volume, 0, len(vols))
+	volumeConfigs := make([]*docker_api_types_volume.Volume, 0, len(vols))
 	for _, v := range vols {
 		mp, err := v.MountPoint()
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
-		config := docker_api_types.Volume{
+		config := docker_api_types_volume.Volume{
 			Name:       v.Name(),
 			Driver:     v.Driver(),
 			Mountpoint: mp,
@@ -70,7 +70,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		}
 		volumeConfigs = append(volumeConfigs, &config)
 	}
-	response := docker_api_types_volume.VolumeListOKBody{
+	response := docker_api_types_volume.ListResponse{
 		Volumes:  volumeConfigs,
 		Warnings: []string{},
 	}
@@ -91,7 +91,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// decode params from body
-	input := docker_api_types_volume.VolumeCreateBody{}
+	input := docker_api_types_volume.CreateOptions{}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
@@ -118,7 +118,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 			utils.InternalServerError(w, err)
 			return
 		}
-		response := docker_api_types.Volume{
+		response := docker_api_types_volume.Volume{
 			CreatedAt:  existingVolume.CreatedTime().Format(time.RFC3339),
 			Driver:     existingVolume.Driver(),
 			Labels:     existingVolume.Labels(),
@@ -163,7 +163,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	volResponse := docker_api_types.Volume{
+	volResponse := docker_api_types_volume.Volume{
 		Name:       config.Name,
 		Driver:     config.Driver,
 		Mountpoint: mp,
@@ -193,7 +193,7 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	volResponse := docker_api_types.Volume{
+	volResponse := docker_api_types_volume.Volume{
 		Name:       vol.Name(),
 		Driver:     vol.Driver(),
 		Mountpoint: mp,

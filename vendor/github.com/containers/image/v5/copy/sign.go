@@ -13,20 +13,20 @@ import (
 	"github.com/containers/image/v5/transports"
 )
 
-// setupSigners initializes c.signers based on options.
-func (c *copier) setupSigners(options *Options) error {
-	c.signers = append(c.signers, options.Signers...)
-	// c.signersToClose is intentionally not updated with options.Signers.
+// setupSigners initializes c.signers.
+func (c *copier) setupSigners() error {
+	c.signers = append(c.signers, c.options.Signers...)
+	// c.signersToClose is intentionally not updated with c.options.Signers.
 
 	// We immediately append created signers to c.signers, and we rely on c.close() to clean them up; so we don’t need
 	// to clean up any created signers on failure.
 
-	if options.SignBy != "" {
+	if c.options.SignBy != "" {
 		opts := []simplesigning.Option{
-			simplesigning.WithKeyFingerprint(options.SignBy),
+			simplesigning.WithKeyFingerprint(c.options.SignBy),
 		}
-		if options.SignPassphrase != "" {
-			opts = append(opts, simplesigning.WithPassphrase(options.SignPassphrase))
+		if c.options.SignPassphrase != "" {
+			opts = append(opts, simplesigning.WithPassphrase(c.options.SignPassphrase))
 		}
 		signer, err := simplesigning.NewSigner(opts...)
 		if err != nil {
@@ -36,9 +36,9 @@ func (c *copier) setupSigners(options *Options) error {
 		c.signersToClose = append(c.signersToClose, signer)
 	}
 
-	if options.SignBySigstorePrivateKeyFile != "" {
+	if c.options.SignBySigstorePrivateKeyFile != "" {
 		signer, err := sigstore.NewSigner(
-			sigstore.WithPrivateKeyFile(options.SignBySigstorePrivateKeyFile, options.SignSigstorePrivateKeyPassphrase),
+			sigstore.WithPrivateKeyFile(c.options.SignBySigstorePrivateKeyFile, c.options.SignSigstorePrivateKeyPassphrase),
 		)
 		if err != nil {
 			return err
@@ -50,13 +50,13 @@ func (c *copier) setupSigners(options *Options) error {
 	return nil
 }
 
-// sourceSignatures returns signatures from unparsedSource based on options,
+// sourceSignatures returns signatures from unparsedSource,
 // and verifies that they can be used (to avoid copying a large image when we
 // can tell in advance that it would ultimately fail)
-func (c *copier) sourceSignatures(ctx context.Context, unparsed private.UnparsedImage, options *Options,
+func (c *copier) sourceSignatures(ctx context.Context, unparsed private.UnparsedImage,
 	gettingSignaturesMessage, checkingDestMessage string) ([]internalsig.Signature, error) {
 	var sigs []internalsig.Signature
-	if options.RemoveSignatures {
+	if c.options.RemoveSignatures {
 		sigs = []internalsig.Signature{}
 	} else {
 		c.Printf("%s\n", gettingSignaturesMessage)

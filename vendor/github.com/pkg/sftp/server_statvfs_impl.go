@@ -1,3 +1,4 @@
+//go:build darwin || linux
 // +build darwin linux
 
 // fill in statvfs structure with OS specific values

@@ -399,6 +399,15 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 		overrides := c.getUserOverrides()
 		dest.AutoUserNsOpts.PasswdFile = overrides.ContainerEtcPasswdPath
 		dest.AutoUserNsOpts.GroupFile = overrides.ContainerEtcGroupPath
+
+		// Work around containers/storage v1.51.0 bug in parseMountedFiles where
+		// groupFile path is incorrectly defaulted. Set an explicit size to avoid
+		// the buggy code path. This is fixed in newer versions of storage.
+		// A size of 65536 is reasonable for most containers.
+		if dest.AutoUserNsOpts.Size == 0 {
+			dest.AutoUserNsOpts.Size = 65536
+		}
+
 		if c.config.User != "" {
 			initialSize := uint32(0)
 			parts := strings.Split(c.config.User, ":")
@@ -2203,7 +2212,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[string][]spec.Hook, error) {
 	allHooks := make(map[string][]spec.Hook)
-	if c.runtime.config.Engine.HooksDir == nil {
+	if len(c.runtime.config.Engine.HooksDir.Get()) == 0 {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
@@ -2227,7 +2236,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			}
 		}
 	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir, []string{"precreate", "poststop"})
+		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir.Get(), []string{"precreate", "poststop"})
 		if err != nil {
 			return nil, err
 		}
@@ -2453,7 +2462,7 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	if err := os.Chmod(secretFile, os.FileMode(secr.Mode)); err != nil {
 		return err
 	}
-	if err := label.Relabel(secretFile, c.config.MountLabel, false); err != nil {
+	if err := c.relabel(secretFile, c.config.MountLabel, false); err != nil {
 		return err
 	}
 	return nil

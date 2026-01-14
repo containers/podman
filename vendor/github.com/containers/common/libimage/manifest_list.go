@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -6,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/containers/common/libimage/define"
 	"github.com/containers/common/libimage/manifests"
 	imageCopy "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
@@ -38,28 +42,6 @@ type ManifestList struct {
 
 	// The underlying manifest list.
 	list manifests.List
-}
-
-// ManifestListDescriptor references a platform-specific manifest.
-// Contains exclusive field like `annotations` which is only present in
-// OCI spec and not in docker image spec.
-type ManifestListDescriptor struct {
-	manifest.Schema2Descriptor
-	Platform manifest.Schema2PlatformSpec `json:"platform"`
-	// Annotations contains arbitrary metadata for the image index.
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
-
-// ManifestListData is a list of platform-specific manifests, specifically used to
-// generate output struct for `podman manifest inspect`. Reason for maintaining and
-// having this type is to ensure we can have a common type which contains exclusive
-// fields from both Docker manifest format and OCI manifest format.
-type ManifestListData struct {
-	SchemaVersion int                      `json:"schemaVersion"`
-	MediaType     string                   `json:"mediaType"`
-	Manifests     []ManifestListDescriptor `json:"manifests"`
-	// Annotations contains arbitrary metadata for the image index.
-	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ID returns the ID of the manifest list.
@@ -217,6 +199,11 @@ func (i *Image) getManifestList() (manifests.List, error) {
 // image index (OCI).  This information may be critical to make certain
 // execution paths more robust (e.g., suppress certain errors).
 func (i *Image) IsManifestList(ctx context.Context) (bool, error) {
+	// FIXME: due to `ImageDigestBigDataKey` we'll always check the
+	// _last-written_ manifest which is causing issues for multi-arch image
+	// pulls.
+	//
+	// See https://github.com/containers/common/pull/1505#discussion_r1242677279.
 	ref, err := i.StorageReference()
 	if err != nil {
 		return false, err
@@ -233,8 +220,8 @@ func (i *Image) IsManifestList(ctx context.Context) (bool, error) {
 }
 
 // Inspect returns a dockerized version of the manifest list.
-func (m *ManifestList) Inspect() (*ManifestListData, error) {
-	inspectList := ManifestListData{}
+func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
+	inspectList := define.ManifestListData{}
 	dockerFormat := m.list.Docker()
 	err := structcopier.Copy(&inspectList, &dockerFormat)
 	if err != nil {
@@ -388,10 +375,7 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 	}
 
 	// Write the changes to disk.
-	if err := m.saveAndReload(); err != nil {
-		return err
-	}
-	return nil
+	return m.saveAndReload()
 }
 
 // RemoveInstance removes the instance specified by `d` from the manifest list.
@@ -402,10 +386,7 @@ func (m *ManifestList) RemoveInstance(d digest.Digest) error {
 	}
 
 	// Write the changes to disk.
-	if err := m.saveAndReload(); err != nil {
-		return err
-	}
-	return nil
+	return m.saveAndReload()
 }
 
 // ManifestListPushOptions allow for customizing pushing a manifest list.
@@ -416,6 +397,8 @@ type ManifestListPushOptions struct {
 	ImageListSelection imageCopy.ImageListSelection
 	// Use when selecting only specific imags.
 	Instances []digest.Digest
+	// Add existing instances with requested compression algorithms to manifest list
+	AddCompression []string
 }
 
 // Push pushes a manifest to the specified destination.
@@ -447,6 +430,7 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 	defer copier.close()
 
 	pushOptions := manifests.PushOptions{
+		AddCompression:                   options.AddCompression,
 		Store:                            m.image.runtime.store,
 		SystemContext:                    copier.systemContext,
 		ImageListSelection:               options.ImageListSelection,
@@ -459,6 +443,9 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
 		RemoveSignatures:                 options.RemoveSignatures,
 		ManifestType:                     options.ManifestMIMEType,
+		MaxRetries:                       options.MaxRetries,
+		RetryDelay:                       options.RetryDelay,
+		ForceCompressionFormat:           options.ForceCompressionFormat,
 	}
 
 	_, d, err := m.list.Push(ctx, dest, pushOptions)

@@ -1,3 +1,5 @@
+//go:build !remote
+
 package generate
 
 import (
@@ -17,7 +19,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -489,7 +491,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			return nil, err
 		}
 		if processLabel != "" {
-			selinuxOpts, err := label.DupSecOpt(processLabel)
+			selinuxOpts, err := selinux.DupSecOpt(processLabel)
 			if err != nil {
 				return nil, err
 			}

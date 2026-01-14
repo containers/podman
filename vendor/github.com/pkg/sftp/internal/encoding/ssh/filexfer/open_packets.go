@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 // SSH_FXF_* flags.
 const (
@@ -43,12 +43,9 @@ func (p *OpenPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []by
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *OpenPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Filename, err = buf.ConsumeString(); err != nil {
-		return err
-	}
-
-	if p.PFlags, err = buf.ConsumeUint32(); err != nil {
-		return err
+	*p = OpenPacket{
+		Filename: buf.ConsumeString(),
+		PFlags:   buf.ConsumeUint32(),
 	}
 
 	return p.Attrs.UnmarshalFrom(buf)
@@ -81,9 +78,9 @@ func (p *OpenDirPacket) MarshalPacket(reqid uint32, b []byte) (header, payload [
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *OpenDirPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = OpenDirPacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }

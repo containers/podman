@@ -93,6 +93,7 @@ func (m *Rfc3161V001Schema) ContextValidate(ctx context.Context, formats strfmt.
 func (m *Rfc3161V001Schema) contextValidateTsr(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Tsr != nil {
+
 		if err := m.Tsr.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("tsr")

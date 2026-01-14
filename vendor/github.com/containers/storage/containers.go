@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 type containerLocations uint8
@@ -106,13 +107,13 @@ type rwContainerStore interface {
 	// stopReading releases locks obtained by startReading.
 	stopReading()
 
-	// Create creates a container that has a specified ID (or generates a
+	// create creates a container that has a specified ID (or generates a
 	// random one if an empty value is supplied) and optional names,
 	// based on the specified image, using the specified layer as its
 	// read-write layer.
 	// The maps in the container's options structure are recorded for the
 	// convenience of the caller, nothing more.
-	Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (*Container, error)
+	create(id string, names []string, image, layer string, options *ContainerOptions) (*Container, error)
 
 	// updateNames modifies names associated with a  container based on (op, names).
 	updateNames(id string, names []string, op updateNameOperation) error
@@ -410,7 +411,7 @@ func (r *containerStore) GarbageCollect() error {
 	for _, entry := range entries {
 		id := entry.Name()
 		// Does it look like a datadir directory?
-		if !entry.IsDir() || !nameLooksLikeID(id) {
+		if !entry.IsDir() || stringid.ValidateID(id) != nil {
 			continue
 		}
 
@@ -420,6 +421,7 @@ func (r *containerStore) GarbageCollect() error {
 		}
 
 		// Otherwise remove datadir
+		logrus.Debugf("removing %q", filepath.Join(r.dir, id))
 		moreErr := os.RemoveAll(filepath.Join(r.dir, id))
 		// Propagate first error
 		if moreErr != nil && err == nil {
@@ -521,13 +523,20 @@ func (r *containerStore) load(lockedForWriting bool) (bool, error) {
 // The caller must hold r.inProcessLock for reading (but usually holds it for writing in order to make the desired changes).
 func (r *containerStore) save(saveLocations containerLocations) error {
 	r.lockfile.AssertLockedForWriting()
+	// This must be done before we write the file, because the process could be terminated
+	// after the file is written but before the lock file is updated.
+	lw, err := r.lockfile.RecordWrite()
+	if err != nil {
+		return err
+	}
+	r.lastWrite = lw
 	for locationIndex := 0; locationIndex < numContainerLocationIndex; locationIndex++ {
 		location := containerLocationFromIndex(locationIndex)
 		if location&saveLocations == 0 {
 			continue
 		}
 		rpath := r.jsonPath[locationIndex]
-		if err := os.MkdirAll(filepath.Dir(rpath), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(rpath), 0o700); err != nil {
 			return err
 		}
 		subsetContainers := make([]*Container, 0, len(r.containers))
@@ -547,15 +556,10 @@ func (r *containerStore) save(saveLocations containerLocations) error {
 				NoSync: true,
 			}
 		}
-		if err := ioutils.AtomicWriteFileWithOpts(rpath, jdata, 0600, opts); err != nil {
+		if err := ioutils.AtomicWriteFileWithOpts(rpath, jdata, 0o600, opts); err != nil {
 			return err
 		}
 	}
-	lw, err := r.lockfile.RecordWrite()
-	if err != nil {
-		return err
-	}
-	r.lastWrite = lw
 	return nil
 }
 
@@ -567,12 +571,12 @@ func (r *containerStore) saveFor(modifiedContainer *Container) error {
 }
 
 func newContainerStore(dir string, runDir string, transient bool) (rwContainerStore, error) {
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
 	volatileDir := dir
 	if transient {
-		if err := os.MkdirAll(runDir, 0700); err != nil {
+		if err := os.MkdirAll(runDir, 0o700); err != nil {
 			return nil, err
 		}
 		volatileDir = runDir
@@ -649,7 +653,10 @@ func (r *containerStore) SetFlag(id string, flag string, value interface{}) erro
 }
 
 // Requires startWriting.
-func (r *containerStore) Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (container *Container, err error) {
+func (r *containerStore) create(id string, names []string, image, layer string, options *ContainerOptions) (container *Container, err error) {
+	if options == nil {
+		options = &ContainerOptions{}
+	}
 	if id == "" {
 		id = stringid.GenerateRandomID()
 		_, idInUse := r.byid[id]
@@ -661,13 +668,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, ErrDuplicateID
 	}
-	if options.MountOpts != nil {
-		options.Flags[mountOptsFlag] = append([]string{}, options.MountOpts...)
-	}
-	if options.Volatile {
-		options.Flags[volatileFlag] = true
-	}
-	names = dedupeNames(names)
+	names = dedupeStrings(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
 			return nil, fmt.Errorf("the container name %q is already in use by %s. You have to remove that container to be able to reuse that name: %w", name, r.byname[name].ID, ErrDuplicateName)
@@ -684,7 +685,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 		Names:          names,
 		ImageID:        image,
 		LayerID:        layer,
-		Metadata:       metadata,
+		Metadata:       options.Metadata,
 		BigDataNames:   []string{},
 		BigDataSizes:   make(map[string]int64),
 		BigDataDigests: make(map[string]digest.Digest),
@@ -694,16 +695,42 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 		GIDMap:         copyIDMap(options.GIDMap),
 		volatileStore:  options.Volatile,
 	}
+	if options.MountOpts != nil {
+		container.Flags[mountOptsFlag] = append([]string{}, options.MountOpts...)
+	}
+	if options.Volatile {
+		container.Flags[volatileFlag] = true
+	}
 	r.containers = append(r.containers, container)
-	r.byid[id] = container
-	// This can only fail on duplicate IDs, which shouldn’t happen — and in that case the index is already in the desired state anyway.
-	// Implementing recovery from an unlikely and unimportant failure here would be too risky.
+	// This can only fail on duplicate IDs, which shouldn’t happen — and in
+	// that case the index is already in the desired state anyway.
+	// Implementing recovery from an unlikely and unimportant failure here
+	// would be too risky.
 	_ = r.idindex.Add(id)
+	r.byid[id] = container
 	r.bylayer[layer] = container
 	for _, name := range names {
 		r.byname[name] = container
 	}
+	defer func() {
+		if err != nil {
+			// now that the in-memory structures know about the new
+			// record, we can use regular Delete() to clean up if
+			// anything breaks from here on out
+			if e := r.Delete(id); e != nil {
+				logrus.Debugf("while cleaning up partially-created container %q we failed to create: %v", id, e)
+			}
+		}
+	}()
 	err = r.saveFor(container)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range options.BigData {
+		if err = r.SetBigData(id, item.Key, item.Data); err != nil {
+			return nil, err
+		}
+	}
 	container = copyContainer(container)
 	return container, err
 }
@@ -901,10 +928,10 @@ func (r *containerStore) SetBigData(id, key string, data []byte) error {
 	if !ok {
 		return ErrContainerUnknown
 	}
-	if err := os.MkdirAll(r.datadir(c.ID), 0700); err != nil {
+	if err := os.MkdirAll(r.datadir(c.ID), 0o700); err != nil {
 		return err
 	}
-	err := ioutils.AtomicWriteFile(r.datapath(c.ID, key), data, 0600)
+	err := ioutils.AtomicWriteFile(r.datapath(c.ID, key), data, 0o600)
 	if err == nil {
 		save := false
 		if c.BigDataSizes == nil {

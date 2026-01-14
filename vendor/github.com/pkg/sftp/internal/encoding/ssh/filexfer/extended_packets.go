@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 import (
 	"encoding"
@@ -86,8 +86,9 @@ func (p *ExtendedPacket) MarshalPacket(reqid uint32, b []byte) (header, payload 
 // If the extension has not been registered, then a new Buffer will be allocated.
 // Then the request-specific-data will be unmarshaled from the rest of the buffer.
 func (p *ExtendedPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.ExtendedRequest, err = buf.ConsumeString(); err != nil {
-		return err
+	p.ExtendedRequest = buf.ConsumeString()
+	if buf.Err != nil {
+		return buf.Err
 	}
 
 	if p.Data == nil {

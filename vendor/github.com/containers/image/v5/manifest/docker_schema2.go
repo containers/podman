@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/containers/image/v5/internal/manifest"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/pkg/strslice"
 	"github.com/containers/image/v5/types"
@@ -12,12 +13,7 @@ import (
 )
 
 // Schema2Descriptor is a “descriptor” in docker/distribution schema 2.
-type Schema2Descriptor struct {
-	MediaType string        `json:"mediaType"`
-	Size      int64         `json:"size"`
-	Digest    digest.Digest `json:"digest"`
-	URLs      []string      `json:"urls,omitempty"`
-}
+type Schema2Descriptor = manifest.Schema2Descriptor
 
 // BlobInfoFromSchema2Descriptor returns a types.BlobInfo based on the input schema 2 descriptor.
 func BlobInfoFromSchema2Descriptor(desc Schema2Descriptor) types.BlobInfo {
@@ -159,13 +155,13 @@ type Schema2Image struct {
 }
 
 // Schema2FromManifest creates a Schema2 manifest instance from a manifest blob.
-func Schema2FromManifest(manifest []byte) (*Schema2, error) {
+func Schema2FromManifest(manifestBlob []byte) (*Schema2, error) {
 	s2 := Schema2{}
-	if err := json.Unmarshal(manifest, &s2); err != nil {
+	if err := json.Unmarshal(manifestBlob, &s2); err != nil {
 		return nil, err
 	}
-	if err := validateUnambiguousManifestFormat(manifest, DockerV2Schema2MediaType,
-		allowedFieldConfig|allowedFieldLayers); err != nil {
+	if err := manifest.ValidateUnambiguousManifestFormat(manifestBlob, DockerV2Schema2MediaType,
+		manifest.AllowedFieldConfig|manifest.AllowedFieldLayers); err != nil {
 		return nil, err
 	}
 	// Check manifest's and layers' media types.
@@ -251,6 +247,9 @@ func (m *Schema2) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		m.LayersDescriptors[i].Digest = info.Digest
 		m.LayersDescriptors[i].Size = info.Size
 		m.LayersDescriptors[i].URLs = info.URLs
+		if info.CryptoOperation != types.PreserveOriginalCrypto {
+			return fmt.Errorf("encryption change (for layer %q) is not supported in schema2 manifests", info.Digest)
+		}
 	}
 	return nil
 }

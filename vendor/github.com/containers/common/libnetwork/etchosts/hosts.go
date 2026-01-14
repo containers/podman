@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	hostContainersInternal = "host.containers.internal"
+	HostContainersInternal = "host.containers.internal"
+	HostGateway            = "host-gateway"
 	localhost              = "localhost"
+	hostDockerInternal     = "host.docker.internal"
 )
 
 type HostEntries []HostEntry
@@ -50,7 +52,7 @@ type Params struct {
 // containerIps. The container ip entry is only added when the name was not already
 // added before.
 func New(params *Params) error {
-	if err := new(params); err != nil {
+	if err := newHost(params); err != nil {
 		return fmt.Errorf("failed to create new hosts file: %w", err)
 	}
 	return nil
@@ -97,8 +99,8 @@ func Remove(file string, entries HostEntries) error {
 }
 
 // new see comment on New()
-func new(params *Params) error {
-	entries, err := parseExtraHosts(params.ExtraHosts)
+func newHost(params *Params) error {
+	entries, err := parseExtraHosts(params.ExtraHosts, params.HostContainersInternalIP)
 	if err != nil {
 		return err
 	}
@@ -118,15 +120,12 @@ func new(params *Params) error {
 	l2 := HostEntry{IP: "::1", Names: lh}
 	containerIPs = append(containerIPs, l1, l2)
 	if params.HostContainersInternalIP != "" {
-		e := HostEntry{IP: params.HostContainersInternalIP, Names: []string{hostContainersInternal}}
+		e := HostEntry{IP: params.HostContainersInternalIP, Names: []string{HostContainersInternal, hostDockerInternal}}
 		containerIPs = append(containerIPs, e)
 	}
 	containerIPs = append(containerIPs, params.ContainerIPs...)
 
-	if err := writeHostFile(params.TargetFile, entries, containerIPs); err != nil {
-		return err
-	}
-	return nil
+	return writeHostFile(params.TargetFile, entries, containerIPs)
 }
 
 // add see comment on Add()
@@ -233,7 +232,7 @@ func checkIfEntryExists(current HostEntry, entries HostEntries) bool {
 // parseExtraHosts converts a slice of "name:ip" string to entries.
 // Because podman and buildah both store the extra hosts in this format
 // we convert it here instead of having to this on the caller side.
-func parseExtraHosts(extraHosts []string) (HostEntries, error) {
+func parseExtraHosts(extraHosts []string, hostContainersInternalIP string) (HostEntries, error) {
 	entries := make(HostEntries, 0, len(extraHosts))
 	for _, entry := range extraHosts {
 		values := strings.SplitN(entry, ":", 2)
@@ -246,7 +245,14 @@ func parseExtraHosts(extraHosts []string) (HostEntries, error) {
 		if values[1] == "" {
 			return nil, fmt.Errorf("IP address in host entry %q is empty", entry)
 		}
-		e := HostEntry{IP: values[1], Names: []string{values[0]}}
+		ip := values[1]
+		if values[1] == HostGateway {
+			if hostContainersInternalIP == "" {
+				return nil, fmt.Errorf("unable to replace %q of host entry %q: host containers internal IP address is empty", HostGateway, entry)
+			}
+			ip = hostContainersInternalIP
+		}
+		e := HostEntry{IP: ip, Names: []string{values[0]}}
 		entries = append(entries, e)
 	}
 	return entries, nil
