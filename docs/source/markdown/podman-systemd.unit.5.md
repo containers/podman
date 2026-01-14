@@ -331,7 +331,7 @@ Valid options for `[Container]` are listed below:
 | HealthMaxLogSize=500                 | --health-max-log-size=500                            |
 | HealthOnFailure=kill                 | --health-on-failure=kill                             |
 | HealthRetries=5                      | --health-retries=5                                   |
-| HealthStartPeriod=1m                 | --health-start-period=period=1m                      |
+| HealthStartPeriod=1m                 | --health-start-period=1m                             |
 | HealthStartupCmd=command             | --health-startup-cmd=command                         |
 | HealthStartupInterval=1m             | --health-startup-interval=1m                         |
 | HealthStartupRetries=8               | --health-startup-retries=8                           |
