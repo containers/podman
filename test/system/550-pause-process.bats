@@ -16,11 +16,19 @@ function setup_file() {
 }
 
 function _check_pause_process() {
-    # do not mark this variable as local; our caller expects it
+    # do not mark these variables as local; our caller expects them
     pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
-    test -e $pause_pid_file || die "Pause pid file $pause_pid_file missing"
+    ns_handles_file="$XDG_RUNTIME_DIR/libpod/tmp/ns_handles"
+    pause_pid=""
 
-    # do not mark this variable as local; our caller expects it
+    # Check that either ns_handles or pause.pid exists
+    if [ -e $ns_handles_file ]; then
+        # ns_handles file exists, no pause process needed
+        return
+    fi
+
+    test -e $pause_pid_file || die "Neither ns_handles file ($ns_handles_file) nor pause.pid file ($pause_pid_file) exists"
+
     pause_pid=$(<$pause_pid_file)
     test -d /proc/$pause_pid || die "Pause process $pause_pid (from $pause_pid_file) is not running"
 
@@ -51,26 +59,31 @@ function _check_pause_process() {
     # Use podman system migrate to stop the currently running pause process
     run_podman system migrate
 
-    # After migrate, there must be no pause process
+    # After migrate, there must be no pause process or ns_handles
+    # Note: pause_pid_file and ns_handles_file are set by _check_pause_process above
     test -e $pause_pid_file && die "Pause pid file $pause_pid_file still exists, even after podman system migrate"
+    test -e $ns_handles_file && die "ns_handles file $ns_handles_file still exists, even after podman system migrate"
 
-    run kill -0 $pause_pid
-    test $status -eq 0 && die "Pause process $pause_pid is still running even after podman system migrate"
+    if [[ -n "$pause_pid" ]]; then
+        run kill -0 $pause_pid
+        test $status -eq 0 && die "Pause process $pause_pid is still running even after podman system migrate"
+    fi
 
     run_podman $(podman_isolation_opts ${PODMAN_TMPDIR}) $getns
     tmpdir_userns="$output"
 
-    # And now we should once again have a pause process
+    # And now we should once again have a pause process or ns_handles
     _check_pause_process
 
-    # and all podmans, with & without --tmpdir, should use the same ns
-    run_podman $getns
-    assert "$output" == "$tmpdir_userns" \
-           "podman should use the same userns created using a tmpdir"
+    if [ -e $pause_pid_file ]; then
+        run_podman $getns
+        assert "$output" == "$tmpdir_userns" \
+               "podman should use the same userns created using a tmpdir"
 
-    run_podman --tmpdir $PODMAN_TMPDIR/tmp2 $getns
-    assert "$output" == "$tmpdir_userns" \
-           "podman with tmpdir2 should use the same userns created using a tmpdir"
+        run_podman --tmpdir $PODMAN_TMPDIR/tmp2 $getns
+        assert "$output" == "$tmpdir_userns" \
+               "podman with tmpdir2 should use the same userns created using a tmpdir"
+    fi
 }
 
 # https://github.com/containers/podman/issues/16091
@@ -105,9 +118,14 @@ function _check_pause_process() {
     run_podman unshare readlink /proc/self/ns/user
     userns="$output"
 
-    # check for pause pid and then kill it
+    # Check for pause pid or ns_handles file, and remove/kill it
+    # Note: _check_pause_process sets ns_handles_file and pause_pid
     _check_pause_process
-    kill -9 $pause_pid
+    if [ -e $ns_handles_file ]; then
+        rm -f $ns_handles_file
+    elif [ -n "$pause_pid" ]; then
+        kill -9 $pause_pid
+    fi
 
     # Now again directly start podman run and make sure it can forward signals
     # We're forced to use $PODMAN because run_podman cannot be backgrounded
@@ -161,9 +179,14 @@ function _check_pause_process() {
     run_podman inspect --format '{{.State.ConmonPid}}' $cname
     conmon_pid="$output"
 
-    # check for pause pid and then kill it
+    # Check for pause pid or ns_handles file, and remove/kill it
+    # Note: _check_pause_process sets ns_handles_file and pause_pid
     _check_pause_process
-    kill -9 $pause_pid
+    if [ -e $ns_handles_file ]; then
+        rm -f $ns_handles_file
+    elif [ -n "$pause_pid" ]; then
+        kill -9 $pause_pid
+    fi
 
     # kill conmon
     kill -9 $conmon_pid
