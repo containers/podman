@@ -62,6 +62,9 @@ var (
 	ErrCtrStateInvalid = errors.New("container state improper")
 	// ErrCtrStateRunning indicates a container is running.
 	ErrCtrStateRunning = errors.New("container is running")
+	// ErrQuadletRunning indicates the quadlet is running and cannot be
+	// removed without force.
+	ErrQuadletRunning = errors.New("quadlet is running")
 	// ErrExecSessionStateInvalid indicates that an exec session is in an
 	// improper state for the requested operation
 	ErrExecSessionStateInvalid = errors.New("exec session state improper")

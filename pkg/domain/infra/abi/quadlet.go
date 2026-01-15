@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/systemd"
@@ -896,7 +897,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			needReload = options.ReloadSystemd
 			if unitStatus.ActiveState == "active" {
 				if !options.Force {
-					report.Errors[quadletName] = fmt.Errorf("quadlet %s is running and force is not set, refusing to remove", quadletName)
+					report.Errors[quadletName] = fmt.Errorf("quadlet %s is running and force is not set, refusing to remove: %w", quadletName, define.ErrQuadletRunning)
 					runningQuadlets = append(runningQuadlets, quadletName)
 					continue
 				}

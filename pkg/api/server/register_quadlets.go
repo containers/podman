@@ -109,5 +109,90 @@ func (s *APIServer) registerQuadletHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/quadlets"), s.APIHandler(libpod.InstallQuadlets)).Methods(http.MethodPost)
+	// swagger:operation DELETE /libpod/quadlets libpod QuadletDeleteAllLibpod
+	// ---
+	// tags:
+	//   - quadlets
+	// summary: Remove quadlet files (batch operation)
+	// description: |
+	//   Remove one or more quadlet files. Supports removing specific quadlets by name or all quadlets
+	//   for the current user. Can force removal of running quadlets and control systemd reload behavior.
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: query
+	//    name: quadlets
+	//    type: array
+	//    items:
+	//      type: string
+	//    description: Names of quadlets to remove (e.g., "myapp.container"). Required unless all=true
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Remove all quadlets for the current user
+	//  - in: query
+	//    name: force
+	//    type: boolean
+	//    default: false
+	//    description: Remove running quadlets by stopping them first
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    default: false
+	//    description: Do not error for quadlets that do not exist
+	//  - in: query
+	//    name: reload-systemd
+	//    type: boolean
+	//    default: true
+	//    description: Reload systemd after removing quadlets
+	// responses:
+	//   200:
+	//     $ref: "#/responses/quadletRemoveResponse"
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/quadlets"), s.APIHandler(libpod.RemoveQuadlets)).Methods(http.MethodDelete)
+	// swagger:operation DELETE /libpod/quadlets/{name} libpod QuadletDeleteLibpod
+	// ---
+	// tags:
+	//   - quadlets
+	// summary: Remove a quadlet file
+	// description: |
+	//   Remove a quadlet file by name. Can force removal of running quadlets and control systemd reload behavior.
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the quadlet with extension (e.g., "myapp.container")
+	//  - in: query
+	//    name: force
+	//    type: boolean
+	//    default: false
+	//    description: Remove running quadlet by stopping it first
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    default: false
+	//    description: Do not error if the quadlet does not exist
+	//  - in: query
+	//    name: reload-systemd
+	//    type: boolean
+	//    default: true
+	//    description: Reload systemd after removing the quadlet
+	// responses:
+	//   200:
+	//     $ref: "#/responses/quadletRemoveResponse"
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   404:
+	//     $ref: "#/responses/quadletNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/quadlets/{name}"), s.APIHandler(libpod.RemoveQuadlet)).Methods(http.MethodDelete)
 	return nil
 }
