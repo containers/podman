@@ -338,6 +338,23 @@ EOF
     assert "$output" = "$lvalue" "podman-events output includes container label"
 }
 
+@test "events - died event contains OOMKilled attribute" {
+    local cname=c-$(safename)
+
+    run_podman run -d --rm \
+                --name $cname \
+                --memory 20m \
+                --cgroup-conf=memory.oom.group=1 \
+                $IMAGE sh -c "x=a; while :; do x=\$x\$x\$x\$x; done"
+    run_podman wait $cname
+    run_podman events \
+               --filter container=$cname \
+               --filter event=died \
+               --stream=false \
+               --format "{{.OOMKilled}}"
+    assert "$output" = "true" "OOMKilled attribute should be present and set to true"
+}
+
 # bats test_tags=ci:parallel
 @test "events - backend none should error" {
     skip_if_remote "remote does not support --events-backend"
