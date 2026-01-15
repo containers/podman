@@ -180,14 +180,7 @@ func (c *Container) getUniqueExecSessionID() string {
 	found := true
 	// This really ought to be a do-while, but Go doesn't have those...
 	for found {
-		found = false
-		for id := range c.state.ExecSessions {
-			if id == sessionID {
-				found = true
-				break
-			}
-		}
-		if found {
+		if _, found = c.state.ExecSessions[sessionID]; found {
 			sessionID = stringid.GenerateRandomID()
 		}
 	}
