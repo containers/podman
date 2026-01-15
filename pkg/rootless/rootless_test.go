@@ -1,12 +1,29 @@
 package rootless
 
 import (
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestGetNamespaceHandlesPath(t *testing.T) {
+	stateDir := "/run/user/1000/libpod/tmp"
+	result := GetNamespaceHandlesPath(stateDir)
+	assert.True(t, strings.HasPrefix(result, stateDir))
+	assert.Equal(t, "ns_handles", filepath.Base(result))
+}
+
+func TestGetPausePidPath(t *testing.T) {
+	stateDir := "/run/user/1000/libpod/tmp"
+	result := GetPausePidPath(stateDir)
+	assert.True(t, strings.HasPrefix(result, stateDir))
+	assert.Equal(t, "pause.pid", filepath.Base(result))
+}
 
 func TestMaybeSplitMappings(t *testing.T) {
 	mappings := []spec.LinuxIDMapping{

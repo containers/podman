@@ -544,25 +544,25 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			}
 			unLockFunc()
 			unLockFunc = nil
-			pausePid, err := util.GetRootlessPauseProcessPidPath()
+			stateDir, err := util.GetRootlessStateDir()
 			if err != nil {
-				return fmt.Errorf("could not get pause process pid file path: %w", err)
+				return fmt.Errorf("could not get rootless state directory: %w", err)
 			}
 
 			// create the path in case it does not already exists
 			// https://github.com/containers/podman/issues/8539
-			if err := os.MkdirAll(filepath.Dir(pausePid), 0o700); err != nil {
-				return fmt.Errorf("could not create pause process pid file directory: %w", err)
+			if err := os.MkdirAll(stateDir, 0o700); err != nil {
+				return fmt.Errorf("could not create rootless state directory: %w", err)
 			}
 
-			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
+			became, ret, err := rootless.BecomeRootInUserNS(stateDir)
 			if err != nil {
 				return err
 			}
 			if became {
 				// Check if the pause process was created.  If it was created, then
 				// move it to its own systemd scope.
-				systemdCommon.MovePauseProcessToScope(pausePid)
+				systemdCommon.MovePauseProcessToScope(rootless.GetPausePidPath(stateDir))
 
 				// gocritic complains because defer is not run on os.Exit()
 				// However this is fine because the lock is released anyway when the process exits
