@@ -24,6 +24,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -351,6 +352,7 @@ type GenOptsCommon struct {
 	StrictResponders       bool
 	AcceptDefinitionsOnly  bool
 	WantsRootedErrorPath   bool
+	ReturnErrors           bool
 
 	templates *Repository // a shallow clone of the global template repository
 }
@@ -503,7 +505,7 @@ func (g *GenOpts) EnsureDefaults() error {
 	return nil
 }
 
-func (g *GenOpts) location(t *TemplateOpts, data interface{}) (string, string, error) {
+func (g *GenOpts) location(t *TemplateOpts, data any) (string, string, error) {
 	v := reflect.Indirect(reflect.ValueOf(data))
 	fld := v.FieldByName("Name")
 	var name string
@@ -549,7 +551,7 @@ func (g *GenOpts) location(t *TemplateOpts, data interface{}) (string, string, e
 		Name, CliAppName, Package, APIPackage, ServerPackage, ClientPackage, CliPackage, ModelPackage, MainPackage, Target string
 		Tags                                                                                                               []string
 		UseTags                                                                                                            bool
-		Context                                                                                                            interface{}
+		Context                                                                                                            any
 	}{
 		Name:          name,
 		CliAppName:    g.CliAppName,
@@ -578,7 +580,7 @@ func (g *GenOpts) location(t *TemplateOpts, data interface{}) (string, string, e
 	return pthBuf.String(), fileName(fNameBuf.String()), nil
 }
 
-func (g *GenOpts) render(t *TemplateOpts, data interface{}) ([]byte, error) {
+func (g *GenOpts) render(t *TemplateOpts, data any) ([]byte, error) {
 	var templ *template.Template
 
 	if strings.HasPrefix(strings.ToLower(t.Source), "asset:") {
@@ -635,7 +637,7 @@ func (g *GenOpts) render(t *TemplateOpts, data interface{}) ([]byte, error) {
 // generated code is reformatted ("linted"), which gives an
 // additional level of checking. If this step fails, the generated
 // code is still dumped, for template debugging purposes.
-func (g *GenOpts) write(t *TemplateOpts, data interface{}) error {
+func (g *GenOpts) write(t *TemplateOpts, data any) error {
 	dir, fname, err := g.location(t, data)
 	if err != nil {
 		return fmt.Errorf("failed to resolve template location for template %s: %w", t.Name, err)
@@ -670,7 +672,8 @@ func (g *GenOpts) write(t *TemplateOpts, data interface{}) error {
 	var writeerr error
 
 	if !t.SkipFormat {
-		formatted, err = g.LanguageOpts.FormatContent(filepath.Join(dir, fname), content)
+		baseImport := g.LanguageOpts.baseImport(g.Target)
+		formatted, err = g.LanguageOpts.FormatContent(filepath.Join(dir, fname), content, WithFormatLocalPrefixes(baseImport))
 		if err != nil {
 			log.Printf("source formatting failed on template-generated source (%q for %s). Check that your template produces valid code", filepath.Join(dir, fname), t.Name)
 			writeerr = os.WriteFile(filepath.Join(dir, fname), content, 0o644) // #nosec
@@ -854,7 +857,13 @@ func (g *GenOpts) PrincipalAlias() string {
 	return principal
 }
 
+var ifaceRex = regexp.MustCompile(`^interface\s\{\s*\}$`)
+
 func (g *GenOpts) resolvePrincipal() (string, string, string) {
+	if ifaceRex.MatchString(g.Principal) {
+		return "", "any", ""
+	}
+
 	dotLocation := strings.LastIndex(g.Principal, ".")
 	if dotLocation < 0 {
 		return "", g.Principal, ""
@@ -1085,12 +1094,12 @@ func gatherURISchemes(swsp *spec.Swagger, operation spec.Operation) ([]string, [
 	return schemes, extraSchemes
 }
 
-func dumpData(data interface{}) error {
+func dumpData(data any) error {
 	bb, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(os.Stdout, string(bb)) // TODO(fred): not testable
+	_, _ = fmt.Fprintln(os.Stdout, string(bb)) // TODO(fred): not testable
 	return nil
 }
 
