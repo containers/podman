@@ -544,6 +544,19 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if len(c.config.ArtifactVolumes) > 0 {
+		// Validate all artifacts exist before attempting to mount
+		mounts := make([]ArtifactMountValidation, len(c.config.ArtifactVolumes))
+		for i, av := range c.config.ArtifactVolumes {
+			mounts[i] = ArtifactMountValidation{
+				Source: av.Source,
+				Title:  av.Title,
+				Digest: av.Digest,
+			}
+		}
+		if err := c.runtime.ValidateArtifactMounts(ctx, mounts); err != nil {
+			return nil, nil, err
+		}
+
 		artStore, err := c.runtime.ArtifactStore()
 		if err != nil {
 			return nil, nil, err
@@ -3166,4 +3179,38 @@ func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
 		return currentValue, nil
 	}
 	return oomScoreValue, nil
+}
+
+// ValidateArtifactMounts checks that all artifact mounts are valid by verifying
+// the artifacts exist and can be accessed. This is used during both container
+// creation and start to provide early validation.
+func (r *Runtime) ValidateArtifactMounts(ctx context.Context, mounts []ArtifactMountValidation) error {
+	if len(mounts) == 0 {
+		return nil
+	}
+
+	artStore, err := r.ArtifactStore()
+	if err != nil {
+		return fmt.Errorf("accessing artifact store: %w", err)
+	}
+
+	for _, mount := range mounts {
+		asr, err := store.NewArtifactStorageReference(mount.Source)
+		if err != nil {
+			return fmt.Errorf("invalid artifact reference %q: %w", mount.Source, err)
+		}
+
+		// Validate artifact exists by attempting to resolve its blob mount paths
+		_, err = artStore.BlobMountPaths(ctx, asr, &libartTypes.BlobMountPathOptions{
+			FilterBlobOptions: libartTypes.FilterBlobOptions{
+				Title:  mount.Title,
+				Digest: mount.Digest,
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("validating artifact %q: %w", mount.Source, err)
+		}
+	}
+
+	return nil
 }
