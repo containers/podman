@@ -66,6 +66,13 @@ func (g *Generator) initConfigLinuxIntelRdt() {
 	}
 }
 
+func (g *Generator) initConfigLinuxTimeOffsets() {
+	g.initConfigLinux()
+	if g.Config.Linux.TimeOffsets == nil {
+		g.Config.Linux.TimeOffsets = map[string]rspec.LinuxTimeOffset{}
+	}
+}
+
 func (g *Generator) initConfigLinuxSysctl() {
 	g.initConfigLinux()
 	if g.Config.Linux.Sysctl == nil {
