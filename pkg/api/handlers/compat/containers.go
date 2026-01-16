@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/infra/abi"
 	"github.com/containers/podman/v6/pkg/ps"
 	"github.com/containers/podman/v6/pkg/signal"
+	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/containers/podman/v6/pkg/util"
 	dockerBackend "github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/container"
@@ -822,11 +823,26 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		restartRetries = &localRetries
 	}
 
+	// Rlimits
+	var rlimits []spec.POSIXRlimit
+	if len(options.Ulimits) > 0 {
+		ulimits := make([]string, len(options.Ulimits))
+		for i, u := range options.Ulimits {
+			ulimits[i] = u.String()
+		}
+		rlimits, err = specgenutil.GenRlimits(ulimits)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating rlimits: %w", err))
+			return
+		}
+	}
+
 	updateOptions := &entities.ContainerUpdateOptions{
 		Resources:                       resources,
 		ChangedHealthCheckConfiguration: &define.UpdateHealthCheckConfig{},
 		RestartPolicy:                   restartPolicy,
 		RestartRetries:                  restartRetries,
+		Rlimits:                         rlimits,
 	}
 
 	if err := ctr.Update(updateOptions); err != nil {

@@ -1867,15 +1867,15 @@ func (ic *ContainerEngine) ContainerUpdate(_ context.Context, updateOptions *ent
 	if len(containers) != 1 {
 		return "", fmt.Errorf("container not found")
 	}
-	container := containers[0].Container
+	ctr := containers[0]
 
 	updateOptions.Resources, err = specgenutil.UpdateMajorAndMinorNumbers(updateOptions.Resources, updateOptions.DevicesLimits)
 	if err != nil {
 		return "", err
 	}
 
-	if err = container.Update(updateOptions); err != nil {
+	if err = ctr.Container.Update(updateOptions); err != nil {
 		return "", err
 	}
-	return containers[0].ID(), nil
+	return ctr.ID(), nil
 }

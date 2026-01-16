@@ -86,6 +86,7 @@ type UpdateEntities struct {
 	define.UpdateContainerDevicesLimits
 	Env      []string
 	UnsetEnv []string
+	Rlimits  []specs.POSIXRlimit `json:"r_limits,omitempty"`
 }
 
 type Info struct {

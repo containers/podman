@@ -40,6 +40,9 @@ func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string,
 	if options.DevicesLimits != nil {
 		updateEntities.UpdateContainerDevicesLimits = *options.DevicesLimits
 	}
+	if options.Rlimits != nil {
+		updateEntities.Rlimits = options.Rlimits
+	}
 
 	requestData, err := jsoniter.MarshalToString(updateEntities)
 	if err != nil {
