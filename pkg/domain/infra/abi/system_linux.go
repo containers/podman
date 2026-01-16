@@ -4,6 +4,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // Default path for system runtime state
@@ -59,6 +61,8 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 				}
 			}
 		}
+
+		// return early as we are already re-exec or root here so no need to join the rootless userns.
 		return nil
 	}
 
@@ -74,36 +78,41 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 	if became {
 		os.Exit(ret)
 	}
-	if noMoveProcess {
-		return nil
-	}
 
 	// if there is no pid file, try to join existing containers, and create a pause process.
 	ctrs, err := ic.Libpod.GetRunningContainers()
 	if err != nil {
-		logrus.Error(err.Error())
-		os.Exit(1)
+		return err
 	}
 
-	paths := []string{}
+	paths := make([]string, 0, len(ctrs))
 	for _, ctr := range ctrs {
 		paths = append(paths, ctr.ConfigNoCopy().ConmonPidFile)
 	}
 
 	if len(paths) > 0 {
 		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, paths)
-	} else {
-		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
-		if err == nil {
-			systemd.MovePauseProcessToScope(pausePidPath)
+		// TryJoinFromFilePaths fails with ESRCH when the PID are all not valid anymore
+		// In this case create a new userns.
+		if errors.Is(err, unix.ESRCH) {
+			logrus.Warnf("Failed to join existing conmon namespace, creating a new rootless podman user namespace. If there are existing container running please stop them with %q to reset the namespace", os.Args[0]+" system migrate")
+			became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 		}
+	} else {
+		logrus.Info("Creating a new rootless user namespace")
+		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 	}
+
 	if err != nil {
-		logrus.Error(fmt.Errorf("invalid internal status, try resetting the pause process with %q: %w", os.Args[0]+" system migrate", err))
-		os.Exit(1)
+		return fmt.Errorf("fatal error, invalid internal status, unable to create a new pause process: %w. Try running %q and if that doesn't work reboot to recover", err, os.Args[0]+" system migrate")
+	}
+	if !noMoveProcess {
+		systemd.MovePauseProcessToScope(pausePidPath)
 	}
 	if became {
 		os.Exit(ret)
 	}
+
+	logrus.Error("Internal error, failed to re-exec podman into user namespace without error. This should never happen, if you see this please report a bug")
 	return nil
 }
