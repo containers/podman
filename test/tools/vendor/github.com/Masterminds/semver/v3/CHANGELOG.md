@@ -1,5 +1,59 @@
 # Changelog
 
+## 3.4.0 (2025-06-27)
+
+### Added
+
+- #268: Added property to Constraints to include prereleases for Check and Validate
+
+### Changed
+
+- #263: Updated Go testing for 1.24, 1.23, and 1.22
+- #269: Updated the error message handling for message case and wrapping errors
+- #266: Restore the ability to have leading 0's when parsing with NewVersion.
+  Opt-out of this by setting CoerceNewVersion to false.
+
+### Fixed
+
+- #257: Fixed the CodeQL link (thanks @dmitris)
+- #262: Restored detailed errors when failed to parse with NewVersion. Opt-out
+  of this by setting DetailedNewVersionErrors to false for faster performance.
+- #267: Handle pre-releases for an "and" group if one constraint includes them
+
+## 3.3.1 (2024-11-19)
+
+### Fixed
+
+- #253: Fix for allowing some version that were invalid
+
+## 3.3.0 (2024-08-27)
+
+### Added
+
+- #238: Add LessThanEqual and GreaterThanEqual functions (thanks @grosser)
+- #213: nil version equality checking (thanks @KnutZuidema)
+
+### Changed
+
+- #241: Simplify StrictNewVersion parsing (thanks @grosser)
+- Testing support up through Go 1.23
+- Minimum version set to 1.21 as this is what's tested now
+- Fuzz testing now supports caching
+
+## 3.2.1 (2023-04-10)
+
+### Changed
+
+- #198: Improved testing around pre-release names
+- #200: Improved code scanning with addition of CodeQL
+- #201: Testing now includes Go 1.20. Go 1.17 has been dropped
+- #202: Migrated Fuzz testing to Go built-in Fuzzing. CI runs daily
+- #203: Docs updated for security details
+
+### Fixed
+
+- #199: Fixed issue with range transformations
+
 ## 3.2.0 (2022-11-28)
 
 ### Added
@@ -109,7 +163,7 @@ functions. These are described in the added and changed sections below.
 - #78: Fix unchecked error in example code (thanks @ravron)
 - #70: Fix the handling of pre-releases and the 0.0.0 release edge case
 - #97: Fixed copyright file for proper display on GitHub
-- #107: Fix handling prerelease when sorting alphanum and num 
+- #107: Fix handling prerelease when sorting alphanum and num
 - #109: Fixed where Validate sometimes returns wrong message on error
 
 ## 1.4.2 (2018-04-10)

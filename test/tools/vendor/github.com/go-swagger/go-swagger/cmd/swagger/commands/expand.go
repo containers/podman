@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+
+	flags "github.com/jessevdk/go-flags"
 
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
-	flags "github.com/jessevdk/go-flags"
 )
 
 // ExpandSpec is a command that expands the $refs in a swagger document.
@@ -42,6 +44,8 @@ func (c *ExpandSpec) Execute(args []string) error {
 	return writeToFile(exp.Spec(), !c.Compact, c.Format, string(c.Output))
 }
 
+var defaultWriter io.Writer = os.Stdout
+
 func writeToFile(swspec *spec.Swagger, pretty bool, format string, output string) error {
 	var b []byte
 	var err error
@@ -61,7 +65,7 @@ func writeToFile(swspec *spec.Swagger, pretty bool, format string, output string
 			if erg := json.Unmarshal(b, &data); erg != nil {
 				log.Fatalln(erg)
 			}
-			var bb interface{}
+			var bb any
 			bb, err = data.MarshalYAML()
 			if err == nil {
 				b = bb.([]byte)
@@ -73,10 +77,11 @@ func writeToFile(swspec *spec.Swagger, pretty bool, format string, output string
 		return err
 	}
 
-	if output == "" {
-		fmt.Println(string(b))
-		return nil
+	switch output {
+	case "", "-":
+		_, e := fmt.Fprintf(defaultWriter, "%s\n", b)
+		return e
+	default:
+		return os.WriteFile(output, b, 0o644) //#nosec
 	}
-
-	return os.WriteFile(output, b, 0644) // #nosec
 }

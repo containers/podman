@@ -1,16 +1,24 @@
 {{ define "primitivefieldcontextvalidator" }}
-  {{ if .ReadOnly }}
-    if err := validate.ReadOnly(ctx, {{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil{
+  {{- if .ReadOnly }}
+    if err := validate.ReadOnly(ctx, {{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil{
       return err
     }
-  {{ end }}
+  {{- end }}
 {{ end }}
 {{ define "primitivefieldvalidator" }}
   {{ if .Required }}
+    {{- /* NOTE(fredbi): we have introduced a type conversion here a long time ago, and I can't remember why we did so.
+
+           In all known cases this type conversion was superfluous.
+
+           If there is a valid case when we need to coerce the .ValueExpression to the .GoType,
+           I've failed so far to produce a test for it. Removed the type conversion until we find when it could be
+           useful.
+    */}}
     {{- if and (eq .GoType "string") (not .IsNullable) }}
-  if err := validate.RequiredString({{ path . }}, {{ printf "%q" .Location }}, {{ if .IsAliased }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if .IsAliased }}){{ end }}); err != nil {
+  if err := validate.RequiredString({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
     {{- else }}
-  if err := validate.Required({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+  if err := validate.Required({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
     {{- end }}
     return err
   }
@@ -52,7 +60,7 @@
 
 {{ define "slicecontextvalidator" }}
   {{ if .ReadOnly }}
-    if err := validate.ReadOnly(ctx, {{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil{
+    if err := validate.ReadOnly(ctx, {{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil{
       return err
     }
   {{ end }}
@@ -70,11 +78,15 @@
     if {{ .ValueExpression }} != nil {
       {{- end }}
       if err := {{.ValueExpression }}.ContextValidate(ctx, formats); err != nil {
-        if ve, ok := err.(*errors.Validation); ok {
+        ve := new(errors.Validation)
+        if stderrors.As(err, &ve) {
           return ve.ValidateName({{ path . }})
-        } else if ce, ok := err.(*errors.CompositeError); ok {
+        }
+        ce := new(errors.CompositeError)
+        if stderrors.As(err, &ce) {
           return ce.ValidateName({{ path . }})
         }
+
         return err
       }
       {{- if and .IsNullable (not .IsMapNullOverride) }}
@@ -137,11 +149,15 @@
     if {{ .ValueExpression }} != nil {
       {{- end }}
       if err := {{.ValueExpression }}.Validate(formats); err != nil {
-        if ve, ok := err.(*errors.Validation); ok {
+        ve := new(errors.Validation)
+        if stderrors.As(err, &ve) {
           return ve.ValidateName({{ path . }})
-        } else if ce, ok := err.(*errors.CompositeError); ok {
+        }
+        ce := new(errors.CompositeError)
+        if stderrors.As(err, &ce) {
           return ce.ValidateName({{ path . }})
         }
+
         return err
       }
       {{- if and .IsNullable (not .IsMapNullOverride) }}
@@ -312,11 +328,15 @@
         if val != nil {
               {{- end }}
           if err := val.Validate(formats); err != nil {
-              if ve, ok := err.(*errors.Validation); ok {
-                  return ve.ValidateName({{ path . }})
-              } else if ce, ok := err.(*errors.CompositeError); ok {
-                  return ce.ValidateName({{ path . }})
+              ve := new(errors.Validation)
+              if stderrors.As(err, &ve) {
+                return ve.ValidateName({{ path . }})
               }
+              ce := new(errors.CompositeError)
+              if stderrors.As(err, &ce) {
+                return ce.ValidateName({{ path . }})
+              }
+
               return err
           }
               {{- if and .IsNullable (not .IsMapNullOverride) }}
@@ -372,11 +392,15 @@
       if val != nil {
             {{- end }}
           if err := val.Validate(formats); err != nil {
-              if ve, ok := err.(*errors.Validation); ok {
-                  return ve.ValidateName({{ path . }})
-              } else if ce, ok := err.(*errors.CompositeError); ok {
-                  return ce.ValidateName({{ path . }})
+              ve := new(errors.Validation)
+              if stderrors.As(err, &ve) {
+                return ve.ValidateName({{ path . }})
               }
+              ce := new(errors.CompositeError)
+              if stderrors.As(err, &ce) {
+                return ce.ValidateName({{ path . }})
+              }
+
               return err
           }
             {{- if and .IsNullable (not .IsMapNullOverride) }}
@@ -467,11 +491,15 @@
       }
       {{ end }}
       if err := {{.ValueExpression }}.ContextValidate(ctx, formats); err != nil {
-        if ve, ok := err.(*errors.Validation); ok {
+        ve := new(errors.Validation)
+        if stderrors.As(err, &ve) {
           return ve.ValidateName({{ path . }})
-        } else if ce, ok := err.(*errors.CompositeError); ok {
+        }
+        ce := new(errors.CompositeError)
+        if stderrors.As(err, &ce) {
           return ce.ValidateName({{ path . }})
         }
+
         return err
       }
       {{- if and .IsNullable (not .IsMapNullOverride) }}
@@ -568,11 +596,15 @@
       if {{ .ValueExpression }} != nil {
       {{- end }}
       if err := {{.ValueExpression }}.Validate(formats); err != nil {
-        if ve, ok := err.(*errors.Validation); ok {
+        ve := new(errors.Validation)
+        if stderrors.As(err, &ve) {
           return ve.ValidateName({{ path . }})
-        } else if ce, ok := err.(*errors.CompositeError); ok {
+        }
+        ce := new(errors.CompositeError)
+        if stderrors.As(err, &ce) {
           return ce.ValidateName({{ path . }})
         }
+
         return err
       }
       {{- if or (and (or .IsNullable) (not .IsMapNullOverride)) .IsMap .IsArray }}
@@ -608,7 +640,7 @@
     // at https://github.com/go-swagger/go-swagger/issues
     {{- if .ReadOnly }}
 
-  if err := validate.ReadOnly{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+  if err := validate.ReadOnly{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}; err != nil {
     return err
   }
     {{- end }}
@@ -619,7 +651,7 @@
     {{- end }}
   {{- else if .IsArray }}
     {{ template "slicecontextvalidator" . }}
-  {{- else if and .IsMap (or (not .IsAliased) (and .IsAliased .IsInterface)) }}{{/* except for interface, the renderinf for aliased maps is performed by objectvalidator */}}
+  {{- else if and .IsMap (or (not .IsAliased) (and .IsAliased .IsInterface)) }}{{/* except for interface, the rendering for aliased maps is performed by objectvalidator */}}
     {{ template "mapcontextvalidator" . }}
   {{- else if or .IsComplexObject .IsTuple .IsAdditionalProperties .IsAliased }}
     {{ template "objectcontextvalidator" . }}
@@ -631,7 +663,7 @@
   {{- if .IsPrimitive }}
     {{- if .IsAliased }}
       {{- if and .Required (not .IsAnonymous) }}
-  if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+  if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
     return err
   }
       {{- end }}
@@ -641,7 +673,7 @@
     {{- end }}
   {{- else if and .IsCustomFormatter (or .HasValidations .Required) }}{{/* custom format not captured as primitive */}}
     {{- if .Required }}
-  if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+  if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
     return err
   }
     {{- end }}
@@ -660,7 +692,7 @@
         return errors.Required({{ path . }}, {{ printf "%q" .Location }}, {{ .ValueExpression }})
       }
       {{- else }}
-      if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+      if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
         return err
       }
       {{- end }}
@@ -672,7 +704,7 @@
         return errors.Required({{ path . }}, {{ printf "%q" .Location }}, {{ .ValueExpression }})
       }
     {{- else }}
-      if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+      if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
         return err
       }
     {{- end }}
@@ -703,7 +735,7 @@
     {{ template "primitivefieldvalidator" . }}
   {{- else if and .IsCustomFormatter (or .HasValidations .Required) }}{{/* custom format not captured as primitive */}}
     {{- if .Required }}
-  if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{ if not (or .IsAnonymous .IsNullable) }}{{ .GoType }}({{ end }}{{.ValueExpression }}{{ if not (or .IsAnonymous .IsNullable) }}){{ end }}); err != nil {
+  if err := validate.Required{{ if and (eq .GoType "string") (not .IsNullable) }}String{{ end }}({{ path . }}, {{ printf "%q" .Location }}, {{.ValueExpression }}); err != nil {
     return err
   }
     {{- end }}
@@ -804,7 +836,7 @@ const (
     {{ end }}
 
 // for schema
-var {{ camelize .Name }}Enum []interface{}
+var {{ camelize .Name }}Enum []any
 func init() {
   var res []{{ template "dereffedSchemaType" . }}
   if err := json.Unmarshal([]byte(`{{ json .Enum }}`), &res); err != nil {
@@ -823,7 +855,7 @@ func ({{ .ReceiverName }} {{ if not .IsPrimitive }}*{{ end }}{{ if .IsExported }
 }
   {{ end }}
   {{ if .ItemsEnum }}
-var {{ camelize .Name }}ItemsEnum []interface{}
+var {{ camelize .Name }}ItemsEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" .Items }}
@@ -845,7 +877,7 @@ func ({{ .ReceiverName }} *{{ if $.IsExported }}{{ pascalize $.Name }}{{ else }}
   {{ with .AdditionalProperties }}
     {{ if .Enum }}
 // for additional props
-var {{ camelize .Name }}ValueEnum []interface{}
+var {{ camelize .Name }}ValueEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" . }}
@@ -929,7 +961,7 @@ func ({{.ReceiverName }} {{ if or .IsTuple .IsComplexObject .IsAdditionalPropert
   {{ range .Properties }}
     {{ if or .Required .HasValidations }}
       {{ if .Enum }}
-var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []interface{}
+var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" . }}
@@ -962,7 +994,7 @@ func ({{ .ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else 
 }
       {{ end }}
       {{ if .ItemsEnum }}
-var {{ camelize $.Name }}{{ pascalize .Name }}ItemsEnum []interface{}
+var {{ camelize $.Name }}{{ pascalize .Name }}ItemsEnum []any
 func init() {
   var res []{{ template "dereffedSchemaType" .Items }}
   if err := json.Unmarshal([]byte(`{{ json .ItemsEnum }}`), &res); err != nil {
@@ -982,7 +1014,7 @@ func ({{ .ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else 
       {{ end }}
       {{ if .AdditionalItems }}
         {{ if .AdditionalItems.Enum }}
-var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []interface{}
+var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" .AdditionalItems }}
@@ -1005,7 +1037,7 @@ func ({{ .ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else 
       {{ with .AdditionalProperties }}
         {{ if .Enum }}
 // additional properties value enum
-var {{ camelize $.Name }}{{ pascalize .Name }}ValueEnum []interface{}
+var {{ camelize $.Name }}{{ pascalize .Name }}ValueEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" . }}
@@ -1063,7 +1095,7 @@ func ({{.ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else i
     {{ range .Properties }}
       {{ if and (ne $.DiscriminatorField .Name) (or .Required .HasValidations) }}
         {{ if .Enum }}
-var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []interface{}
+var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" . }}
@@ -1084,7 +1116,7 @@ func ({{ .ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else 
 }
         {{ end }}
         {{ if .ItemsEnum }}
-var {{ camelize $.Name }}{{ pascalize .Name }}ItemsEnum []interface{}
+var {{ camelize $.Name }}{{ pascalize .Name }}ItemsEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" .Items }}
@@ -1105,7 +1137,7 @@ func ({{ .ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else 
         {{ end }}
         {{ if .AdditionalItems }}
           {{ if .AdditionalItems.Enum }}
-var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []interface{}
+var {{ camelize $.Name }}Type{{ pascalize .Name }}PropEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" .AdditionalItems }}
@@ -1127,7 +1159,7 @@ func ({{ .ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else 
         {{ end }}
         {{ with .AdditionalProperties }}
           {{ if .Enum }}
-var {{ camelize $.Name }}{{ pascalize .Name }}ValueEnum []interface{}
+var {{ camelize $.Name }}{{ pascalize .Name }}ValueEnum []any
 func init() {
   var res []{{ template "dereffedSchemaType" . }}
   if err := json.Unmarshal([]byte(`{{ json .Enum }}`), &res); err != nil {
@@ -1169,7 +1201,7 @@ func ({{.ReceiverName }} *{{ if $.Discriminates }}{{ camelize $.Name }}{{ else i
 
   {{ if .HasAdditionalItems }}
     {{ if .AdditionalItems.Enum }}
-var {{ camelize .Name }}ItemsEnum []interface{}
+var {{ camelize .Name }}ItemsEnum []any
 
 func init() {
   var res []{{ template "dereffedSchemaType" .AdditionalItems }}
