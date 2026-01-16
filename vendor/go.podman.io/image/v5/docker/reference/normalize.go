@@ -89,7 +89,7 @@ func ParseDockerRef(ref string) (Named, error) {
 // needs to be already validated before.
 func splitDockerDomain(name string) (domain, remainder string) {
 	i := strings.IndexRune(name, '/')
-	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost") {
+	if i == -1 || (!strings.ContainsAny(name[:i], ".:") && name[:i] != "localhost" && !isAdditionalDefaultDomain(name[:i])) {
 		domain, remainder = defaultDomain, name
 	} else {
 		domain, remainder = name[:i], name[i+1:]
