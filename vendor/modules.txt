@@ -133,11 +133,11 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.7
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
+# github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860 => github.com/evidolob/libhvee v0.0.0-20260106123805-51535f7335f7
 ## explicit; go 1.23.3
 github.com/containers/libhvee/pkg/hypervctl
 github.com/containers/libhvee/pkg/kvp/ginsu
-github.com/containers/libhvee/pkg/wmiext
+github.com/containers/libhvee/pkg/powershell
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
@@ -1217,3 +1217,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/libhvee => github.com/evidolob/libhvee v0.0.0-20260106123805-51535f7335f7

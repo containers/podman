@@ -425,7 +425,7 @@ func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status
 	if err != nil {
 		return define.Unknown, err
 	}
-	return stateConversion(vm.State())
+	return stateConversion(vm.GetState())
 }
 
 func (h HyperVStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
@@ -438,8 +438,8 @@ func (h HyperVStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error 
 	if err != nil {
 		return fmt.Errorf("getting virtual machine: %w", err)
 	}
-	vmState := vm.State()
-	if vm.State() == hypervctl.Disabled {
+	vmState := vm.GetState()
+	if vmState == hypervctl.Disabled {
 		return nil
 	}
 	if vmState != hypervctl.Enabled { // more states could be provided as well
@@ -493,7 +493,7 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define
 		return err
 	}
 
-	if vm.State() != hypervctl.Disabled {
+	if vm.GetState() != hypervctl.Disabled {
 		return errors.New("unable to change settings unless vm is stopped")
 	}
 
@@ -518,15 +518,15 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define
 	if cpuChanged || memoryChanged {
 		err := vm.UpdateProcessorMemSettings(func(ps *hypervctl.ProcessorSettings) {
 			if cpuChanged {
-				ps.VirtualQuantity = *opts.CPUs
+				ps.Count = int64(*opts.CPUs)
 			}
 		}, func(ms *hypervctl.MemorySettings) {
 			if memoryChanged {
 				ms.DynamicMemoryEnabled = false
-				mem := uint64(*opts.Memory)
-				ms.VirtualQuantity = mem
-				ms.Limit = mem
-				ms.Reservation = mem
+				memInBytes := opts.Memory.ToBytes()
+				mem := uint64(memInBytes)
+				ms.MaximumBytes = mem
+				ms.StartupBytes = mem
 			}
 		})
 		if err != nil {
@@ -683,7 +683,7 @@ func removeIgnitionFromRegistry(vm *hypervctl.VirtualMachine) error {
 	for i := 0; i < 50; i++ {
 		// this is a well known "key" defined in libhvee and is the vm name
 		// plus an index starting at 0
-		key := fmt.Sprintf("%s%d", vm.ElementName, i)
+		key := fmt.Sprintf("%s%d", vm.Name, i)
 		if err := vm.RemoveKeyValuePairNoWait(key); err != nil {
 			return err
 		}
