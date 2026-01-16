@@ -255,6 +255,9 @@ type ContainerNamedVolume struct {
 	IsAnonymous bool `json:"setAnonymous,omitempty"`
 	// SubPath determines which part of the Source will be mounted in the container
 	SubPath string `json:",omitempty"`
+	// NoCreate indicates that the volume must already exist and should not
+	// be created automatically if it doesn't exist.
+	NoCreate bool `json:"noCreate,omitempty"`
 }
 
 // ContainerOverlayVolume is an overlay volume that will be mounted into the

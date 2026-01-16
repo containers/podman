@@ -29,6 +29,9 @@ type NamedVolume struct {
 	IsAnonymous bool
 	// SubPath stores the sub directory of the named volume to be mounted in the container
 	SubPath string
+	// NoCreate indicates that the volume must already exist and should not
+	// be created automatically if it doesn't exist.
+	NoCreate bool
 }
 
 // OverlayVolume holds information about an overlay volume that will be mounted into
@@ -129,9 +132,22 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 		} else if len(splitVol) > 1 {
 			dest = splitVol[1]
 		}
+		var noCreate bool
 		if len(splitVol) > 2 {
-			if options, err = parse.ValidateVolumeOpts(strings.Split(splitVol[2], ",")); err != nil {
-				return nil, nil, nil, err
+			// Extract nocreate option before validation since it's not a standard mount option
+			rawOpts := strings.Split(splitVol[2], ",")
+			filteredOpts := make([]string, 0, len(rawOpts))
+			for _, opt := range rawOpts {
+				if opt == "nocreate" {
+					noCreate = true
+				} else {
+					filteredOpts = append(filteredOpts, opt)
+				}
+			}
+			if len(filteredOpts) > 0 {
+				if options, err = parse.ValidateVolumeOpts(filteredOpts); err != nil {
+					return nil, nil, nil, err
+				}
 			}
 		}
 
@@ -214,6 +230,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			newNamedVol.Name = src
 			newNamedVol.Dest = dest
 			newNamedVol.Options = options
+			newNamedVol.NoCreate = noCreate
 
 			if vol, ok := volumes[newNamedVol.Dest]; ok {
 				if vol.Name == newNamedVol.Name {
