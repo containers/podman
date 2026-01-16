@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman create, run, update
+####>   podman create, exec, run, update
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--cpus**=*number*

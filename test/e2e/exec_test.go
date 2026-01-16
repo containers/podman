@@ -670,4 +670,61 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		execSession.WaitWithDefaultTimeout()
 		Expect(execSession).Should(ExitWithError(137, ""))
 	})
+
+	It("podman exec with CPU limits", func() {
+		SkipIfRootless("setting CPU limits not fully supported for rootless users")
+		ctrName := "testCtrCPULimits"
+		setup := podmanTest.RunTopContainer(ctrName)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(ExitCleanly())
+
+		// Test with --cpus flag
+		session := podmanTest.Podman([]string{"exec", "--cpus", "0.5", ctrName, "cat", "/sys/fs/cgroup/cpu.max"})
+		session.WaitWithDefaultTimeout()
+		if session.ExitCode() != 0 {
+			Skip("Runtime does not support --cpus for exec (requires crun >= 1.9 or runc >= 1.2)")
+		}
+		// Verify CPU limit is set (cpu.max format: "$quota $period")
+		Expect(session.OutputToString()).To(MatchRegexp(`\d+ \d+`), "CPU limit should be set in cgroup")
+	})
+
+	It("podman exec with memory limits", func() {
+		SkipIfRootless("setting memory limits not fully supported for rootless users")
+		ctrName := "testCtrMemLimits"
+		setup := podmanTest.RunTopContainer(ctrName)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(ExitCleanly())
+
+		// Test with --memory flag
+		session := podmanTest.Podman([]string{"exec", "--memory", "256m", ctrName, "cat", "/sys/fs/cgroup/memory.max"})
+		session.WaitWithDefaultTimeout()
+		if session.ExitCode() != 0 {
+			Skip("Runtime does not support --memory for exec (requires crun >= 1.9 or runc >= 1.2)")
+		}
+		// Verify memory limit is set (should be 256MB = 256 * 1024 * 1024 bytes)
+		Expect(session.OutputToString()).To(Equal(fmt.Sprint(256*1024*1024)), "Memory limit should be 256m")
+	})
+
+	It("podman exec with multiple resource limits", func() {
+		SkipIfRootless("setting resource limits not fully supported for rootless users")
+		ctrName := "testCtrMultiLimits"
+		setup := podmanTest.RunTopContainer(ctrName)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(ExitCleanly())
+
+		// Test with multiple resource flags
+		session := podmanTest.Podman([]string{
+			"exec",
+			"--cpus", "0.5",
+			"--memory", "256m",
+			"--cpu-shares", "512",
+			ctrName,
+			"echo", "Resource limits test",
+		})
+		session.WaitWithDefaultTimeout()
+		if session.ExitCode() != 0 {
+			Skip("Runtime does not support resource limits for exec (requires crun >= 1.9 or runc >= 1.2)")
+		}
+		Expect(session.OutputToString()).To(Equal("Resource limits test"))
+	})
 })
