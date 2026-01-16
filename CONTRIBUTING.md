@@ -330,6 +330,18 @@ Use your real name (sorry, no pseudonyms or anonymous contributions).
 
 If you set your `user.name` and `user.email` git configs, you can sign your commit automatically with `git commit -s`.
 
+#### Automatic DCO Signing (Recommended)
+
+To automatically sign all your commits and avoid DCO check failures, configure Git to use the repository's hooks:
+
+```shell
+$ make init-git-hooks
+```
+
+This will configure Git to automatically add the `Signed-off-by` trailer to all your commit messages.
+This is the recommended approach as it eliminates the need to remember the `-s` flag and prevents DCO-related CI failures.
+
+
 ### Reviewing PRs
 
 If you are a maintainer of Podman project, please following the [guidelines](https://github.com/containers/podman/blob/main/REVIEWING.md) on how to review a PR.
