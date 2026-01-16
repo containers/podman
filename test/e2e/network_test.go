@@ -3,13 +3,11 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"path/filepath"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -557,14 +555,7 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", net})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(net)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("NetworkInterface", ""))
@@ -583,13 +574,7 @@ var _ = Describe("Podman network", func() {
 			defer podmanTest.removeNetwork(net)
 			Expect(nc).Should(ExitCleanly())
 
-			inspect := podmanTest.Podman([]string{"network", "inspect", net})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
-
-			var results []entities.NetworkInspectReport
-			err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-			Expect(err).ToNot(HaveOccurred())
+			results := podmanTest.InspectNetwork(net)
 			Expect(results).To(HaveLen(1))
 			result := results[0]
 
@@ -611,13 +596,7 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", net})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(net)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 
@@ -654,13 +633,7 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", net})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(net)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 

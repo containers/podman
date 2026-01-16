@@ -3,11 +3,10 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -30,14 +29,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -82,14 +74,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -122,14 +107,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -164,14 +142,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -208,14 +179,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -248,14 +212,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -277,14 +234,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -316,14 +266,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
@@ -349,13 +292,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect = podmanTest.Podman([]string{"network", "inspect", netName2})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		err = json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results = podmanTest.InspectNetwork(netName2)
 		Expect(results).To(HaveLen(1))
 		result = results[0]
 		Expect(result).To(HaveField("Name", netName2))
@@ -402,11 +339,22 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitCleanly())
 		defer podmanTest.removeNetwork(name)
 
-		nc = podmanTest.Podman([]string{"network", "inspect", name})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitCleanly())
-		Expect(nc.OutputToString()).To(ContainSubstring(`::/64`))
-		Expect(nc.OutputToString()).To(ContainSubstring(`10.11.14.0/24`))
+		results := podmanTest.InspectNetwork(name)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Subnets).To(HaveLen(2))
+		// Check for both IPv4 and IPv6 subnets
+		hasIPv4 := false
+		hasIPv6 := false
+		for _, subnet := range results[0].Subnets {
+			if subnet.Subnet.String() == "10.11.14.0/24" {
+				hasIPv4 = true
+			}
+			if strings.HasSuffix(subnet.Subnet.String(), "::/64") {
+				hasIPv6 = true
+			}
+		}
+		Expect(hasIPv4).To(BeTrue())
+		Expect(hasIPv6).To(BeTrue())
 	})
 
 	It("podman network create with empty subnet and ipv6 flag", func() {
@@ -416,11 +364,22 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitCleanly())
 		defer podmanTest.removeNetwork(name)
 
-		nc = podmanTest.Podman([]string{"network", "inspect", name})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitCleanly())
-		Expect(nc.OutputToString()).To(ContainSubstring(`::/64`))
-		Expect(nc.OutputToString()).To(ContainSubstring(`.0/24`))
+		results := podmanTest.InspectNetwork(name)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Subnets).To(HaveLen(2))
+		// Check for both IPv4 and IPv6 subnets
+		hasIPv4 := false
+		hasIPv6 := false
+		for _, subnet := range results[0].Subnets {
+			if strings.HasSuffix(subnet.Subnet.String(), ".0/24") {
+				hasIPv4 = true
+			}
+			if strings.HasSuffix(subnet.Subnet.String(), "::/64") {
+				hasIPv6 = true
+			}
+		}
+		Expect(hasIPv4).To(BeTrue())
+		Expect(hasIPv6).To(BeTrue())
 	})
 
 	It("podman network create with invalid IP arguments", func() {
@@ -496,10 +455,9 @@ var _ = Describe("Podman network create", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).Should(ExitCleanly())
 
-		nc = podmanTest.Podman([]string{"network", "inspect", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(ExitCleanly())
-		Expect(nc.OutputToString()).To(ContainSubstring(`"mtu": "9000"`))
+		results := podmanTest.InspectNetwork(net)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Options).To(HaveKeyWithValue("mtu", "9000"))
 	})
 
 	It("podman network create with vlan option", func() {
@@ -509,10 +467,9 @@ var _ = Describe("Podman network create", func() {
 		defer podmanTest.removeNetwork(net)
 		Expect(nc).Should(ExitCleanly())
 
-		nc = podmanTest.Podman([]string{"network", "inspect", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(ExitCleanly())
-		Expect(nc.OutputToString()).To(ContainSubstring(`"vlan": "9"`))
+		results := podmanTest.InspectNetwork(net)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Options).To(HaveKeyWithValue("vlan", "9"))
 	})
 
 	It("podman network create with invalid option", func() {
@@ -536,10 +493,9 @@ var _ = Describe("Podman network create", func() {
 		if !IsRemote() {
 			Expect(nc.ErrorToString()).To(ContainSubstring("dnsname and internal networks are incompatible"))
 		}
-		nc = podmanTest.Podman([]string{"network", "inspect", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(ExitCleanly())
-		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
+		results := podmanTest.InspectNetwork(net)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].DNSEnabled).To(BeFalse())
 	})
 
 	It("podman Netavark network create with internal should have dnsname", func() {
@@ -554,10 +510,9 @@ var _ = Describe("Podman network create", func() {
 		if !IsRemote() {
 			Expect(nc.ErrorToString()).To(BeEmpty())
 		}
-		nc = podmanTest.Podman([]string{"network", "inspect", net})
-		nc.WaitWithDefaultTimeout()
-		Expect(nc).Should(ExitCleanly())
-		Expect(nc.OutputToString()).To(ContainSubstring(`"dns_enabled": true`))
+		results := podmanTest.InspectNetwork(net)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].DNSEnabled).To(BeTrue())
 	})
 
 	It("podman network create with invalid name", func() {
@@ -578,12 +533,12 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitCleanly())
 		Expect(nc.OutputToString()).To(Equal(name))
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", name})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitCleanly())
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet1))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet2))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"ipv6_enabled": false`))
+		results := podmanTest.InspectNetwork(name)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Subnets).To(HaveLen(2))
+		Expect(results[0].Subnets[0].Subnet.String()).To(Equal(subnet1))
+		Expect(results[0].Subnets[1].Subnet.String()).To(Equal(subnet2))
+		Expect(results[0].IPv6Enabled).To(BeFalse())
 	})
 
 	It("podman network create with multiple subnets dual stack", func() {
@@ -596,12 +551,12 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitCleanly())
 		Expect(nc.OutputToString()).To(Equal(name))
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", name})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitCleanly())
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet1))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet2))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"ipv6_enabled": true`))
+		results := podmanTest.InspectNetwork(name)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Subnets).To(HaveLen(2))
+		Expect(results[0].Subnets[0].Subnet.String()).To(Equal(subnet1))
+		Expect(results[0].Subnets[1].Subnet.String()).To(Equal(subnet2))
+		Expect(results[0].IPv6Enabled).To(BeTrue())
 	})
 
 	It("podman network create with multiple subnets dual stack with gateway and range", func() {
@@ -617,16 +572,16 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(ExitCleanly())
 		Expect(nc.OutputToString()).To(Equal(name))
 
-		inspect := podmanTest.Podman([]string{"network", "inspect", name})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitCleanly())
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet1))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"gateway": "` + gw1))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"start_ip": "10.10.3.1",`))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"end_ip": "10.10.3.63"`))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"subnet": "` + subnet2))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"gateway": "` + gw2))
-		Expect(inspect.OutputToString()).To(ContainSubstring(`"ipv6_enabled": true`))
+		results := podmanTest.InspectNetwork(name)
+		Expect(results).To(HaveLen(1))
+		Expect(results[0].Subnets).To(HaveLen(2))
+		Expect(results[0].Subnets[0].Subnet.String()).To(Equal(subnet1))
+		Expect(results[0].Subnets[0].Gateway.String()).To(Equal(gw1))
+		Expect(results[0].Subnets[0].LeaseRange.StartIP.String()).To(Equal("10.10.3.1"))
+		Expect(results[0].Subnets[0].LeaseRange.EndIP.String()).To(Equal("10.10.3.63"))
+		Expect(results[0].Subnets[1].Subnet.String()).To(Equal(subnet2))
+		Expect(results[0].Subnets[1].Gateway.String()).To(Equal(gw2))
+		Expect(results[0].IPv6Enabled).To(BeTrue())
 	})
 
 	It("podman network create invalid options with multiple subnets", func() {
@@ -709,14 +664,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(ExitCleanly())
 
 		// Inspect the network configuration
-		inspect := podmanTest.Podman([]string{"network", "inspect", netName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
-
-		// JSON the network configuration into something usable
-		var results []entities.NetworkInspectReport
-		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).ToNot(HaveOccurred())
+		results := podmanTest.InspectNetwork(netName)
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("Name", netName))
