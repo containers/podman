@@ -9,90 +9,314 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
-	"golang.org/x/sys/unix"
 )
 
-func CallSyscall(mib []int32) ([]byte, uint64, error) {
-	miblen := uint64(len(mib))
-
-	// get required buffer size
-	length := uint64(0)
-	_, _, err := unix.Syscall6(
-		202, // unix.SYS___SYSCTL https://github.com/golang/sys/blob/76b94024e4b621e672466e8db3d7f084e7ddcad2/unix/zsysnum_darwin_amd64.go#L146
-		uintptr(unsafe.Pointer(&mib[0])),
-		uintptr(miblen),
-		0,
-		uintptr(unsafe.Pointer(&length)),
-		0,
-		0)
-	if err != 0 {
-		var b []byte
-		return b, length, err
-	}
-	if length == 0 {
-		var b []byte
-		return b, length, err
-	}
-	// get proc info itself
-	buf := make([]byte, length)
-	_, _, err = unix.Syscall6(
-		202, // unix.SYS___SYSCTL https://github.com/golang/sys/blob/76b94024e4b621e672466e8db3d7f084e7ddcad2/unix/zsysnum_darwin_amd64.go#L146
-		uintptr(unsafe.Pointer(&mib[0])),
-		uintptr(miblen),
-		uintptr(unsafe.Pointer(&buf[0])),
-		uintptr(unsafe.Pointer(&length)),
-		0,
-		0)
-	if err != 0 {
-		return buf, length, err
-	}
-
-	return buf, length, nil
-}
-
 // Library represents a dynamic library loaded by purego.
-type Library struct {
-	addr  uintptr
-	path  string
-	close func()
+type library struct {
+	handle uintptr
+	fnMap  map[string]any
 }
 
 // library paths
 const (
-	IOKit          = "/System/Library/Frameworks/IOKit.framework/IOKit"
-	CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
-	System         = "/usr/lib/libSystem.B.dylib"
+	IOKitLibPath          = "/System/Library/Frameworks/IOKit.framework/IOKit"
+	CoreFoundationLibPath = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+	SystemLibPath         = "/usr/lib/libSystem.B.dylib"
 )
 
-func NewLibrary(path string) (*Library, error) {
+func newLibrary(path string) (*library, error) {
 	lib, err := purego.Dlopen(path, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {
 		return nil, err
 	}
 
-	closeFunc := func() {
-		purego.Dlclose(lib)
-	}
-
-	return &Library{
-		addr:  lib,
-		path:  path,
-		close: closeFunc,
+	return &library{
+		handle: lib,
+		fnMap:  make(map[string]any),
 	}, nil
 }
 
-func (lib *Library) Dlsym(symbol string) (uintptr, error) {
-	return purego.Dlsym(lib.addr, symbol)
+func (lib *library) Dlsym(symbol string) (uintptr, error) {
+	return purego.Dlsym(lib.handle, symbol)
 }
 
-func GetFunc[T any](lib *Library, symbol string) T {
-	var fptr T
-	purego.RegisterLibFunc(&fptr, lib.addr, symbol)
-	return fptr
+func getFunc[T any](lib *library, symbol string) T {
+	var dlfun *dlFunc[T]
+	if f, ok := lib.fnMap[symbol].(*dlFunc[T]); ok {
+		dlfun = f
+	} else {
+		dlfun = newDlfunc[T](symbol)
+		dlfun.init(lib.handle)
+		lib.fnMap[symbol] = dlfun
+	}
+	return dlfun.fn
 }
 
-func (lib *Library) Close() {
-	lib.close()
+func (lib *library) Close() {
+	purego.Dlclose(lib.handle)
+}
+
+type dlFunc[T any] struct {
+	sym string
+	fn  T
+}
+
+func (d *dlFunc[T]) init(handle uintptr) {
+	purego.RegisterLibFunc(&d.fn, handle, d.sym)
+}
+
+func newDlfunc[T any](sym string) *dlFunc[T] {
+	return &dlFunc[T]{sym: sym}
+}
+
+type CoreFoundationLib struct {
+	*library
+}
+
+func NewCoreFoundationLib() (*CoreFoundationLib, error) {
+	library, err := newLibrary(CoreFoundationLibPath)
+	if err != nil {
+		return nil, err
+	}
+	return &CoreFoundationLib{library}, nil
+}
+
+func (c *CoreFoundationLib) CFGetTypeID(cf uintptr) int32 {
+	fn := getFunc[CFGetTypeIDFunc](c.library, "CFGetTypeID")
+	return fn(cf)
+}
+
+func (c *CoreFoundationLib) CFNumberCreate(allocator uintptr, theType int32, valuePtr uintptr) unsafe.Pointer {
+	fn := getFunc[CFNumberCreateFunc](c.library, "CFNumberCreate")
+	return fn(allocator, theType, valuePtr)
+}
+
+func (c *CoreFoundationLib) CFNumberGetValue(num uintptr, theType int32, valuePtr uintptr) bool {
+	fn := getFunc[CFNumberGetValueFunc](c.library, "CFNumberGetValue")
+	return fn(num, theType, valuePtr)
+}
+
+func (c *CoreFoundationLib) CFDictionaryCreate(allocator uintptr, keys, values *unsafe.Pointer, numValues int32,
+	keyCallBacks, valueCallBacks uintptr,
+) unsafe.Pointer {
+	fn := getFunc[CFDictionaryCreateFunc](c.library, "CFDictionaryCreate")
+	return fn(allocator, keys, values, numValues, keyCallBacks, valueCallBacks)
+}
+
+func (c *CoreFoundationLib) CFDictionaryAddValue(theDict, key, value uintptr) {
+	fn := getFunc[CFDictionaryAddValueFunc](c.library, "CFDictionaryAddValue")
+	fn(theDict, key, value)
+}
+
+func (c *CoreFoundationLib) CFDictionaryGetValue(theDict, key uintptr) unsafe.Pointer {
+	fn := getFunc[CFDictionaryGetValueFunc](c.library, "CFDictionaryGetValue")
+	return fn(theDict, key)
+}
+
+func (c *CoreFoundationLib) CFArrayGetCount(theArray uintptr) int32 {
+	fn := getFunc[CFArrayGetCountFunc](c.library, "CFArrayGetCount")
+	return fn(theArray)
+}
+
+func (c *CoreFoundationLib) CFArrayGetValueAtIndex(theArray uintptr, index int32) unsafe.Pointer {
+	fn := getFunc[CFArrayGetValueAtIndexFunc](c.library, "CFArrayGetValueAtIndex")
+	return fn(theArray, index)
+}
+
+func (c *CoreFoundationLib) CFStringCreateMutable(alloc uintptr, maxLength int32) unsafe.Pointer {
+	fn := getFunc[CFStringCreateMutableFunc](c.library, "CFStringCreateMutable")
+	return fn(alloc, maxLength)
+}
+
+func (c *CoreFoundationLib) CFStringGetLength(theString uintptr) int32 {
+	fn := getFunc[CFStringGetLengthFunc](c.library, "CFStringGetLength")
+	return fn(theString)
+}
+
+func (c *CoreFoundationLib) CFStringGetCString(theString uintptr, buffer CStr, bufferSize int32, encoding uint32) {
+	fn := getFunc[CFStringGetCStringFunc](c.library, "CFStringGetCString")
+	fn(theString, buffer, bufferSize, encoding)
+}
+
+func (c *CoreFoundationLib) CFStringCreateWithCString(alloc uintptr, cStr string, encoding uint32) unsafe.Pointer {
+	fn := getFunc[CFStringCreateWithCStringFunc](c.library, "CFStringCreateWithCString")
+	return fn(alloc, cStr, encoding)
+}
+
+func (c *CoreFoundationLib) CFDataGetLength(theData uintptr) int32 {
+	fn := getFunc[CFDataGetLengthFunc](c.library, "CFDataGetLength")
+	return fn(theData)
+}
+
+func (c *CoreFoundationLib) CFDataGetBytePtr(theData uintptr) unsafe.Pointer {
+	fn := getFunc[CFDataGetBytePtrFunc](c.library, "CFDataGetBytePtr")
+	return fn(theData)
+}
+
+func (c *CoreFoundationLib) CFRelease(cf uintptr) {
+	fn := getFunc[CFReleaseFunc](c.library, "CFRelease")
+	fn(cf)
+}
+
+type IOKitLib struct {
+	*library
+}
+
+func NewIOKitLib() (*IOKitLib, error) {
+	library, err := newLibrary(IOKitLibPath)
+	if err != nil {
+		return nil, err
+	}
+	return &IOKitLib{library}, nil
+}
+
+func (l *IOKitLib) IOServiceGetMatchingService(mainPort uint32, matching uintptr) uint32 {
+	fn := getFunc[IOServiceGetMatchingServiceFunc](l.library, "IOServiceGetMatchingService")
+	return fn(mainPort, matching)
+}
+
+func (l *IOKitLib) IOServiceGetMatchingServices(mainPort uint32, matching uintptr, existing *uint32) int {
+	fn := getFunc[IOServiceGetMatchingServicesFunc](l.library, "IOServiceGetMatchingServices")
+	return fn(mainPort, matching, existing)
+}
+
+func (l *IOKitLib) IOServiceMatching(name string) unsafe.Pointer {
+	fn := getFunc[IOServiceMatchingFunc](l.library, "IOServiceMatching")
+	return fn(name)
+}
+
+func (l *IOKitLib) IOServiceOpen(service, owningTask, connType uint32, connect *uint32) int {
+	fn := getFunc[IOServiceOpenFunc](l.library, "IOServiceOpen")
+	return fn(service, owningTask, connType, connect)
+}
+
+func (l *IOKitLib) IOServiceClose(connect uint32) int {
+	fn := getFunc[IOServiceCloseFunc](l.library, "IOServiceClose")
+	return fn(connect)
+}
+
+func (l *IOKitLib) IOIteratorNext(iterator uint32) uint32 {
+	fn := getFunc[IOIteratorNextFunc](l.library, "IOIteratorNext")
+	return fn(iterator)
+}
+
+func (l *IOKitLib) IORegistryEntryGetName(entry uint32, name CStr) int {
+	fn := getFunc[IORegistryEntryGetNameFunc](l.library, "IORegistryEntryGetName")
+	return fn(entry, name)
+}
+
+func (l *IOKitLib) IORegistryEntryGetParentEntry(entry uint32, plane string, parent *uint32) int {
+	fn := getFunc[IORegistryEntryGetParentEntryFunc](l.library, "IORegistryEntryGetParentEntry")
+	return fn(entry, plane, parent)
+}
+
+func (l *IOKitLib) IORegistryEntryCreateCFProperty(entry uint32, key, allocator uintptr, options uint32) unsafe.Pointer {
+	fn := getFunc[IORegistryEntryCreateCFPropertyFunc](l.library, "IORegistryEntryCreateCFProperty")
+	return fn(entry, key, allocator, options)
+}
+
+func (l *IOKitLib) IORegistryEntryCreateCFProperties(entry uint32, properties unsafe.Pointer, allocator uintptr, options uint32) int {
+	fn := getFunc[IORegistryEntryCreateCFPropertiesFunc](l.library, "IORegistryEntryCreateCFProperties")
+	return fn(entry, properties, allocator, options)
+}
+
+func (l *IOKitLib) IOObjectConformsTo(object uint32, className string) bool {
+	fn := getFunc[IOObjectConformsToFunc](l.library, "IOObjectConformsTo")
+	return fn(object, className)
+}
+
+func (l *IOKitLib) IOObjectRelease(object uint32) int {
+	fn := getFunc[IOObjectReleaseFunc](l.library, "IOObjectRelease")
+	return fn(object)
+}
+
+func (l *IOKitLib) IOConnectCallStructMethod(connection, selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int {
+	fn := getFunc[IOConnectCallStructMethodFunc](l.library, "IOConnectCallStructMethod")
+	return fn(connection, selector, inputStruct, inputStructCnt, outputStruct, outputStructCnt)
+}
+
+func (l *IOKitLib) IOHIDEventSystemClientCreate(allocator uintptr) unsafe.Pointer {
+	fn := getFunc[IOHIDEventSystemClientCreateFunc](l.library, "IOHIDEventSystemClientCreate")
+	return fn(allocator)
+}
+
+func (l *IOKitLib) IOHIDEventSystemClientSetMatching(client, match uintptr) int {
+	fn := getFunc[IOHIDEventSystemClientSetMatchingFunc](l.library, "IOHIDEventSystemClientSetMatching")
+	return fn(client, match)
+}
+
+func (l *IOKitLib) IOHIDServiceClientCopyEvent(service uintptr, eventType int64, options int32, timeout int64) unsafe.Pointer {
+	fn := getFunc[IOHIDServiceClientCopyEventFunc](l.library, "IOHIDServiceClientCopyEvent")
+	return fn(service, eventType, options, timeout)
+}
+
+func (l *IOKitLib) IOHIDServiceClientCopyProperty(service, property uintptr) unsafe.Pointer {
+	fn := getFunc[IOHIDServiceClientCopyPropertyFunc](l.library, "IOHIDServiceClientCopyProperty")
+	return fn(service, property)
+}
+
+func (l *IOKitLib) IOHIDEventGetFloatValue(event uintptr, field int32) float64 {
+	fn := getFunc[IOHIDEventGetFloatValueFunc](l.library, "IOHIDEventGetFloatValue")
+	return fn(event, field)
+}
+
+func (l *IOKitLib) IOHIDEventSystemClientCopyServices(client uintptr) unsafe.Pointer {
+	fn := getFunc[IOHIDEventSystemClientCopyServicesFunc](l.library, "IOHIDEventSystemClientCopyServices")
+	return fn(client)
+}
+
+type SystemLib struct {
+	*library
+}
+
+func NewSystemLib() (*SystemLib, error) {
+	library, err := newLibrary(SystemLibPath)
+	if err != nil {
+		return nil, err
+	}
+	return &SystemLib{library}, nil
+}
+
+func (s *SystemLib) HostProcessorInfo(host uint32, flavor int32, outProcessorCount *uint32, outProcessorInfo uintptr,
+	outProcessorInfoCnt *uint32,
+) int {
+	fn := getFunc[HostProcessorInfoFunc](s.library, "host_processor_info")
+	return fn(host, flavor, outProcessorCount, outProcessorInfo, outProcessorInfoCnt)
+}
+
+func (s *SystemLib) HostStatistics(host uint32, flavor int32, hostInfoOut uintptr, hostInfoOutCnt *uint32) int {
+	fn := getFunc[HostStatisticsFunc](s.library, "host_statistics")
+	return fn(host, flavor, hostInfoOut, hostInfoOutCnt)
+}
+
+func (s *SystemLib) MachHostSelf() uint32 {
+	fn := getFunc[MachHostSelfFunc](s.library, "mach_host_self")
+	return fn()
+}
+
+func (s *SystemLib) MachTaskSelf() uint32 {
+	fn := getFunc[MachTaskSelfFunc](s.library, "mach_task_self")
+	return fn()
+}
+
+func (s *SystemLib) MachTimeBaseInfo(info uintptr) int {
+	fn := getFunc[MachTimeBaseInfoFunc](s.library, "mach_timebase_info")
+	return fn(info)
+}
+
+func (s *SystemLib) VMDeallocate(targetTask uint32, vmAddress, vmSize uintptr) int {
+	fn := getFunc[VMDeallocateFunc](s.library, "vm_deallocate")
+	return fn(targetTask, vmAddress, vmSize)
+}
+
+func (s *SystemLib) ProcPidPath(pid int32, buffer uintptr, bufferSize uint32) int32 {
+	fn := getFunc[ProcPidPathFunc](s.library, "proc_pidpath")
+	return fn(pid, buffer, bufferSize)
+}
+
+func (s *SystemLib) ProcPidInfo(pid, flavor int32, arg uint64, buffer uintptr, bufferSize int32) int32 {
+	fn := getFunc[ProcPidInfoFunc](s.library, "proc_pidinfo")
+	return fn(pid, flavor, arg, buffer, bufferSize)
 }
 
 // status codes
@@ -100,7 +324,7 @@ const (
 	KERN_SUCCESS = 0
 )
 
-// IOKit functions and symbols.
+// IOKit types and constants.
 type (
 	IOServiceGetMatchingServiceFunc       func(mainPort uint32, matching uintptr) uint32
 	IOServiceGetMatchingServicesFunc      func(mainPort uint32, matching uintptr, existing *uint32) int
@@ -126,29 +350,6 @@ type (
 )
 
 const (
-	IOServiceGetMatchingServiceSym       = "IOServiceGetMatchingService"
-	IOServiceGetMatchingServicesSym      = "IOServiceGetMatchingServices"
-	IOServiceMatchingSym                 = "IOServiceMatching"
-	IOServiceOpenSym                     = "IOServiceOpen"
-	IOServiceCloseSym                    = "IOServiceClose"
-	IOIteratorNextSym                    = "IOIteratorNext"
-	IORegistryEntryGetNameSym            = "IORegistryEntryGetName"
-	IORegistryEntryGetParentEntrySym     = "IORegistryEntryGetParentEntry"
-	IORegistryEntryCreateCFPropertySym   = "IORegistryEntryCreateCFProperty"
-	IORegistryEntryCreateCFPropertiesSym = "IORegistryEntryCreateCFProperties"
-	IOObjectConformsToSym                = "IOObjectConformsTo"
-	IOObjectReleaseSym                   = "IOObjectRelease"
-	IOConnectCallStructMethodSym         = "IOConnectCallStructMethod"
-
-	IOHIDEventSystemClientCreateSym       = "IOHIDEventSystemClientCreate"
-	IOHIDEventSystemClientSetMatchingSym  = "IOHIDEventSystemClientSetMatching"
-	IOHIDServiceClientCopyEventSym        = "IOHIDServiceClientCopyEvent"
-	IOHIDServiceClientCopyPropertySym     = "IOHIDServiceClientCopyProperty"
-	IOHIDEventGetFloatValueSym            = "IOHIDEventGetFloatValue"
-	IOHIDEventSystemClientCopyServicesSym = "IOHIDEventSystemClientCopyServices"
-)
-
-const (
 	KIOMainPortDefault = 0
 
 	KIOHIDEventTypeTemperature = 15
@@ -161,7 +362,7 @@ const (
 	KIOServicePlane  = "IOService"
 )
 
-// CoreFoundation functions and symbols.
+// CoreFoundation types and constants.
 type (
 	CFGetTypeIDFunc        func(cf uintptr) int32
 	CFNumberCreateFunc     func(allocator uintptr, theType int32, valuePtr uintptr) unsafe.Pointer
@@ -182,31 +383,13 @@ type (
 )
 
 const (
-	CFGetTypeIDSym               = "CFGetTypeID"
-	CFNumberCreateSym            = "CFNumberCreate"
-	CFNumberGetValueSym          = "CFNumberGetValue"
-	CFDictionaryCreateSym        = "CFDictionaryCreate"
-	CFDictionaryAddValueSym      = "CFDictionaryAddValue"
-	CFDictionaryGetValueSym      = "CFDictionaryGetValue"
-	CFArrayGetCountSym           = "CFArrayGetCount"
-	CFArrayGetValueAtIndexSym    = "CFArrayGetValueAtIndex"
-	CFStringCreateMutableSym     = "CFStringCreateMutable"
-	CFStringGetLengthSym         = "CFStringGetLength"
-	CFStringGetCStringSym        = "CFStringGetCString"
-	CFStringCreateWithCStringSym = "CFStringCreateWithCString"
-	CFDataGetLengthSym           = "CFDataGetLength"
-	CFDataGetBytePtrSym          = "CFDataGetBytePtr"
-	CFReleaseSym                 = "CFRelease"
-)
-
-const (
 	KCFStringEncodingUTF8 = 0x08000100
 	KCFNumberSInt64Type   = 4
 	KCFNumberIntType      = 9
 	KCFAllocatorDefault   = 0
 )
 
-// Kernel functions and symbols.
+// libSystem types and constants.
 type MachTimeBaseInfo struct {
 	Numer uint32
 	Denom uint32
@@ -232,17 +415,12 @@ const (
 )
 
 const (
-	CTL_KERN       = 1
-	KERN_ARGMAX    = 8
-	KERN_PROCARGS2 = 49
-
 	HOST_VM_INFO       = 2
 	HOST_CPU_LOAD_INFO = 3
 
 	HOST_VM_INFO_COUNT = 0xf
 )
 
-// System functions and symbols.
 type (
 	ProcPidPathFunc func(pid int32, buffer uintptr, bufferSize uint32) int32
 	ProcPidInfoFunc func(pid, flavor int32, arg uint64, buffer uintptr, bufferSize int32) int32
@@ -256,6 +434,7 @@ const (
 
 const (
 	MAXPATHLEN               = 1024
+	PROC_PIDLISTFDS          = 1
 	PROC_PIDPATHINFO_MAXSIZE = 4 * MAXPATHLEN
 	PROC_PIDTASKINFO         = 4
 	PROC_PIDVNODEPATHINFO    = 9
@@ -263,9 +442,8 @@ const (
 
 // SMC represents a SMC instance.
 type SMC struct {
-	lib        *Library
-	conn       uint32
-	callStruct IOConnectCallStructMethodFunc
+	lib  *IOKitLib
+	conn uint32
 }
 
 const ioServiceSMC = "AppleSMC"
@@ -287,47 +465,39 @@ const (
 	KSMCKeyNotFound = 132
 )
 
-func NewSMC(ioKit *Library) (*SMC, error) {
-	if ioKit.path != IOKit {
-		return nil, errors.New("library is not IOKit")
+func NewSMC() (*SMC, error) {
+	iokit, err := NewIOKitLib()
+	if err != nil {
+		return nil, err
 	}
 
-	ioServiceGetMatchingService := GetFunc[IOServiceGetMatchingServiceFunc](ioKit, IOServiceGetMatchingServiceSym)
-	ioServiceMatching := GetFunc[IOServiceMatchingFunc](ioKit, IOServiceMatchingSym)
-	ioServiceOpen := GetFunc[IOServiceOpenFunc](ioKit, IOServiceOpenSym)
-	ioObjectRelease := GetFunc[IOObjectReleaseFunc](ioKit, IOObjectReleaseSym)
-	machTaskSelf := GetFunc[MachTaskSelfFunc](ioKit, MachTaskSelfSym)
-
-	ioConnectCallStructMethod := GetFunc[IOConnectCallStructMethodFunc](ioKit, IOConnectCallStructMethodSym)
-
-	service := ioServiceGetMatchingService(0, uintptr(ioServiceMatching(ioServiceSMC)))
+	service := iokit.IOServiceGetMatchingService(0, uintptr(iokit.IOServiceMatching(ioServiceSMC)))
 	if service == 0 {
 		return nil, fmt.Errorf("ERROR: %s NOT FOUND", ioServiceSMC)
 	}
 
 	var conn uint32
-	if result := ioServiceOpen(service, machTaskSelf(), 0, &conn); result != 0 {
+	machTaskSelf := getFunc[MachTaskSelfFunc](iokit.library, "mach_task_self")
+	if result := iokit.IOServiceOpen(service, machTaskSelf(), 0, &conn); result != 0 {
 		return nil, errors.New("ERROR: IOServiceOpen failed")
 	}
 
-	ioObjectRelease(service)
+	iokit.IOObjectRelease(service)
 	return &SMC{
-		lib:        ioKit,
-		conn:       conn,
-		callStruct: ioConnectCallStructMethod,
+		lib:  iokit,
+		conn: conn,
 	}, nil
 }
 
 func (s *SMC) CallStruct(selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int {
-	return s.callStruct(s.conn, selector, inputStruct, inputStructCnt, outputStruct, outputStructCnt)
+	return s.lib.IOConnectCallStructMethod(s.conn, selector, inputStruct, inputStructCnt, outputStruct, outputStructCnt)
 }
 
 func (s *SMC) Close() error {
-	ioServiceClose := GetFunc[IOServiceCloseFunc](s.lib, IOServiceCloseSym)
-
-	if result := ioServiceClose(s.conn); result != 0 {
+	if result := s.lib.IOServiceClose(s.conn); result != 0 {
 		return errors.New("ERROR: IOServiceClose failed")
 	}
+	s.lib.Close()
 	return nil
 }
 

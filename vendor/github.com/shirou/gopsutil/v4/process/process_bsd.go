@@ -36,10 +36,6 @@ func (*Process) NumCtxSwitchesWithContext(_ context.Context) (*NumCtxSwitchesSta
 	return nil, common.ErrNotImplementedError
 }
 
-func (*Process) NumFDsWithContext(_ context.Context) (int32, error) {
-	return 0, common.ErrNotImplementedError
-}
-
 func (*Process) CPUAffinityWithContext(_ context.Context) ([]int32, error) {
 	return nil, common.ErrNotImplementedError
 }
