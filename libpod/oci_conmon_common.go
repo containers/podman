@@ -245,9 +245,8 @@ func (r *ConmonOCIRuntime) UpdateContainer(ctr *Container, resources *spec.Linux
 }
 
 func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
-	flags := []string{}
 	if res == nil {
-		return "", flags, nil
+		return "", nil, nil
 	}
 
 	f, err := os.CreateTemp("", "podman")
@@ -265,7 +264,7 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 		return "", nil, err
 	}
 
-	flags = append(flags, "--resources="+f.Name())
+	flags := []string{"--resources=" + f.Name()}
 	return f.Name(), flags, nil
 }
 

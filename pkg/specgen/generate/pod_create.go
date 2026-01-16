@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -242,10 +242,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		spec.BaseHostsFile = p.HostsFile
 	}
 	if len(p.DNSServer) > 0 {
-		var dnsServers []net.IP
-		dnsServers = append(dnsServers, p.DNSServer...)
-
-		spec.DNSServers = dnsServers
+		spec.DNSServers = slices.Clone(p.DNSServer)
 	}
 	if len(p.DNSOption) > 0 {
 		spec.DNSOptions = p.DNSOption

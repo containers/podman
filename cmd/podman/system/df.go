@@ -67,9 +67,8 @@ func df(cmd *cobra.Command, _ []string) error {
 
 func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	var (
-		dfSummaries []*dfSummary
-		active      int
-		used        int64
+		active int
+		used   int64
 	)
 
 	visitedImages := make(map[string]bool)
@@ -91,7 +90,6 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		RawSize:        reports.ImagesSize,        // The "raw" size is the sum of all layer sizes
 		RawReclaimable: reports.ImagesSize - used, // We can reclaim the date of "unused" images (i.e., the ones without containers)
 	}
-	dfSummaries = append(dfSummaries, &imageSummary)
 
 	// Containers
 	var (
@@ -113,7 +111,6 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		RawSize:        conSize,
 		RawReclaimable: conReclaimable,
 	}
-	dfSummaries = append(dfSummaries, &containerSummary)
 
 	// Volumes
 	var (
@@ -133,7 +130,11 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		RawSize:        volumesSize,
 		RawReclaimable: volumesReclaimable,
 	}
-	dfSummaries = append(dfSummaries, &volumeSummary)
+	dfSummaries := []*dfSummary{
+		&imageSummary,
+		&containerSummary,
+		&volumeSummary,
+	}
 
 	// need to give un-exported fields
 	hdrs := report.Headers(dfSummary{}, map[string]string{
