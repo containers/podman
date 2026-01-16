@@ -37,7 +37,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 	case "name":
 		// we only have to match one name
 		return func(c *libpod.Container) bool {
-			var filters []string
+			filters := make([]string, 0, len(filterValues))
 			for _, f := range filterValues {
 				filters = append(filters, strings.ReplaceAll(f, "/", ""))
 			}

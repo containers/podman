@@ -135,9 +135,8 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 		prevError = err
 	}
 
-	dropinDirs := []string{}
 	unitDropinPaths := unit.GetUnitDropinPaths()
-
+	dropinDirs := make([]string, 0, len(unitDropinPaths))
 	for _, dropinPath := range unitDropinPaths {
 		for _, sourcePath := range sourcePaths {
 			dropinDirs = append(dropinDirs, path.Join(sourcePath, dropinPath))
