@@ -626,8 +626,8 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	}
 
 	// specgen assumes the image name is arg[0]
-	cmd := []string{cc.Config.Image}
-	cmd = append(cmd, cc.Config.Cmd...)
+	cmd := append([]string{cc.Config.Image}, cc.Config.Cmd...)
+
 	return &cliOpts, cmd, nil
 }
 

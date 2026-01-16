@@ -128,8 +128,7 @@ func podmanTopInner() error {
 		C.set_userns()
 	}
 
-	args := []string{psPath}
-	args = append(args, os.Args[4:]...)
+	args := append([]string{psPath}, os.Args[4:]...)
 
 	C.create_argv(C.int(len(args)))
 	for i, arg := range args {
