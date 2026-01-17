@@ -76,20 +76,16 @@ host:
   logDriver: journald
   memFree: 1833385984
   memTotal: 16401895424
-  networkBackend: cni
+  networkBackend: netavark
   networkBackendInfo:
-    backend: cni
+    backend: netavark
     dns:
-      package: podman-plugins-3.4.4-1.fc34.x86_64
-      path: /usr/libexec/cni/dnsname
-      version: |-
-        CNI dnsname plugin
-        version: 1.3.1
-        commit: unknown
-    package: |-
-      containernetworking-plugins-1.0.1-1.fc34.x86_64
-      podman-plugins-3.4.4-1.fc34.x86_64
-    path: /usr/libexec/cni
+      package: aardvark-dns-1.0.1-1.fc34.x86_64
+      path: /usr/libexec/podman/aardvark-dns
+      version: aardvark-dns 1.0.1
+    package: netavark-1.0.1-1.fc34.x86_64
+    path: /usr/libexec/podman/netavark
+    version: netavark 1.0.1
   ociRuntime:
     name: crun
     package: crun-1.0-1.fc34.x86_64
@@ -119,15 +115,6 @@ host:
     seccompProfilePath: /usr/share/containers/seccomp.json
     selinuxEnabled: true
   serviceIsRemote: false
-  slirp4netns:
-    executable: /bin/slirp4netns
-    package: slirp4netns-1.1.12-2.fc34.x86_64
-    version: |-
-      slirp4netns version 1.1.12
-      commit: 7a104a101aa3278a2152351a082a6df71f57c9a3
-      libslirp: 4.4.0
-      SLIRP_CONFIG_VERSION_MAX: 3
-      libseccomp: 2.5.0
   swapFree: 15687475200
   swapTotal: 16886259712
   uptime: 47h 15m 9.91s (Approximately 1.96 days)
@@ -232,15 +219,16 @@ $ podman info --format json
     "logDriver": "journald",
     "memFree": 1785753600,
     "memTotal": 16401895424,
-    "networkBackend": "cni",
+    "networkBackend": "netavark",
     "networkBackendInfo": {
-      "backend": "cni",
-      "package": "containernetworking-plugins-1.0.1-1.fc34.x86_64\npodman-plugins-3.4.4-1.fc34.x86_64",
-      "path": "/usr/libexec/cni",
+      "backend": "netavark",
+      "package": "netavark-1.0.1-1.fc34.x86_64",
+      "path": "/usr/libexec/podman/netavark",
+      "version": "netavark 1.0.1",
       "dns": {
-        "version": "CNI dnsname plugin\nversion: 1.3.1\ncommit: unknown",
-        "package": "podman-plugins-3.4.4-1.fc34.x86_64",
-        "path": "/usr/libexec/cni/dnsname"
+        "version": "aardvark-dns 1.0.1",
+        "package": "aardvark-dns-1.0.1-1.fc34.x86_64",
+        "path": "/usr/libexec/podman/aardvark-dns"
       }
     },
     "ociRuntime": {
@@ -261,11 +249,6 @@ $ podman info --format json
       "seccompEnabled": true,
       "seccompProfilePath": "/usr/share/containers/seccomp.json",
       "selinuxEnabled": true
-    },
-    "slirp4netns": {
-      "executable": "/bin/slirp4netns",
-      "package": "slirp4netns-1.1.12-2.fc34.x86_64",
-      "version": "slirp4netns version 1.1.12\ncommit: 7a104a101aa3278a2152351a082a6df71f57c9a3\nlibslirp: 4.4.0\nSLIRP_CONFIG_VERSION_MAX: 3\nlibseccomp: 2.5.0"
     },
     "pasta": {
       "executable": "/usr/bin/passt",

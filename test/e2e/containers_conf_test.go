@@ -379,12 +379,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session.OutputToString()).To(Equal("0002"))
 	})
 
-	It("network slirp options to allow host loopback", func() {
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns", ALPINE, "ping", "-c1", "10.0.2.2"})
-		session.Wait(30)
-		Expect(session).Should(ExitCleanly())
-	})
-
 	It("podman-remote test localcontainers.conf", func() {
 		SkipIfNotRemote("this test is only for remote")
 
@@ -749,7 +743,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	It("podman default_rootless_network_cmd", func() {
 		SkipIfNotRootless("default_rootless_network_cmd is only used rootless")
 
-		for _, mode := range []string{"pasta", "slirp4netns", "invalid"} {
+		for _, mode := range []string{"pasta", "invalid"} {
 			conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 			content := "[network]\ndefault_rootless_network_cmd=\"" + mode + "\"\n"
 			err := os.WriteFile(conffile, []byte(content), 0o755)

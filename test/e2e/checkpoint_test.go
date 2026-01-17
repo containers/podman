@@ -341,7 +341,6 @@ var _ = Describe("Podman checkpoint", func() {
 			Fail("Container failed to get ready")
 		}
 
-		// clunky format needed because CNI uses dashes in net names
 		IP := podmanTest.Podman([]string{"inspect", cid, fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname)})
 		IP.WaitWithDefaultTimeout()
 		Expect(IP).Should(ExitCleanly())
@@ -491,7 +490,6 @@ var _ = Describe("Podman checkpoint", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		// clunky format needed because CNI uses dashes in net names
 		IPBefore := podmanTest.Podman([]string{"inspect", "test_name", fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname)})
 		IPBefore.WaitWithDefaultTimeout()
 		Expect(IPBefore).Should(ExitCleanly())
