@@ -604,14 +604,13 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		cliOpts.OOMKillDisable = *cc.HostConfig.OomKillDisable
 	}
 	if cc.Config.Healthcheck != nil {
-		finCmd := ""
-		for _, str := range cc.Config.Healthcheck.Test {
-			finCmd = finCmd + str + " "
+		// Encode healthcheck test as JSON to preserve arguments with spaces.
+		// MakeHealthCheckFromCli will unmarshal this back to the original array.
+		cmdJSON, err := json.Marshal(cc.Config.Healthcheck.Test)
+		if err != nil {
+			return nil, nil, err
 		}
-		if len(finCmd) > 1 {
-			finCmd = finCmd[:len(finCmd)-1]
-		}
-		cliOpts.HealthCmd = finCmd
+		cliOpts.HealthCmd = string(cmdJSON)
 		if cc.Config.Healthcheck.Interval > 0 {
 			cliOpts.HealthInterval = cc.Config.Healthcheck.Interval.String()
 		}
