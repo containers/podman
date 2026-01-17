@@ -384,8 +384,8 @@ type InspectContainerHostConfig struct {
 	// NetworkMode is the configuration of the container's network
 	// namespace.
 	// Populated as follows:
-	// default - A network namespace is being created and configured via CNI
-	// none - A network namespace is being created, not configured via CNI
+	// default - A network namespace is being created and configured
+	// none - A network namespace is being created, not configured
 	// host - No network namespace created
 	// container:<id> - Using another container's network namespace
 	// ns:<path> - A path to a network namespace has been specified
@@ -703,8 +703,8 @@ type InspectBasicNetworkConfig struct {
 	// MacAddress is the MAC address for the interface in this network.
 	MacAddress string `json:"MacAddress"`
 	// AdditionalMacAddresses is a set of additional MAC Addresses beyond
-	// the first. CNI may configure more than one interface for a single
-	// network, which can cause this.
+	// the first. The network backend may configure more than one interface
+	// for a single network, which can cause this.
 	AdditionalMacAddresses []string `json:"AdditionalMACAddresses,omitempty"`
 }
 

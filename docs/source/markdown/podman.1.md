@@ -107,11 +107,8 @@ Further note that the flag is a root-level flag and must be specified before any
 #### **--network-config-dir**=*directory*
 
 Path to the directory where network configuration files are located.
-For the netavark backend "/etc/containers/networks" is used as root
+The default is "/etc/containers/networks" as root
 and "$graphroot/networks" as rootless.
-For the CNI backend the default is "/etc/cni/net.d" as root
-and "$HOME/.config/cni/net.d" as rootless.
-CNI is deprecated and will be removed in the next major Podman version 5.0 in preference of Netavark.
 
 #### **--out**=*path*
 Redirect the output of podman to the specified path without affecting the container output or its logs. This parameter can be used to capture the output from any of podman's commands directly into a file and enable suppression of podman's output by specifying /dev/null as the path. To explicitly disable the container logging, the **--log-driver** option should be used.
