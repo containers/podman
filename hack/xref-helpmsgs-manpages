@@ -92,6 +92,7 @@ my %Format_Option_Is_Special = map { $_ => 1 } (
     'diff',   'container diff', 'image diff',   # only supports "json"
     'generate systemd',                         #  "    "  "      "
     'mount',  'container mount', 'image mount', #  "    "  "      "
+    'machine os upgrade',                       #  "    "  "      "
     'push',   'image push', 'manifest push',    # oci | v2s*
     'save',   'image save',                     # image formats (oci-*, ...)
     'inspect',                                  # ambiguous (container/image)
