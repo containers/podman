@@ -49,7 +49,7 @@ import (
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/chown"
 	"go.podman.io/common/pkg/config"
-	"go.podman.io/common/pkg/libartifact/store"
+	"go.podman.io/common/pkg/libartifact"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/common/pkg/subscriptions"
 	"go.podman.io/common/pkg/umask"
@@ -549,7 +549,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, err
 		}
 		for _, artifactMount := range c.config.ArtifactVolumes {
-			asr, err := store.NewArtifactStorageReference(artifactMount.Source)
+			asr, err := libartifact.NewArtifactStorageReference(artifactMount.Source)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -2545,7 +2545,7 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 
 	gid, err := strconv.ParseUint(group, 10, 32)
 	if err != nil {
-		return "", nil //nolint: nilerr
+		return "", nil // nolint: nilerr
 	}
 
 	if addedGID != -1 && addedGID == int(gid) {
@@ -2735,7 +2735,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	// If a non numeric User, then don't generate passwd
 	uid, err := strconv.ParseUint(userspec, 10, 32)
 	if err != nil {
-		return "", nil //nolint: nilerr
+		return "", nil // nolint: nilerr
 	}
 
 	if addedUID != 0 && int(uid) == addedUID {

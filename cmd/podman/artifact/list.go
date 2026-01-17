@@ -111,11 +111,7 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 		// Note: Right now we only support things that are single manifests
 		// We should certainly expand this support for things like arch, etc
 		// as we move on
-		artifactDigest, err := lr.Artifact.GetDigest()
-		if err != nil {
-			return err
-		}
-
+		artifactDigest := lr.Artifact.GetDigest()
 		artifactHash := artifactDigest.Encoded()[0:12]
 		// If the user does not want truncated hashes
 		if listFlag.noTrunc {
