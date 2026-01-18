@@ -24,7 +24,7 @@ func Validate(kv map[string]string) error {
 	}
 
 	if totalSize > define.TotalAnnotationSizeLimitB {
-		return fmt.Errorf("size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
+		return fmt.Errorf("annotations size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
 	}
 
 	return nil
