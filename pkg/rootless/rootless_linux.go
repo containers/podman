@@ -31,9 +31,9 @@ import (
 #include <sys/types.h>
 extern uid_t rootless_uid();
 extern uid_t rootless_gid();
-extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path);
+extern int reexec_in_user_namespace(int ready, char *state_dir);
 extern int reexec_in_user_namespace_wait(int pid, int options);
-extern int reexec_userns_join(int pid, char *pause_pid_file_path);
+extern int reexec_userns_join(int pid, char *state_dir);
 extern int is_fd_inherited(int fd);
 */
 import "C"
@@ -142,7 +142,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 // joinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
-func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
+func joinUserAndMountNS(pid uint, stateDir string) (bool, int, error) {
 	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
 	if err != nil {
 		return false, 0, err
@@ -151,10 +151,10 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 		return false, 0, nil
 	}
 
-	cPausePid := C.CString(pausePid)
-	defer C.free(unsafe.Pointer(cPausePid))
+	cStateDir := C.CString(stateDir)
+	defer C.free(unsafe.Pointer(cStateDir))
 
-	pidC := C.reexec_userns_join(C.int(pid), cPausePid)
+	pidC := C.reexec_userns_join(C.int(pid), cStateDir)
 	if int(pidC) < 0 {
 		return false, -1, fmt.Errorf("cannot re-exec process to join the existing user namespace")
 	}
@@ -212,7 +212,7 @@ func copyMappings(from, to string) error {
 	return os.WriteFile(to, content, 0o600)
 }
 
-func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
+func becomeRootInUserNS(stateDir string) (_ bool, _ int, retErr error) {
 	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
 	if err != nil {
 		return false, 0, err
@@ -245,8 +245,8 @@ func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 		}
 	}
 
-	cPausePid := C.CString(pausePid)
-	defer C.free(unsafe.Pointer(cPausePid))
+	cStateDir := C.CString(stateDir)
+	defer C.free(unsafe.Pointer(cStateDir))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -279,7 +279,7 @@ func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 		}
 	}()
 
-	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid)
+	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cStateDir)
 	pid = int(pidC)
 	if pid < 0 {
 		return false, -1, fmt.Errorf("cannot re-exec process")
@@ -357,7 +357,8 @@ func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 		// We have lost the race for writing the PID file, as probably another
 		// process created a namespace and wrote the PID.
 		// Try to join it.
-		data, err := os.ReadFile(pausePid)
+		pausePidPath := stateDir + "/pause.pid"
+		data, err := os.ReadFile(pausePidPath)
 		if err == nil {
 			var pid uint64
 			pid, err = strconv.ParseUint(string(data), 10, 0)
@@ -417,15 +418,15 @@ func waitAndProxySignalsToChild(pid C.int) (bool, int, error) {
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
-func BecomeRootInUserNS(pausePid string) (bool, int, error) {
-	return becomeRootInUserNS(pausePid)
+func BecomeRootInUserNS(stateDir string) (bool, int, error) {
+	return becomeRootInUserNS(stateDir)
 }
 
 // TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
 // processes to attempt joining their namespaces.
-func TryJoinFromFilePaths(pausePidPath string, paths []string) (bool, int, error) {
+func TryJoinFromFilePaths(stateDir string, paths []string) (bool, int, error) {
 	var lastErr error
 
 	for _, path := range paths {
@@ -435,16 +436,16 @@ func TryJoinFromFilePaths(pausePidPath string, paths []string) (bool, int, error
 			continue
 		}
 
-		pausePid, err := strconv.Atoi(string(data))
+		pid, err := strconv.Atoi(string(data))
 		if err != nil {
 			lastErr = fmt.Errorf("cannot parse file %q: %w", path, err)
 			continue
 		}
 
-		if pausePid > 0 && unix.Kill(pausePid, 0) == nil {
-			joined, pid, err := joinUserAndMountNS(uint(pausePid), pausePidPath)
+		if pid > 0 && unix.Kill(pid, 0) == nil {
+			joined, ret, err := joinUserAndMountNS(uint(pid), stateDir)
 			if err == nil {
-				return joined, pid, nil
+				return joined, ret, nil
 			}
 			lastErr = err
 		}

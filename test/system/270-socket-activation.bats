@@ -60,13 +60,15 @@ SocketMode=0660
 WantedBy=sockets.target
 EOF
 
-    # ensure pause die before each test runs
+    # ensure pause process/ns_handles are removed before each test runs
     if is_rootless; then
         local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
+        local ns_handles_file="$XDG_RUNTIME_DIR/libpod/tmp/ns_handles"
         if [ -f $pause_pid_file ]; then
             kill -9 $(< $pause_pid_file) 2> /dev/null
             rm -f $pause_pid_file
         fi
+        rm -f $ns_handles_file
     fi
     systemctl_start "$SERVICE_NAME.socket"
 }
@@ -105,13 +107,17 @@ function teardown() {
     cid="$output"
 
     local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
-    if [ ! -f $pause_pid_file ]; then
-        # This seems unlikely, but not impossible
-        die "Pause pid file does not exist: $pause_pid_file"
-    fi
+    local ns_handles_file="$XDG_RUNTIME_DIR/libpod/tmp/ns_handles"
 
-    echo "kill -9 $(< $pause_pid_file) [pause process]"
-    kill -9 $(< $pause_pid_file)
+    if [ -f $ns_handles_file ]; then
+        echo "Removing ns_handles file: $ns_handles_file"
+        rm -f $ns_handles_file
+    elif [ -f $pause_pid_file ]; then
+        echo "kill -9 $(< $pause_pid_file) [pause process]"
+        kill -9 $(< $pause_pid_file)
+    else
+        die "Neither ns_handles file nor pause.pid file exists"
+    fi
 
     run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR $_PING
     echo "curl output: $output"
