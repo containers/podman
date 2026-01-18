@@ -12,9 +12,9 @@ import (
 // Validate validates a set of key values are correctly defined for
 // kubernetes specifications.
 func Validate(kv map[string]string) error {
-	var totalSize int64
+	totalSize := 0
 	for k, v := range kv {
-		totalSize += (int64)(len(k)) + (int64)(len(v))
+		totalSize += len(k) + len(v)
 
 		// The rule is QualifiedName except that case doesn't matter,
 		// so convert to lowercase before checking.
@@ -23,7 +23,7 @@ func Validate(kv map[string]string) error {
 		}
 	}
 
-	if totalSize > int64(define.TotalAnnotationSizeLimitB) {
+	if totalSize > define.TotalAnnotationSizeLimitB {
 		return fmt.Errorf("size %d is larger than limit %d", totalSize, define.TotalAnnotationSizeLimitB)
 	}
 
@@ -49,7 +49,7 @@ func regexErrorMsg(msg string, fmt string, examples ...string) string {
 const (
 	dns1123LabelFmt          string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 	dns1123SubdomainFmt      string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
-	dns1123SubdomainErrorMsg string = "must be formatted as a valid lowercase RFC1123 subdomain of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
+	dns1123SubdomainErrorMsg string = "annotations must be formatted as a valid lowercase RFC1123 subdomain of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
 )
 
 // DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123)
