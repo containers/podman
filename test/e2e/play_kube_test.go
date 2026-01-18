@@ -6477,6 +6477,5 @@ spec:
 		Expect(err).ToNot(HaveOccurred())
 
 		podmanTest.PodmanExitCleanly("kube", "play", "--labels", "l1=v1", kubeYaml)
-
 	})
 })
