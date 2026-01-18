@@ -6471,15 +6471,12 @@ spec:
 		Expect(inspect.InspectContainerToJSON()[0].Name).Should(Equal("simpleWithoutPodPrefix"))
 	})
 
-	It("test labels flag to inject into Pod", func() {
-		podName := "mypod"
-		podLabels := map[string]string{"l1": "v1"}
-		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
+	It("test flag labels inject into Pod", func() {
+		pod := getPod(withLabel("l1", "v1"))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
 
-		podmanTest.PodmanExitCleanly("pod", "create", podName)
-		podmanTest.PodmanExitCleanly("kube", "play", outputFile, "--labels", "l1=v1")
+		podmanTest.PodmanExitCleanly("kube", "play", "--labels", "l1=v1", kubeYaml)
 
-		pod := getPod(withPodName(podName))
-		Expect(pod.Labels).To(Equal(podLabels))
 	})
 })
