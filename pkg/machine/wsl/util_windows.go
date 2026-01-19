@@ -6,46 +6,19 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"unicode/utf16"
-	"unsafe"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/podman/v6/pkg/machine/define"
+	winutil "github.com/containers/podman/v6/pkg/machine/windows"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
-)
-
-type SHELLEXECUTEINFO struct {
-	cbSize         uint32
-	fMask          uint32
-	hwnd           syscall.Handle
-	lpVerb         uintptr
-	lpFile         uintptr
-	lpParameters   uintptr
-	lpDirectory    uintptr
-	nShow          int
-	hInstApp       syscall.Handle
-	lpIDList       uintptr
-	lpClass        uintptr
-	hkeyClass      syscall.Handle
-	dwHotKey       uint32
-	hIconOrMonitor syscall.Handle
-	hProcess       syscall.Handle
-}
-
-// Cleaner to refer to the official OS constant names, and consistent with syscall
-// Ref: https://learn.microsoft.com/en-us/windows/win32/api/shellapi/ns-shellapi-shellexecuteinfow#members
-const (
-	SEE_MASK_NOCLOSEPROCESS = 0x40
-	SE_ERR_ACCESSDENIED     = 0x05
 )
 
 const (
@@ -78,76 +51,6 @@ func winVersionAtLeast(major uint, minor uint, build uint) bool {
 	return true
 }
 
-func relaunchElevatedWait() error {
-	e, _ := os.Executable()
-	d, _ := os.Getwd()
-	exe, _ := syscall.UTF16PtrFromString(e)
-	cwd, _ := syscall.UTF16PtrFromString(d)
-	arg, _ := syscall.UTF16PtrFromString(buildCommandArgs(true))
-	verb, _ := syscall.UTF16PtrFromString("runas")
-
-	shell32 := syscall.NewLazyDLL("shell32.dll")
-
-	info := &SHELLEXECUTEINFO{
-		fMask:        SEE_MASK_NOCLOSEPROCESS,
-		hwnd:         0,
-		lpVerb:       uintptr(unsafe.Pointer(verb)),
-		lpFile:       uintptr(unsafe.Pointer(exe)),
-		lpParameters: uintptr(unsafe.Pointer(arg)),
-		lpDirectory:  uintptr(unsafe.Pointer(cwd)),
-		nShow:        syscall.SW_SHOWNORMAL,
-	}
-	info.cbSize = uint32(unsafe.Sizeof(*info))
-	procShellExecuteEx := shell32.NewProc("ShellExecuteExW")
-	if ret, _, _ := procShellExecuteEx.Call(uintptr(unsafe.Pointer(info))); ret == 0 { // 0 = False
-		err := syscall.GetLastError()
-		if info.hInstApp == SE_ERR_ACCESSDENIED {
-			return wrapMaybe(err, "request to elevate privileges was denied")
-		}
-		return wrapMaybef(err, "could not launch process, ShellEX Error = %d", info.hInstApp)
-	}
-
-	handle := info.hProcess
-	defer func() {
-		_ = syscall.CloseHandle(handle)
-	}()
-
-	w, err := syscall.WaitForSingleObject(handle, syscall.INFINITE)
-	switch w {
-	case syscall.WAIT_OBJECT_0:
-		break
-	case syscall.WAIT_FAILED:
-		return fmt.Errorf("could not wait for process, failed: %w", err)
-	default:
-		return fmt.Errorf("could not wait for process, unknown error. event: %X, err: %v", w, err)
-	}
-	var code uint32
-	if err := syscall.GetExitCodeProcess(handle, &code); err != nil {
-		return err
-	}
-	if code != 0 {
-		return &ExitCodeError{uint(code)}
-	}
-
-	return nil
-}
-
-func wrapMaybe(err error, message string) error {
-	if err != nil {
-		return fmt.Errorf("%v: %w", message, err)
-	}
-
-	return errors.New(message)
-}
-
-func wrapMaybef(err error, format string, args ...any) error {
-	if err != nil {
-		return fmt.Errorf(format+": %w", append(args, err)...)
-	}
-
-	return fmt.Errorf(format, args...)
-}
-
 func reboot() error {
 	const (
 		wtLocation   = `Microsoft\WindowsApps\wt.exe`
@@ -157,7 +60,7 @@ func reboot() error {
 	)
 
 	exe, _ := os.Executable()
-	relaunch := fmt.Sprintf("& %s %s", syscall.EscapeArg(exe), buildCommandArgs(false))
+	relaunch := fmt.Sprintf("& %s %s", syscall.EscapeArg(exe), winutil.BuildCommandArgs(false))
 	encoded := base64.StdEncoding.EncodeToString(encodeUTF16Bytes(relaunch))
 
 	dataDir, err := homedir.GetDataHome()
@@ -190,7 +93,7 @@ func reboot() error {
 		"Alternatively, you can cancel and reboot manually\n\n" +
 		"After rebooting, please wait a minute or two for podman machine to relaunch and continue installing."
 
-	if MessageBox(message, "Podman Machine", false) != 1 {
+	if winutil.MessageBox(message, "Podman Machine", false) != 1 {
 		fmt.Println("Reboot is required to continue installation, please reboot at your convenience")
 		os.Exit(ErrorSuccessRebootRequired)
 		return nil
@@ -230,33 +133,4 @@ func encodeUTF16Bytes(s string) []byte {
 		_ = binary.Write(buf, binary.LittleEndian, r)
 	}
 	return buf.Bytes()
-}
-
-func MessageBox(caption, title string, fail bool) int {
-	var format uint32
-	if fail {
-		format = windows.MB_ICONERROR
-	} else {
-		format = windows.MB_OKCANCEL | windows.MB_ICONINFORMATION
-	}
-
-	captionPtr, _ := syscall.UTF16PtrFromString(caption)
-	titlePtr, _ := syscall.UTF16PtrFromString(title)
-
-	ret, _ := windows.MessageBox(0, captionPtr, titlePtr, format)
-
-	return int(ret)
-}
-
-func buildCommandArgs(elevate bool) string {
-	var args []string
-	for _, arg := range os.Args[1:] {
-		if arg != "--reexec" {
-			args = append(args, syscall.EscapeArg(arg))
-			if elevate && arg == "init" {
-				args = append(args, "--reexec")
-			}
-		}
-	}
-	return strings.Join(args, " ")
 }
