@@ -457,6 +457,35 @@ function _check_health_log {
     run_podman rm -f -t0 $ctr
 }
 
+@test "podman healthcheck --ignore-result" {
+    ctr="c-h-$(safename)"
+
+    run_podman run -d --name $ctr                  \
+           --health-cmd /home/podman/healthcheck   \
+           --health-retries=1                      \
+           --health-interval=disable               \
+           $IMAGE /home/podman/pause
+
+    # Healthcheck should succeed normally
+    run_podman healthcheck run $ctr
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    # Now make the healthcheck fail
+    run_podman exec $ctr touch /uh-oh
+    run_podman 1 healthcheck run $ctr
+    is "$output" "unhealthy" "output from 'podman healthcheck run' without --ignore-result"
+
+    # With --ignore-result, we should still get "unhealthy" but exit 0
+    run_podman healthcheck run --ignore-result $ctr
+    is "$output" "unhealthy" "output from 'podman healthcheck run --ignore-result'"
+
+    # It should NOT suppress fatal errors however (e.g., nonexistent container)
+    run_podman 125 healthcheck run --ignore-result "nonexistent-$(safename)"
+    assert "$output" =~ "no such container"
+
+    run_podman rm -f -t0 $ctr
+}
+
 # https://github.com/containers/podman/issues/25034
 @test "podman healthcheck - start errors" {
     skip_if_remote '$PATH overwrite not working via remote'

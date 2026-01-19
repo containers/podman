@@ -161,6 +161,16 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(inspect[0].State.Health).To(HaveField("Status", "starting"))
 	})
 
+	It("podman healthcheck --ignore-result exits 0 on failing healthcheck", func() {
+		session := podmanTest.Podman([]string{"run", "-q", "-dt", "--name", "hc", "quay.io/libpod/badhealthcheck:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "--ignore-result", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(ExitWithError(0, ""))
+	})
+
 	It("podman healthcheck failed checks in start-period should not change status", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--health-start-period", "2m", "--health-retries", "2", "--health-cmd", "ls /foo || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()

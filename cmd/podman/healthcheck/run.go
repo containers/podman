@@ -12,7 +12,7 @@ import (
 )
 
 var runCmd = &cobra.Command{
-	Use:               "run CONTAINER",
+	Use:               "run [options] CONTAINER",
 	Short:             "Run the health check of a container",
 	Long:              "Run the health check of a container",
 	Example:           `podman healthcheck run mywebapp`,
@@ -21,11 +21,17 @@ var runCmd = &cobra.Command{
 	ValidArgsFunction: common.AutocompleteContainersRunning,
 }
 
+var ignoreResult bool
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: runCmd,
 		Parent:  healthCmd,
 	})
+
+	flags := runCmd.Flags()
+	flags.BoolVar(&ignoreResult, "ignore-result", false,
+		"Exit with code 0 regardless of healthcheck result or if the container is still in startup period")
 }
 
 func run(_ *cobra.Command, args []string) error {
@@ -35,7 +41,11 @@ func run(_ *cobra.Command, args []string) error {
 	}
 	switch response.Status {
 	case define.HealthCheckUnhealthy, define.HealthCheckStarting, define.HealthCheckStopped:
-		registry.SetExitCode(1)
+		if ignoreResult {
+			registry.SetExitCode(0)
+		} else {
+			registry.SetExitCode(1)
+		}
 		fmt.Println(response.Status)
 	}
 	return err
