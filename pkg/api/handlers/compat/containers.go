@@ -401,6 +401,13 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
+	health := container.NoHealthcheck
+	if l.HasHealthCheck() {
+		if inspect.State.Health != nil {
+			health = inspect.State.Health.Status
+		}
+	}
+
 	return &handlers.Container{
 		Container: container.Summary{
 			ID:         l.ID(),
@@ -427,6 +434,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			Mounts:          mounts,
 		},
 		ContainerCreateConfig: dockerBackend.ContainerCreateConfig{},
+		Health:                health,
 	}, nil
 }
 
@@ -481,7 +489,9 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 	}
 
 	if l.HasHealthCheck() && state.Status != "created" {
-		state.Health = &container.Health{}
+		state.Health = &container.Health{
+			Status: container.NoHealthcheck,
+		}
 		if inspect.State.Health != nil {
 			state.Health.Status = inspect.State.Health.Status
 			state.Health.FailingStreak = inspect.State.Health.FailingStreak
