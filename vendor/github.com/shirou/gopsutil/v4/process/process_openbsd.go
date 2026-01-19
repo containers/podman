@@ -342,6 +342,10 @@ func ProcessesWithContext(ctx context.Context) ([]*Process, error) {
 	return results, nil
 }
 
+func (*Process) NumFDsWithContext(_ context.Context) (int32, error) {
+	return 0, common.ErrNotImplementedError
+}
+
 func (p *Process) getKProc() (*KinfoProc, error) {
 	buf, length, err := callKernProcSyscall(KernProcPID, p.Pid)
 	if err != nil {

@@ -110,6 +110,9 @@ func unmarshalIgnition(rawMsg json.RawMessage) (Ignition, error) {
 func unmarshalVirtioNet(rawMsg json.RawMessage) (*VirtioNet, error) {
 	var dev virtioNetForMarshalling
 
+	// defaults to true for backwards compatibility with vfkit versions which did not have this field
+	dev.VfkitMagic = true
+
 	err := json.Unmarshal(rawMsg, &dev)
 	if err != nil {
 		return nil, err
@@ -120,6 +123,10 @@ func unmarshalVirtioNet(rawMsg json.RawMessage) (*VirtioNet, error) {
 			return nil, err
 		}
 		dev.VirtioNet.MacAddress = macAddr
+	}
+	// vfkitMagic is only useful in combination with unixSocketPath
+	if dev.UnixSocketPath == "" {
+		dev.VfkitMagic = false
 	}
 	return &dev.VirtioNet, nil
 }

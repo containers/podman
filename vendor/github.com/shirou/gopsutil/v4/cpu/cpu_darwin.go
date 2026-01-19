@@ -61,17 +61,17 @@ func Times(percpu bool) ([]TimesStat, error) {
 }
 
 func TimesWithContext(_ context.Context, percpu bool) ([]TimesStat, error) {
-	lib, err := common.NewLibrary(common.System)
+	sys, err := common.NewSystemLib()
 	if err != nil {
 		return nil, err
 	}
-	defer lib.Close()
+	defer sys.Close()
 
 	if percpu {
-		return perCPUTimes(lib)
+		return perCPUTimes(sys)
 	}
 
-	return allCPUTimes(lib)
+	return allCPUTimes(sys)
 }
 
 // Returns only one CPUInfoStat on FreeBSD
@@ -138,16 +138,12 @@ func CountsWithContext(_ context.Context, logical bool) (int, error) {
 	return int(count), nil
 }
 
-func perCPUTimes(machLib *common.Library) ([]TimesStat, error) {
-	machHostSelf := common.GetFunc[common.MachHostSelfFunc](machLib, common.MachHostSelfSym)
-	machTaskSelf := common.GetFunc[common.MachTaskSelfFunc](machLib, common.MachTaskSelfSym)
-	hostProcessorInfo := common.GetFunc[common.HostProcessorInfoFunc](machLib, common.HostProcessorInfoSym)
-	vmDeallocate := common.GetFunc[common.VMDeallocateFunc](machLib, common.VMDeallocateSym)
-
+func perCPUTimes(sys *common.SystemLib) ([]TimesStat, error) {
 	var count, ncpu uint32
 	var cpuload *hostCpuLoadInfoData
 
-	status := hostProcessorInfo(machHostSelf(), processorCpuLoadInfo, &ncpu, uintptr(unsafe.Pointer(&cpuload)), &count)
+	status := sys.HostProcessorInfo(sys.MachHostSelf(), processorCpuLoadInfo,
+		&ncpu, uintptr(unsafe.Pointer(&cpuload)), &count)
 
 	if status != common.KERN_SUCCESS {
 		return nil, fmt.Errorf("host_processor_info error=%d", status)
@@ -157,7 +153,7 @@ func perCPUTimes(machLib *common.Library) ([]TimesStat, error) {
 		return nil, errors.New("host_processor_info returned nil cpuload")
 	}
 
-	defer vmDeallocate(machTaskSelf(), uintptr(unsafe.Pointer(cpuload)), uintptr(ncpu))
+	defer sys.VMDeallocate(sys.MachTaskSelf(), uintptr(unsafe.Pointer(cpuload)), uintptr(ncpu))
 
 	ret := []TimesStat{}
 	loads := unsafe.Slice(cpuload, ncpu)
@@ -170,21 +166,17 @@ func perCPUTimes(machLib *common.Library) ([]TimesStat, error) {
 			Nice:   float64(loads[i].cpuTicks[cpuStateNice]) / ClocksPerSec,
 			Idle:   float64(loads[i].cpuTicks[cpuStateIdle]) / ClocksPerSec,
 		}
-
 		ret = append(ret, c)
 	}
 
 	return ret, nil
 }
 
-func allCPUTimes(machLib *common.Library) ([]TimesStat, error) {
-	machHostSelf := common.GetFunc[common.MachHostSelfFunc](machLib, common.MachHostSelfSym)
-	hostStatistics := common.GetFunc[common.HostStatisticsFunc](machLib, common.HostStatisticsSym)
-
+func allCPUTimes(sys *common.SystemLib) ([]TimesStat, error) {
 	var cpuload hostCpuLoadInfoData
 	count := uint32(cpuStateMax)
 
-	status := hostStatistics(machHostSelf(), common.HOST_CPU_LOAD_INFO,
+	status := sys.HostStatistics(sys.MachHostSelf(), common.HOST_CPU_LOAD_INFO,
 		uintptr(unsafe.Pointer(&cpuload)), &count)
 
 	if status != common.KERN_SUCCESS {

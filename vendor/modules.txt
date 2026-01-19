@@ -124,8 +124,8 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.62.2
-## explicit; go 1.22.8
+# github.com/containers/common v0.64.2
+## explicit; go 1.23.3
 github.com/containers/common/pkg/strongunits
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
@@ -189,8 +189,8 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/crc-org/vfkit v0.6.1
-## explicit; go 1.23.0
+# github.com/crc-org/vfkit v0.6.3
+## explicit; go 1.24.2
 github.com/crc-org/vfkit/pkg/config
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
@@ -644,7 +644,7 @@ github.com/seccomp/libseccomp-golang
 # github.com/secure-systems-lab/go-securesystemslib v0.9.1
 ## explicit; go 1.23.0
 github.com/secure-systems-lab/go-securesystemslib/encrypted
-# github.com/shirou/gopsutil/v4 v4.25.11
+# github.com/shirou/gopsutil/v4 v4.25.12
 ## explicit; go 1.24.0
 github.com/shirou/gopsutil/v4/common
 github.com/shirou/gopsutil/v4/cpu
@@ -1000,7 +1000,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/twofish
 golang.org/x/crypto/xts
-# golang.org/x/mod v0.30.0
+# golang.org/x/mod v0.31.0
 ## explicit; go 1.24.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.48.0
@@ -1026,7 +1026,7 @@ golang.org/x/oauth2/internal
 ## explicit; go 1.24.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.39.0
+# golang.org/x/sys v0.40.0
 ## explicit; go 1.24.0
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9
