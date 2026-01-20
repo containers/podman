@@ -653,10 +653,21 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 		if ok {
 			appName = value
 		}
+
+		// Parse the unit file to extract Pod= from the [Container] section
+		podName := ""
+		unitFile, err := parser.ParseUnitFile(path)
+		if err == nil {
+			// LookupLast returns the last value if Pod= is specified multiple times
+			value, _ := unitFile.LookupLast("Container", "Pod")
+			podName = value
+		}
+
 		report := entities.ListQuadlet{
 			Name: filepath.Base(path),
 			Path: path,
 			App:  appName,
+			Pod:  podName,
 		}
 
 		serviceName, err := getQuadletServiceName(path)
