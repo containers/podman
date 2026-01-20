@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -15,6 +17,27 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const UACConfirmationPrompt = "Since you are not running as admin, a new window will open and " +
+	"require you to approve administrator privileges.\n\n"
+
+// IsInAdministratorsGroup checks if the current user is a member of the Administrators group,
+// regardless of whether the current process is elevated. This can be used to determine
+// if the user can elevate privileges via UAC.
+func IsInAdministratorsGroup() bool {
+	u, err := user.Current()
+	if nil != err {
+		return false
+	}
+	ids, err := u.GroupIds()
+	if nil != err {
+		return false
+	}
+	// S-1-5-32-544 is the SID for the Administrators group
+	// see: https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers
+	return slices.Contains(ids, "S-1-5-32-544")
+}
+
+// HasAdminRights checks if the current process has administrator privileges.
 func HasAdminRights() bool {
 	var sid *windows.SID
 
@@ -248,4 +271,17 @@ func DumpOutputFile() {
 	}
 	defer file.Close()
 	_, _ = io.Copy(os.Stdout, file)
+}
+
+// LogErrorToFile logs an error message to the elevated output log file if --reexec is detected
+func LogErrorToFile(err error) {
+	if err == nil {
+		return
+	}
+	file, fileErr := GetElevatedOutputFileWrite()
+	if fileErr != nil {
+		return
+	}
+	defer file.Close()
+	_, _ = fmt.Fprintf(file, "Error: %v\n", err)
 }
