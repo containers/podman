@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -113,7 +112,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	}
 
 	// Get Map of all available controllers
-	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
+	availableControllers, err := cgroups.AvailableControllers(nil, unified)
 	if err != nil {
 		return nil, fmt.Errorf("error getting available cgroup controllers: %w", err)
 	}
@@ -141,7 +140,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		OS:                runtime.GOOS,
 		Security: define.SecurityInfo{
 			AppArmorEnabled:     apparmor.IsEnabled(),
-			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities, ","),
+			DefaultCapabilities: strings.Join(r.config.Containers.DefaultCapabilities.Get(), ","),
 			Rootless:            rootless.IsRootless(),
 			SECCOMPEnabled:      seccomp.IsEnabled(),
 			SECCOMPProfilePath:  seccompProfilePath,
@@ -384,44 +383,4 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 		}
 	}
 	return dist
-}
-
-// getCPUUtilization Returns a CPUUsage object that summarizes CPU
-// usage for userspace, system, and idle time.
-func getCPUUtilization() (*define.CPUUsage, error) {
-	f, err := os.Open("/proc/stat")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	// Read first line of /proc/stat that has entries for system ("cpu" line)
-	for scanner.Scan() {
-		break
-	}
-	// column 1 is user, column 3 is system, column 4 is idle
-	stats := strings.Fields(scanner.Text())
-	return statToPercent(stats)
-}
-
-func statToPercent(stats []string) (*define.CPUUsage, error) {
-	userTotal, err := strconv.ParseFloat(stats[1], 64)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse user value %q: %w", stats[1], err)
-	}
-	systemTotal, err := strconv.ParseFloat(stats[3], 64)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse system value %q: %w", stats[3], err)
-	}
-	idleTotal, err := strconv.ParseFloat(stats[4], 64)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse idle value %q: %w", stats[4], err)
-	}
-	total := userTotal + systemTotal + idleTotal
-	s := define.CPUUsage{
-		UserPercent:   math.Round((userTotal/total*100)*100) / 100,
-		SystemPercent: math.Round((systemTotal/total*100)*100) / 100,
-		IdlePercent:   math.Round((idleTotal/total*100)*100) / 100,
-	}
-	return &s, nil
 }

@@ -69,6 +69,9 @@ github.com/checkpoint-restore/go-criu/v5
 github.com/checkpoint-restore/go-criu/v5/magic
 github.com/checkpoint-restore/go-criu/v5/rpc
 github.com/checkpoint-restore/go-criu/v5/stats
+# github.com/checkpoint-restore/go-criu/v6 v6.3.0
+## explicit; go 1.16
+github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
@@ -185,6 +188,7 @@ github.com/containers/common/pkg/secrets/filedriver
 github.com/containers/common/pkg/secrets/passdriver
 github.com/containers/common/pkg/secrets/shelldriver
 github.com/containers/common/pkg/signal
+github.com/containers/common/pkg/ssh
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/supplemented
 github.com/containers/common/pkg/sysinfo
@@ -595,6 +599,9 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/pgzip v1.2.6
 ## explicit
 github.com/klauspost/pgzip
+# github.com/kr/fs v0.1.0
+## explicit
+github.com/kr/fs
 # github.com/letsencrypt/boulder v0.0.0-20230213213521-fdfea0d469b6
 ## explicit; go 1.18
 github.com/letsencrypt/boulder/core
@@ -780,6 +787,10 @@ github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/pkg/sftp v1.13.6
+## explicit; go 1.15
+github.com/pkg/sftp
+github.com/pkg/sftp/internal/encoding/ssh/filexfer
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib

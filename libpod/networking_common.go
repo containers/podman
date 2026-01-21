@@ -22,6 +22,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// getNetNSPathCommon retrieves the netns path as a string, handling both Linux (ns.NetNS) and FreeBSD (string) cases
+func getNetNSPathCommon(ctr *Container) string {
+	if ctr.state.NetNS == nil {
+		return ""
+	}
+	// On Linux, NetNS is ns.NetNS which has a Path() method
+	// On FreeBSD, NetNS might be a string
+	// Use interface check to handle both cases
+	type pathGetter interface {
+		Path() string
+	}
+	if netns, ok := ctr.state.NetNS.(pathGetter); ok {
+		return netns.Path()
+	}
+	// If it doesn't have Path() method, it might be a string on FreeBSD
+	// Use fmt to convert to string as a fallback
+	return fmt.Sprintf("%v", ctr.state.NetNS)
+}
+
 // convertPortMappings will remove the HostIP part from the ports when running inside podman machine.
 // This is need because a HostIP of 127.0.0.1 would now allow the gvproxy forwarder to reach to open ports.
 // For machine the HostIP must only be used by gvproxy and never in the VM.
@@ -127,22 +146,22 @@ func (r *Runtime) teardownNetworkBackend(ns string, opts types.NetworkOptions) e
 // Tear down a container's network backend configuration, but do not tear down the
 // namespace itself.
 func (r *Runtime) teardownNetwork(ctr *Container) error {
-	if ctr.state.NetNS == "" {
+	netNSPath := getNetNSPathCommon(ctr)
+	if netNSPath == "" {
 		// The container has no network namespace, we're set
 		return nil
 	}
 
-	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS, ctr.ID())
+	logrus.Debugf("Tearing down network namespace at %s for container %s", netNSPath, ctr.ID())
 
 	networks, err := ctr.networks()
 	if err != nil {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsSlirp4netns() &&
-		!ctr.config.NetMode.IsPasta() && len(networks) > 0 {
+	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
 		netOpts := ctr.getNetworkOptions(networks)
-		return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
+		return r.teardownNetworkBackend(netNSPath, netOpts)
 	}
 	return nil
 }
@@ -164,7 +183,8 @@ func isBridgeNetMode(n namespaces.NetworkMode) error {
 // Only works on containers with bridge networking at present, though in the future we could
 // extend this to stop + restart slirp4netns
 func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
-	if ctr.state.NetNS == "" {
+	netNSPath := getNetNSPathCommon(ctr)
+	if netNSPath == "" {
 		return nil, fmt.Errorf("container %s network is not configured, refusing to reload: %w", ctr.ID(), define.ErrCtrStateInvalid)
 	}
 	if err := isBridgeNetMode(ctr.config.NetMode); err != nil {
@@ -233,14 +253,15 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	settings := new(define.InspectNetworkSettings)
-	settings.Ports = makeInspectPorts(c.config.PortMappings, c.config.ExposedPorts)
+	settings.Ports = makeInspectPortBindings(c.config.PortMappings, c.config.ExposedPorts)
 
 	networks, err := c.networks()
 	if err != nil {
 		return nil, err
 	}
 
-	if c.state.NetNS == "" {
+	netNSPath := getNetNSPathCommon(c)
+	if netNSPath == "" {
 		if networkNSPath := c.joinedNetworkNSPath(); networkNSPath != "" {
 			if result, err := c.inspectJoinedNetworkNS(networkNSPath); err == nil {
 				// fallback to dummy configuration
@@ -268,7 +289,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	// Set network namespace path
-	settings.SandboxKey = c.state.NetNS
+	settings.SandboxKey = netNSPath
 
 	netStatus := c.getNetworkStatus()
 	// If this is empty, we're probably slirp4netns
@@ -400,7 +421,8 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return nil
 	}
 
-	if c.state.NetNS == "" {
+	netNSPath := getNetNSPathCommon(c)
+	if netNSPath == "" {
 		return fmt.Errorf("unable to disconnect %s from %s: %w", nameOrID, netName, define.ErrNoNetwork)
 	}
 
@@ -413,7 +435,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		netName: networks[netName],
 	}
 
-	if err := c.runtime.teardownNetworkBackend(c.state.NetNS, opts); err != nil {
+	if err := c.runtime.teardownNetworkBackend(netNSPath, opts); err != nil {
 		return err
 	}
 
@@ -523,7 +545,8 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 		return nil
 	}
-	if c.state.NetNS == "" {
+	netNSPath := getNetNSPathCommon(c)
+	if netNSPath == "" {
 		return fmt.Errorf("unable to connect %s to %s: %w", nameOrID, netName, define.ErrNoNetwork)
 	}
 
@@ -536,7 +559,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		netName: netOpts,
 	}
 
-	results, err := c.runtime.setUpNetwork(c.state.NetNS, opts)
+	results, err := c.runtime.setUpNetwork(netNSPath, opts)
 	if err != nil {
 		return err
 	}

@@ -66,7 +66,8 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network) (*types.Network, error) {
+func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
+	// createOptions is ignored in tunnel mode
 	net, err := network.Create(ic.ClientCtx, &net)
 	if err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname st
 	return network.Disconnect(ic.ClientCtx, networkname, opts.Container, options)
 }
 
-// NetworkConnect removes a container from a given network
+// NetworkConnect adds a container to a given network
 func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, opts entities.NetworkConnectOptions) error {
 	return network.Connect(ic.ClientCtx, networkname, opts.Container, &opts.PerNetworkOptions)
 }

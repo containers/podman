@@ -491,7 +491,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	for _, arg := range containerConfig.RuntimeFlags {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
-	if containerConfig.Engine.CgroupManager == config.SystemdCgroupsManager {
+	if containerConfig.ContainersConfDefaultsRO.Engine.CgroupManager == config.SystemdCgroupsManager {
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 
@@ -559,7 +559,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
 		CPPFlags:                flags.CPPFlags,
-		DefaultMountsFilePath:   containerConfig.Containers.DefaultMountsFile,
+		DefaultMountsFilePath:   containerConfig.ContainersConfDefaultsRO.Containers.DefaultMountsFile,
 		Devices:                 flags.Devices,
 		DropCapabilities:        flags.CapDrop,
 		Envs:                    flags.Envs,

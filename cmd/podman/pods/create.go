@@ -75,13 +75,14 @@ func init() {
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	policyFlag := "exit-policy"
-	flags.StringVarP(&createOptions.ExitPolicy, policyFlag, "", string(containerConfig.Engine.PodExitPolicy), "Behaviour when the last container exits")
+	containerConfig := registry.PodmanConfig()
+	flags.StringVarP(&createOptions.ExitPolicy, policyFlag, "", string(containerConfig.ContainersConfDefaultsRO.Engine.PodExitPolicy), "Behaviour when the last container exits")
 	_ = createCommand.RegisterFlagCompletionFunc(policyFlag, common.AutocompletePodExitPolicy)
 
 	infraImageFlagName := "infra-image"
 	var defInfraImage string
 	if !registry.IsRemote() {
-		defInfraImage = containerConfig.Engine.InfraImage
+		defInfraImage = containerConfig.ContainersConfDefaultsRO.Engine.InfraImage
 	}
 	flags.StringVar(&infraImage, infraImageFlagName, defInfraImage, "Image to use to override builtin infra container")
 	_ = createCommand.RegisterFlagCompletionFunc(infraImageFlagName, common.AutocompleteImages)

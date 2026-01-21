@@ -345,7 +345,12 @@ func getDBState(runtime *Runtime) (State, error) {
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(runtime *Runtime) (retErr error) {
 	// Find a working conmon binary
-	cPath, err := findConmon(runtime.config.Engine.ConmonPath)
+	conmonPaths := runtime.config.Engine.ConmonPath.Get()
+	conmonPathStrings := make([]string, len(conmonPaths))
+	for i, p := range conmonPaths {
+		conmonPathStrings[i] = string(p)
+	}
+	cPath, err := findConmon(conmonPathStrings)
 	if err != nil {
 		return err
 	}
@@ -583,9 +588,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	aliveLock.Lock()
 	doRefresh := false
 	defer func() {
-		if aliveLock.Locked() {
-			aliveLock.Unlock()
-		}
+		// Check if lock is held before unlocking
+		aliveLock.Unlock()
 	}()
 
 	_, err = os.Stat(runtimeAliveFile)

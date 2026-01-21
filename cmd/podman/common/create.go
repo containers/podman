@@ -250,7 +250,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		createFlags.BoolVar(
 			&cf.HTTPProxy,
-			"http-proxy", containerConfig.Containers.HTTPProxy,
+			"http-proxy", containerConfig.ContainersConfDefaultsRO.Containers.HTTPProxy,
 			"Set proxy environment variables in the container based on the host proxy vars",
 		)
 

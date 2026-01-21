@@ -42,12 +42,11 @@ func init() {
 	})
 	flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
-	initOpts.Username = cfg.Config.Machine.User
 
 	cpusFlagName := "cpus"
 	flags.Uint64Var(
 		&initOpts.CPUS,
-		cpusFlagName, cfg.Machine.CPUs,
+		cpusFlagName, cfg.ContainersConfDefaultsRO.Machine.CPUs,
 		"Number of CPUs",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
@@ -55,7 +54,7 @@ func init() {
 	diskSizeFlagName := "disk-size"
 	flags.Uint64Var(
 		&initOpts.DiskSize,
-		diskSizeFlagName, cfg.Machine.DiskSize,
+		diskSizeFlagName, cfg.ContainersConfDefaultsRO.Machine.DiskSize,
 		"Disk size in GB",
 	)
 
@@ -64,7 +63,7 @@ func init() {
 	memoryFlagName := "memory"
 	flags.Uint64VarP(
 		&initOpts.Memory,
-		memoryFlagName, "m", cfg.Machine.Memory,
+		memoryFlagName, "m", cfg.ContainersConfDefaultsRO.Machine.Memory,
 		"Memory in MB",
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
@@ -75,7 +74,7 @@ func init() {
 		"Start machine now",
 	)
 	timezoneFlagName := "timezone"
-	defaultTz := cfg.TZ()
+	defaultTz := cfg.ContainersConfDefaultsRO.TZ()
 	if len(defaultTz) < 1 {
 		defaultTz = "local"
 	}
@@ -90,7 +89,7 @@ func init() {
 	_ = flags.MarkHidden("reexec")
 
 	ImagePathFlagName := "image-path"
-	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")
+	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.ContainersConfDefaultsRO.Machine.Image, "Path to qcow image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	VolumeFlagName := "volume"

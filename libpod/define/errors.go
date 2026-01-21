@@ -189,6 +189,9 @@ var (
 	// ErrNetworkModeInvalid indicates that a container has the wrong network mode for an operation
 	ErrNetworkModeInvalid = errors.New("invalid network mode")
 
+	// ErrNetworkConnected indicates that a container is already connected to a network
+	ErrNetworkConnected = errors.New("container is already connected to network")
+
 	// ErrSetSecurityAttribute indicates that a request to set a container's security attribute
 	// was not possible.
 	ErrSetSecurityAttribute = fmt.Errorf("%w: unable to assign security attribute", ErrOCIRuntime)
