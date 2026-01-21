@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strings"
 
 	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -19,55 +17,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func setProcOpts(s *specgen.SpecGenerator, g *generate.Generator) {
-	if s.ProcOpts == nil {
-		return
-	}
-	for i := range g.Config.Mounts {
-		if g.Config.Mounts[i].Destination == "/proc" {
-			g.Config.Mounts[i].Options = s.ProcOpts
-			return
-		}
-	}
-}
-
-// canMountSys is a best-effort heuristic to detect whether mounting a new sysfs is permitted in the container
-func canMountSys(isRootless, isNewUserns bool, s *specgen.SpecGenerator) bool {
-	if s.NetNS.IsHost() && (isRootless || isNewUserns) {
-		return false
-	}
-	if isNewUserns {
-		switch s.NetNS.NSMode {
-		case specgen.Slirp, specgen.Pasta, specgen.Private, specgen.NoNetwork, specgen.Bridge:
-			return true
-		default:
-			return false
-		}
-	}
-	return true
-}
-
-func getCgroupPermissons(unmask []string) string {
-	ro := "ro"
-	rw := "rw"
-	cgroup := "/sys/fs/cgroup"
-
-	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
-	if !cgroupv2 {
-		return ro
-	}
-
-	if unmask != nil && unmask[0] == "ALL" {
-		return rw
-	}
-
-	for _, p := range unmask {
-		if path.Clean(p) == cgroup {
-			return rw
-		}
-	}
-	return ro
-}
+// setProcOpts is defined in oci.go
+// canMountSys is defined in oci.go
+// getCgroupPermissons is defined in oci.go
 
 // SpecGenToOCI returns the base configuration for the container.
 func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {

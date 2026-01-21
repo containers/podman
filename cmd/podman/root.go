@@ -418,8 +418,9 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	lFlags := cmd.Flags()
 
 	sshFlagName := "ssh"
-	lFlags.StringVar(&podmanConfig.SSHMode, sshFlagName, string(ssh.GolangMode), "define the ssh mode")
-	_ = cmd.RegisterFlagCompletionFunc(sshFlagName, common.AutocompleteSSH)
+	var sshMode string
+	lFlags.StringVar(&sshMode, sshFlagName, string(ssh.GolangMode), "define the ssh mode")
+	_ = cmd.RegisterFlagCompletionFunc(sshFlagName, completion.AutocompleteNone)
 
 	connectionFlagName := "connection"
 	lFlags.StringP(connectionFlagName, "c", podmanConfig.ContainersConfDefaultsRO.Engine.ActiveService, "Connection to use for remote Podman service")
@@ -556,76 +557,6 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 
 		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
 	}
-}
-
-func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) (err error) {
-	conf := podmanConfig.ContainersConfDefaultsRO
-	contextConn, host := cmd.Root().LocalFlags().Lookup("context"), cmd.Root().LocalFlags().Lookup("host")
-	conn, url := cmd.Root().LocalFlags().Lookup("connection"), cmd.Root().LocalFlags().Lookup("url")
-
-	switch {
-	case conn != nil && conn.Changed:
-		if contextConn != nil && contextConn.Changed {
-			err = fmt.Errorf("use of --connection and --context at the same time is not allowed")
-			return
-		}
-		if dest, ok := conf.Engine.ServiceDestinations[conn.Value.String()]; ok {
-			podmanConfig.URI = dest.URI
-			podmanConfig.Identity = dest.Identity
-			podmanConfig.MachineMode = dest.IsMachine
-			return
-		}
-		err = fmt.Errorf("connection %q not found", conn.Value.String())
-		return
-	case url.Changed:
-		podmanConfig.URI = url.Value.String()
-		return
-	case contextConn != nil && contextConn.Changed:
-		service := contextConn.Value.String()
-		if service != "default" {
-			if dest, ok := conf.Engine.ServiceDestinations[contextConn.Value.String()]; ok {
-				podmanConfig.URI = dest.URI
-				podmanConfig.Identity = dest.Identity
-				podmanConfig.MachineMode = dest.IsMachine
-				return
-			}
-			err = fmt.Errorf("connection %q not found", service)
-			return
-		}
-	case host != nil && host.Changed:
-		podmanConfig.URI = host.Value.String()
-		return
-	}
-	return nil
-}
-
-func setupRemoteConnection(podmanConfig *entities.PodmanConfig) error {
-	conf := podmanConfig.ContainersConfDefaultsRO
-	connEnv, hostEnv, sshkeyEnv := os.Getenv("CONTAINER_CONNECTION"), os.Getenv("CONTAINER_HOST"), os.Getenv("CONTAINER_SSHKEY")
-	dest, destFound := conf.Engine.ServiceDestinations[conf.Engine.ActiveService]
-
-	switch {
-	case connEnv != "":
-		if ConnEnvDest, ok := conf.Engine.ServiceDestinations[connEnv]; ok {
-			podmanConfig.URI = ConnEnvDest.URI
-			podmanConfig.Identity = ConnEnvDest.Identity
-			podmanConfig.MachineMode = ConnEnvDest.IsMachine
-			return nil
-		}
-		return fmt.Errorf("connection %q not found", connEnv)
-	case hostEnv != "":
-		if sshkeyEnv != "" {
-			podmanConfig.Identity = sshkeyEnv
-		}
-		podmanConfig.URI = hostEnv
-	case destFound:
-		podmanConfig.URI = dest.URI
-		podmanConfig.Identity = dest.Identity
-		podmanConfig.MachineMode = dest.IsMachine
-	default:
-		podmanConfig.URI = registry.DefaultAPIAddress()
-	}
-	return nil
 }
 
 func formatError(err error) string {

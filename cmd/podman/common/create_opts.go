@@ -8,63 +8,63 @@ import (
 
 func ulimits() []string {
 	if !registry.IsRemote() {
-		return containerConfig.Ulimits()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Ulimits()
 	}
 	return nil
 }
 
 func cgroupConfig() string {
 	if !registry.IsRemote() {
-		return containerConfig.Cgroups()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Cgroups()
 	}
 	return ""
 }
 
 func devices() []string {
 	if !registry.IsRemote() {
-		return containerConfig.Devices()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Devices()
 	}
 	return nil
 }
 
 func Env() []string {
 	if !registry.IsRemote() {
-		return containerConfig.Env()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Env()
 	}
 	return nil
 }
 
 func pidsLimit() int64 {
 	if !registry.IsRemote() {
-		return containerConfig.PidsLimit()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.PidsLimit()
 	}
 	return -1
 }
 
 func policy() string {
 	if !registry.IsRemote() {
-		return containerConfig.Engine.PullPolicy
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Engine.PullPolicy
 	}
 	return ""
 }
 
 func shmSize() string {
 	if !registry.IsRemote() {
-		return containerConfig.ShmSize()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.ShmSize()
 	}
 	return ""
 }
 
 func volumes() []string {
 	if !registry.IsRemote() {
-		return containerConfig.Volumes()
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Volumes()
 	}
 	return nil
 }
 
 func LogDriver() string {
 	if !registry.IsRemote() {
-		return containerConfig.Containers.LogDriver
+		return registry.PodmanConfig().ContainersConfDefaultsRO.Containers.LogDriver
 	}
 	return ""
 }
@@ -74,14 +74,14 @@ func DefineCreateDefaults(opts *entities.ContainerCreateOptions) {
 	opts.LogDriver = LogDriver()
 	opts.CgroupsMode = cgroupConfig()
 	opts.MemorySwappiness = -1
-	opts.ImageVolume = containerConfig.Engine.ImageVolumeMode
+	opts.ImageVolume = registry.PodmanConfig().ContainersConfDefaultsRO.Engine.ImageVolumeMode
 	opts.Pull = policy()
 	opts.ReadOnlyTmpFS = true
 	opts.SdNotifyMode = define.SdNotifyModeContainer
-	opts.StopTimeout = containerConfig.Engine.StopTimeout
+	opts.StopTimeout = registry.PodmanConfig().ContainersConfDefaultsRO.Engine.StopTimeout
 	opts.Systemd = "true"
-	opts.Timezone = containerConfig.TZ()
-	opts.Umask = containerConfig.Umask()
+	opts.Timezone = registry.PodmanConfig().ContainersConfDefaultsRO.TZ()
+	opts.Umask = registry.PodmanConfig().ContainersConfDefaultsRO.Umask()
 	opts.Ulimit = ulimits()
 	opts.SeccompPolicy = "default"
 	opts.Volume = volumes()

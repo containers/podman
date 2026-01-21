@@ -170,11 +170,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// If the flag to mount all devices is set for a privileged container, add
 	// all the devices from the host's machine into the container
 	if c.config.MountAllDevices {
-		systemdMode := false
-		if c.config.Systemd != nil {
-			systemdMode = *c.config.Systemd
-		}
-		if err := util.AddPrivilegedDevices(&g, systemdMode); err != nil {
+		if err := util.AddPrivilegedDevices(&g); err != nil {
 			return nil, err
 		}
 	}
@@ -218,9 +214,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, err
 		}
 
-		if len(namedVol.SubPath) > 0 {
-			mountPoint = filepath.Join(mountPoint, namedVol.SubPath)
-		}
+		// SubPath field doesn't exist in v4.2.0-rhel branch
+		// if len(namedVol.SubPath) > 0 {
+		// 	mountPoint = filepath.Join(mountPoint, namedVol.SubPath)
+		// }
 
 		overlayFlag := false
 		upperDir := ""
@@ -748,7 +745,7 @@ func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 // and if the sdnotify mode is set to container.  It also sets c.notifySocket
 // to avoid redundantly looking up the env variable.
 func (c *Container) mountNotifySocket(g generate.Generator) error {
-	if c.config.SdNotifySocket == "" {
+	if c.notifySocket == "" {
 		return nil
 	}
 	if c.config.SdNotifyMode != define.SdNotifyModeContainer {
