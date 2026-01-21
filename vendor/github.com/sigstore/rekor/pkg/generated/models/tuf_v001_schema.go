@@ -133,6 +133,7 @@ func (m *TUFV001Schema) ContextValidate(ctx context.Context, formats strfmt.Regi
 func (m *TUFV001Schema) contextValidateMetadata(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Metadata != nil {
+
 		if err := m.Metadata.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("metadata")
@@ -149,6 +150,7 @@ func (m *TUFV001Schema) contextValidateMetadata(ctx context.Context, formats str
 func (m *TUFV001Schema) contextValidateRoot(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Root != nil {
+
 		if err := m.Root.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("root")
@@ -195,11 +197,30 @@ func (m *TUFV001Schema) UnmarshalBinary(b []byte) error {
 type TUFV001SchemaMetadata struct {
 
 	// Specifies the metadata inline within the document
-	Content interface{} `json:"content,omitempty"`
+	// Required: true
+	Content interface{} `json:"content"`
 }
 
 // Validate validates this TUF v001 schema metadata
 func (m *TUFV001SchemaMetadata) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateContent(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *TUFV001SchemaMetadata) validateContent(formats strfmt.Registry) error {
+
+	if m.Content == nil {
+		return errors.Required("metadata"+"."+"content", "body", nil)
+	}
+
 	return nil
 }
 

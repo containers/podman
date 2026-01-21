@@ -237,7 +237,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			if _, err = os.Stat(containerFiles[0]); err != nil {
 				containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
 				if _, err1 := os.Stat(containerFiles[0]); err1 != nil {
-					utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
+					utils.Error(w, http.StatusBadRequest, err1)
 					return
 				}
 			}

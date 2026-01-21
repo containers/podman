@@ -1,3 +1,4 @@
+//go:build !darwin && !linux && !plan9
 // +build !darwin,!linux,!plan9
 
 package sftp

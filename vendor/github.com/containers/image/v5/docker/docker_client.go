@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/useragent"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/docker/config"
@@ -121,6 +121,9 @@ type dockerClient struct {
 	// Private state for detectProperties:
 	detectPropertiesOnce  sync.Once // detectPropertiesOnce is used to execute detectProperties() at most once.
 	detectPropertiesError error     // detectPropertiesError caches the initial error.
+	// Private state for logResponseWarnings
+	reportedWarningsLock sync.Mutex
+	reportedWarnings     *set.Set[string]
 }
 
 type authScope struct {
@@ -159,17 +162,6 @@ func newBearerTokenFromJSONBlob(blob []byte) (*bearerToken, error) {
 	}
 	token.expirationTime = token.IssuedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
 	return token, nil
-}
-
-// this is cloned from docker/go-connections because upstream docker has changed
-// it and make deps here fails otherwise.
-// We'll drop this once we upgrade to docker 1.13.x deps.
-func serverDefault() *tls.Config {
-	return &tls.Config{
-		// Avoid fallback to SSL protocols < TLS1.0
-		MinVersion:   tls.VersionTLS10,
-		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
-	}
 }
 
 // dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
@@ -213,6 +205,7 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
 // “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
 // signatureBase is always set in the return value
+// The caller must call .Close() on the returned client when done.
 func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, registryConfig *registryConfiguration, write bool, actions string) (*dockerClient, error) {
 	auth, err := config.GetCredentialsForRef(sys, ref.ref)
 	if err != nil {
@@ -247,12 +240,15 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, regis
 // (e.g., "registry.com[:5000][/some/namespace]/repo").
 // Please note that newDockerClient does not set all members of dockerClient
 // (e.g., username and password); those must be set by callers if necessary.
+// The caller must call .Close() on the returned client when done.
 func newDockerClient(sys *types.SystemContext, registry, reference string) (*dockerClient, error) {
 	hostName := registry
 	if registry == dockerHostname {
 		registry = dockerRegistry
 	}
-	tlsClientConfig := serverDefault()
+	tlsClientConfig := &tls.Config{
+		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
+	}
 
 	// It is undefined whether the host[:port] string for dockerHostname should be dockerHostname or dockerRegistry,
 	// because docker/docker does not read the certs.d subdirectory at all in that case.  We use the user-visible
@@ -288,10 +284,11 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	}
 
 	return &dockerClient{
-		sys:             sys,
-		registry:        registry,
-		userAgent:       userAgent,
-		tlsClientConfig: tlsClientConfig,
+		sys:              sys,
+		registry:         registry,
+		userAgent:        userAgent,
+		tlsClientConfig:  tlsClientConfig,
+		reportedWarnings: set.New[string](),
 	}, nil
 }
 
@@ -302,6 +299,7 @@ func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password
 	if err != nil {
 		return fmt.Errorf("creating new docker client: %w", err)
 	}
+	defer client.Close()
 	client.auth = types.DockerAuthConfig{
 		Username: username,
 		Password: password,
@@ -365,12 +363,18 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	hostname := registry
 	if registry == dockerHostname {
 		hostname = dockerV1Hostname
+		// A search term of library/foo does not find the library/foo image on the docker.io servers,
+		// which is surprising - and that Docker is modifying the search term client-side this same way,
+		// and it seems convenient to do the same thing.
+		// Read more here: https://github.com/containers/image/pull/2133#issue-1928524334
+		image = strings.TrimPrefix(image, "library/")
 	}
 
 	client, err := newDockerClient(sys, hostname, registry)
 	if err != nil {
 		return nil, fmt.Errorf("creating new docker client: %w", err)
 	}
+	defer client.Close()
 	client.auth = auth
 	if sys != nil {
 		client.registryToken = sys.DockerBearerRegistryToken
@@ -448,8 +452,8 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		if link == "" {
 			break
 		}
-		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
-		linkURL, err := url.Parse(linkURLStr)
+		linkURLPart, _, _ := strings.Cut(link, ";")
+		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
 		if err != nil {
 			return searchRes, err
 		}
@@ -596,7 +600,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		case <-time.After(delay):
 			// Nothing
 		}
-		delay = delay * 2 // If the registry does not specify a delay, back off exponentially.
+		delay *= 2 // If the registry does not specify a delay, back off exponentially.
 	}
 }
 
@@ -629,7 +633,74 @@ func (c *dockerClient) makeRequestToResolvedURLOnce(ctx context.Context, method 
 	if err != nil {
 		return nil, err
 	}
+	if warnings := res.Header.Values("Warning"); len(warnings) != 0 {
+		c.logResponseWarnings(res, warnings)
+	}
 	return res, nil
+}
+
+// logResponseWarnings logs warningHeaders from res, if any.
+func (c *dockerClient) logResponseWarnings(res *http.Response, warningHeaders []string) {
+	c.reportedWarningsLock.Lock()
+	defer c.reportedWarningsLock.Unlock()
+
+	for _, header := range warningHeaders {
+		warningString := parseRegistryWarningHeader(header)
+		if warningString == "" {
+			logrus.Debugf("Ignored Warning: header from registry: %q", header)
+		} else {
+			if !c.reportedWarnings.Contains(warningString) {
+				c.reportedWarnings.Add(warningString)
+				// Note that reportedWarnings is based only on warningString, so that we don’t
+				// repeat the same warning for every request - but the warning includes the URL;
+				// so it may not be specific to that URL.
+				logrus.Warnf("Warning from registry (first encountered at %q): %q", res.Request.URL.Redacted(), warningString)
+			} else {
+				logrus.Debugf("Repeated warning from registry at %q: %q", res.Request.URL.Redacted(), warningString)
+			}
+		}
+	}
+}
+
+// parseRegistryWarningHeader parses a Warning: header per RFC 7234, limited to the warning
+// values allowed by opencontainers/distribution-spec.
+// It returns the warning string if the header has the expected format, or "" otherwise.
+func parseRegistryWarningHeader(header string) string {
+	const expectedPrefix = `299 - "`
+	const expectedSuffix = `"`
+
+	// warning-value = warn-code SP warn-agent SP warn-text	[ SP warn-date ]
+	// distribution-spec requires warn-code=299, warn-agent="-", warn-date missing
+	if !strings.HasPrefix(header, expectedPrefix) || !strings.HasSuffix(header, expectedSuffix) {
+		return ""
+	}
+	header = header[len(expectedPrefix) : len(header)-len(expectedSuffix)]
+
+	// ”Recipients that process the value of a quoted-string MUST handle a quoted-pair
+	// as if it were replaced by the octet following the backslash.”, so let’s do that…
+	res := strings.Builder{}
+	afterBackslash := false
+	for _, c := range []byte(header) { // []byte because escaping is defined in terms of bytes, not Unicode code points
+		switch {
+		case c == 0x7F || (c < ' ' && c != '\t'):
+			return "" // Control characters are forbidden
+		case afterBackslash:
+			res.WriteByte(c)
+			afterBackslash = false
+		case c == '"':
+			// This terminates the warn-text and warn-date, forbidden by distribution-spec, follows,
+			// or completely invalid input.
+			return ""
+		case c == '\\':
+			afterBackslash = true
+		default:
+			res.WriteByte(c)
+		}
+	}
+	if afterBackslash {
+		return ""
+	}
+	return res.String()
 }
 
 // we're using the challenges from the /v2/ ping response and not the one from the destination
@@ -990,7 +1061,7 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	return reconnectingReader, blobSize, nil
 }
 
-// getOCIDescriptorContents returns the contents a blob spcified by descriptor in ref, which must fit within limit.
+// getOCIDescriptorContents returns the contents a blob specified by descriptor in ref, which must fit within limit.
 func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerReference, desc imgspecv1.Descriptor, maxSize int, cache types.BlobInfoCache) ([]byte, error) {
 	// Note that this copies all kinds of attachments: attestations, and whatever else is there,
 	// not just signatures. We leave the signature consumers to decide based on the MIME type.
@@ -999,7 +1070,7 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 		return nil, err
 	}
 	defer reader.Close()
-	payload, err := iolimits.ReadAtMost(reader, iolimits.MaxSignatureBodySize)
+	payload, err := iolimits.ReadAtMost(reader, maxSize)
 	if err != nil {
 		return nil, fmt.Errorf("reading blob %s in %s: %w", desc.Digest.String(), ref.ref.Name(), err)
 	}
@@ -1018,9 +1089,10 @@ func isManifestUnknownError(err error) bool {
 	if errors.As(err, &e) && e.ErrorCode() == errcode.ErrorCodeUnknown && e.Message == "Not Found" {
 		return true
 	}
-	// ALSO registry.redhat.io as of October 2022
+	// opencontainers/distribution-spec does not require the errcode.Error payloads to be used,
+	// but specifies that the HTTP status must be 404.
 	var unexpected *unexpectedHTTPResponseError
-	if errors.As(err, &unexpected) && unexpected.StatusCode == http.StatusNotFound && bytes.Contains(unexpected.Response, []byte("Not found")) {
+	if errors.As(err, &unexpected) && unexpected.StatusCode == http.StatusNotFound {
 		return true
 	}
 	return false
@@ -1097,4 +1169,12 @@ func sigstoreAttachmentTag(d digest.Digest) (string, error) {
 		return "", err
 	}
 	return strings.Replace(d.String(), ":", "-", 1) + ".sig", nil
+}
+
+// Close removes resources associated with an initialized dockerClient, if any.
+func (c *dockerClient) Close() error {
+	if c.client != nil {
+		c.client.CloseIdleConnections()
+	}
+	return nil
 }

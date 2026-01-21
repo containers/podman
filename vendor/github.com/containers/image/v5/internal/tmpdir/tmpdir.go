@@ -17,10 +17,12 @@ var unixTempDirForBigFiles = builtinUnixTempDirForBigFiles
 // DO NOT change this, instead see unixTempDirForBigFiles above.
 const builtinUnixTempDirForBigFiles = "/var/tmp"
 
+const prefix = "container_images_"
+
 // TemporaryDirectoryForBigFiles returns a directory for temporary (big) files.
 // On non Windows systems it avoids the use of os.TempDir(), because the default temporary directory usually falls under /tmp
 // which on systemd based systems could be the unsuitable tmpfs filesystem.
-func TemporaryDirectoryForBigFiles(sys *types.SystemContext) string {
+func temporaryDirectoryForBigFiles(sys *types.SystemContext) string {
 	if sys != nil && sys.BigFilesTemporaryDir != "" {
 		return sys.BigFilesTemporaryDir
 	}
@@ -31,4 +33,12 @@ func TemporaryDirectoryForBigFiles(sys *types.SystemContext) string {
 		temporaryDirectoryForBigFiles = unixTempDirForBigFiles
 	}
 	return temporaryDirectoryForBigFiles
+}
+
+func CreateBigFileTemp(sys *types.SystemContext, name string) (*os.File, error) {
+	return os.CreateTemp(temporaryDirectoryForBigFiles(sys), prefix+name)
+}
+
+func MkDirBigFileTemp(sys *types.SystemContext, name string) (string, error) {
+	return os.MkdirTemp(temporaryDirectoryForBigFiles(sys), prefix+name)
 }

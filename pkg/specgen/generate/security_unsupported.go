@@ -1,5 +1,5 @@
-//go:build !linux && !freebsd
-// +build !linux,!freebsd
+//go:build !linux && !freebsd && !remote
+// +build !linux,!freebsd,!remote
 
 package generate
 

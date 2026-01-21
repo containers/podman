@@ -28,6 +28,18 @@ func (e ImageNotFoundError) Error() string {
 	return fmt.Sprintf("no descriptor found for reference %q", e.ref.image)
 }
 
+// ArchiveFileNotFoundError occurs when the archive file does not exist.
+type ArchiveFileNotFoundError struct {
+	// ref is the image reference
+	ref ociArchiveReference
+	// path is the file path that was not present
+	path string
+}
+
+func (e ArchiveFileNotFoundError) Error() string {
+	return fmt.Sprintf("archive file not found: %q", e.path)
+}
+
 type ociArchiveImageSource struct {
 	impl.Compat
 

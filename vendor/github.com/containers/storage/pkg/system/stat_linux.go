@@ -4,13 +4,15 @@ import "syscall"
 
 // fromStatT converts a syscall.Stat_t type to a system.Stat_t type
 func fromStatT(s *syscall.Stat_t) (*StatT, error) {
-	return &StatT{size: s.Size,
+	return &StatT{
+		size: s.Size,
 		mode: s.Mode,
 		uid:  s.Uid,
 		gid:  s.Gid,
 		rdev: uint64(s.Rdev),
 		mtim: s.Mtim,
-		dev:  uint64(s.Dev)}, nil
+		dev:  uint64(s.Dev),
+	}, nil
 }
 
 // FromStatT converts a syscall.Stat_t type to a system.Stat_t type

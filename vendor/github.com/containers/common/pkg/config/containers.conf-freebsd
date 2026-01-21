@@ -29,6 +29,15 @@
 #
 #base_hosts_file = ""
 
+# The database backend of Podman.  Supported values are "" (default), "boltdb"
+# and "sqlite". An empty value means it will check whenever a boltdb already
+# exists and use it when it does, otherwise it will use sqlite as default
+# (e.g. new installs). This allows for backwards compatibility with older versions.
+# Please run `podman-system-reset` prior to changing the database
+# backend of an existing deployment, to make sure Podman can operate correctly.
+#
+#database_backend = ""
+
 # List of default capabilities for containers. If it is empty or commented out,
 # the default capabilities defined in the container engine will be added.
 #
@@ -94,7 +103,6 @@ default_sysctls = [
 #
 #env = [
 #  "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-#  "TERM=xterm",
 #]
 
 # Pass all host environment variables into the container.
@@ -125,6 +133,9 @@ default_sysctls = [
 #init = false
 
 # Container init binary, if init=true, this is the init binary to be used for containers.
+# If this option is not set catatonit is searched in the directories listed under
+# the helper_binaries_dir option. It is recommended to just install catatonit
+# there instead of configuring this option here.
 #
 #init_path = "/usr/local/libexec/podman/catatonit"
 
@@ -196,6 +207,18 @@ default_sysctls = [
 #
 #prepare_volume_on_create = false
 
+# Give extended privileges to all containers. A privileged container turns off
+# the security features that isolate the container from the host. Dropped
+# Capabilities, limited devices, read-only mount points, Apparmor/SELinux
+# separation, and Seccomp filters are all disabled. Due to the disabled
+# security features the privileged field should almost never be set as
+# containers can easily break out of confinment.
+#
+# Containers running in a user namespace (e.g., rootless containers) cannot
+# have more privileges than the user that launched them.
+#
+#privileged = false
+
 # Set timezone in container. Takes IANA timezones as well as "local",
 # which sets the timezone in the container to match the host machine.
 #
@@ -254,6 +277,15 @@ default_sysctls = [
 #  "/opt/cni/bin",
 #]
 
+# List of directories that will be searched for netavark plugins.
+#
+#netavark_plugin_dirs = [
+#  "/usr/local/libexec/netavark",
+#	"/usr/libexec/netavark",
+#	"/usr/local/lib/netavark",
+#	"/usr/lib/netavark",
+#]
+
 # The network name of the default network to attach pods to.
 #
 #default_network = "podman"
@@ -296,6 +328,13 @@ default_sysctls = [
 # Valid options are: `gzip`, `zstd` and `zstd:chunked`.
 #
 #compression_format = "gzip"
+
+# The compression level to use when pushing an image.
+# Valid options depend on the compression format used.
+# For gzip, valid options are 1-9, with a default of 5.
+# For zstd, valid options are 1-20, with a default of 3.
+#
+#compression_level = 5
 
 # Environment variables to pass into conmon
 #
@@ -396,9 +435,9 @@ default_sysctls = [
 
 # Infra (pause) container image name for pod infra containers.  When running a
 # pod, we start a `pause` process in a container to hold open the namespaces
-# associated with the  pod.  This container does nothing other then sleep,
-# reserving the pods resources for the lifetime of the pod. By default container
-# engines run a builtin container using the pause executable. If you want override
+# associated with the  pod.  This container does nothing other than sleep,
+# reserving the pod's resources for the lifetime of the pod. By default container
+# engines run a built-in container using the pause executable. If you want override
 # specify an image to pull.
 #
 #infra_image = ""
@@ -479,7 +518,7 @@ default_sysctls = [
 # List of the OCI runtimes that support --format=json. When json is supported
 # engine will use it for reporting nicer errors.
 #
-#runtime_supports_json = ["crun", "runc", "kata", "runsc", "youki", "krun"]
+#runtime_supports_json = ["crun", "runc", "kata", "runsc", "youki", "krun", "ocijail"]
 
 # List of the OCI runtimes that supports running containers with KVM Separation.
 #
@@ -521,8 +560,8 @@ default_sysctls = [
 #  [service_destinations.production]
 #     URI to access the Podman service
 #     Examples:
-#       rootless "unix://run/user/$UID/podman/podman.sock" (Default)
-#       rootful "unix://run/podman/podman.sock (Default)
+#       rootless "unix:///run/user/$UID/podman/podman.sock" (Default)
+#       rootful "unix:///run/podman/podman.sock (Default)
 #       remote rootless ssh://engineering.lab.company.com/run/user/1000/podman/podman.sock
 #       remote rootful ssh://root@10.10.1.136:22/run/podman/podman.sock
 #
@@ -626,12 +665,25 @@ default_sysctls = [
 # the source and destination. An optional third field `:ro` can be used to
 # tell the container engines to mount the volume readonly.
 #
-# volumes = [
+#volumes = [
 #  "$HOME:$HOME",
 #]
+
+# Virtualization provider used to run Podman machine.
+# If it is empty or commented out, the default provider will be used.
+#
+#provider = ""
 
 # The [machine] table MUST be the last entry in this file.
 # (Unless another table is added)
 # TOML does not provide a way to end a table other than a further table being
 # defined, so every key hereafter will be part of [machine] and not the
 # main config.
+
+[farms]
+#
+# the default farm to use when farming out builds
+# default = ""
+#
+# map of existing farms
+#[farms.list]

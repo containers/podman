@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/version"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -44,7 +46,7 @@ type cniNetwork struct {
 	isMachine bool
 
 	// lock is a internal lock for critical operations
-	lock lockfile.Locker
+	lock *lockfile.LockFile
 
 	// modTime is the timestamp when the config dir was modified
 	modTime time.Time
@@ -200,7 +202,10 @@ func (n *cniNetwork) loadNetworks() error {
 
 		net, err := createNetworkFromCNIConfigList(conf, file)
 		if err != nil {
-			logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
+			// ignore ENOENT as the config has been removed in the meantime so we can just ignore this case
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
+			}
 			continue
 		}
 		logrus.Debugf("Successfully loaded network %s: %v", net.Name, net)
@@ -293,6 +298,43 @@ func (n *cniNetwork) Len() int {
 // DefaultInterfaceName return the default cni bridge name, must be suffixed with a number.
 func (n *cniNetwork) DefaultInterfaceName() string {
 	return cniDeviceName
+}
+
+// NetworkInfo return the network information about binary path,
+// package version and program version.
+func (n *cniNetwork) NetworkInfo() types.NetworkInfo {
+	path := ""
+	packageVersion := ""
+	for _, p := range n.cniPluginDirs {
+		ver := version.Package(p)
+		if ver != version.UnknownPackage {
+			path = p
+			packageVersion = ver
+			break
+		}
+	}
+
+	info := types.NetworkInfo{
+		Backend: types.CNI,
+		Package: packageVersion,
+		Path:    path,
+	}
+
+	dnsPath := filepath.Join(path, "dnsname")
+	dnsPackage := version.Package(dnsPath)
+	dnsProgram, err := version.ProgramDnsname(dnsPath)
+	if err != nil {
+		logrus.Infof("Failed to get the dnsname plugin version: %v", err)
+	}
+	if _, err := os.Stat(dnsPath); err == nil {
+		info.DNS = types.DNSNetworkInfo{
+			Path:    dnsPath,
+			Package: dnsPackage,
+			Version: dnsProgram,
+		}
+	}
+
+	return info
 }
 
 func (n *cniNetwork) Network(nameOrID string) (*types.Network, error) {

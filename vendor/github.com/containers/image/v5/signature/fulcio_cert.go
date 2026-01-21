@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/sigstore/fulcio/pkg/certificate"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"golang.org/x/exp/slices"
 )
 
 // fulcioTrustRoot contains policy allow validating Fulcio-issued certificates.
@@ -30,6 +31,58 @@ func (f *fulcioTrustRoot) validate() error {
 		return errors.New("Internal inconsistency: Fulcio use set up without subject email")
 	}
 	return nil
+}
+
+// fulcioIssuerInCertificate returns the OIDC issuer recorded by Fulcio in unutrustedCertificate;
+// it fails if the extension is not present in the certificate, or on any inconsistency.
+func fulcioIssuerInCertificate(untrustedCertificate *x509.Certificate) (string, error) {
+	// == Validate the recorded OIDC issuer
+	gotOIDCIssuer1 := false
+	gotOIDCIssuer2 := false
+	var oidcIssuer1, oidcIssuer2 string
+	// certificate.ParseExtensions doesn’t reject duplicate extensions, and doesn’t detect inconsistencies
+	// between certificate.OIDIssuer and certificate.OIDIssuerV2.
+	// Go 1.19 rejects duplicate extensions universally; but until we can require Go 1.19,
+	// reject duplicates manually.
+	for _, untrustedExt := range untrustedCertificate.Extensions {
+		if untrustedExt.Id.Equal(certificate.OIDIssuer) { //nolint:staticcheck // This is deprecated, but we must continue to accept it.
+			if gotOIDCIssuer1 {
+				// Coverage: This is unreachable in Go ≥1.19, which rejects certificates with duplicate extensions
+				// already in ParseCertificate.
+				return "", internal.NewInvalidSignatureError("Fulcio certificate has a duplicate OIDC issuer v1 extension")
+			}
+			oidcIssuer1 = string(untrustedExt.Value)
+			gotOIDCIssuer1 = true
+		} else if untrustedExt.Id.Equal(certificate.OIDIssuerV2) {
+			if gotOIDCIssuer2 {
+				// Coverage: This is unreachable in Go ≥1.19, which rejects certificates with duplicate extensions
+				// already in ParseCertificate.
+				return "", internal.NewInvalidSignatureError("Fulcio certificate has a duplicate OIDC issuer v2 extension")
+			}
+			rest, err := asn1.Unmarshal(untrustedExt.Value, &oidcIssuer2)
+			if err != nil {
+				return "", internal.NewInvalidSignatureError(fmt.Sprintf("invalid ASN.1 in OIDC issuer v2 extension: %v", err))
+			}
+			if len(rest) != 0 {
+				return "", internal.NewInvalidSignatureError("invalid ASN.1 in OIDC issuer v2 extension, trailing data")
+			}
+			gotOIDCIssuer2 = true
+		}
+	}
+	switch {
+	case gotOIDCIssuer1 && gotOIDCIssuer2:
+		if oidcIssuer1 != oidcIssuer2 {
+			return "", internal.NewInvalidSignatureError(fmt.Sprintf("inconsistent OIDC issuer extension values: v1 %#v, v2 %#v",
+				oidcIssuer1, oidcIssuer2))
+		}
+		return oidcIssuer1, nil
+	case gotOIDCIssuer1:
+		return oidcIssuer1, nil
+	case gotOIDCIssuer2:
+		return oidcIssuer2, nil
+	default:
+		return "", internal.NewInvalidSignatureError("Fulcio certificate is missing the issuer extension")
+	}
 }
 
 func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, untrustedCertificateBytes []byte, untrustedIntermediateChainBytes []byte) (crypto.PublicKey, error) {
@@ -104,47 +157,24 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 	// log of approved Fulcio invocations, and it’s not clear where that would come from, especially human users manually
 	// logging in using OpenID are not going to maintain a record of those actions.
 	//
-	// Also, the SCT does not help reveal _what_ was maliciously signed, nor does it protect against malicous signatures
+	// Also, the SCT does not help reveal _what_ was maliciously signed, nor does it protect against malicious signatures
 	// by correctly-issued certificates.
 	//
 	// So, pragmatically, the ideal design seem to be to only do signatures from a trusted build system (which is, by definition,
 	// the arbiter of desired vs. malicious signatures) that maintains an audit log of performed signature operations; and that seems to
-	// make make the SCT (and all of Rekor apart from the trusted timestamp) unnecessary.
+	// make the SCT (and all of Rekor apart from the trusted timestamp) unnecessary.
 
 	// == Validate the recorded OIDC issuer
-	gotOIDCIssuer := false
-	var oidcIssuer string
-	// certificate.ParseExtensions doesn’t reject duplicate extensions.
-	// Go 1.19 rejects duplicate extensions universally; but until we can require Go 1.19,
-	// reject duplicates manually. With Go 1.19, we could call certificate.ParseExtensions again.
-	for _, untrustedExt := range untrustedCertificate.Extensions {
-		if untrustedExt.Id.Equal(certificate.OIDIssuer) {
-			if gotOIDCIssuer {
-				// Coverage: This is unreachable in Go ≥1.19, which rejects certificates with duplicate extensions
-				// already in ParseCertificate.
-				return nil, internal.NewInvalidSignatureError("Fulcio certificate has a duplicate OIDC issuer extension")
-			}
-			oidcIssuer = string(untrustedExt.Value)
-			gotOIDCIssuer = true
-		}
-	}
-	if !gotOIDCIssuer {
-		return nil, internal.NewInvalidSignatureError("Fulcio certificate is missing the issuer extension")
+	oidcIssuer, err := fulcioIssuerInCertificate(untrustedCertificate)
+	if err != nil {
+		return nil, err
 	}
 	if oidcIssuer != f.oidcIssuer {
 		return nil, internal.NewInvalidSignatureError(fmt.Sprintf("Unexpected Fulcio OIDC issuer %q", oidcIssuer))
 	}
 
 	// == Validate the OIDC subject
-	foundEmail := false
-	// TO DO: Use slices.Contains after we update to Go 1.18
-	for _, certEmail := range untrustedCertificate.EmailAddresses {
-		if certEmail == f.subjectEmail {
-			foundEmail = true
-			break
-		}
-	}
-	if !foundEmail {
+	if !slices.Contains(untrustedCertificate.EmailAddresses, f.subjectEmail) {
 		return nil, internal.NewInvalidSignatureError(fmt.Sprintf("Required email %s not found (got %#v)",
 			f.subjectEmail,
 			untrustedCertificate.EmailAddresses))
