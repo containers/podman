@@ -17,6 +17,18 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Returns two strings. First is base path - directory we'll create in.
+// Second is the filename of the database itself.
+func sqliteStatePath(runtime *Runtime) (string, string) {
+	basePath := runtime.storageConfig.GraphRoot
+	if runtime.storageConfig.TransientStore {
+		basePath = runtime.storageConfig.RunRoot
+	} else if !runtime.storageSet.StaticDirSet {
+		basePath = runtime.config.Engine.StaticDir
+	}
+	return basePath, sqliteDbFilename
+}
+
 func initSQLiteDB(conn *sql.DB) (defErr error) {
 	// Start with a transaction to avoid "database locked" errors.
 	// See https://github.com/mattn/go-sqlite3/issues/274#issuecomment-1429054597
