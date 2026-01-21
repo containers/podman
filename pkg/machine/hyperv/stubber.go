@@ -13,6 +13,7 @@ import (
 	"github.com/Microsoft/go-winio"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
+	"github.com/containers/libhvee/pkg/kvp/ginsu"
 	"github.com/containers/podman/v6/pkg/machine"
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/env"
@@ -190,7 +191,7 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		// Remove ignition registry entries - not a fatal error
 		// for vm removal
 		// TODO we could improve this by recommending an action be done
-		if err := removeIgnitionFromRegistry(vm); err != nil {
+		if err := removeIgnitionFromRegistry(mc, vm); err != nil {
 			logrus.Errorf("unable to remove ignition registry entries: %q", err)
 		}
 
@@ -374,27 +375,20 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	go callbackFuncs.CleanOnSignal()
 
 	if mc.IsFirstBoot() {
-		// Add ignition entries to windows registry
-		// for first boot only
-		if err := readAndSplitIgnition(mc, vm); err != nil {
-			return nil, nil, err
-		}
-
 		// this is added because if the machine does not start
 		// properly on first boot, the next boot will be considered
 		// the first boot again and the addition of the ignition
-		// entries might fail?
-		//
-		// the downside is that if the start fails and then a rm
-		// is run, it will puke error messages about the ignition.
-		//
-		// TODO detect if ignition was run from a failed boot earlier
-		// and skip.  Maybe this could be done with checking a k/v
-		// pair
+		// entries will fail because the key/value pairs already exist.
 		rmIgnCallbackFunc := func() error {
-			return removeIgnitionFromRegistry(vm)
+			return removeIgnitionFromRegistry(mc, vm)
 		}
 		callbackFuncs.Add(rmIgnCallbackFunc)
+
+		// Add ignition entries to windows registry
+		// for first boot only
+		if err = readAndSplitIgnition(mc, vm); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	waitReady, listener, err := mc.HyperVHypervisor.ReadyVsock.ListenSetupWait()
@@ -660,30 +654,41 @@ func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
 	return nil
 }
 
-// readAndSplitIgnition reads the ignition file and splits it into key:value pairs
-func readAndSplitIgnition(mc *vmconfigs.MachineConfig, vm *hypervctl.VirtualMachine) error {
+func getIgnitionReader(mc *vmconfigs.MachineConfig) (*bytes.Reader, error) {
 	ignFile, err := mc.IgnitionFile()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ign, err := ignFile.Read()
 	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(ign), nil
+}
+
+// readAndSplitIgnition reads the ignition file and splits it into key:value pairs
+func readAndSplitIgnition(mc *vmconfigs.MachineConfig, vm *hypervctl.VirtualMachine) error {
+	reader, err := getIgnitionReader(mc)
+	if err != nil {
 		return err
 	}
-	reader := bytes.NewReader(ign)
-
 	return vm.SplitAndAddIgnition("ignition.config.", reader)
 }
 
-func removeIgnitionFromRegistry(vm *hypervctl.VirtualMachine) error {
+func removeIgnitionFromRegistry(mc *vmconfigs.MachineConfig, vm *hypervctl.VirtualMachine) error {
 	// because the vm is down at this point, we cannot query hyperv for these key value pairs.
-	// therefore we blindly iterate from 0-50 and delete the key/value pairs. hyperv does not
-	// raise an error if the key is not present
-	//
-	for i := 0; i < 50; i++ {
-		// this is a well known "key" defined in libhvee and is the vm name
-		// plus an index starting at 0
-		key := fmt.Sprintf("%s%d", vm.ElementName, i)
+	// therefore we recalculate the number of parts ignition file consists of and
+	// remove all ignition key/value pairs the same way they were added
+	reader, err := getIgnitionReader(mc)
+	if err != nil {
+		return err
+	}
+	parts, err := ginsu.Dice(reader)
+	if err != nil {
+		return err
+	}
+	for idx := range parts {
+		key := fmt.Sprintf("ignition.config.%d", idx)
 		if err := vm.RemoveKeyValuePairNoWait(key); err != nil {
 			return err
 		}
