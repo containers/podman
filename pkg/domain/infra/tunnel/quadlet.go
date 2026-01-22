@@ -9,6 +9,10 @@ import (
 
 var errNotImplemented = errors.New("not implemented for the remote Podman client")
 
+func (ic *ContainerEngine) QuadletExists(_ context.Context, _ string) (*entities.BoolReport, error) {
+	return nil, errNotImplemented
+}
+
 func (ic *ContainerEngine) QuadletInstall(_ context.Context, _ []string, _ entities.QuadletInstallOptions) (*entities.QuadletInstallReport, error) {
 	return nil, errNotImplemented
 }
