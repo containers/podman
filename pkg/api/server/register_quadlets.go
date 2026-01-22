@@ -54,6 +54,28 @@ func (s *APIServer) registerQuadletHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/quadlets/{name}/file"), s.APIHandler(libpod.GetQuadletPrint)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/quadlets/{name}/exists libpod QuadletExistsLibpod
+	// ---
+	// tags:
+	//   - quadlets
+	// summary: Check if quadlet exists
+	// description: Check if a quadlet exists by name
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name of the quadlet with extension (e.g., "myapp.container")
+	// responses:
+	//   204:
+	//     description: quadlet exists
+	//   404:
+	//     $ref: "#/responses/quadletNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/quadlets/{name}/exists"), s.APIHandler(libpod.QuadletExists)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/quadlets libpod QuadletInstallLibpod
 	// ---
 	// tags:
