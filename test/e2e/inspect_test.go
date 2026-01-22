@@ -188,11 +188,7 @@ var _ = Describe("Podman inspect", func() {
 
 		ctrInspect := podmanTest.Podman([]string{"container", "inspect", ALPINE})
 		ctrInspect.WaitWithDefaultTimeout()
-		if IsRemote() {
-			Expect(ctrInspect).To(ExitWithError(125, fmt.Sprintf("no such container %q", ALPINE)))
-		} else {
-			Expect(ctrInspect).To(ExitWithError(125, fmt.Sprintf("no such container %s", ALPINE)))
-		}
+		Expect(ctrInspect).To(ExitWithError(125, fmt.Sprintf("no such container %q", ALPINE)))
 
 		imageInspect := podmanTest.Podman([]string{"image", "inspect", ALPINE})
 		imageInspect.WaitWithDefaultTimeout()
@@ -399,11 +395,7 @@ var _ = Describe("Podman inspect", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "--type", "container", podName})
 		inspect.WaitWithDefaultTimeout()
-		if IsRemote() {
-			Expect(inspect).To(ExitWithError(125, fmt.Sprintf("no such container %q", podName)))
-		} else {
-			Expect(inspect).To(ExitWithError(125, fmt.Sprintf("no such container %s", podName)))
-		}
+		Expect(inspect).To(ExitWithError(125, fmt.Sprintf("no such container %q", podName)))
 	})
 
 	It("podman inspect --type network on a container should fail", func() {

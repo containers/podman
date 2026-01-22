@@ -1702,7 +1702,7 @@ search               | $IMAGE           |
     # Unclear why `-t0` is required here, works locally without.
     # But it shouldn't hurt and does make the test pass...
     PODMAN_TIMEOUT=5 run_podman 125 stop -t0 $cname
-    is "$output" "Error: container .* conmon exited prematurely, exit code could not be retrieved: internal libpod error" "correct error on missing conmon"
+    is "$output" "Error: container .* conmon exited prematurely, exit code could not be retrieved: conmon process killed" "correct error on missing conmon"
 
     # This should be safe because stop is guaranteed to call cleanup?
     run_podman inspect --format "{{ .State.Status }}" $cname
