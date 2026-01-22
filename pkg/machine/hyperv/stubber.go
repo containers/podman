@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/user"
@@ -253,8 +254,10 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		// Remove ignition registry entries - not a fatal error
 		// for vm removal
 		// TODO we could improve this by recommending an action be done
-		if err := removeIgnitionFromRegistry(mc, vm); err != nil {
-			logrus.Errorf("unable to remove ignition registry entries: %q", err)
+		if !mc.CloudInit {
+			if err := removeIgnitionFromRegistry(mc, vm); err != nil {
+				logrus.Errorf("unable to remove ignition registry entries: %q", err)
+			}
 		}
 
 		// disk path removal is done by generic remove
@@ -527,15 +530,21 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 		}
 	}
 
-	waitReady, listener, err := mc.HyperVHypervisor.ReadyVsock.ListenSetupWait()
-	if err != nil {
-		return nil, nil, err
+	var waitReady func() error
+	var listener io.Closer
+	if mc.HyperVHypervisor.ReadyVsock.KeyName != "" {
+		waitReady, listener, err = mc.HyperVHypervisor.ReadyVsock.ListenSetupWait()
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	err = vm.Start()
 	if err != nil {
 		// cleanup the pending listener
-		_ = listener.Close()
+		if listener != nil {
+			_ = listener.Close()
+		}
 		return nil, nil, err
 	}
 
