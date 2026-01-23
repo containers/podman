@@ -6493,4 +6493,12 @@ spec:
 		inspect := podmanTest.PodmanExitCleanly("inspect", "simpleWithoutPodPrefix")
 		Expect(inspect.InspectContainerToJSON()[0].Name).Should(Equal("simpleWithoutPodPrefix"))
 	})
+
+	It("test flag labels inject into Pod", func() {
+		pod := getPod(withLabel("l1", "v1"))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", "--labels", "l1=v1", kubeYaml)
+	})
 })
