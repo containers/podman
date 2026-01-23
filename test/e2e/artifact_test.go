@@ -742,6 +742,62 @@ var _ = Describe("Podman artifact", func() {
 		session = podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12], "-f", "{{.Name}}")
 		Expect(session.OutputToString()).To(Equal(artifact1Name))
 	})
+
+	// Regression test for https://github.com/containers/podman/issues/27569
+	It("podman artifact add concurrent - no race condition", func() {
+		const numArtifacts = 5
+
+		// Create temporary files for artifacts
+		artifactFiles := make([]string, numArtifacts)
+		artifactNames := make([]string, numArtifacts)
+		for i := 0; i < numArtifacts; i++ {
+			file, err := createArtifactFile(int64(1024 * (i + 1))) // Different sizes
+			Expect(err).ToNot(HaveOccurred())
+			artifactFiles[i] = file
+			artifactNames[i] = fmt.Sprintf("localhost/concurrent/artifact%d", i)
+		}
+
+		// Run all artifact add commands concurrently
+		sessions := make([]*PodmanSessionIntegration, numArtifacts)
+		for i := 0; i < numArtifacts; i++ {
+			// Start all commands without waiting
+			sessions[i] = podmanTest.Podman([]string{"artifact", "add", artifactNames[i], artifactFiles[i]})
+		}
+
+		// Wait for all to complete and collect results
+		digests := make([]string, numArtifacts)
+		for i := 0; i < numArtifacts; i++ {
+			sessions[i].WaitWithDefaultTimeout()
+			Expect(sessions[i]).Should(ExitCleanly())
+			digests[i] = sessions[i].OutputToString()
+			Expect(digests[i]).To(HaveLen(64)) // SHA256 digest length
+		}
+
+		// Verify all artifacts were created successfully
+		listSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.Repository}}")
+		output := listSession.OutputToStringArray()
+
+		// Check that all artifact names are in the list
+		for i := 0; i < numArtifacts; i++ {
+			Expect(output).To(ContainElement(artifactNames[i]),
+				fmt.Sprintf("Artifact %s should be in the list", artifactNames[i]))
+		}
+
+		// Verify each artifact can be inspected
+		for i := 0; i < numArtifacts; i++ {
+			inspectSession := podmanTest.PodmanExitCleanly("artifact", "inspect", artifactNames[i])
+			Expect(inspectSession.OutputToString()).To(ContainSubstring(artifactNames[i]))
+		}
+
+		// Verify each artifact has the correct size
+		for i := 0; i < numArtifacts; i++ {
+			expectedSize := 1024 * (i + 1)
+			sizeSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.VirtualSize}}", "--noheading")
+			sizes := sizeSession.OutputToStringArray()
+			Expect(sizes).To(ContainElement(fmt.Sprintf("%d", expectedSize)),
+				fmt.Sprintf("Artifact %d should have size %d", i, expectedSize))
+		}
+	})
 })
 
 func digestToFilename(digest string) string {
