@@ -66,12 +66,12 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 		return nil
 	}
 
-	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+	stateDir, err := util.GetRootlessStateDir()
 	if err != nil {
-		return fmt.Errorf("could not get pause process pid file path: %w", err)
+		return fmt.Errorf("could not get rootless state directory: %w", err)
 	}
 
-	became, ret, err := rootless.TryJoinPauseProcess(pausePidPath)
+	became, ret, err := rootless.TryJoinPauseProcess(stateDir)
 	if err != nil {
 		return err
 	}
@@ -91,23 +91,23 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 	}
 
 	if len(paths) > 0 {
-		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, paths)
+		became, ret, err = rootless.TryJoinFromFilePaths(stateDir, paths)
 		// TryJoinFromFilePaths fails with ESRCH when the PID are all not valid anymore
 		// In this case create a new userns.
 		if errors.Is(err, unix.ESRCH) {
 			logrus.Warnf("Failed to join existing conmon namespace, creating a new rootless podman user namespace. If there are existing container running please stop them with %q to reset the namespace", os.Args[0]+" system migrate")
-			became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
+			became, ret, err = rootless.BecomeRootInUserNS(stateDir)
 		}
 	} else {
 		logrus.Info("Creating a new rootless user namespace")
-		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
+		became, ret, err = rootless.BecomeRootInUserNS(stateDir)
 	}
 
 	if err != nil {
 		return fmt.Errorf("fatal error, invalid internal status, unable to create a new pause process: %w. Try running %q and if that doesn't work reboot to recover", err, os.Args[0]+" system migrate")
 	}
 	if !noMoveProcess {
-		systemd.MovePauseProcessToScope(pausePidPath)
+		systemd.MovePauseProcessToScope(rootless.GetPausePidPath(stateDir))
 	}
 	if became {
 		os.Exit(ret)

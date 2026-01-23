@@ -1,3 +1,4 @@
+#include <asm-generic/errno-base.h>
 #define _GNU_SOURCE
 #include <sched.h>
 #include <stdio.h>
@@ -18,10 +19,31 @@
 #include <sys/prctl.h>
 #include <dirent.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
+#include <sys/file.h>
 #include <stdio.h>
 
 #define ETC_PREEXEC_HOOKS "/etc/containers/pre-exec-hooks"
 #define LIBEXECPODMAN "/usr/libexec/podman"
+
+#ifndef FD_NSFS_ROOT
+/* Copied from /usr/include/linux/fcntl.h.  */
+#define FD_NSFS_ROOT -10003
+#endif
+
+/* Used by name_to_handle_at/open_by_handle_at.  */
+struct ns_file_handle
+{
+  unsigned int handle_bytes;
+  int handle_type;
+  unsigned char f_handle[MAX_HANDLE_SZ];
+};
+
+struct ns_handles
+{
+  struct ns_file_handle userns;
+  struct ns_file_handle mntns;
+};
 
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(expression) \
@@ -59,7 +81,8 @@ cleanup_dirp (DIR **p)
     closedir (dir);
 }
 
-int rename_noreplace (int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
+int
+rename_noreplace (int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
   int ret;
 
@@ -119,6 +142,224 @@ uid_t
 rootless_gid ()
 {
   return rootless_gid_init;
+}
+
+static int
+get_ns_handles (struct ns_handles *handles)
+{
+  cleanup_close int mnt_fd = -1;
+  cleanup_close int user_fd = -1;
+  int mount_id;
+
+  handles->userns.handle_bytes = MAX_HANDLE_SZ;
+  handles->mntns.handle_bytes = MAX_HANDLE_SZ;
+
+  mnt_fd = open ("/proc/self/ns/mnt", O_RDONLY | O_CLOEXEC);
+  if (mnt_fd < 0)
+    return -1;
+
+  if (name_to_handle_at (mnt_fd, "", (struct file_handle *) &handles->mntns, &mount_id, AT_EMPTY_PATH) < 0)
+    return -1;
+
+  user_fd = open ("/proc/self/ns/user", O_RDONLY | O_CLOEXEC);
+  if (user_fd < 0)
+    return -1;
+
+  if (name_to_handle_at (user_fd, "", (struct file_handle *) &handles->userns, &mount_id, AT_EMPTY_PATH) < 0)
+    return -1;
+
+  return 0;
+}
+
+static void
+join_namespace_or_die (const char *name, int ns_fd)
+{
+  if (setns (ns_fd, 0) < 0)
+    {
+      fprintf (stderr, "cannot set %s namespace\n", name);
+      _exit (EXIT_FAILURE);
+    }
+}
+
+static int
+set_ns_handles (const char *path)
+{
+  cleanup_close int fd = -1;
+  struct ns_handles handles;
+  ssize_t bytes_read;
+  cleanup_close int userns_fd = -1;
+  cleanup_close int mntns_fd = -1;
+
+  fd = open (path, O_RDONLY | O_CLOEXEC);
+  if (fd < 0)
+    return -1;
+
+  bytes_read = TEMP_FAILURE_RETRY (read (fd, &handles, sizeof (handles)));
+  if (bytes_read != sizeof (handles))
+    {
+      if (bytes_read >= 0)
+        errno = EINVAL;
+      return -1;
+    }
+
+  if (handles.userns.handle_bytes > MAX_HANDLE_SZ ||
+      handles.mntns.handle_bytes > MAX_HANDLE_SZ)
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  mntns_fd = open_by_handle_at (FD_NSFS_ROOT, (struct file_handle *) &handles.mntns, O_RDONLY);
+  if (mntns_fd < 0)
+    return -1;
+
+  userns_fd = open_by_handle_at (FD_NSFS_ROOT, (struct file_handle *) &handles.userns, O_RDONLY);
+  if (userns_fd < 0)
+    return -1;
+
+  if (setns (userns_fd, 0) != 0)
+    return -1;
+
+  /* This is a fatal error we can't recover from since we have already joined the userns.  */
+  join_namespace_or_die ("mnt", mntns_fd);
+
+  return 0;
+}
+
+/* Acquire an exclusive lock on the namespace handles lock file.
+   Returns the lock fd on success, -1 on error.  */
+static int
+acquire_ns_handles_lock (const char *state_dir)
+{
+  char lock_path[PATH_MAX];
+  int lock_fd;
+  int ret;
+  int saved_errno;
+
+  ret = snprintf (lock_path, PATH_MAX, "%s/ns_handles.lock", state_dir);
+  if (ret >= PATH_MAX)
+    {
+      errno = ENAMETOOLONG;
+      return -1;
+    }
+
+  lock_fd = open (lock_path, O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+  if (lock_fd < 0)
+    return -1;
+
+  if (flock (lock_fd, LOCK_EX) < 0)
+    {
+      saved_errno = errno;
+      close (lock_fd);
+      errno = saved_errno;
+      return -1;
+    }
+
+  return lock_fd;
+}
+
+/* Save namespace handles to the specified file.  */
+static int
+save_ns_handles (const char *path, struct ns_handles *handles)
+{
+  cleanup_close int fd = -1;
+  char tmp_path[PATH_MAX];
+  int ret;
+  int saved_errno;
+  ssize_t written;
+
+  ret = snprintf (tmp_path, PATH_MAX, "%s.XXXXXX", path);
+  if (ret >= PATH_MAX)
+    {
+      errno = ENAMETOOLONG;
+      return -1;
+    }
+
+  fd = mkstemp (tmp_path);
+  if (fd < 0)
+    return -1;
+
+  written = TEMP_FAILURE_RETRY (write (fd, handles, sizeof (*handles)));
+  if (written != sizeof (*handles))
+    {
+      saved_errno = errno;
+      unlink (tmp_path);
+      errno = saved_errno;
+      return -1;
+    }
+
+  if (rename_noreplace (AT_FDCWD, tmp_path, AT_FDCWD, path) < 0)
+    {
+      saved_errno = errno;
+      unlink (tmp_path);
+      errno = saved_errno;
+      return -1;
+    }
+
+  return 0;
+}
+
+static int
+get_and_save_ns_handles_with_lock (const char *state_dir)
+{
+  char ns_handles_path[PATH_MAX];
+  cleanup_close int lock_fd = -1;
+  struct ns_handles handles;
+  int ret;
+  int saved_errno;
+  char *env = getenv ("PODMAN_NO_PAUSE_PROCESS");
+
+  ret = snprintf (ns_handles_path, PATH_MAX, "%s/ns_handles", state_dir);
+  if (ret >= PATH_MAX)
+    {
+      errno = ENAMETOOLONG;
+      return -1;
+    }
+
+  if (env == NULL || strcmp(env, "0") == 0)
+      {
+        if (unlink(ns_handles_path) < 0 && errno != ENOENT)
+          return -1;
+
+        /* Pretend the kernel does not support it and move on.  */
+        errno = EOPNOTSUPP;
+        return -1;
+      }
+
+  lock_fd = acquire_ns_handles_lock (state_dir);
+  if (lock_fd < 0)
+    return -1;
+
+  /* Now that we hold the lock, revalidate the file.  */
+  if (set_ns_handles (ns_handles_path) == 0)
+    return 0;
+
+  ret = unlink (ns_handles_path);
+  if (ret != 0 && errno != ENOENT)
+    {
+      saved_errno = errno;
+      close (lock_fd);
+      lock_fd = -1;
+      errno = saved_errno;
+      return -1;
+    }
+
+  ret = get_ns_handles (&handles);
+  if (ret < 0)
+    {
+      saved_errno = errno;
+      close (lock_fd);
+      lock_fd = -1;  /* Prevent cleanup from running.  */
+      errno = saved_errno;
+      return -1;
+    }
+
+  ret = save_ns_handles (ns_handles_path, &handles);
+  saved_errno = errno;
+  close (lock_fd);
+  lock_fd = -1;  /* Prevent cleanup from running.  */
+  errno = saved_errno;
+  return ret;
 }
 
 /* exec the specified executable and exit if it fails.  */
@@ -519,8 +760,9 @@ static void __attribute__((constructor)) init()
         }
     }
 
-  /* Shortcut.  If we are able to join the pause pid file, do it now so we don't
-     need to re-exec.  */
+  /* Shortcut.  If we are able to join the existing namespace, do it now so we
+     don't need to re-exec.  First try using namespace file handles, then fall back
+     to the pause.pid approach for older kernels.  */
   xdg_runtime_dir = getenv ("XDG_RUNTIME_DIR");
   if (geteuid () != 0 && xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut (argv))
     {
@@ -533,7 +775,6 @@ static void __attribute__((constructor)) init()
       uid_t uid;
       gid_t gid;
       char path[PATH_MAX];
-      const char *const suffix = "/libpod/tmp/pause.pid";
       char uid_fmt[16];
       char gid_fmt[16];
       size_t len;
@@ -546,7 +787,39 @@ static void __attribute__((constructor)) init()
           _exit (EXIT_FAILURE);
         }
 
-      len = snprintf (path, PATH_MAX, "%s%s", xdg_runtime_dir, suffix);
+      uid = geteuid ();
+      gid = getegid ();
+
+      len = snprintf (path, PATH_MAX, "%s/libpod/tmp/ns_handles", xdg_runtime_dir);
+      if (len >= PATH_MAX)
+        {
+          errno = ENAMETOOLONG;
+          fprintf (stderr, "invalid value for XDG_RUNTIME_DIR: %m");
+          exit (EXIT_FAILURE);
+        }
+
+      if (set_ns_handles (path) == 0)
+        goto joined;
+
+      /* If the handle is stale, give up with the shortcut.  */
+      if (errno == ESTALE)
+        return;
+
+      /* Fall back to pause.pid if:
+         - ENOENT ns_handles file doesn't exist
+         - EOPNOTSUPP kernel doesn't support open_by_handle_at
+         - ENOSYS syscall not available
+         - EPERM (could be seccomp when running in a container)
+       */
+      if (errno != ENOENT && errno != EOPNOTSUPP && errno != ENOSYS && errno != EPERM)
+        {
+          /* Anything else is fatal.  */
+          fprintf (stderr, "error opening namespace handles: %m\n");
+          _exit (EXIT_FAILURE);
+        }
+
+      /* Fall back to pause.pid for compatibility with older versions or if the kernel is too old.  */
+      len = snprintf (path, PATH_MAX, "%s/libpod/tmp/pause.pid", xdg_runtime_dir);
       if (len >= PATH_MAX)
         {
           errno = ENAMETOOLONG;
@@ -559,7 +832,6 @@ static void __attribute__((constructor)) init()
         return;
 
       r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf) - 1));
-
       if (r < 0)
         return;
       buf[r] = '\0';
@@ -567,9 +839,6 @@ static void __attribute__((constructor)) init()
       pid = strtol (buf, NULL, 10);
       if (pid == LONG_MAX)
         return;
-
-      uid = geteuid ();
-      gid = getegid ();
 
       userns_fd = open_namespace (pid, "user");
       if (userns_fd < 0)
@@ -582,21 +851,18 @@ static void __attribute__((constructor)) init()
       if (setns (userns_fd, 0) < 0)
         return;
 
-      /* The user namespace was joined, after this point errors are
-         not recoverable anymore.  */
+      /* This is a fatal error we can't recover from since we have already joined the userns.  */
+      join_namespace_or_die ("mnt", mntns_fd);
 
-      if (setns (mntns_fd, 0) < 0)
-        {
-          fprintf (stderr, "cannot join mount namespace for %ld: %m", pid);
-          exit (EXIT_FAILURE);
-        }
-
+joined:
       sprintf (uid_fmt, "%d", uid);
       sprintf (gid_fmt, "%d", gid);
 
       setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
       setenv ("_CONTAINERS_ROOTLESS_UID", uid_fmt, 1);
       setenv ("_CONTAINERS_ROOTLESS_GID", gid_fmt, 1);
+
+      /* We are in the user+mount namespace, these errors are not recoverable.  */
 
       if (syscall_setresgid (0, 0, 0) < 0)
         {
@@ -649,10 +915,19 @@ reexec_in_user_namespace_wait (int pid, int options)
 }
 
 static int
-create_pause_process (const char *pause_pid_file_path, char **argv)
+create_pause_process (const char *state_dir, char **argv)
 {
   pid_t pid;
   int p[2];
+  char pause_pid_file_path[PATH_MAX];
+  int ret;
+
+  ret = snprintf (pause_pid_file_path, PATH_MAX, "%s/pause.pid", state_dir);
+  if (ret >= PATH_MAX)
+    {
+      errno = ENAMETOOLONG;
+      return -1;
+    }
 
   if (pipe (p) < 0)
     return -1;
@@ -699,7 +974,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 
           sprintf (pid_str, "%d", pid);
 
-          if (asprintf (&tmp_file_path, "%s.XXXXXX", pause_pid_file_path) < 0)
+          if (asprintf (&tmp_file_path, "%s/pause.pid.XXXXXX", state_dir) < 0)
             {
               fprintf (stderr, "unable to print to string\n");
               kill (pid, SIGKILL);
@@ -777,18 +1052,8 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
     }
 }
 
-static void
-join_namespace_or_die (const char *name, int ns_fd)
-{
-  if (setns (ns_fd, 0) < 0)
-    {
-      fprintf (stderr, "cannot set %s namespace\n", name);
-      _exit (EXIT_FAILURE);
-    }
-}
-
 int
-reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
+reexec_userns_join (int pid_to_join, char *state_dir)
 {
   cleanup_close int userns_fd = -1;
   cleanup_close int mntns_fd = -1;
@@ -910,10 +1175,24 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  if (pause_pid_file_path && pause_pid_file_path[0] != '\0')
+  if (state_dir && state_dir[0] != '\0')
     {
-      /* We ignore errors here as we didn't create the namespace anyway.  */
-      create_pause_process (pause_pid_file_path, argv);
+      /* Try to use namespace file handles instead of a pause process.  */
+      if (get_and_save_ns_handles_with_lock (state_dir) < 0)
+        {
+          /* Fall back to pause process only if kernel doesn't support nsfs handles,
+             if they are blocked (e.g. seccomp), or if the state directory doesn't exist yet.  */
+          if (errno == EOPNOTSUPP || errno == EPERM || errno == ENOSYS || errno == ENOENT)
+            {
+              if (create_pause_process (state_dir, argv) < 0)
+                _exit (EXIT_FAILURE);
+            }
+          else
+            {
+              fprintf (stderr, "cannot save namespace handles: %m\n");
+              _exit (EXIT_FAILURE);
+            }
+        }
     }
   if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
     {
@@ -947,7 +1226,7 @@ check_proc_sys_userns_file (const char *path)
 }
 
 int
-reexec_in_user_namespace (int ready, char *pause_pid_file_path)
+reexec_in_user_namespace (int ready, char *state_dir)
 {
   cleanup_free char **argv = NULL;
   cleanup_free char *argv0 = NULL;
@@ -1073,12 +1352,27 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  if (pause_pid_file_path && pause_pid_file_path[0] != '\0')
+  if (state_dir && state_dir[0] != '\0')
     {
-      if (create_pause_process (pause_pid_file_path, argv) < 0)
+      /* Try to use namespace file handles instead of a pause process.  */
+      if (get_and_save_ns_handles_with_lock (state_dir) < 0)
         {
-          TEMP_FAILURE_RETRY (write (ready, "2", 1));
-          _exit (EXIT_FAILURE);
+          /* Fall back to pause process only if kernel doesn't support nsfs handles,
+             if they are blocked (e.g. seccomp), or if the state directory doesn't exist yet.  */
+          if (errno == EOPNOTSUPP || errno == EPERM || errno == ENOSYS || errno == ENOENT)
+            {
+              if (create_pause_process (state_dir, argv) < 0)
+                {
+                  TEMP_FAILURE_RETRY (write (ready, "2", 1));
+                  _exit (EXIT_FAILURE);
+                }
+            }
+          else
+            {
+              fprintf (stderr, "cannot save namespace handles: %m\n");
+              TEMP_FAILURE_RETRY (write (ready, "2", 1));
+              _exit (EXIT_FAILURE);
+            }
         }
     }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 
@@ -13,10 +14,28 @@ import (
 	"go.podman.io/storage/pkg/lockfile"
 )
 
+// GetNamespaceHandlesPath returns the path to the namespace handles file
+// in the given state directory.
+func GetNamespaceHandlesPath(stateDir string) string {
+	return filepath.Join(stateDir, "ns_handles")
+}
+
+// GetPausePidPath returns the path to the pause.pid file
+// in the given state directory.
+func GetPausePidPath(stateDir string) string {
+	return filepath.Join(stateDir, "pause.pid")
+}
+
 // TryJoinPauseProcess attempts to join the namespaces of the pause PID via
 // TryJoinFromFilePaths.  If joining fails, it attempts to delete the specified
 // file.
-func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
+func TryJoinPauseProcess(stateDir string) (bool, int, error) {
+	nsHandlesPath := GetNamespaceHandlesPath(stateDir)
+	if err := fileutils.Exists(nsHandlesPath); err == nil {
+		return false, -1, nil
+	}
+
+	pausePidPath := GetPausePidPath(stateDir)
 	if err := fileutils.Exists(pausePidPath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return false, -1, nil

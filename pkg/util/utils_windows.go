@@ -23,10 +23,10 @@ func GetContainerPidInformationDescriptors() ([]string, error) {
 	return nil, fmt.Errorf("GetContainerPidInformationDescriptors: %w", errNotImplemented)
 }
 
-// GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
-// the pause process
-func GetRootlessPauseProcessPidPath() (string, error) {
-	return "", fmt.Errorf("GetRootlessPauseProcessPidPath: %w", errNotImplemented)
+// GetRootlessStateDir returns the directory that holds the rootless state
+// (pause.pid and ns_handles files).
+func GetRootlessStateDir() (string, error) {
+	return "", fmt.Errorf("GetRootlessStateDir: %w", errNotImplemented)
 }
 
 // GetRootlessRuntimeDir returns the runtime directory

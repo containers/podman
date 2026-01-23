@@ -301,6 +301,11 @@ otherwise in the home directory of the user under
 
 In Rootless mode temporary configuration data is stored in `${XDG_RUNTIME_DIR}/containers`.
 
+#### **PODMAN_NO_PAUSE_PROCESS**
+
+In Rootless mode, when set to a value other than "0", Podman does not use a pause process.
+Namespace file handles are stored to allow rejoining the existing user and mount namespace if they are still alive.
+
 ## Remote Access
 
 The Podman command can be used with remote services using the `--remote` flag. Connections can
