@@ -13,7 +13,6 @@ import (
 
 var _ = Describe("Podman run networking", func() {
 	BeforeEach(func() {
-		SkipIfCNI(podmanTest)
 	})
 
 	It("Aardvark Test 1: One container", func() {

@@ -203,12 +203,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 			return nil, fmt.Errorf("cannot set host network if network-related configuration is specified: %w", define.ErrInvalidArg)
 		}
 		spec.NetNS.NSMode = specgen.Host
-	case specgen.Slirp:
-		logrus.Debugf("Pod will use slirp4netns")
-		if spec.NetNS.NSMode != specgen.Host {
-			spec.NetworkOptions = p.NetworkOptions
-			spec.NetNS.NSMode = specgen.Slirp
-		}
 	case specgen.Pasta:
 		logrus.Debugf("Pod will use pasta")
 		if spec.NetNS.NSMode != specgen.Host {
