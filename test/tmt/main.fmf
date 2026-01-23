@@ -1,0 +1,39 @@
+environment:
+    CI_DESIRED_NETWORK: "netavark"
+adjust+:
+    - when: distro == centos-stream
+      environment+:
+        ROOTLESS_USER: "ec2-user"
+    - when: distro == rhel
+      environment+:
+        ROOTLESS_USER: "cloud-user"
+
+/sys-root-local:
+    test: >
+        bash ./setup.sh &&
+        make -C $TMT_TREE localsystem
+    duration: 40m
+    
+/sys-rootless-local:
+    test: >
+        bash ./setup.sh &&
+        loginctl enable-linger $ROOTLESS_USER &&
+        usermod -a -G wheel $ROOTLESS_USER &&
+        chown -R $ROOTLESS_USER $TMT_TREE &&
+        su - "$ROOTLESS_USER" -c "CI_DESIRED_NETWORK=netavark make -C $TMT_TREE localsystem"
+    duration: 40m
+
+/sys-root-remote:
+    test: >
+        bash ./setup.sh &&
+        make -C $TMT_TREE remotesystem
+    duration: 40m
+
+/sys-rootless-remote:
+    test: >
+        bash ./setup.sh &&
+        loginctl enable-linger $ROOTLESS_USER &&
+        usermod -a -G wheel $ROOTLESS_USER &&
+        chown -R $ROOTLESS_USER $TMT_TREE &&
+        su - "$ROOTLESS_USER" -c "CI_DESIRED_NETWORK=netavark make -C $TMT_TREE remotesystem"
+    duration: 40m
