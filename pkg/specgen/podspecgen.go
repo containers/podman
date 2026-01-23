@@ -248,6 +248,8 @@ type PodSecurityConfig struct {
 	// namespaces.
 	// Required if UserNS is private.
 	IDMappings *storageTypes.IDMappingOptions `json:"idmappings,omitempty"`
+	// GroupAdd contains additional groups that will be added to the pod
+	GroupAdd []string `json:"group_add,omitempty"`
 }
 
 // NewPodSpecGenerator creates a new pod spec

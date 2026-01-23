@@ -92,6 +92,22 @@ EOF
 
 
 # bats test_tags=ci:parallel
+@test "podman pod create - --group-add" {
+    local podname="pod-group-add-$(safename)"
+    local groupid="1234"
+
+    run_podman pod create --name $podname --group-add $groupid
+    podid="$output"
+
+    # Start a container in the pod and check groups
+    run_podman run --rm --pod $podname $IMAGE id -G
+    assert "$output" =~ "$groupid" "group $groupid should be in id -G output"
+
+    run_podman pod rm $podname
+}
+
+
+# bats test_tags=ci:parallel
 @test "podman pod create - custom infra image" {
     skip_if_remote "CONTAINERS_CONF_OVERRIDE only affects server side"
     image="i.do/not/exist:image"

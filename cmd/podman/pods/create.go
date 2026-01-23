@@ -100,6 +100,10 @@ func init() {
 	shareParentFlagName := "share-parent"
 	flags.BoolVar(&shareParent, shareParentFlagName, true, "Set the pod's cgroup as the cgroup parent for all containers joining the pod")
 
+	groupAddFlagName := "group-add"
+	flags.StringSliceVar(&createOptions.GroupAdd, groupAddFlagName, []string{}, "Add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.")
+	_ = createCommand.RegisterFlagCompletionFunc(groupAddFlagName, completion.AutocompleteNone)
+
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 

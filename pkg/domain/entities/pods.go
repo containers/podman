@@ -105,6 +105,7 @@ type PodCreateOptions struct {
 	SecurityOpt        []string          `json:"security_opt,omitempty"`
 	Sysctl             []string          `json:"sysctl,omitempty"`
 	Uts                string            `json:"uts,omitempty"`
+	GroupAdd           []string          `json:"group_add,omitempty"`
 }
 
 // PodLogsOptions describes the options to extract pod logs.
@@ -392,7 +393,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 		}
 	}
 	s.Sysctl = sysctl
-
+	s.GroupAdd = p.GroupAdd
 	return &s, nil
 }
 
