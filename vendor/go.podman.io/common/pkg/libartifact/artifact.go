@@ -31,7 +31,7 @@ func (a *Artifact) GetName() (string, error) {
 	}
 	// We don't have a concept of None for artifacts yet, but if we do,
 	// then we should probably not error but return `None`
-	return "", types.ErrArtifactUnamed
+	return "", types.ErrArtifactUnnamed
 }
 
 // SetName is a accessor for setting the artifact name
