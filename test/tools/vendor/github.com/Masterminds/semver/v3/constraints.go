@@ -12,6 +12,13 @@ import (
 // checked against.
 type Constraints struct {
 	constraints [][]*constraint
+	containsPre []bool
+
+	// IncludePrerelease specifies if pre-releases should be included in
+	// the results. Note, if a constraint range has a prerelease than
+	// prereleases will be included for that AND group even if this is
+	// set to false.
+	IncludePrerelease bool
 }
 
 // NewConstraint returns a Constraints instance that a Version instance can
@@ -22,11 +29,10 @@ func NewConstraint(c string) (*Constraints, error) {
 	c = rewriteRange(c)
 
 	ors := strings.Split(c, "||")
-	or := make([][]*constraint, len(ors))
+	lenors := len(ors)
+	or := make([][]*constraint, lenors)
+	hasPre := make([]bool, lenors)
 	for k, v := range ors {
-
-		// TODO: Find a way to validate and fetch all the constraints in a simpler form
-
 		// Validate the segment
 		if !validConstraintRegex.MatchString(v) {
 			return nil, fmt.Errorf("improper constraint: %s", v)
@@ -43,12 +49,22 @@ func NewConstraint(c string) (*Constraints, error) {
 				return nil, err
 			}
 
+			// If one of the constraints has a prerelease record this.
+			// This information is used when checking all in an "and"
+			// group to ensure they all check for prereleases.
+			if pc.con.pre != "" {
+				hasPre[k] = true
+			}
+
 			result[i] = pc
 		}
 		or[k] = result
 	}
 
-	o := &Constraints{constraints: or}
+	o := &Constraints{
+		constraints: or,
+		containsPre: hasPre,
+	}
 	return o, nil
 }
 
@@ -57,10 +73,10 @@ func (cs Constraints) Check(v *Version) bool {
 	// TODO(mattfarina): For v4 of this library consolidate the Check and Validate
 	// functions as the underlying functions make that possible now.
 	// loop over the ORs and check the inner ANDs
-	for _, o := range cs.constraints {
+	for i, o := range cs.constraints {
 		joy := true
 		for _, c := range o {
-			if check, _ := c.check(v); !check {
+			if check, _ := c.check(v, (cs.IncludePrerelease || cs.containsPre[i])); !check {
 				joy = false
 				break
 			}
@@ -83,12 +99,12 @@ func (cs Constraints) Validate(v *Version) (bool, []error) {
 	// Capture the prerelease message only once. When it happens the first time
 	// this var is marked
 	var prerelesase bool
-	for _, o := range cs.constraints {
+	for i, o := range cs.constraints {
 		joy := true
 		for _, c := range o {
 			// Before running the check handle the case there the version is
 			// a prerelease and the check is not searching for prereleases.
-			if c.con.pre == "" && v.pre != "" {
+			if !(cs.IncludePrerelease || cs.containsPre[i]) && v.pre != "" {
 				if !prerelesase {
 					em := fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 					e = append(e, em)
@@ -98,7 +114,7 @@ func (cs Constraints) Validate(v *Version) (bool, []error) {
 
 			} else {
 
-				if _, err := c.check(v); err != nil {
+				if _, err := c.check(v, (cs.IncludePrerelease || cs.containsPre[i])); err != nil {
 					e = append(e, err)
 					joy = false
 				}
@@ -227,8 +243,8 @@ type constraint struct {
 }
 
 // Check if a version meets the constraint
-func (c *constraint) check(v *Version) (bool, error) {
-	return constraintOps[c.origfunc](v, c)
+func (c *constraint) check(v *Version, includePre bool) (bool, error) {
+	return constraintOps[c.origfunc](v, c, includePre)
 }
 
 // String prints an individual constraint into a string
@@ -236,7 +252,7 @@ func (c *constraint) string() string {
 	return c.origfunc + c.orig
 }
 
-type cfunc func(v *Version, c *constraint) (bool, error)
+type cfunc func(v *Version, c *constraint, includePre bool) (bool, error)
 
 func parseConstraint(c string) (*constraint, error) {
 	if len(c) > 0 {
@@ -272,7 +288,7 @@ func parseConstraint(c string) (*constraint, error) {
 
 			// The constraintRegex should catch any regex parsing errors. So,
 			// we should never get here.
-			return nil, errors.New("constraint Parser Error")
+			return nil, errors.New("constraint parser error")
 		}
 
 		cs.con = con
@@ -290,7 +306,7 @@ func parseConstraint(c string) (*constraint, error) {
 
 		// The constraintRegex should catch any regex parsing errors. So,
 		// we should never get here.
-		return nil, errors.New("constraint Parser Error")
+		return nil, errors.New("constraint parser error")
 	}
 
 	cs := &constraint{
@@ -305,16 +321,14 @@ func parseConstraint(c string) (*constraint, error) {
 }
 
 // Constraint functions
-func constraintNotEqual(v *Version, c *constraint) (bool, error) {
+func constraintNotEqual(v *Version, c *constraint, includePre bool) (bool, error) {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
+		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
+	}
+
 	if c.dirty {
-
-		// If there is a pre-release on the version but the constraint isn't looking
-		// for them assume that pre-releases are not compatible. See issue 21 for
-		// more details.
-		if v.Prerelease() != "" && c.con.Prerelease() == "" {
-			return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
-		}
-
 		if c.con.Major() != v.Major() {
 			return true, nil
 		}
@@ -345,12 +359,11 @@ func constraintNotEqual(v *Version, c *constraint) (bool, error) {
 	return true, nil
 }
 
-func constraintGreaterThan(v *Version, c *constraint) (bool, error) {
+func constraintGreaterThan(v *Version, c *constraint, includePre bool) (bool, error) {
 
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
@@ -391,11 +404,10 @@ func constraintGreaterThan(v *Version, c *constraint) (bool, error) {
 	return false, fmt.Errorf("%s is less than or equal to %s", v, c.orig)
 }
 
-func constraintLessThan(v *Version, c *constraint) (bool, error) {
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+func constraintLessThan(v *Version, c *constraint, includePre bool) (bool, error) {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
@@ -406,12 +418,11 @@ func constraintLessThan(v *Version, c *constraint) (bool, error) {
 	return false, fmt.Errorf("%s is greater than or equal to %s", v, c.orig)
 }
 
-func constraintGreaterThanEqual(v *Version, c *constraint) (bool, error) {
+func constraintGreaterThanEqual(v *Version, c *constraint, includePre bool) (bool, error) {
 
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
@@ -422,11 +433,10 @@ func constraintGreaterThanEqual(v *Version, c *constraint) (bool, error) {
 	return false, fmt.Errorf("%s is less than %s", v, c.orig)
 }
 
-func constraintLessThanEqual(v *Version, c *constraint) (bool, error) {
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+func constraintLessThanEqual(v *Version, c *constraint, includePre bool) (bool, error) {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
@@ -455,11 +465,10 @@ func constraintLessThanEqual(v *Version, c *constraint) (bool, error) {
 // ~1.2, ~1.2.x, ~>1.2, ~>1.2.x --> >=1.2.0, <1.3.0
 // ~1.2.3, ~>1.2.3 --> >=1.2.3, <1.3.0
 // ~1.2.0, ~>1.2.0 --> >=1.2.0, <1.3.0
-func constraintTilde(v *Version, c *constraint) (bool, error) {
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+func constraintTilde(v *Version, c *constraint, includePre bool) (bool, error) {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
@@ -487,16 +496,15 @@ func constraintTilde(v *Version, c *constraint) (bool, error) {
 
 // When there is a .x (dirty) status it automatically opts in to ~. Otherwise
 // it's a straight =
-func constraintTildeOrEqual(v *Version, c *constraint) (bool, error) {
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+func constraintTildeOrEqual(v *Version, c *constraint, includePre bool) (bool, error) {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
 	if c.dirty {
-		return constraintTilde(v, c)
+		return constraintTilde(v, c, includePre)
 	}
 
 	eq := v.Equal(c.con)
@@ -516,11 +524,10 @@ func constraintTildeOrEqual(v *Version, c *constraint) (bool, error) {
 // ^0.0.3  -->  >=0.0.3 <0.0.4
 // ^0.0    -->  >=0.0.0 <0.1.0
 // ^0      -->  >=0.0.0 <1.0.0
-func constraintCaret(v *Version, c *constraint) (bool, error) {
-	// If there is a pre-release on the version but the constraint isn't looking
-	// for them assume that pre-releases are not compatible. See issue 21 for
-	// more details.
-	if v.Prerelease() != "" && c.con.Prerelease() == "" {
+func constraintCaret(v *Version, c *constraint, includePre bool) (bool, error) {
+	// The existence of prereleases is checked at the group level and passed in.
+	// Exit early if the version has a prerelease but those are to be ignored.
+	if v.Prerelease() != "" && !includePre {
 		return false, fmt.Errorf("%s is a prerelease version and the constraint is only looking for release versions", v)
 	}
 
