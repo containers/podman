@@ -233,7 +233,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	command := makeCommand(s, imageData)
 
 	infraVol := len(compatibleOptions.Mounts) > 0 || len(compatibleOptions.Volumes) > 0 || len(compatibleOptions.ImageVolumes) > 0 || len(compatibleOptions.OverlayVolumes) > 0
-	opts, err := createContainerOptions(rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
+	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -351,7 +351,7 @@ func isCDIDevice(device string) bool {
 	return parser.IsQualifiedName(device)
 }
 
-func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -509,6 +509,19 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 
 	if len(s.ArtifactVolumes) != 0 {
+		// Validate artifacts exist before creating the container
+		mounts := make([]libpod.ArtifactMountValidation, len(s.ArtifactVolumes))
+		for i, av := range s.ArtifactVolumes {
+			mounts[i] = libpod.ArtifactMountValidation{
+				Source: av.Source,
+				Title:  av.Title,
+				Digest: av.Digest,
+			}
+		}
+		if err := rt.ValidateArtifactMounts(ctx, mounts); err != nil {
+			return nil, err
+		}
+
 		vols := make([]*libpod.ContainerArtifactVolume, 0, len(s.ArtifactVolumes))
 		for _, v := range s.ArtifactVolumes {
 			vols = append(vols, &libpod.ContainerArtifactVolume{
