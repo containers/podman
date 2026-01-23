@@ -888,3 +888,66 @@ t POST containers/create?platform=linux/aarch64 \
   Image=$IMAGE \
   404
 podman rmi -f $IMAGE
+
+# Test Compat Create with healthcheck, check status propagation
+# Regression test for correct Health status when stopped (should be 'none')
+# and running (should be 'starting' or 'healthy')
+t POST containers/create Image=$IMAGE Cmd='["top"]' Healthcheck='{"Test":["CMD","echo","healthy"],"Interval":1000000000,"Retries":1}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t POST containers/$cid/start 204
+
+# Wait for healthcheck to potentially run? Or just check it is not "none" initially.
+# Usually starts as "starting".
+for i in $(seq 1 10); do
+  t GET containers/$cid/json 200
+  status=$(jq -r '.State.Health.Status' <<<"$output")
+  if [[ "$status" == "starting" || "$status" == "healthy" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+t GET containers/$cid/json 200 \
+  .State.Health.Status~"\\(starting\\|healthy\\)"
+
+t GET containers/json?all=true 200 \
+  .[0].Id=$cid \
+  .[0].Health~"\\(starting\\|healthy\\)"
+
+t POST containers/$cid/stop 204
+
+t GET containers/$cid/json 200 \
+  .State.Health.Status="none"
+
+t GET containers/json?all=true 200 \
+  .[0].Id=$cid \
+  .[0].Health="none"
+
+t DELETE containers/$cid 204
+
+# Test health status in /containers/json (GH #27786)
+podman run -d --name healthcheck-test-running --health-cmd "true" --health-interval 1s $IMAGE top
+# Give it a moment to initialize health status
+for i in $(seq 1 10); do
+  t GET containers/healthcheck-test-running/json 200
+  status=$(jq -r '.State.Health.Status' <<<"$output")
+  if [[ "$status" == "starting" || "$status" == "healthy" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+t GET containers/json?filters='{"name":["healthcheck-test-running"]}' 200 \
+  .[0].Health~"\(starting\|healthy\)"
+t GET containers/healthcheck-test-running/json 200 \
+  .State.Health.Status~"\(starting\|healthy\)"
+
+podman stop -t0 healthcheck-test-running
+t GET "containers/json?all=true&filters={\"name\":[\"healthcheck-test-running\"]}" 200 \
+  .[0].Health=none
+t GET containers/healthcheck-test-running/json 200 \
+  .State.Health.Status=none
+
+podman rm -f healthcheck-test-running

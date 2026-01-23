@@ -401,6 +401,13 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
+	health := container.NoHealthcheck
+	if l.HasHealthCheck() && (state == define.ContainerStateRunning || state == define.ContainerStatePaused) {
+		if inspect.State.Health != nil {
+			health = inspect.State.Health.Status
+		}
+	}
+
 	return &handlers.Container{
 		Container: container.Summary{
 			ID:         l.ID(),
@@ -427,6 +434,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			Mounts:          mounts,
 		},
 		ContainerCreateConfig: dockerBackend.ContainerCreateConfig{},
+		Health:                health,
 	}, nil
 }
 
