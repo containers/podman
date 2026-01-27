@@ -103,8 +103,8 @@ Write-Host 'Checking requirements (dotnet and wix)'
 
 # Check if .NET SDK is installed
 if (! (Get-Command 'dotnet' -errorAction SilentlyContinue)) {
-    Write-Error "Required dep `".NET SDK`" is not installed. " `
-        + 'Please install it from https://dotnet.microsoft.com/download'
+    Write-Error ("Required dep `".NET SDK`" is not installed. " `
+        + 'Please install it from https://dotnet.microsoft.com/download')
     Exit 1
 }
 
