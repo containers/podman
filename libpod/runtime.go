@@ -35,7 +35,7 @@ import (
 	"go.podman.io/common/libnetwork/network"
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
-	artStore "go.podman.io/common/pkg/libartifact/store"
+	artStore "go.podman.io/common/pkg/libartifact"
 	"go.podman.io/common/pkg/secrets"
 	systemdCommon "go.podman.io/common/pkg/systemd"
 	"go.podman.io/image/v5/pkg/sysregistriesv2"

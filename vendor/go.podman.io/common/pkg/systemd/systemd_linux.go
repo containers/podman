@@ -100,7 +100,6 @@ func MovePauseProcessToScope(pausePidPath string) {
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope.
 func RunUnderSystemdScope(pid int, slice string, unitName string) error {
-	var properties []systemdDbus.Property
 	var conn *systemdDbus.Conn
 	var err error
 
@@ -116,10 +115,12 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 		}
 	}
 	defer conn.Close()
-	properties = append(properties, systemdDbus.PropSlice(slice))
-	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
-	properties = append(properties, newProp("Delegate", true))
-	properties = append(properties, newProp("DefaultDependencies", false))
+	properties := []systemdDbus.Property{
+		systemdDbus.PropSlice(slice),
+		newProp("PIDs", []uint32{uint32(pid)}),
+		newProp("Delegate", true),
+		newProp("DefaultDependencies", false),
+	}
 	ch := make(chan string)
 	_, err = conn.StartTransientUnitContext(context.Background(), unitName, "replace", properties, ch)
 	if err != nil {

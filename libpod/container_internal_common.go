@@ -49,7 +49,7 @@ import (
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/chown"
 	"go.podman.io/common/pkg/config"
-	"go.podman.io/common/pkg/libartifact/store"
+	"go.podman.io/common/pkg/libartifact"
 	libartTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/common/pkg/subscriptions"
 	"go.podman.io/common/pkg/umask"
@@ -549,7 +549,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, err
 		}
 		for _, artifactMount := range c.config.ArtifactVolumes {
-			asr, err := store.NewArtifactStorageReference(artifactMount.Source)
+			asr, err := libartifact.NewArtifactStorageReference(artifactMount.Source)
 			if err != nil {
 				return nil, nil, err
 			}
