@@ -17,7 +17,7 @@ import (
 
 var (
 	// Namespaces include the names of supported namespaces.
-	Namespaces = []string{"network", "pid", "mount", "ipc", "uts", "user", "cgroup"}
+	Namespaces = []string{"network", "pid", "mount", "ipc", "uts", "user", "cgroup", "time"}
 
 	// we don't care about order...and this is way faster...
 	removeFunc = func(s []string, i int) []string {
@@ -631,6 +631,12 @@ func (g *Generator) SetLinuxIntelRdtClosID(clos string) {
 func (g *Generator) SetLinuxIntelRdtL3CacheSchema(schema string) {
 	g.initConfigLinuxIntelRdt()
 	g.Config.Linux.IntelRdt.L3CacheSchema = schema
+}
+
+// SetLinuxTimeOffset sets g.Config.Linux.TimeOffsets[clock]
+func (g *Generator) SetLinuxTimeOffset(clock string, offset rspec.LinuxTimeOffset) {
+	g.initConfigLinuxTimeOffsets()
+	g.Config.Linux.TimeOffsets[clock] = offset
 }
 
 // SetLinuxMountLabel sets g.Config.Linux.MountLabel.
@@ -1485,6 +1491,8 @@ func mapStrToNamespace(ns string, path string) (rspec.LinuxNamespace, error) {
 		return rspec.LinuxNamespace{Type: rspec.UserNamespace, Path: path}, nil
 	case "cgroup":
 		return rspec.LinuxNamespace{Type: rspec.CgroupNamespace, Path: path}, nil
+	case "time":
+		return rspec.LinuxNamespace{Type: rspec.TimeNamespace, Path: path}, nil
 	default:
 		return rspec.LinuxNamespace{}, fmt.Errorf("unrecognized namespace %q", ns)
 	}

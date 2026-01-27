@@ -99,6 +99,10 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			if foundCopySymlink > 1 {
 				return nil, fmt.Errorf("invalid options %q, can only specify 1 'no-dereference' option", strings.Join(options, ", "))
 			}
+		case "nocreate":
+			// nocreate is a podman specific flag that is used to prevent the
+			// automatic creation of a volume if it does not exist
+			// it will be parsed later
 		default:
 			return nil, fmt.Errorf("invalid option type %q", opt)
 		}

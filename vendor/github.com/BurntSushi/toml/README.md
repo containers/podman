@@ -1,7 +1,7 @@
 TOML stands for Tom's Obvious, Minimal Language. This Go package provides a
 reflection interface similar to Go's standard library `json` and `xml` packages.
 
-Compatible with TOML version [v1.0.0](https://toml.io/en/v1.0.0).
+Compatible with TOML version [v1.1.0](https://toml.io/en/v1.1.0).
 
 Documentation: https://pkg.go.dev/github.com/BurntSushi/toml
 
