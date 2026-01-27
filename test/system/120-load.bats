@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 # Custom helpers for this test only. These just save us having to duplicate
 # the same thing four times (two tests, each with -i and stdin).
