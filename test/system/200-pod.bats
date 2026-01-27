@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helpers
+load helpers.network
 
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {

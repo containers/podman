@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 @test "podman network - basic tests" {
     heading="NETWORK *ID *NAME *DRIVER"
