@@ -1332,7 +1332,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 		}
 
 		for _, vol := range volumes {
-			mountOpts, err := util.ProcessOptions(vol.Options, false, "")
+			mountOpts, noCreate, err := util.ProcessOptions(vol.Options, false, "")
 			if err != nil {
 				return fmt.Errorf("processing options for named volume %q mounted at %q: %w", vol.Name, vol.Dest, err)
 			}
@@ -1343,7 +1343,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 				Options:     mountOpts,
 				IsAnonymous: vol.IsAnonymous,
 				SubPath:     vol.SubPath,
-				NoCreate:    vol.NoCreate,
+				NoCreate:    noCreate,
 			})
 		}
 
