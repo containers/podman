@@ -176,10 +176,10 @@ load helpers
     reported_mountpoint=$(echo "$output" | awk '{print $2}')
     is $reported_mountpoint $mount_path "mountpoint reported by 'podman mount'"
 
-    # umount, and make sure files are gone
+    # umount, and make sure mountpoint no longer exists
     run_podman umount $external_cid
-    if [ -d "$mount_path" ]; then
-        die "'podman umount' did not umount"
+    if findmnt "$mount_path" >/dev/null ; then
+        die "'podman umount' did not umount $mount_path"
     fi
     buildah rm $external_cid
 }
