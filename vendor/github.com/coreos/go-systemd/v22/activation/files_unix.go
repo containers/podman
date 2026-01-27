@@ -51,7 +51,7 @@ func Files(unsetEnv bool) []*os.File {
 	}
 
 	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
-	if err != nil || nfds == 0 {
+	if err != nil || nfds <= 0 {
 		return nil
 	}
 
