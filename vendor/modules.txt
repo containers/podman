@@ -624,8 +624,8 @@ github.com/power-devops/perfstat
 # github.com/proglottis/gpgme v0.1.6
 ## explicit; go 1.17
 github.com/proglottis/gpgme
-# github.com/rootless-containers/rootlesskit/v2 v2.3.5
-## explicit; go 1.23.0
+# github.com/rootless-containers/rootlesskit/v2 v2.3.6
+## explicit; go 1.24.2
 github.com/rootless-containers/rootlesskit/v2/pkg/api
 github.com/rootless-containers/rootlesskit/v2/pkg/lowlevelmsgutil
 github.com/rootless-containers/rootlesskit/v2/pkg/port
