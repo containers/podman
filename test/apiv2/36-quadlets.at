@@ -33,6 +33,12 @@ t GET libpod/quadlets/nonexistent.container 405
 # Test 404 for non-existent quadlet
 t GET libpod/quadlets/nonexistent.container/file 404
 
+# Test 404 for non-existent quadlet exists endpoint
+t GET libpod/quadlets/nonexistent.container/exists 404
+
+# Test 500 for invalid quadlet extension (not a user-facing "not found" but an input error)
+t GET libpod/quadlets/invalid.badext/exists 500
+
 # Install a quadlet with a unique name
 quadlet_name=quadlet-test-$(cat /proc/sys/kernel/random/uuid)
 
@@ -79,6 +85,12 @@ is "$output" "$quadlet_container_file_content"
 
 t GET "libpod/quadlets/$quadlet_build_name/file" 200
 is "$output" "$quadlet_build_file_content"
+
+# Test exists endpoint returns 204 for existing quadlet
+t GET "libpod/quadlets/$quadlet_container_name/exists" 204
+
+# Test exists endpoint returns 500 for quadlet without extension
+t GET "libpod/quadlets/$quadlet_name/exists" 500
 
 podman quadlet rm $quadlet_container_name
 podman quadlet rm $quadlet_build_name
@@ -319,16 +331,20 @@ EOF
 echo "$quadlet_1_content" > "$TMPDIR/$quadlet_1"
 podman quadlet install $TMPDIR/$quadlet_1
 
+t GET "libpod/quadlets/$quadlet_1/exists" 204
+
 t DELETE "libpod/quadlets/$quadlet_1" 200 \
     '.Removed|length=1' \
     '.QuadletErrors|length=0'
 
 t GET "libpod/quadlets/$quadlet_1/file" 404
 
-t DELETE "libpod/quadlets/nonexistent.container" 200 \
+# Verify exists returns 404 after deletion
+t GET "libpod/quadlets/$quadlet_1/exists" 404
+
+t DELETE "libpod/quadlets/nonexistent.container" 404 \
     '.Removed|length=0' \
-    '.Errors|length=1' \
-    '.Errors~.*could not locate quadlet.*'
+    .cause='no such quadlet'
 
 t DELETE "libpod/quadlets/nonexistent.container?ignore=true" 200 \
     '.Removed|length=1' \
@@ -353,7 +369,7 @@ podman quadlet install $TMPDIR/$quadlet_2
 if systemctl --user start "${quadlet_2%.*}.service" > /dev/null 2>&1; then
     if systemctl --user is-active --quiet ${quadlet_2%.*}.service; then
         t DELETE "libpod/quadlets/$quadlet_2" 400 \
-            .cause~.*'container'.*'is running and force is not set, refusing to remove'.*
+            .cause~.*'quadlet is running'
 
         t DELETE "libpod/quadlets/$quadlet_2?force=true" 200
     fi

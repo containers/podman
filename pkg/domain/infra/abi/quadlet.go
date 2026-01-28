@@ -719,6 +719,15 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 	return finalReports, nil
 }
 
+// QuadletExists checks whether a quadlet with the given name exists.
+func (ic *ContainerEngine) QuadletExists(_ context.Context, name string) (*entities.BoolReport, error) {
+	_, err := getQuadletPathByName(name)
+	if err != nil && !errors.Is(err, define.ErrNoSuchQuadlet) {
+		return nil, err
+	}
+	return &entities.BoolReport{Value: err == nil}, nil
+}
+
 // Retrieve path to a Quadlet file given full name including extension
 func getQuadletPathByName(name string) (string, error) {
 	// Check if we were given a valid extension
@@ -737,7 +746,7 @@ func getQuadletPathByName(name string) (string, error) {
 		}
 		return testPath, nil
 	}
-	return "", fmt.Errorf("could not locate quadlet %q in any supported quadlet directory", name)
+	return "", fmt.Errorf("could not locate quadlet %q in any supported quadlet directory: %w", name, define.ErrNoSuchQuadlet)
 }
 
 func (ic *ContainerEngine) QuadletPrint(_ context.Context, quadlet string) (string, error) {
