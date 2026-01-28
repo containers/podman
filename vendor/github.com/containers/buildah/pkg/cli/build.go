@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
+	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -112,7 +113,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	if c.Flag("build-context").Changed {
 		for _, contextString := range iopts.BuildContext {
 			av := strings.SplitN(contextString, "=", 2)
-			if len(av) > 1 {
+			// the key should be non-empty: we use "" as internal
+			// shorthand for the default build context when there's
+			// an overlay mounted over it
+			if len(av) > 1 && av[0] != "" {
 				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
 				if err != nil {
 					return options, nil, nil, fmt.Errorf("while parsing additional build context: %w", err)
@@ -219,6 +223,14 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
 	}
 
+	if iopts.StageLabels && !iopts.CacheStages {
+		return options, nil, nil, errors.New("'stage-labels' requires 'cache-stages'")
+	}
+
+	if iopts.BuildIDFile != "" && !iopts.StageLabels {
+		return options, nil, nil, errors.New("'build-id-file' requires 'stage-labels'")
+	}
+
 	if c.Flag("compress").Changed {
 		logrus.Debugf("--compress option specified but is ignored")
 	}
@@ -275,11 +287,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		for _, buildOutput := range iopts.BuildOutputs {
 			// if any of these go to stdout, we need to avoid
 			// interspersing our random output in with it
-			buildOption, err := parse.GetBuildOutput(buildOutput)
+			buildOption, err := internalParse.GetBuildOutput(buildOutput)
 			if err != nil {
 				return options, nil, nil, err
 			}
-			if buildOption.IsStdout {
+			if buildOption.Type == internalParse.BuildOutputStdout {
 				iopts.Quiet = true
 			}
 		}
@@ -381,8 +393,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Architecture:            systemContext.ArchitectureChoice,
 		Args:                    args,
 		BlobDirectory:           iopts.BlobCache,
+		BuildIDFile:             iopts.BuildIDFile,
 		BuildOutputs:            iopts.BuildOutputs,
 		CacheFrom:               cacheFrom,
+		CacheStages:             iopts.CacheStages,
 		CacheTo:                 cacheTo,
 		CacheTTL:                cacheTTL,
 		CDIConfigDir:            iopts.CDIConfigDir,
@@ -405,6 +419,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		GroupAdd:                iopts.GroupAdd,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 iopts.Iidfile,
+		IIDFileRaw:              iopts.IidfileRaw,
 		IgnoreFile:              iopts.IgnoreFile,
 		In:                      stdin,
 		InheritLabels:           inheritLabels,
@@ -418,6 +433,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		LogRusage:               iopts.LogRusage,
 		LogSplitByPlatform:      iopts.LogSplitByPlatform,
 		Manifest:                iopts.Manifest,
+		MetadataFile:            iopts.MetadataFile,
 		MaxPullPushRetries:      iopts.Retry,
 		NamespaceOptions:        namespaceOptions,
 		NoCache:                 iopts.NoCache,
@@ -443,6 +459,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		SkipUnusedStages:        skipUnusedStages,
 		SourceDateEpoch:         sourceDateEpoch,
 		Squash:                  iopts.Squash,
+		StageLabels:             iopts.StageLabels,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,
 		Timestamp:               timestamp,

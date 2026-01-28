@@ -1168,7 +1168,7 @@ func copierHandlerStat(req request, pm *fileutils.PatternMatcher, idMappings *id
 					hostPair := idtools.IDPair{UID: uid, GID: gid}
 					uid, gid, err = idMappings.ToContainer(hostPair)
 					if err != nil {
-						return errorResponse("copier: stat: mapping host filesystem owners %#v to container filesystem owners: %w", hostPair, err)
+						return errorResponse("copier: stat: mapping host filesystem owners %#v to container filesystem owners: %v", hostPair, err)
 					}
 				}
 				result.UID, result.GID = int64(uid), int64(gid)
@@ -2227,7 +2227,7 @@ func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response,
 				return errorResponse("copier: mkdir: error setting owner of %q to %d:%d: %v", path, dirUID, dirGID, err)
 			}
 			if err = chmod(path, dirMode); err != nil {
-				return errorResponse("copier: mkdir: error setting permissions on %q to 0%o: %v", path, dirMode)
+				return errorResponse("copier: mkdir: error setting permissions on %q to 0%o: %v", path, dirMode, err)
 			}
 			created = append(created, path)
 		} else {
@@ -2409,7 +2409,7 @@ func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response 
 					return errorResponse("copier: ensure: error setting owner of %q to %d:%d: %v", leaf, uid, gid, err)
 				}
 				if err = chmod(filepath.Join(req.Root, leaf), mode); err != nil {
-					return errorResponse("copier: ensure: error setting permissions on %q to 0%o: %v", leaf, mode)
+					return errorResponse("copier: ensure: error setting permissions on %q to 0%o: %v", leaf, mode, err)
 				}
 				if item.ModTime != nil {
 					if err := os.Chtimes(filepath.Join(req.Root, leaf), *item.ModTime, *item.ModTime); err != nil {

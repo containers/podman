@@ -54,7 +54,7 @@ ifeq ($(BUILDDEBUG), 1)
 endif
 
 # Managed by renovate.
-export GOLANGCI_LINT_VERSION := 2.1.0
+export GOLANGCI_LINT_VERSION := 2.8.0
 
 #   make all BUILDDEBUG=1
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
@@ -66,16 +66,31 @@ bin/buildah: $(SOURCES) internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 	test -z "${SELINUXOPT}" || chcon --verbose -t $(SELINUXTYPE) $@
 
-ifneq ($(shell $(AS) --version | grep x86_64),)
 internal/mkcw/embed/entrypoint_amd64.gz: internal/mkcw/embed/entrypoint_amd64
 	gzip -k9nf $^
+internal/mkcw/embed/entrypoint_arm64.gz: internal/mkcw/embed/entrypoint_arm64
+	gzip -k9nf $^
+internal/mkcw/embed/entrypoint_ppc64le.gz: internal/mkcw/embed/entrypoint_ppc64le
+	gzip -k9nf $^
+internal/mkcw/embed/entrypoint_s390x.gz: internal/mkcw/embed/entrypoint_s390x
+	gzip -k9nf $^
 
-internal/mkcw/embed/entrypoint_amd64: internal/mkcw/embed/entrypoint_amd64.s
+ifneq ($(shell $(AS) --version | grep -E 'x86_64-([^-]+-)?linux'),)
+internal/mkcw/embed/entrypoint_amd64: internal/mkcw/embed/asm/entrypoint_amd64.s
 	$(AS) -o $(patsubst %.s,%.o,$^) $^
 	$(LD) -o $@ $(patsubst %.s,%.o,$^)
 	$(STRIP) $@
+else
+internal/mkcw/embed/entrypoint_amd64: internal/mkcw/embed/entrypoint_amd64.s internal/mkcw/embed/entrypoint.go
+	GOOS=linux GOARCH=amd64 $(GO) build -ldflags "-E _start -s" -o $@ ./internal/mkcw/embed
 endif
 
+internal/mkcw/embed/entrypoint_arm64: internal/mkcw/embed/entrypoint_arm64.s internal/mkcw/embed/entrypoint.go
+	GOOS=linux GOARCH=arm64 $(GO) build -ldflags "-E _start -s" -o $@ ./internal/mkcw/embed
+internal/mkcw/embed/entrypoint_ppc64le: internal/mkcw/embed/entrypoint_ppc64le.s internal/mkcw/embed/entrypoint.go
+	GOOS=linux GOARCH=ppc64le $(GO) build -ldflags "-E _start -s" -o $@ ./internal/mkcw/embed
+internal/mkcw/embed/entrypoint_s390x: internal/mkcw/embed/entrypoint_s390x.s internal/mkcw/embed/entrypoint.go
+	GOOS=linux GOARCH=s390x $(GO) build -ldflags "-E _start -s" -o $@ ./internal/mkcw/embed
 
 .PHONY: buildah
 buildah: bin/buildah
@@ -88,7 +103,7 @@ FREEBSD_CROSS_TARGETS := $(filter bin/buildah.freebsd.%,$(ALL_CROSS_TARGETS))
 .PHONY: cross
 cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $(FREEBSD_CROSS_TARGETS)
 
-bin/buildah.%: $(SOURCES)
+bin/buildah.%: $(SOURCES) internal/mkcw/embed/entrypoint_amd64.gz
 	mkdir -p ./bin
 	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
 
@@ -118,7 +133,7 @@ bin/passwd: tests/passwd/passwd.go
 
 .PHONY: clean
 clean:
-	$(RM) -r bin tests/testreport/testreport tests/conformance/testdata/mount-targets/true
+	$(RM) -r bin tests/testreport/testreport tests/conformance/testdata/mount-targets/true internal/mkcw/embed/entrypoint_amd64 internal/mkcw/embed/entrypoint_arm64 internal/mkcw/embed/entrypoint_ppc64le internal/mkcw/embed/entrypoint_s390x internal/mkcw/embed/*.gz internal/mkcw/embed/asm/*.o
 	$(MAKE) -C docs clean
 
 .PHONY: docs
@@ -196,6 +211,10 @@ vendor:
 lint: install.tools
 	./tests/tools/build/golangci-lint run $(LINTFLAGS)
 	./tests/tools/build/golangci-lint run --tests=false $(LINTFLAGS)
+
+.PHONY: fmt
+fmt: install.tools
+	./tests/tools/build/golangci-lint fmt $(LINTFLAGS)
 
 # CAUTION: This is not a replacement for RPMs provided by your distro.
 # Only intended to build and test the latest unreleased changes.
