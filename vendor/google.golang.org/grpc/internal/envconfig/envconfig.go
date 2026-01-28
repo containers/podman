@@ -77,6 +77,11 @@ var (
 	//   - Target resolution is disabled.
 	//   - The DNS resolver is being used.
 	EnableDefaultPortForProxyTarget = boolFromEnv("GRPC_EXPERIMENTAL_ENABLE_DEFAULT_PORT_FOR_PROXY_TARGET", true)
+
+	// XDSAuthorityRewrite indicates whether xDS authority rewriting is enabled.
+	// This feature is defined in gRFC A81 and is enabled by setting the
+	// environment variable GRPC_EXPERIMENTAL_XDS_AUTHORITY_REWRITE to "true".
+	XDSAuthorityRewrite = boolFromEnv("GRPC_EXPERIMENTAL_XDS_AUTHORITY_REWRITE", false)
 )
 
 func boolFromEnv(envVar string, def bool) bool {
