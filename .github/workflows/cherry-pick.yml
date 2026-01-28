@@ -1,0 +1,95 @@
+name: Cherry Pick to Release Branch
+
+on:
+  pull_request:
+    types: [closed, labeled]
+
+jobs:
+  cherry-pick:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Get cherry-pick labels
+        id: labels
+        run: |
+          labels='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          cherry_pick_branches=$(echo "$labels" | jq -r '.[] | select(startswith("cherry-pick-")) | sub("cherry-pick-"; "")')
+          if [ -z "$cherry_pick_branches" ]; then
+            echo "No cherry-pick labels found"
+            echo "branches=" >> $GITHUB_OUTPUT
+          else
+            echo "Found cherry-pick targets: $cherry_pick_branches"
+            # Convert newlines to spaces for iteration
+            echo "branches<<EOF" >> $GITHUB_OUTPUT
+            echo "$cherry_pick_branches" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        if: steps.labels.outputs.branches != ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        if: steps.labels.outputs.branches != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Cherry-pick to release branches
+        if: steps.labels.outputs.branches != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          branches="${{ steps.labels.outputs.branches }}"
+
+          for branch in $branches; do
+            echo "Processing cherry-pick to $branch"
+
+            # Check if branch exists
+            if ! git ls-remote --exit-code origin "$branch" > /dev/null 2>&1; then
+              echo "Branch $branch does not exist"
+              gh pr comment "$PR_NUMBER" --body "$(cat <<EOF
+          Cherry-pick failed: branch \`$branch\` does not exist.
+          EOF
+          )"
+              continue
+            fi
+
+            # Checkout target branch
+            git checkout "$branch"
+            git pull origin "$branch"
+
+            # Attempt cherry-pick
+            if git cherry-pick "$MERGE_SHA" --mainline 1; then
+              echo "Cherry-pick to $branch successful"
+              git push origin "$branch"
+            else
+              echo "Cherry-pick to $branch failed"
+              git cherry-pick --abort || true
+
+              gh pr comment "$PR_NUMBER" --body "$(cat <<EOF
+          Cherry-pick to \`$branch\` failed due to conflicts.
+
+          Please cherry-pick manually:
+          \`\`\`bash
+          git fetch origin
+          git checkout $branch
+          git cherry-pick $MERGE_SHA -m 1
+          # resolve conflicts
+          git push origin $branch
+          \`\`\`
+          EOF
+          )"
+            fi
+
+            # Return to default branch for next iteration
+            git checkout "${{ github.event.repository.default_branch }}"
+          done
