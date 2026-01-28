@@ -2,6 +2,7 @@ package imagebuildah
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,11 +16,13 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
+	"github.com/containers/buildah/internal/metadata"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/buildah/util"
 	encconfig "github.com/containers/ocicrypt/config"
+	"github.com/google/uuid"
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/openshift/imagebuilder"
@@ -59,18 +62,19 @@ var builtinAllowedBuildArgs = map[string]struct{}{
 	internal.SourceDateEpochName: {},
 }
 
-// Executor is a buildah-based implementation of the imagebuilder.Executor
+// executor is a buildah-based implementation of the imagebuilder.Executor
 // interface.  It coordinates the entire build by using one or more
-// StageExecutors to handle each stage of the build.
-type Executor struct {
+// stageExecutors to handle each stage of the build.
+type executor struct {
 	cacheFrom                      []reference.Named
 	cacheTo                        []reference.Named
 	cacheTTL                       time.Duration
 	containerSuffix                string
 	logger                         *logrus.Logger
-	stages                         map[string]*StageExecutor
+	stages                         map[string]*stageExecutor
 	store                          storage.Store
 	contextDir                     string
+	contextDirWritesAreDiscarded   bool
 	pullPolicy                     define.PullPolicy
 	registry                       string
 	ignoreUnrecognizedInstructions bool
@@ -103,11 +107,16 @@ type Executor struct {
 	commonBuildOptions                      *define.CommonBuildOptions
 	defaultMountsFilePath                   string
 	iidfile                                 string
+	iidfileRaw                              string
 	squash                                  bool
 	labels                                  []string
 	layerLabels                             []string
 	annotations                             []string
 	layers                                  bool
+	cacheStages                             bool
+	stageLabels                             bool
+	buildID                                 string
+	intermediateStageParents                map[string]struct{} // Tracks which intermediate stages are used as base by other intermediate stages
 	noHostname                              bool
 	noHosts                                 bool
 	useCache                                bool
@@ -172,6 +181,7 @@ type Executor struct {
 	sourceDateEpoch                         *time.Time
 	rewriteTimestamp                        bool
 	createdAnnotation                       types.OptionalBool
+	metadataFile                            string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -184,7 +194,7 @@ type imageTypeAndHistoryAndDiffIDs struct {
 }
 
 // newExecutor creates a new instance of the imagebuilder.Executor interface.
-func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, options define.BuildOptions, mainNode *parser.Node, containerFiles []string) (*Executor, error) {
+func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, options define.BuildOptions, mainNode *parser.Node, containerFiles []string, processLabel, mountLabel string, contextWritesDiscarded bool) (*executor, error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container config: %w", err)
@@ -244,16 +254,30 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		buildOutputs = append(buildOutputs, options.BuildOutput) //nolint:staticcheck
 	}
 
-	exec := Executor{
+	// Generate unique build ID for stage labels (also used by --build-id-file)
+	var buildID string
+	if options.StageLabels {
+		buildID = uuid.New().String()
+
+		// Write build ID to file if requested
+		if options.BuildIDFile != "" {
+			if err := os.WriteFile(options.BuildIDFile, []byte(buildID), 0o644); err != nil {
+				return nil, fmt.Errorf("writing build ID to file %q: %w", options.BuildIDFile, err)
+			}
+		}
+	}
+
+	exec := executor{
 		args:                                    options.Args,
 		cacheFrom:                               options.CacheFrom,
 		cacheTo:                                 options.CacheTo,
 		cacheTTL:                                options.CacheTTL,
 		containerSuffix:                         options.ContainerSuffix,
 		logger:                                  logger,
-		stages:                                  make(map[string]*StageExecutor),
+		stages:                                  make(map[string]*stageExecutor),
 		store:                                   store,
 		contextDir:                              options.ContextDirectory,
+		contextDirWritesAreDiscarded:            contextWritesDiscarded,
 		excludes:                                excludes,
 		groupAdd:                                options.GroupAdd,
 		ignoreFile:                              options.IgnoreFile,
@@ -288,11 +312,18 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		commonBuildOptions:                      options.CommonBuildOpts,
 		defaultMountsFilePath:                   options.DefaultMountsFilePath,
 		iidfile:                                 options.IIDFile,
+		iidfileRaw:                              options.IIDFileRaw,
 		squash:                                  options.Squash,
 		labels:                                  slices.Clone(options.Labels),
 		layerLabels:                             slices.Clone(options.LayerLabels),
+		processLabel:                            processLabel,
+		mountLabel:                              mountLabel,
 		annotations:                             slices.Clone(options.Annotations),
 		layers:                                  options.Layers,
+		cacheStages:                             options.CacheStages,
+		stageLabels:                             options.StageLabels,
+		buildID:                                 buildID,
+		intermediateStageParents:                make(map[string]struct{}),
 		noHostname:                              options.CommonBuildOpts.NoHostname,
 		noHosts:                                 options.CommonBuildOpts.NoHosts,
 		useCache:                                !options.NoCache,
@@ -346,6 +377,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		sourceDateEpoch:                         options.SourceDateEpoch,
 		rewriteTimestamp:                        options.RewriteTimestamp,
 		createdAnnotation:                       options.CreatedAnnotation,
+		metadataFile:                            options.MetadataFile,
 	}
 	// sort unsetAnnotations because we will later write these
 	// values to the history of the image therefore we want to
@@ -399,10 +431,10 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 
 // startStage creates a new stage executor that will be referenced whenever a
 // COPY or ADD statement uses a --from=NAME flag.
-func (b *Executor) startStage(ctx context.Context, stage *imagebuilder.Stage, stages imagebuilder.Stages, output string) *StageExecutor {
+func (b *executor) startStage(ctx context.Context, stage *imagebuilder.Stage, stages imagebuilder.Stages, output string) *stageExecutor {
 	// create a copy of systemContext for each stage executor.
 	systemContext := *b.systemContext
-	stageExec := &StageExecutor{
+	stageExec := &stageExecutor{
 		ctx:             ctx,
 		executor:        b,
 		systemContext:   &systemContext,
@@ -423,7 +455,7 @@ func (b *Executor) startStage(ctx context.Context, stage *imagebuilder.Stage, st
 }
 
 // resolveNameToImageRef creates a types.ImageReference for the output name in local storage
-func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, error) {
+func (b *executor) resolveNameToImageRef(output string) (types.ImageReference, error) {
 	if imageRef, err := alltransports.ParseImageName(output); err == nil {
 		return imageRef, nil
 	}
@@ -443,7 +475,7 @@ func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, e
 // that the specified stage has finished.  If there is no stage defined by that
 // name, then it will return (false, nil).  If there is a stage defined by that
 // name, it will return true along with any error it encounters.
-func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebuilder.Stages) (bool, error) {
+func (b *executor) waitForStage(ctx context.Context, name string, stages imagebuilder.Stages) (bool, error) {
 	found := false
 	for _, otherStage := range stages {
 		if otherStage.Name == name || strconv.Itoa(otherStage.Position) == name {
@@ -479,7 +511,7 @@ func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebu
 }
 
 // getImageTypeAndHistoryAndDiffIDs returns the os, architecture, manifest type, history, and diff IDs list of imageID.
-func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID string) (string, string, string, []v1.History, []digest.Digest, error) {
+func (b *executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID string) (string, string, string, []v1.History, []digest.Digest, error) {
 	b.imageInfoLock.Lock()
 	imageInfo, ok := b.imageInfoCache[imageID]
 	b.imageInfoLock.Unlock()
@@ -519,7 +551,7 @@ func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 	return oci.OS, oci.Architecture, manifestFormat, oci.History, oci.RootFS.DiffIDs, nil
 }
 
-func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, ref reference.Canonical, onlyBaseImage bool, err error) {
+func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, commitResults *buildah.CommitResults, onlyBaseImage bool, err error) {
 	stage := stages[stageIndex]
 	ib := stage.Builder
 	node := stage.Node
@@ -616,7 +648,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	}
 
 	// Build this stage.
-	if imageID, ref, onlyBaseImage, err = stageExecutor.Execute(ctx, base); err != nil {
+	if imageID, commitResults, onlyBaseImage, err = stageExecutor.execute(ctx, base); err != nil {
 		return "", nil, onlyBaseImage, err
 	}
 
@@ -630,7 +662,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 		b.stagesLock.Unlock()
 	}
 
-	return imageID, ref, onlyBaseImage, nil
+	return imageID, commitResults, onlyBaseImage, nil
 }
 
 type stageDependencyInfo struct {
@@ -652,7 +684,7 @@ func markDependencyStagesForTarget(dependencyMap map[string]*stageDependencyInfo
 	}
 }
 
-func (b *Executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMap map[string]*stageDependencyInfo, args map[string]string) {
+func (b *executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMap map[string]*stageDependencyInfo, args map[string]string) {
 	argFound := make(map[string]struct{})
 	for _, stage := range stages {
 		node := stage.Node // first line
@@ -699,12 +731,12 @@ func (b *Executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMa
 
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
 // over each of the one or more parsed Dockerfiles and stages.
-func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (imageID string, ref reference.Canonical, err error) {
+func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (imageID string, ref reference.Canonical, err error) {
 	if len(stages) == 0 {
 		return "", nil, errors.New("building: no stages to build")
 	}
 	var cleanupImages []string
-	cleanupStages := make(map[int]*StageExecutor)
+	cleanupStages := make(map[int]*stageExecutor)
 
 	stdout := b.out
 	if b.quiet {
@@ -832,6 +864,15 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 									currentStageInfo.Needs = append(currentStageInfo.Needs, baseWithArg)
 								}
 							}
+							// Track if this base is another intermediate stage (used as parent by current intermediate stage)
+							if stageIndex < len(stages)-1 {
+								// Only mark if the base is actually a stage, not an external image
+								if _, ok := dependencyMap[baseWithArg]; ok {
+									b.intermediateStageParents[baseWithArg] = struct{}{}
+									logrus.Debugf("stage %d (%s) uses stage %q as base - marking %q as intermediate parent",
+										stageIndex, stage.Name, baseWithArg, baseWithArg)
+								}
+							}
 						}
 					}
 				case "ADD", "COPY":
@@ -922,7 +963,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		Index         int
 		ImageID       string
 		OnlyBaseImage bool
-		Ref           reference.Canonical
+		CommitResults buildah.CommitResults
 		Error         error
 	}
 
@@ -935,6 +976,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	var wg sync.WaitGroup
 	wg.Add(len(stages))
 
+	var commitResults buildah.CommitResults
 	go func() {
 		cancel := false
 		for stageIndex := range stages {
@@ -983,7 +1025,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 						return
 					}
 				}
-				stageID, stageRef, stageOnlyBaseImage, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
+				stageID, stageResults, stageOnlyBaseImage, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
 				if stageErr != nil {
 					cancel = true
 					ch <- Result{
@@ -997,7 +1039,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				ch <- Result{
 					Index:         index,
 					ImageID:       stageID,
-					Ref:           stageRef,
+					CommitResults: *stageResults,
 					OnlyBaseImage: stageOnlyBaseImage,
 					Error:         nil,
 				}
@@ -1029,15 +1071,17 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			// We're not populating the cache with intermediate
 			// images, so add this one to the list of images that
 			// we'll remove later.
-			// Only remove intermediate image is `--layers` is not provided
-			// or following stage was not only a base image ( i.e a different image ).
-			if !b.layers && !r.OnlyBaseImage {
+			// Only remove intermediate image if `--layers` is not provided,
+			// `--cache-stages` is not enabled, or following stage was not
+			// only a base image (i.e. a different image).
+			if !b.layers && !b.cacheStages && !r.OnlyBaseImage {
 				cleanupImages = append(cleanupImages, r.ImageID)
 			}
 		}
 		if r.Index == len(stages)-1 {
 			imageID = r.ImageID
-			ref = r.Ref
+			commitResults = r.CommitResults
+			ref = commitResults.Canonical
 		}
 		b.stagesLock.Unlock()
 	}
@@ -1088,14 +1132,47 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	if b.iidfile != "" {
 		iid := imageID
 		if iid != "" {
-			iid = "sha256:" + iid // only prepend a digest algorithm name if we actually got a value back
+			cdigest, err := digest.Parse("sha256:" + imageID)
+			if err != nil {
+				return imageID, ref, fmt.Errorf("coercing image ID into a digest structure: %w", err)
+			}
+			iid = cdigest.String()
 		}
 		if err = os.WriteFile(b.iidfile, []byte(iid), 0o644); err != nil {
 			return imageID, ref, fmt.Errorf("failed to write image ID to file %q: %w", b.iidfile, err)
 		}
-	} else {
+	}
+	if b.iidfileRaw != "" {
+		if err = os.WriteFile(b.iidfileRaw, []byte(imageID), 0o644); err != nil {
+			return imageID, ref, fmt.Errorf("failed to write image ID to file %q: %w", b.iidfileRaw, err)
+		}
+	}
+	if b.iidfile == "" && b.iidfileRaw == "" {
 		if _, err := stdout.Write([]byte(imageID + "\n")); err != nil {
 			return imageID, ref, fmt.Errorf("failed to write image ID to stdout: %w", err)
+		}
+	}
+	if b.metadataFile != "" {
+		var cdigest digest.Digest
+		if imageID != "" {
+			if cdigest, err = digest.Parse("sha256:" + imageID); err != nil {
+				return imageID, ref, fmt.Errorf("coercing image ID into a digest structure: %w", err)
+			}
+		}
+		metadata, err := metadata.Build(cdigest, v1.Descriptor{
+			MediaType: commitResults.MediaType,
+			Digest:    commitResults.Digest,
+			Size:      int64(len(commitResults.ImageManifest)),
+		})
+		if err != nil {
+			return imageID, ref, fmt.Errorf("building metadata for metadata file: %w", err)
+		}
+		metadataBytes, err := json.Marshal(metadata)
+		if err != nil {
+			return imageID, ref, fmt.Errorf("encoding metadata for metadata file: %w", err)
+		}
+		if err = os.WriteFile(b.metadataFile, metadataBytes, 0o644); err != nil {
+			return imageID, ref, fmt.Errorf("failed to write image metadata to file %q: %w", b.metadataFile, err)
 		}
 	}
 	return imageID, ref, nil
@@ -1104,7 +1181,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 // deleteSuccessfulIntermediateCtrs goes through the container IDs in each
 // stage's containerIDs list and deletes the containers associated with those
 // IDs.
-func (b *Executor) deleteSuccessfulIntermediateCtrs() error {
+func (b *executor) deleteSuccessfulIntermediateCtrs() error {
 	var lastErr error
 	for _, s := range b.stages {
 		for _, ctr := range s.containerIDs {

@@ -141,6 +141,7 @@ func GetBindMount(sys *types.SystemContext, args []string, contextDir string, st
 	setDest := ""
 	bindNonRecursive := false
 	fromWhere := ""
+	skipOverlay := false
 
 	for _, val := range args {
 		argName, argValue, hasArgValue := strings.Cut(val, "=")
@@ -248,6 +249,7 @@ func GetBindMount(sys *types.SystemContext, args []string, contextDir string, st
 		if additionalMountPoints != nil {
 			if val, ok := additionalMountPoints[fromWhere]; ok {
 				mountPoint = val.MountPoint
+				skipOverlay = val.IsWritesDiscardedOverlay
 			}
 		}
 		// if mountPoint of image was not found in additionalMap
@@ -273,6 +275,14 @@ func GetBindMount(sys *types.SystemContext, args []string, contextDir string, st
 			}()
 		}
 		contextDir = mountPoint
+	} else {
+		// special case an additional mount point for "" as shorthand for "preferred location of the default build context"
+		if additionalMountPoints != nil {
+			if val, ok := additionalMountPoints[""]; ok {
+				contextDir = val.MountPoint
+				skipOverlay = val.IsWritesDiscardedOverlay
+			}
+		}
 	}
 
 	// buildkit parity: default bind option must be `rbind`
@@ -328,7 +338,7 @@ func GetBindMount(sys *types.SystemContext, args []string, contextDir string, st
 	}
 
 	overlayDir := ""
-	if mountedImage != "" || mountIsReadWrite(newMount) {
+	if !skipOverlay && (mountedImage != "" || mountIsReadWrite(newMount)) {
 		if newMount, overlayDir, err = convertToOverlay(newMount, store, mountLabel, tmpDir, 0, 0); err != nil {
 			return newMount, "", "", "", err
 		}

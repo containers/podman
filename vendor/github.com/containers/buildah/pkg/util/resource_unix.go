@@ -1,6 +1,6 @@
 //go:build linux || freebsd || darwin
 
-package util
+package util //nolint:revive,nolintlint
 
 import (
 	"fmt"
