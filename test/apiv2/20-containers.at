@@ -594,6 +594,31 @@ t GET containers/$cid/json 200 \
   .Config.Healthcheck.Timeout=30000000000 \
   .Config.Healthcheck.Retries=3
 
+t DELETE containers/$cid?v=true 204
+
+# Test Compat Create with healthcheck preserving arguments with spaces
+HEALTHCHECK_TMPD=$(mktemp -d podman-apiv2-test.healthcheck.XXXXXXXX)
+cat >$HEALTHCHECK_TMPD/create.json <<EOF
+{
+  "Image": "$IMAGE",
+  "Cmd": ["top"],
+  "Healthcheck": {
+    "Test": ["CMD", "/usr/bin/test", "--arg=value with spaces", "another arg"]
+  }
+}
+EOF
+t POST containers/create $HEALTHCHECK_TMPD/create.json 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Healthcheck.Test[0]="CMD" \
+  .Config.Healthcheck.Test[1]="/usr/bin/test" \
+  .Config.Healthcheck.Test[2]="--arg=value with spaces" \
+  .Config.Healthcheck.Test[3]="another arg"
+
+t DELETE containers/$cid?v=true 204
+rm -rf $HEALTHCHECK_TMPD
+
 # compat api: Test for mount options support
 # Sigh, JSON can't handle octal. 0755(octal) = 493(decimal)
 payload='{"Mounts":[{"Type":"tmpfs","Target":"/mnt/scratch","TmpfsOptions":{"SizeBytes":1024,"Mode":493}}]}'
