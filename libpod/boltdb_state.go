@@ -1228,9 +1228,13 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 	return networks, nil
 }
 
-// NetworkConnect adds the given container to the given network. If aliases are
-// specified, those will be added to the given network.
-func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error {
+// NetworkModify modifies the container network with the given options.
+func (s *BoltState) NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error {
+	return s.networkModify(ctr, network, opts, false)
+}
+
+// networkModify allows you to modify or add a new network, to add a new network use the new bool
+func (s *BoltState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new bool) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1249,7 +1253,7 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.Pe
 
 	optBytes, err := json.Marshal(opts)
 	if err != nil {
-		return fmt.Errorf("error marshalling network options JSON for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling network options JSON for container %s: %w", ctr.ID(), err)
 	}
 
 	ctrID := []byte(ctr.ID())
@@ -1277,17 +1281,26 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.Pe
 			return fmt.Errorf("container %s does not have a network bucket: %w", ctr.ID(), define.ErrNoSuchNetwork)
 		}
 		netConnected := ctrNetworksBkt.Get([]byte(network))
-		if netConnected != nil {
-			return fmt.Errorf("container %s is already connected to network %q: %w", ctr.ID(), network, define.ErrNetworkExists)
+
+		if new && netConnected != nil {
+			return fmt.Errorf("container %s is already connected to network %q: %w", ctr.ID(), network, define.ErrNetworkConnected)
+		} else if !new && netConnected == nil {
+			return fmt.Errorf("container %s is not connected to network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
 		}
 
-		// Add the network
+		// Modify/Add the network
 		if err := ctrNetworksBkt.Put([]byte(network), optBytes); err != nil {
-			return fmt.Errorf("error adding container %s to network %s in DB: %w", ctr.ID(), network, err)
+			return fmt.Errorf("adding container %s to network %s in DB: %w", ctr.ID(), network, err)
 		}
 
 		return nil
 	})
+}
+
+// NetworkConnect adds the given container to the given network. If aliases are
+// specified, those will be added to the given network.
+func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error {
+	return s.networkModify(ctr, network, opts, true)
 }
 
 // NetworkDisconnect disconnects the container from the given network, also

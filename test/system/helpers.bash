@@ -2,14 +2,20 @@
 
 # Podman command to run; may be podman-remote
 PODMAN=${PODMAN:-podman}
+QUADLET=${QUADLET:-quadlet}
 
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
-PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20220615"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20221018"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 PODMAN_TEST_IMAGE_ID=
+
+# Larger image containing systemd tools.
+PODMAN_SYSTEMD_IMAGE_NAME=${PODMAN_SYSTEMD_IMAGE_NAME:-"systemd-image"}
+PODMAN_SYSTEMD_IMAGE_TAG=${PODMAN_SYSTEMD_IMAGE_TAG:-"20230106"}
+PODMAN_SYSTEMD_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_SYSTEMD_IMAGE_NAME:$PODMAN_SYSTEMD_IMAGE_TAG"
 
 # Remote image that we *DO NOT* fetch or keep by default; used for testing pull
 # This has changed in 2021, from 0 through 3, various iterations of getting
@@ -19,6 +25,7 @@ PODMAN_NONLOCAL_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$
 
 # Because who wants to spell that out each time?
 IMAGE=$PODMAN_TEST_IMAGE_FQN
+SYSTEMD_IMAGE=$PODMAN_SYSTEMD_IMAGE_FQN
 
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
@@ -35,20 +42,6 @@ fi
 # Provide common setup and teardown functions, but do not name them such!
 # That way individual tests can override with their own setup/teardown,
 # while retaining the ability to include these if they so desire.
-
-# Some CI systems set this to runc, overriding the default crun.
-if [[ -n $OCI_RUNTIME ]]; then
-    if [[ -z $CONTAINERS_CONF ]]; then
-        # FIXME: BATS provides no mechanism for end-of-run cleanup[1]; how
-        # can we avoid leaving this file behind when we finish?
-        #   [1] https://github.com/bats-core/bats-core/issues/39
-        export CONTAINERS_CONF=$(mktemp --tmpdir=${BATS_TMPDIR:-/tmp} podman-bats-XXXXXXX.containers.conf)
-        cat >$CONTAINERS_CONF <<EOF
-[engine]
-runtime="$OCI_RUNTIME"
-EOF
-    fi
-fi
 
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
@@ -68,12 +61,15 @@ function basic_setup() {
     run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
     for line in "${lines[@]}"; do
         set $line
-        if [ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]; then
+        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
             if [[ -z "$PODMAN_TEST_IMAGE_ID" ]]; then
                 # This will probably only trigger the 2nd time through setup
                 PODMAN_TEST_IMAGE_ID=$2
             fi
             found_needed_image=1
+        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
+            # This is a big image, don't force unnecessary pulls
+            :
         else
             # Always remove image that doesn't match by name
             echo "# setup(): removing stray image $1" >&3
@@ -109,6 +105,7 @@ function basic_teardown() {
     run_podman '?' pod rm -t 0 --all --force --ignore
     run_podman '?'     rm -t 0 --all --force --ignore
     run_podman '?' network prune --force
+    run_podman '?' volume rm -a -f
 
     command rm -rf $PODMAN_TMPDIR
 }
@@ -177,6 +174,9 @@ function run_podman() {
         [0-9])           expected_rc=$1; shift;;
         [1-9][0-9])      expected_rc=$1; shift;;
         [12][0-9][0-9])  expected_rc=$1; shift;;
+        [0-9]+w)         expected_rc=${1%+w}; shift;;  # exit code with warnings allowed
+        [1-9][0-9]+w)    expected_rc=${1%+w}; shift;;  # exit code with warnings allowed
+        [12][0-9][0-9]+w) expected_rc=${1%+w}; shift;; # exit code with warnings allowed
         '?')             expected_rc=  ; shift;;  # ignore exit code
     esac
 
@@ -191,6 +191,15 @@ function run_podman() {
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$output"
+
+        # FIXME FIXME FIXME: instrumenting to track down #15488. Please
+        # remove once that's fixed. We include the args because, remember,
+        # bats only shows output on error; it's possible that the first
+        # instance of the metacopy warning happens in a test that doesn't
+        # check output, hence doesn't fail.
+        if [[ "$output" =~ Ignoring.global.metacopy.option ]]; then
+            echo "# YO! metacopy warning triggered by: podman $*" >&3
+        fi
     fi
     if [ "$status" -ne 0 ]; then
         echo -n "[ rc=$status ";
@@ -262,6 +271,13 @@ function wait_for_output {
         if [ $output != "true" ]; then
             run_podman inspect --format '{{.State.ExitCode}}' $cid
             exitcode=$output
+
+            # One last chance: maybe the container exited just after logs cmd
+            run_podman logs $cid
+            if expr "$logs" : ".*$expect" >/dev/null; then
+                return
+            fi
+
             die "Container exited (status: $exitcode) before we saw '$expect': $logs"
         fi
 
@@ -276,70 +292,21 @@ function wait_for_ready {
     wait_for_output 'READY' "$@"
 }
 
-######################
-#  random_free_port  #  Pick an available port within a specified range
-######################
-function random_free_port() {
-    local range=${1:-5000-5999}
-
-    local port
-    for port in $(shuf -i ${range}); do
-        if port_is_free $port; then
-            echo $port
-            return
-        fi
-    done
-
-    die "Could not find open port in range $range"
-}
-
-function random_free_port_range() {
-    local size=${1?Usage: random_free_port_range SIZE (as in, number of ports)}
-
-    local maxtries=10
-    while [[ $maxtries -gt 0 ]]; do
-        local firstport=$(random_free_port)
-        local lastport=
-        for i in $(seq 1 $((size - 1))); do
-            lastport=$((firstport + i))
-            if ! port_is_free $lastport; then
-                echo "# port $lastport is in use; trying another." >&3
-                lastport=
-                break
-            fi
-        done
-        if [[ -n "$lastport" ]]; then
-            echo "$firstport-$lastport"
-            return
-        fi
-
-        maxtries=$((maxtries - 1))
-    done
-
-    die "Could not find free port range with size $size"
-}
-
-function port_is_free() {
-     local port=${1?Usage: port_is_free PORT}
-    ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null
-}
-
 ###################
-#  wait_for_port  #  Returns once port is available on host
+#  wait_for_file  #  Returns once file is available on host
 ###################
-function wait_for_port() {
-    local host=$1                      # Probably "localhost"
-    local port=$2                      # Numeric port
-    local _timeout=${3:-5}              # Optional; default to 5 seconds
+function wait_for_file() {
+    local file=$1                       # The path to the file
+    local _timeout=${2:-5}              # Optional; default 5 seconds
 
     # Wait
     while [ $_timeout -gt 0 ]; do
-        { exec {unused_fd}<> /dev/tcp/$host/$port; } &>/dev/null && return
+        test -e $file && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done
 
-    die "Timed out waiting for $host:$port"
+    die "Timed out waiting for $file"
 }
 
 # END   podman helpers
@@ -379,6 +346,10 @@ function is_netavark() {
     return 1
 }
 
+function is_aarch64() {
+    [ "$(uname -m)" == "aarch64" ]
+}
+
 # Returns the OCI runtime *basename* (typically crun or runc). Much as we'd
 # love to cache this result, we probably shouldn't.
 function podman_runtime() {
@@ -398,19 +369,33 @@ function journald_unavailable() {
         return 1
     fi
 
-    run journalctl -n 1
-    if [[ $status -eq 0 ]]; then
-        return 1
-    fi
+    # Test what quadlet/auto-update actually need: reading user systemd unit logs
+    # Create a dummy user unit to test if we can read its logs
+    local test_unit="podman-journald-test-$RANDOM.service"
+    systemctl --user start "$test_unit" 2>/dev/null || true
 
-    if [[ $output =~ permission ]]; then
+    run journalctl --user -n 1 --unit="$test_unit"
+    local journal_status=$status
+    local journal_output="$output"
+
+    systemctl --user stop "$test_unit" 2>/dev/null || true
+
+    # Check output for known error messages
+    if [[ $journal_output =~ permission ]]; then
         return 0
     fi
 
-    # This should never happen; if it does, it's likely that a subsequent
-    # test will fail. This output may help track that down.
-    echo "WEIRD: 'journalctl -n 1' failed with a non-permission error:"
-    echo "$output"
+    # Also treat "No journal files" as unavailable (rhel systems)
+    if [[ $journal_output =~ "No journal files" ]]; then
+        return 0
+    fi
+
+    # If we got a non-zero exit and output indicates failure, unavailable
+    if [[ $journal_status -ne 0 ]] && [[ $journal_output =~ (Failed|Cannot|Error) ]]; then
+        return 0
+    fi
+
+    # If we can read user unit logs (or the unit just doesn't exist, which is fine), available
     return 1
 }
 
@@ -462,6 +447,16 @@ function _add_label_if_missing() {
         echo "$msg"
     else
         echo "[$want] $msg"
+    fi
+}
+
+######################
+#  skip_if_no_ssh #  ...with an optional message
+######################
+function skip_if_no_ssh() {
+    if no_ssh; then
+        local msg=$(_add_label_if_missing "$1" "ssh")
+        skip "${msg:-not applicable with no ssh binary}"
     fi
 }
 
@@ -543,6 +538,12 @@ function skip_if_root_ubuntu {
                  skip "Cannot run this test on rootful ubuntu, usually due to user errors"
             fi
         fi
+    fi
+}
+
+function skip_if_aarch64 {
+    if is_aarch64; then
+        skip "${msg:-Cannot run this test on aarch64 systems}"
     fi
 }
 
@@ -776,35 +777,27 @@ function random_string() {
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
 }
 
-
-###########################
-#  random_rfc1918_subnet  #
-###########################
+##############
+#  safename  #  Returns a pseudorandom string suitable for container/image/etc names
+##############
 #
-# Use the class B set, because much of our CI environment (Google, RH)
-# already uses up much of the class A, and it's really hard to test
-# if a block is in use.
+# Name will include the bats test number and a pseudorandom element,
+# eg "t123-xyz123". safename() will return the same string across
+# multiple invocations within a given test; this makes it easier for
+# a maintainer to see common name patterns.
 #
-# This returns THREE OCTETS! It is up to our caller to append .0/24, .255, &c.
+# String is lower-case so it can be used as an image name
 #
-function random_rfc1918_subnet() {
-    local retries=1024
-
-    while [ "$retries" -gt 0 ];do
-        local cidr=172.$(( 16 + $RANDOM % 16 )).$(( $RANDOM & 255 ))
-
-        in_use=$(ip route list | fgrep $cidr)
-        if [ -z "$in_use" ]; then
-            echo "$cidr"
-            return
-        fi
-
-        retries=$(( retries - 1 ))
-    done
-
-    die "Could not find a random not-in-use rfc1918 subnet"
+function safename() {
+    # FIXME: I don't think these can ever fail. Remove checks once I'm sure.
+    test -n "$BATS_SUITE_TMPDIR"
+    test -n "$BATS_SUITE_TEST_NUMBER"
+    safenamepath=$BATS_SUITE_TMPDIR/.safename.$BATS_SUITE_TEST_NUMBER
+    if [[ ! -e $safenamepath ]]; then
+        echo -n "t${BATS_SUITE_TEST_NUMBER}-$(random_string 8 | tr A-Z a-z)" >$safenamepath
+    fi
+    cat $safenamepath
 }
-
 
 #########################
 #  find_exec_pid_files  #  Returns nothing or exec_pid hash files
@@ -918,6 +911,14 @@ CMD ["/entrypoint"]
 EOF
 
     run_podman build -t $imagename ${PODMAN_TMPDIR}
+}
+
+##########################
+#  sleep_to_next_second  #  Sleep until second rolls over
+##########################
+
+function sleep_to_next_second() {
+    sleep 0.$(printf '%04d' $((10000 - 10#$(date +%4N))))
 }
 
 # END   miscellaneous tools

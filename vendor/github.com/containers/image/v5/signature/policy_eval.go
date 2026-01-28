@@ -46,7 +46,7 @@ type PolicyRequirement interface {
 	// - sarRejected if the signature has not been verified;
 	//   in that case error must be non-nil, and should be an PolicyRequirementError if evaluation
 	//   succeeded but the result was rejection.
-	// - sarUnknown if if this PolicyRequirement does not deal with signatures.
+	// - sarUnknown if this PolicyRequirement does not deal with signatures.
 	//   NOTE: sarUnknown should not be returned if this PolicyRequirement should make a decision but something failed.
 	//   Returning sarUnknown and a non-nil error value is invalid.
 	// WARNING: This makes the signature contents acceptable for further processing,
@@ -172,10 +172,10 @@ func (pc *PolicyContext) requirementsForImageRef(ref types.ImageReference) Polic
 // but it does not necessarily mean that the contents of the signature are
 // consistent with local policy.
 // For example:
-// - Do not use a an existence of an accepted signature to determine whether to run
-//   a container based on this image; use IsRunningImageAllowed instead.
-// - Just because a signature is accepted does not automatically mean the contents of the
-//   signature are authorized to run code as root, or to affect system or cluster configuration.
+//   - Do not use a an existence of an accepted signature to determine whether to run
+//     a container based on this image; use IsRunningImageAllowed instead.
+//   - Just because a signature is accepted does not automatically mean the contents of the
+//     signature are authorized to run code as root, or to affect system or cluster configuration.
 func (pc *PolicyContext) GetSignaturesWithAcceptedAuthor(ctx context.Context, publicImage types.UnparsedImage) (sigs []*Signature, finalErr error) {
 	if err := pc.changeState(pcReady, pcInUse); err != nil {
 		return nil, err

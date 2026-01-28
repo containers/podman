@@ -39,6 +39,9 @@ var nextSeqNr uint32
 // Default netlink socket timeout, 60s
 var SocketTimeoutTv = unix.Timeval{Sec: 60, Usec: 0}
 
+// ErrorMessageReporting is the default error message reporting configuration for the new netlink sockets
+var EnableErrorMessageReporting bool = false
+
 // GetIPFamily returns the family type of a net.IP.
 func GetIPFamily(ip net.IP) int {
 	if len(ip) <= net.IPv4len {
@@ -80,6 +83,14 @@ func Swap32(i uint32) uint32 {
 	}
 	return (i&0xff000000)>>24 | (i&0xff0000)>>8 | (i&0xff00)<<8 | (i&0xff)<<24
 }
+
+const (
+	NLMSGERR_ATTR_UNUSED = 0
+	NLMSGERR_ATTR_MSG    = 1
+	NLMSGERR_ATTR_OFFS   = 2
+	NLMSGERR_ATTR_COOKIE = 3
+	NLMSGERR_ATTR_POLICY = 4
+)
 
 type NetlinkRequestData interface {
 	Len() int
@@ -303,6 +314,12 @@ func (msg *IfInfomsg) EncapType() string {
 	return fmt.Sprintf("unknown%d", msg.Type)
 }
 
+// Round the length of a netlink message up to align it properly.
+// Taken from syscall/netlink_linux.go by The Go Authors under BSD-style license.
+func nlmAlignOf(msglen int) int {
+	return (msglen + syscall.NLMSG_ALIGNTO - 1) & ^(syscall.NLMSG_ALIGNTO - 1)
+}
+
 func rtaAlignOf(attrlen int) int {
 	return (attrlen + unix.RTA_ALIGNTO - 1) & ^(unix.RTA_ALIGNTO - 1)
 }
@@ -487,6 +504,11 @@ func (req *NetlinkRequest) Execute(sockType int, resType uint16) ([][]byte, erro
 		if err := s.SetReceiveTimeout(&SocketTimeoutTv); err != nil {
 			return nil, err
 		}
+		if EnableErrorMessageReporting {
+			if err := s.SetExtAck(true); err != nil {
+				return nil, err
+			}
+		}
 
 		defer s.Close()
 	} else {
@@ -526,11 +548,37 @@ done:
 			}
 			if m.Header.Type == unix.NLMSG_DONE || m.Header.Type == unix.NLMSG_ERROR {
 				native := NativeEndian()
-				error := int32(native.Uint32(m.Data[0:4]))
-				if error == 0 {
+				errno := int32(native.Uint32(m.Data[0:4]))
+				if errno == 0 {
 					break done
 				}
-				return nil, syscall.Errno(-error)
+				var err error
+				err = syscall.Errno(-errno)
+
+				unreadData := m.Data[4:]
+				if m.Header.Flags|unix.NLM_F_ACK_TLVS != 0 && len(unreadData) > syscall.SizeofNlMsghdr {
+					// Skip the echoed request message.
+					echoReqH := (*syscall.NlMsghdr)(unsafe.Pointer(&unreadData[0]))
+					unreadData = unreadData[nlmAlignOf(int(echoReqH.Len)):]
+
+					// Annotate `err` using nlmsgerr attributes.
+					for len(unreadData) >= syscall.SizeofRtAttr {
+						attr := (*syscall.RtAttr)(unsafe.Pointer(&unreadData[0]))
+						attrData := unreadData[syscall.SizeofRtAttr:attr.Len]
+
+						switch attr.Type {
+						case NLMSGERR_ATTR_MSG:
+							err = fmt.Errorf("%w: %s", err, string(attrData))
+
+						default:
+							// TODO: handle other NLMSGERR_ATTR types
+						}
+
+						unreadData = unreadData[rtaAlignOf(int(attr.Len)):]
+					}
+				}
+
+				return nil, err
 			}
 			if resType != 0 && m.Header.Type != resType {
 				continue
@@ -743,6 +791,16 @@ func (s *NetlinkSocket) SetReceiveTimeout(timeout *unix.Timeval) error {
 	// Set a read timeout of SOCKET_READ_TIMEOUT, this will allow the Read to periodically unblock and avoid that a routine
 	// remains stuck on a recvmsg on a closed fd
 	return unix.SetsockoptTimeval(int(s.fd), unix.SOL_SOCKET, unix.SO_RCVTIMEO, timeout)
+}
+
+// SetExtAck requests error messages to be reported on the socket
+func (s *NetlinkSocket) SetExtAck(enable bool) error {
+	var enableN int
+	if enable {
+		enableN = 1
+	}
+
+	return unix.SetsockoptInt(int(s.fd), unix.SOL_NETLINK, unix.NETLINK_EXT_ACK, enableN)
 }
 
 func (s *NetlinkSocket) GetPid() (uint32, error) {

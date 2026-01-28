@@ -25,6 +25,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // For Linux, the kernel has already detected the ABI, ISA and Features.
@@ -127,6 +128,10 @@ var compatibility = map[string][]string{
 // the most compatible platform is first.
 // If some option (arch, os, variant) is not present, a value from current platform is detected.
 func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
+	// Note that this does not use Platform.OSFeatures and Platform.OSVersion at all.
+	// The fields are not specified by the OCI specification, as of version 1.1, usefully enough
+	// to be interoperable, anyway.
+
 	wantedArch := runtime.GOARCH
 	wantedVariant := ""
 	if ctx != nil && ctx.ArchitectureChoice != "" {
@@ -152,13 +157,9 @@ func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
 	if wantedVariant != "" {
 		// If the user requested a specific variant, we'll walk down
 		// the list from most to least compatible.
-		if compatibility[wantedArch] != nil {
-			variantOrder := compatibility[wantedArch]
-			for i, v := range variantOrder {
-				if wantedVariant == v {
-					variants = variantOrder[i:]
-					break
-				}
+		if variantOrder := compatibility[wantedArch]; variantOrder != nil {
+			if i := slices.Index(variantOrder, wantedVariant); i != -1 {
+				variants = variantOrder[i:]
 			}
 		}
 		if variants == nil {

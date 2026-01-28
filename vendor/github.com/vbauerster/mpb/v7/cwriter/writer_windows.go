@@ -16,7 +16,7 @@ var (
 )
 
 func (w *Writer) clearLines() error {
-	if !w.isTerminal {
+	if !w.terminal {
 		// hope it's cygwin or similar
 		return w.ansiCuuAndEd()
 	}

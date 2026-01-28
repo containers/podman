@@ -10,6 +10,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// isSubDir checks whether path is a subdirectory of root.
+func isSubDir(path, root string) bool {
+	// check if the specified container path is below a bind mount.
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, "../")
+}
+
+// isPathOnMount returns true if the specified containerPath is a subdir of any
+// Mount's destination.
+func isPathOnMount(c *Container, containerPath string) bool {
+	cleanedContainerPath := filepath.Clean(containerPath)
+	for _, m := range c.config.Spec.Mounts {
+		cleanedDestination := filepath.Clean(m.Destination)
+		if cleanedContainerPath == cleanedDestination {
+			return true
+		}
+		if isSubDir(cleanedContainerPath, cleanedDestination) {
+			return true
+		}
+		for dest := cleanedDestination; dest != "/" && dest != "."; dest = filepath.Dir(dest) {
+			if cleanedContainerPath == dest {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // pathAbs returns an absolute path.  If the specified path is
 // relative, it will be resolved relative to the container's working dir.
 func (c *Container) pathAbs(path string) string {

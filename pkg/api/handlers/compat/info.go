@@ -62,8 +62,6 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 			CPUSet:             sysInfo.Cpuset,
 			CPUShares:          sysInfo.CPUShares,
 			CgroupDriver:       configInfo.Engine.CgroupManager,
-			ClusterAdvertise:   "",
-			ClusterStore:       "",
 			ContainerdCommit:   docker.Commit{},
 			Containers:         infoData.Store.ContainerStore.Number,
 			ContainersPaused:   stateInfo[define.ContainerStatePaused],

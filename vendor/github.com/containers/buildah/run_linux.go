@@ -7,10 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -70,7 +70,7 @@ func setChildProcess() error {
 
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := ioutil.TempDir("", define.Package)
+	p, err := os.MkdirTemp("", define.Package)
 	if err != nil {
 		return err
 	}
@@ -217,6 +217,24 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	spec := g.Config
 	g = nil
 
+	// Override a buggy resource limit default that containers/common could supply before
+	// https://github.com/containers/common/pull/2199 fixed it.
+	if kernelPidMaxBytes, err := os.ReadFile("/proc/sys/kernel/pid_max"); err == nil {
+		kernelPidMaxString := strings.TrimSpace(string(kernelPidMaxBytes))
+		if kernelPidMaxValue, err := strconv.ParseUint(kernelPidMaxString, 10, 64); err == nil {
+			const rlimitDefaultValue = 1024 * 1024
+			var filteredLimits []specs.POSIXRlimit
+			for _, rlimit := range spec.Process.Rlimits {
+				if rlimit.Type == "RLIMIT_NPROC" && rlimit.Soft == kernelPidMaxValue && rlimit.Hard == kernelPidMaxValue {
+					rlimit.Soft, rlimit.Hard = rlimitDefaultValue, rlimitDefaultValue
+					logrus.Debugf("overrode RLIMIT_NPROC set to kernel system-wide process limit with %d", rlimitDefaultValue)
+				}
+				filteredLimits = append(filteredLimits, rlimit)
+			}
+			spec.Process.Rlimits = filteredLimits
+		}
+	}
+
 	// Set the seccomp configuration using the specified profile name.  Some syscalls are
 	// allowed if certain capabilities are to be granted (example: CAP_SYS_CHROOT and chroot),
 	// so we sorted out the capabilities lists first.
@@ -350,6 +368,33 @@ rootless=%d
 
 	defer b.cleanupTempVolumes()
 
+	// Handle mount flags that request that the source locations for "bind" mountpoints be
+	// relabeled, and filter those flags out of the list of mount options we pass to the
+	// runtime.
+	for i := range spec.Mounts {
+		switch spec.Mounts[i].Type {
+		default:
+			continue
+		case "bind", "rbind":
+			// all good, keep going
+		}
+		zflag := ""
+		for _, opt := range spec.Mounts[i].Options {
+			if opt == "z" || opt == "Z" {
+				zflag = opt
+			}
+		}
+		if zflag == "" {
+			continue
+		}
+		spec.Mounts[i].Options = slices.DeleteFunc(spec.Mounts[i].Options, func(opt string) bool {
+			return opt == "z" || opt == "Z"
+		})
+		if err := relabel(spec.Mounts[i].Source, b.MountLabel, zflag == "z"); err != nil {
+			return fmt.Errorf("setting file label %q on %q: %w", b.MountLabel, spec.Mounts[i].Source, err)
+		}
+	}
+
 	switch isolation {
 	case define.IsolationOCI:
 		var moreCreateArgs []string
@@ -410,7 +455,7 @@ func (b *Builder) setupOCIHooks(config *spec.Spec, hasVolumes bool) (map[string]
 		}
 	}
 
-	hookErr, err := hooksExec.RuntimeConfigFilter(context.Background(), allHooks["precreate"], config, hooksExec.DefaultPostKillTimeout)
+	hookErr, err := hooksExec.RuntimeConfigFilter(context.Background(), allHooks["precreate"], config, hooksExec.DefaultPostKillTimeout) //nolint:staticcheck
 	if err != nil {
 		logrus.Warnf("Container: precreate hook: %v", err)
 		if hookErr != nil && hookErr != err {
@@ -457,7 +502,7 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 		return fmt.Errorf("failed to get container config: %w", err)
 	}
 	// Other process resource limits
-	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits); err != nil {
+	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits.Get()); err != nil {
 		return err
 	}
 
@@ -478,7 +523,7 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	defer rootlessSlirpSyncR.Close()
 
 	// Be sure there are no fds inherited to slirp4netns except the sync pipe
-	files, err := ioutil.ReadDir("/proc/self/fd")
+	files, err := os.ReadDir("/proc/self/fd")
 	if err != nil {
 		return nil, fmt.Errorf("cannot list open fds: %w", err)
 	}
@@ -844,16 +889,19 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			if err := label.Relabel(host, mountLabel, true); err != nil {
 				return specs.Mount{}, err
 			}
+			options = slices.DeleteFunc(options, func(o string) bool { return o == "z" })
 		}
 		if foundZ {
 			if err := label.Relabel(host, mountLabel, false); err != nil {
 				return specs.Mount{}, err
 			}
+			options = slices.DeleteFunc(options, func(o string) bool { return o == "Z" })
 		}
 		if foundU {
 			if err := chown.ChangeHostPathOwnership(host, true, idMaps.processUID, idMaps.processGID); err != nil {
 				return specs.Mount{}, err
 			}
+			options = slices.DeleteFunc(options, func(o string) bool { return o == "U" })
 		}
 		if foundO {
 			if (upperDir != "" && workDir == "") || (workDir != "" && upperDir == "") {
@@ -979,9 +1027,6 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
 			return fmt.Errorf("error adding %q to the permitted capability set: %w", cap, err)
 		}
-		if err := g.AddProcessCapabilityAmbient(cap); err != nil {
-			return fmt.Errorf("error adding %q to the ambient capability set: %w", cap, err)
-		}
 	}
 	return nil
 }
@@ -996,9 +1041,6 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
 			return fmt.Errorf("error removing %q from the permitted capability set: %w", cap, err)
-		}
-		if err := g.DropProcessCapabilityAmbient(cap); err != nil {
-			return fmt.Errorf("error removing %q from the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil

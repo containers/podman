@@ -11,7 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 type truncatedHash [10]byte
@@ -21,7 +21,7 @@ type WeakRSAKeys struct {
 }
 
 func LoadWeakRSASuffixes(path string) (*WeakRSAKeys, error) {
-	f, err := ioutil.ReadFile(path)
+	f, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

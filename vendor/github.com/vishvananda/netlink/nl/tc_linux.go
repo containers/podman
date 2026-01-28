@@ -90,6 +90,7 @@ const (
 	SizeofTcU32Sel       = 0x10 // without keys
 	SizeofTcGen          = 0x14
 	SizeofTcConnmark     = SizeofTcGen + 0x04
+	SizeofTcCsum         = SizeofTcGen + 0x04
 	SizeofTcMirred       = SizeofTcGen + 0x08
 	SizeofTcTunnelKey    = SizeofTcGen + 0x04
 	SizeofTcSkbEdit      = SizeofTcGen
@@ -692,6 +693,36 @@ func DeserializeTcConnmark(b []byte) *TcConnmark {
 
 func (x *TcConnmark) Serialize() []byte {
 	return (*(*[SizeofTcConnmark]byte)(unsafe.Pointer(x)))[:]
+}
+
+const (
+	TCA_CSUM_UNSPEC = iota
+	TCA_CSUM_PARMS
+	TCA_CSUM_TM
+	TCA_CSUM_PAD
+	TCA_CSUM_MAX = TCA_CSUM_PAD
+)
+
+// struct tc_csum {
+//   tc_gen;
+//   __u32 update_flags;
+// }
+
+type TcCsum struct {
+	TcGen
+	UpdateFlags uint32
+}
+
+func (msg *TcCsum) Len() int {
+	return SizeofTcCsum
+}
+
+func DeserializeTcCsum(b []byte) *TcCsum {
+	return (*TcCsum)(unsafe.Pointer(&b[0:SizeofTcCsum][0]))
+}
+
+func (x *TcCsum) Serialize() []byte {
+	return (*(*[SizeofTcCsum]byte)(unsafe.Pointer(x)))[:]
 }
 
 const (

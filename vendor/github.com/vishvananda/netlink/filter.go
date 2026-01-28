@@ -157,6 +157,39 @@ func NewConnmarkAction() *ConnmarkAction {
 	}
 }
 
+type CsumUpdateFlags uint32
+
+const (
+	TCA_CSUM_UPDATE_FLAG_IPV4HDR CsumUpdateFlags = 1
+	TCA_CSUM_UPDATE_FLAG_ICMP    CsumUpdateFlags = 2
+	TCA_CSUM_UPDATE_FLAG_IGMP    CsumUpdateFlags = 4
+	TCA_CSUM_UPDATE_FLAG_TCP     CsumUpdateFlags = 8
+	TCA_CSUM_UPDATE_FLAG_UDP     CsumUpdateFlags = 16
+	TCA_CSUM_UPDATE_FLAG_UDPLITE CsumUpdateFlags = 32
+	TCA_CSUM_UPDATE_FLAG_SCTP    CsumUpdateFlags = 64
+)
+
+type CsumAction struct {
+	ActionAttrs
+	UpdateFlags CsumUpdateFlags
+}
+
+func (action *CsumAction) Type() string {
+	return "csum"
+}
+
+func (action *CsumAction) Attrs() *ActionAttrs {
+	return &action.ActionAttrs
+}
+
+func NewCsumAction() *CsumAction {
+	return &CsumAction{
+		ActionAttrs: ActionAttrs{
+			Action: TC_ACT_PIPE,
+		},
+	}
+}
+
 type MirredAct uint8
 
 func (a MirredAct) String() string {

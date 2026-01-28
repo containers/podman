@@ -32,7 +32,6 @@ func arches() []rspec.Arch {
 
 // DefaultProfile defines the whitelist for the default seccomp profile.
 func DefaultProfile(rs *specs.Spec) *rspec.LinuxSeccomp {
-
 	syscalls := []rspec.LinuxSyscall{
 		{
 			Names: []string{
@@ -151,6 +150,9 @@ func DefaultProfile(rs *specs.Spec) *rspec.LinuxSeccomp {
 				"io_submit",
 				"ipc",
 				"kill",
+				"landlock_add_rule",
+				"landlock_create_ruleset",
+				"landlock_restrict_self",
 				"lchown",
 				"lchown32",
 				"lgetxattr",
@@ -354,11 +356,23 @@ func DefaultProfile(rs *specs.Spec) *rspec.LinuxSeccomp {
 					Value: 0x0,
 					Op:    rspec.OpEqualTo,
 				},
+			},
+		},
+		{
+			Names:  []string{"personality"},
+			Action: rspec.ActAllow,
+			Args: []rspec.LinuxSeccompArg{
 				{
 					Index: 0,
 					Value: 0x0008,
 					Op:    rspec.OpEqualTo,
 				},
+			},
+		},
+		{
+			Names:  []string{"personality"},
+			Action: rspec.ActAllow,
+			Args: []rspec.LinuxSeccompArg{
 				{
 					Index: 0,
 					Value: 0xffffffff,
@@ -513,14 +527,13 @@ func DefaultProfile(rs *specs.Spec) *rspec.LinuxSeccomp {
 				Args: []rspec.LinuxSeccompArg{
 					{
 						Index:    sysCloneFlagsIndex,
-						Value:    CloneNewNS | CloneNewUTS | CloneNewIPC | CloneNewUser | CloneNewPID | CloneNewNet,
+						Value:    CloneNewNS | CloneNewUTS | CloneNewIPC | CloneNewUser | CloneNewPID | CloneNewNet | CloneNewCgroup,
 						ValueTwo: 0,
 						Op:       rspec.OpMaskedEqual,
 					},
 				},
 			},
 		}...)
-
 	}
 
 	arch := runtime.GOARCH

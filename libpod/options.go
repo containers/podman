@@ -162,7 +162,7 @@ func WithConmonPath(path string) RuntimeOption {
 			return fmt.Errorf("must provide a valid path: %w", define.ErrInvalidArg)
 		}
 
-		rt.config.Engine.ConmonPath = []string{path}
+		rt.config.Engine.ConmonPath.Set([]string{path})
 
 		return nil
 	}
@@ -175,8 +175,7 @@ func WithConmonEnv(environment []string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.Engine.ConmonEnvVars = make([]string, len(environment))
-		copy(rt.config.Engine.ConmonEnvVars, environment)
+		rt.config.Engine.ConmonEnvVars.Set(environment)
 
 		return nil
 	}
@@ -238,7 +237,6 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.Engine.StaticDir = dir
-		rt.config.Engine.StaticDirSet = true
 
 		return nil
 	}
@@ -276,7 +274,7 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 			}
 		}
 
-		rt.config.Engine.HooksDir = hooksDirs
+		rt.config.Engine.HooksDir.Set(hooksDirs)
 		return nil
 	}
 }
@@ -330,7 +328,6 @@ func WithTmpDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 		rt.config.Engine.TmpDir = dir
-		rt.config.Engine.TmpDirSet = true
 
 		return nil
 	}
@@ -379,7 +376,7 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.Network.CNIPluginDirs = []string{dir}
+		rt.config.Network.CNIPluginDirs.Set([]string{dir})
 
 		return nil
 	}
@@ -415,7 +412,6 @@ func WithVolumePath(volPath string) RuntimeOption {
 		}
 
 		rt.config.Engine.VolumePath = volPath
-		rt.config.Engine.VolumePathSet = true
 
 		return nil
 	}

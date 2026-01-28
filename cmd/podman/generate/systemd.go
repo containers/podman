@@ -70,9 +70,10 @@ func init() {
 	// NOTE: initially, there was only a --time/-t flag which mapped to
 	// stop-timeout. To remain backwards compatible create a hidden flag
 	// that maps to StopTimeout.
-	flags.UintVarP(&stopTimeout, stopTimeoutFlagName, "", containerConfig.Engine.StopTimeout, "Stop timeout override")
+	containerConfig := registry.PodmanConfig()
+	flags.UintVarP(&stopTimeout, stopTimeoutFlagName, "", containerConfig.ContainersConfDefaultsRO.Engine.StopTimeout, "Stop timeout override")
 	_ = systemdCmd.RegisterFlagCompletionFunc(stopTimeoutFlagName, completion.AutocompleteNone)
-	flags.UintVarP(&stopTimeout, stopTimeoutCompatFlagName, "t", containerConfig.Engine.StopTimeout, "Backwards alias for --stop-timeout")
+	flags.UintVarP(&stopTimeout, stopTimeoutCompatFlagName, "t", containerConfig.ContainersConfDefaultsRO.Engine.StopTimeout, "Backwards alias for --stop-timeout")
 	_ = flags.MarkHidden("time")
 
 	flags.BoolVar(&systemdOptions.New, newFlagName, false, "Create a new container or pod instead of starting an existing one")

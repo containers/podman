@@ -41,23 +41,6 @@ func (s Scope) String() string {
 	}
 }
 
-const (
-	RT_FILTER_PROTOCOL uint64 = 1 << (1 + iota)
-	RT_FILTER_SCOPE
-	RT_FILTER_TYPE
-	RT_FILTER_TOS
-	RT_FILTER_IIF
-	RT_FILTER_OIF
-	RT_FILTER_DST
-	RT_FILTER_SRC
-	RT_FILTER_GW
-	RT_FILTER_TABLE
-	RT_FILTER_HOPLIMIT
-	RT_FILTER_PRIORITY
-	RT_FILTER_MARK
-	RT_FILTER_MASK
-	RT_FILTER_REALM
-)
 
 const (
 	FLAG_ONLINK    NextHopFlag = unix.RTNH_F_ONLINK
@@ -1030,8 +1013,9 @@ func RouteListFiltered(family int, filter *Route, filterMask uint64) ([]Route, e
 // All rules must be defined in RouteFilter struct
 func (h *Handle) RouteListFiltered(family int, filter *Route, filterMask uint64) ([]Route, error) {
 	req := h.newNetlinkRequest(unix.RTM_GETROUTE, unix.NLM_F_DUMP)
-	infmsg := nl.NewIfInfomsg(family)
-	req.AddData(infmsg)
+	rtmsg := nl.NewRtMsg()
+	rtmsg.Family = uint8(family)
+	req.AddData(rtmsg)
 
 	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWROUTE)
 	if err != nil {

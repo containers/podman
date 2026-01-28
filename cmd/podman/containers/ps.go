@@ -126,7 +126,7 @@ func checkFlags(c *cobra.Command) error {
 		return errors.New("the watch and latest flags cannot be used together")
 	}
 	cfg := registry.PodmanConfig()
-	if cfg.Engine.Namespace != "" {
+	if cfg.ContainersConf.Engine.Namespace != "" {
 		if c.Flag("storage").Changed && listOpts.External {
 			return errors.New("--namespace and --external flags can not both be set")
 		}

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/checkpoint-restore/go-criu/v5/stats"
+	"github.com/checkpoint-restore/go-criu/v6/stats"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/podman/v4/pkg/domain/entities"

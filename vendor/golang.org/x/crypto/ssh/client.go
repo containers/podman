@@ -82,7 +82,7 @@ func NewClientConn(c net.Conn, addr string, config *ClientConfig) (Conn, <-chan 
 
 	if err := conn.clientHandshake(addr, &fullConf); err != nil {
 		c.Close()
-		return nil, nil, nil, fmt.Errorf("ssh: handshake failed: %v", err)
+		return nil, nil, nil, fmt.Errorf("ssh: handshake failed: %w", err)
 	}
 	conn.mux = newMux(conn.transport)
 	return conn, conn.mux.incomingChannels, conn.mux.incomingRequests, nil
@@ -110,6 +110,7 @@ func (c *connection) clientHandshake(dialAddress string, config *ClientConfig) e
 	}
 
 	c.sessionID = c.transport.getSessionID()
+	c.algorithms = c.transport.getAlgorithms()
 	return c.clientAuthenticate(config)
 }
 

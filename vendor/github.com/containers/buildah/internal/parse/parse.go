@@ -461,7 +461,7 @@ func GetCacheMount(args []string, additionalMountPoints map[string]internal.Stag
 	switch sharing {
 	case "locked":
 		// lock parent cache
-		lockfile, err := lockfile.GetLockfile(filepath.Join(newMount.Source, BuildahCacheLockfile))
+		lockfile, err := lockfile.GetLockfile(filepath.Join(newMount.Source, BuildahCacheLockfile)) //nolint:staticcheck
 		if err != nil {
 			return newMount, "", nil, fmt.Errorf("unable to acquire lock when sharing mode is locked: %w", err)
 		}
@@ -840,7 +840,7 @@ func UnlockLockArray(lockedTargets []string) {
 			logrus.Warnf("Lockfile %q was expected here, stat failed with %v", path, err)
 			continue
 		}
-		lockfile, err := lockfile.GetLockfile(path)
+		lockfile, err := lockfile.GetLockfile(path) //nolint:staticcheck
 		if err != nil {
 			// unable to get lockfile
 			// lets log error and continue
@@ -848,11 +848,15 @@ func UnlockLockArray(lockedTargets []string) {
 			logrus.Warn(err)
 			continue
 		}
-		if lockfile.Locked() {
+		// Unlock the lockfile, using defer/recover to handle the case
+		// where it might not be locked (which would cause Unlock to panic)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logrus.Warnf("Lockfile %q was expected to be locked, this is unexpected", path)
+				}
+			}()
 			lockfile.Unlock()
-		} else {
-			logrus.Warnf("Lockfile %q was expected to be locked, this is unexpected", path)
-			continue
-		}
+		}()
 	}
 }
