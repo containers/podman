@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v6/libpod/define"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/common/pkg/resize"
 )
 
@@ -165,7 +165,7 @@ type OCIRuntime interface { //nolint:interfacebloat
 	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
 
 	// UpdateContainer updates the given container's cgroup configuration.
-	UpdateContainer(ctr *Container, res *specs.LinuxResources) error
+	UpdateContainer(ctr *Container, res *spec.LinuxResources) error
 }
 
 // AttachOptions are options used when attached to a container or an exec
@@ -230,6 +230,12 @@ type ExecOptions struct {
 	ExitCommandDelay uint
 	// Privileged indicates the execed process will be launched in Privileged mode
 	Privileged bool
+	// CgroupPath is the path to a sub-cgroup to create for the exec session.
+	// If empty, no cgroup will be created.
+	CgroupPath string
+	// Resources are the resource limits to apply to the exec session's cgroup.
+	// Only used if CgroupPath is set.
+	Resources *spec.LinuxResources
 }
 
 // HTTPAttachStreams informs the HTTPAttach endpoint which of the container's
