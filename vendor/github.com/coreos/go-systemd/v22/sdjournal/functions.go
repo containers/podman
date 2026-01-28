@@ -1,4 +1,4 @@
-// Copyright 2015 RedHat, Inc.
+// Copyright 2015 Red Hat, Inc.
 // Copyright 2015 CoreOS, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
