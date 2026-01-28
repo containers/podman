@@ -18,7 +18,7 @@ require (
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.10.0
 	github.com/containers/winquit v1.1.0
-	github.com/coreos/go-systemd/v22 v22.6.0
+	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/crc-org/vfkit v0.6.3
 	github.com/cyphar/filepath-securejoin v0.6.1
 	github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
