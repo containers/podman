@@ -2203,7 +2203,6 @@ func (c *Container) addResolvConf() error {
 
 	ipv6 := c.checkForIPv6(netStatus)
 
-	networkBackend := c.runtime.config.Network.NetworkBackend
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers.Get())+len(c.config.DNSServer))
 
 	// If NetworkBackend is `netavark` do not populate `/etc/resolv.conf`
@@ -2213,7 +2212,7 @@ func (c *Container) addResolvConf() error {
 
 	// Exception: Populate `/etc/resolv.conf` if container is not connected to any network
 	// with dns enabled then we do not get any nameservers back.
-	if networkBackend != string(types.Netavark) || len(networkNameServers) == 0 {
+	if len(networkNameServers) == 0 {
 		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers.Get()...)
 		for _, ip := range c.config.DNSServer {
 			nameservers = append(nameservers, ip.String())
@@ -2222,9 +2221,9 @@ func (c *Container) addResolvConf() error {
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	keepHostServers := false
 	if len(nameservers) == 0 {
-		// when no network name servers or not netavark use host servers
+		// when no network name servers use host servers
 		// for aardvark dns we only want our single server in there
-		if len(networkNameServers) == 0 || networkBackend != string(types.Netavark) {
+		if len(networkNameServers) == 0 {
 			keepHostServers = true
 		}
 		if len(networkNameServers) > 0 {

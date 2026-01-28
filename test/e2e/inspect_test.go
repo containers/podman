@@ -445,7 +445,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("Verify container inspect has default network", func() {
-		SkipIfRootless("Requires root CNI networking")
+		SkipIfRootless("Requires root networking")
 		ctrName := "testctr"
 		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -457,7 +457,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("Verify stopped container still has default network in inspect", func() {
-		SkipIfRootless("Requires root CNI networking")
+		SkipIfRootless("Requires root networking")
 		ctrName := "testctr"
 		session := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()

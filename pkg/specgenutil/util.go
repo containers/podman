@@ -179,7 +179,7 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 		if *hostIP == "" {
 			return newPort, errors.New("must provide a non-empty container host IP to publish")
 		} else if *hostIP != "0.0.0.0" {
-			// If hostIP is 0.0.0.0, leave it unset - CNI treats
+			// If hostIP is 0.0.0.0, leave it unset - netavark treats
 			// 0.0.0.0 and empty differently, Docker does not.
 			testIP := net.ParseIP(*hostIP)
 			if testIP == nil {
@@ -281,7 +281,6 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		"--cgroup-manager", config.Engine.CgroupManager,
 		"--tmpdir", config.Engine.TmpDir,
 		"--network-config-dir", config.Network.NetworkConfigDir,
-		"--network-backend", config.Network.NetworkBackend,
 		"--volumepath", config.Engine.VolumePath,
 		fmt.Sprintf("--transient-store=%t", storageConfig.TransientStore),
 	}

@@ -9,16 +9,7 @@ podman\-network - Manage Podman networks
 ## DESCRIPTION
 The network command manages networks for Podman.
 
-Podman supports two network backends [Netavark](https://github.com/containers/netavark)
-and [CNI](https://www.cni.dev/). Netavark is the default network backend and was added in Podman version 4.0.
-CNI is deprecated and will be removed in the next major Podman version 5.0, in preference of Netavark.
-To configure the network backend use the `network_backend` key under the `[Network]` in
-**[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**.
-New systems use netavark by default, to check what backend is used run
-`podman info --format {{.Host.NetworkBackend}}`.
-
-All network commands work for both backends but CNI and Netavark use different config files
-so networks have to be created again after a backend change.
+Podman uses [Netavark](https://github.com/containers/netavark) as the network backend.
 
 ## COMMANDS
 

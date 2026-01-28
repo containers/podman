@@ -67,13 +67,6 @@ I realize that it's kind of stupid not to test 1.6, since that's
 precisely the test that would've caught #8613 early, but I just
 don't think it's worth the hassle of setting up cgroupsv1 VMs.
 
-For posterity, in an earlier incantation of this script I tried
-booting f32 into cgroupsv1 and ran into the following warnings
-when running new-podman on old-containers:
-```
-ERRO[0000] error joining network namespace for container 322b66d94640e31b2e6921565445cf0dade4ec13cabc16ee5f29292bdc038341: error retrieving network namespace at /var/run/netns/cni-577e2289-2c05-2e28-3c3d-002a5596e7da: failed to Statfs "/var/run/netns/cni-577e2289
-```
-
 Where To Go From Here
 =====================
 

@@ -197,7 +197,7 @@ EOF
 
 @test "info - network" {
     run_podman info --format '{{.Host.NetworkBackend}}'
-    assert "$output" = "netavark" "As of Feb 2024, CNI will never be default"
+    assert "$output" = "netavark" "Netavark is the only supported network backend"
 }
 
 # Whichever DB was picked by old_podman, make sure we honor it
