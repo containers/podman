@@ -205,6 +205,12 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	podmanConfig := registry.PodmanConfig()
 
+	if !registry.IsRemote() {
+		if cmd.Flag("hooks-dir").Changed {
+			podmanConfig.ContainersConf.Engine.HooksDir.Set(podmanConfig.HooksDir)
+		}
+	}
+
 	// Currently it is only possible to restore a container with the same runtime
 	// as used for checkpointing. It should be possible to make crun and runc
 	// compatible to restore a container with another runtime then checkpointed.
