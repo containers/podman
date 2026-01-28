@@ -386,10 +386,10 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 
 		switch {
 		case strings.HasSuffix(unit.Filename, ".container"):
-			// Prefill resouceNames for .container files. This solves network reusing.
+			// Prefill resourceNames for .container files. This solves network reusing.
 			resourceName = quadlet.GetContainerResourceName(unit)
 		case strings.HasSuffix(unit.Filename, ".build"):
-			// Prefill resouceNames for .build files. This is significantly less complex than
+			// Prefill resourceNames for .build files. This is significantly less complex than
 			// pre-computing all resourceNames for all Quadlet types (which is rather complex for a few
 			// types), but still breaks the dependency cycle between .volume and .build ([Volume] can
 			// have Image=some.build, and [Build] can have Volume=some.volume:/some-volume)
@@ -398,7 +398,7 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 			serviceName = quadlet.GetArtifactServiceName(unit)
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			containers = make([]string, 0)
-			// Prefill resouceNames for .pod files.
+			// Prefill resourceNames for .pod files.
 			// This is requires for referencing the pod from .container files
 			resourceName = quadlet.GetPodResourceName(unit)
 		case strings.HasSuffix(unit.Filename, ".volume"), strings.HasSuffix(unit.Filename, ".kube"), strings.HasSuffix(unit.Filename, ".network"), strings.HasSuffix(unit.Filename, ".image"):
