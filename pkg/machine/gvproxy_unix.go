@@ -48,8 +48,8 @@ func backoffForProcess(p *psutil.Process) error {
 // / waitOnProcess takes a pid and sends a sigterm to it. it then waits for the
 // process to not exist.  if the sigterm does not end the process after an interval,
 // then sigkill is sent.  it also waits for the process to exit after the sigkill too.
-func waitOnProcess(processID int) error {
-	logrus.Infof("Going to stop gvproxy (PID %d)", processID)
+func waitOnProcess(processID int, processName string) error {
+	logrus.Infof("Going to stop %s (PID %d)", processName, processID)
 
 	p, err := psutil.NewProcess(int32(processID))
 	if err != nil {
@@ -58,7 +58,7 @@ func waitOnProcess(processID int) error {
 
 	running, err := p.IsRunning()
 	if err != nil {
-		return fmt.Errorf("checking if gvproxy is running: %w", err)
+		return fmt.Errorf("checking if %s is running: %w", processName, err)
 	}
 	if !running {
 		return nil
@@ -66,7 +66,7 @@ func waitOnProcess(processID int) error {
 
 	if err := p.Terminate(); err != nil {
 		if errors.Is(err, syscall.ESRCH) {
-			logrus.Debugf("Gvproxy already dead, exiting cleanly")
+			logrus.Debugf("%s already dead, exiting cleanly", processName)
 			return nil
 		}
 		return err
