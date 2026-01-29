@@ -20,6 +20,13 @@ func LocalhostSSH(username, identityPath, name string, sshPort int, inputArgs []
 	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, os.Stdin)
 }
 
+func LocalhostSSHWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
+	if address == "" {
+		address = "localhost"
+	}
+	return localhostBuiltinSSH(username, identityPath, name, address, sshPort, inputArgs, true, os.Stdin)
+}
+
 // This ssh’es to a podman machine which is not listening on localhost but has its own IP
 func LocalhostSSHShellWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
 	if address == "" {
