@@ -483,9 +483,9 @@ EOF
     local install_dir=$(get_quadlet_install_dir)
     run cat "$install_dir/long.container"
     assert "$output" == "## Short" "File was correctly truncated/replaced atomically"
-    
+
     # --- VERIFICATION 2: CHECK FOR DUPLICATES IN .APP FILE ---
-    
+
     # DEBUG: List all hidden files to see if we have .asset or .app
     run ls -la "$install_dir/"
     echo "DEBUG DIR LISTING:" >&3
