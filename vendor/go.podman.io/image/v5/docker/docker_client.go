@@ -916,6 +916,11 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	if c.sys != nil && c.sys.DockerProxyURL != nil {
 		tr.Proxy = http.ProxyURL(c.sys.DockerProxyURL)
 	}
+	if c.sys != nil && c.sys.DockerProxy != nil {
+		tr.Proxy = func(request *http.Request) (*url.URL, error) {
+			return c.sys.DockerProxy(request.URL)
+		}
+	}
 	c.client = &http.Client{Transport: tr}
 
 	ping := func(scheme string) error {
