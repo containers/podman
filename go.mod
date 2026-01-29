@@ -65,9 +65,9 @@ require (
 	github.com/vbauerster/mpb/v8 v8.10.2
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.4.3
-	go.podman.io/common v0.66.1
-	go.podman.io/image/v5 v5.38.0
-	go.podman.io/storage v1.61.0
+	go.podman.io/common v0.66.2-0.20260129132525-a79d33cb983b
+	go.podman.io/image/v5 v5.38.1-0.20260129132525-a79d33cb983b
+	go.podman.io/storage v1.61.1-0.20260129132525-a79d33cb983b
 	golang.org/x/crypto v0.43.0
 	golang.org/x/net v0.45.0
 	golang.org/x/sync v0.17.0
