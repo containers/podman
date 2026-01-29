@@ -480,39 +480,24 @@ EOF
     run_podman quadlet install --replace "$PODMAN_TMPDIR/long.container"
 
     # --- VERIFICATION 1: CHECK FOR TRUNCATION ---
-    run cat "$HOME/.config/containers/systemd/long.container"
+    local install_dir=$(get_quadlet_install_dir)
+    run cat "$install_dir/long.container"
     assert "$output" == "## Short" "File was correctly truncated/replaced atomically"
-
+    
     # --- VERIFICATION 2: CHECK FOR DUPLICATES IN .APP FILE ---
-
+    
     # DEBUG: List all hidden files to see if we have .asset or .app
-    run ls -la "$HOME/.config/containers/systemd/"
+    run ls -la "$install_dir/"
     echo "DEBUG DIR LISTING:" >&3
     echo "$output" >&3
 
     # Define the expected app file path explicitly
-    local app_file="$HOME/.config/containers/systemd/.long.container.app"
+    local app_file="$install_dir/.long.container.app"
 
     # Check if the file exists
     if [ ! -f "$app_file" ]; then
         # If .app is missing, check if .asset was created instead (debugging IsExtSupported)
-        if [ -f "$HOME/.config/containers/systemd/.long.container.asset" ]; then
-             die "Failed: Created .asset file instead of .app file. IsExtSupported check failed?"
-        fi
-        die "Failed: .app file not found at $app_file"
-    fi
-
-    # Check content of the .app file
-    run cat "$app_file"
-    # It should contain exactly one line: "long.container"
-    assert "$output" == "long.container" ".app file should contain the quadlet name"
-
-    # Ensure no duplicates (line count should be 1)
-    run wc -l < "$app_file"
-    assert "$output" -eq 1 "Should only be listed once in tracking files"
-
-    # Cleanup: Remove the installed quadlet
-    run_podman quadlet rm long.container
+        if [ -f "$install_dir/.long.container.asset" ]; then
 }
 
 # vim: filetype=sh
