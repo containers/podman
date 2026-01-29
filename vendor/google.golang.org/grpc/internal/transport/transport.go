@@ -553,6 +553,12 @@ type CallHdr struct {
 	// outbound message.
 	SendCompress string
 
+	// AcceptedCompressors overrides the grpc-accept-encoding header for this
+	// call. When nil, the transport advertises the default set of registered
+	// compressors. A non-nil pointer overrides that value (including the empty
+	// string to advertise none).
+	AcceptedCompressors *string
+
 	// Creds specifies credentials.PerRPCCredentials for a call.
 	Creds credentials.PerRPCCredentials
 
@@ -608,8 +614,9 @@ type ClientTransport interface {
 	// with a human readable string with debug info.
 	GetGoAwayReason() (GoAwayReason, string)
 
-	// RemoteAddr returns the remote network address.
-	RemoteAddr() net.Addr
+	// Peer returns information about the peer associated with the Transport.
+	// The returned information includes authentication and network address details.
+	Peer() *peer.Peer
 }
 
 // ServerTransport is the common interface for all gRPC server-side transport
