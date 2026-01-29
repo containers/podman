@@ -319,7 +319,7 @@ func getFileName(resp *http.Response, fileURL string) (string, error) {
 // Perform some minimal validation, but not much.
 // We can't know about a lot of problems without running the Quadlet binary, which we
 // only want to do once.
-func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile, replace bool) (string, error) {
+func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile, _ bool) (string, error) {
 	// First, validate that the source path exists and is a file
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -337,16 +337,6 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 	// Validate extension is valid
 	if isQuadletFile && !systemdquadlet.IsExtSupported(finalPath) {
 		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
-	}
-
-	osFlags := os.O_CREATE | os.O_WRONLY
-
-	if !replace {
-		osFlags |= os.O_EXCL
-	} else {
-		// If replacing, truncate the file to ensure no old content persists
-        // if the new file is smaller than the original.
-		osFlags |= os.O_TRUNC
 	}
 
 	// Create a temp file in the same directory as the destination
@@ -418,7 +408,7 @@ func appendLineToFile(path, text string) error {
 	}
 
 	// 2. Open file in Append mode, Create if missing
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
