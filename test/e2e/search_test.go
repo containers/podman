@@ -454,6 +454,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search with wildcards", func() {
+		Skip("registry.access.redhat.com is unreliable for wildcard searches")
 		search := podmanTest.Podman([]string{"search", "registry.access.redhat.com/*openshift*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
