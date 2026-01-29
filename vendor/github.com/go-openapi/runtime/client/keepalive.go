@@ -2,7 +2,6 @@ package client
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sync/atomic"
 )
@@ -50,7 +49,7 @@ func (d *drainingReadCloser) Close() error {
 		// some bytes, but the closer ignores them to keep the underling
 		// connection open.
 		//nolint:errcheck
-		io.Copy(ioutil.Discard, d.rdr)
+		io.Copy(io.Discard, d.rdr)
 	}
 	return d.rdr.Close()
 }

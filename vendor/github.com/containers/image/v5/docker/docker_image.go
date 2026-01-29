@@ -69,6 +69,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
+	defer client.Close()
 
 	tags := make([]string, 0)
 
@@ -108,8 +109,8 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			break
 		}
 
-		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
-		linkURL, err := url.Parse(linkURLStr)
+		linkURLPart, _, _ := strings.Cut(link, ";")
+		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
 		if err != nil {
 			return tags, err
 		}
@@ -136,6 +137,9 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 	if !ok {
 		return "", errors.New("ref must be a dockerReference")
 	}
+	if dr.isUnknownDigest {
+		return "", fmt.Errorf("docker: reference %q is for unknown digest case; cannot get digest", dr.StringWithinTransport())
+	}
 
 	tagOrDigest, err := dr.tagOrDigest()
 	if err != nil {
@@ -150,6 +154,7 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 	if err != nil {
 		return "", fmt.Errorf("failed to create client: %w", err)
 	}
+	defer client.Close()
 
 	path := fmt.Sprintf(manifestPath, reference.Path(dr.ref), tagOrDigest)
 	headers := map[string][]string{

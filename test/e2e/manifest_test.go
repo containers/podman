@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/define"
 	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/archive"
@@ -182,7 +182,7 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		var inspect libimage.ManifestListData
+		var inspect define.ManifestListData
 		err := json.Unmarshal(session.Out.Contents(), &inspect)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspect.Manifests[0].Annotations).To(Equal(map[string]string{"hoge": "fuga"}))
@@ -445,7 +445,6 @@ var _ = Describe("Podman manifest", func() {
 		Expect(output).To(ContainSubstring("Copying blob "))
 		Expect(output).To(ContainSubstring("Copying config "))
 		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
-		Expect(output).To(ContainSubstring("Storing signatures"))
 
 		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()

@@ -219,12 +219,21 @@ func (rs *RequestServer) packetWorker(ctx context.Context, pktChan chan orderedR
 			rpkt = statusFromError(pkt.ID, rs.closeRequest(handle))
 		case *sshFxpRealpathPacket:
 			var realPath string
-			if realPather, ok := rs.Handlers.FileList.(RealPathFileLister); ok {
-				realPath = realPather.RealPath(pkt.getPath())
-			} else {
+			var err error
+
+			switch pather := rs.Handlers.FileList.(type) {
+			case RealPathFileLister:
+				realPath, err = pather.RealPath(pkt.getPath())
+			case legacyRealPathFileLister:
+				realPath = pather.RealPath(pkt.getPath())
+			default:
 				realPath = cleanPathWithBase(rs.startDirectory, pkt.getPath())
 			}
-			rpkt = cleanPacketPath(pkt, realPath)
+			if err != nil {
+				rpkt = statusFromError(pkt.ID, err)
+			} else {
+				rpkt = cleanPacketPath(pkt, realPath)
+			}
 		case *sshFxpOpendirPacket:
 			request := requestFromPacket(ctx, pkt, rs.startDirectory)
 			handle := rs.nextRequest(request)

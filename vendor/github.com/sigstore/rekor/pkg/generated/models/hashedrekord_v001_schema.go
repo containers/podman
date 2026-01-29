@@ -126,6 +126,7 @@ func (m *HashedrekordV001Schema) ContextValidate(ctx context.Context, formats st
 func (m *HashedrekordV001Schema) contextValidateData(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Data != nil {
+
 		if err := m.Data.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data")
@@ -142,6 +143,7 @@ func (m *HashedrekordV001Schema) contextValidateData(ctx context.Context, format
 func (m *HashedrekordV001Schema) contextValidateSignature(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Signature != nil {
+
 		if err := m.Signature.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature")
@@ -232,6 +234,11 @@ func (m *HashedrekordV001SchemaData) ContextValidate(ctx context.Context, format
 func (m *HashedrekordV001SchemaData) contextValidateHash(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Hash != nil {
+
+		if swag.IsZero(m.Hash) { // not required
+			return nil
+		}
+
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("data" + "." + "hash")
@@ -431,6 +438,11 @@ func (m *HashedrekordV001SchemaSignature) ContextValidate(ctx context.Context, f
 func (m *HashedrekordV001SchemaSignature) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.PublicKey != nil {
+
+		if swag.IsZero(m.PublicKey) { // not required
+			return nil
+		}
+
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("signature" + "." + "publicKey")

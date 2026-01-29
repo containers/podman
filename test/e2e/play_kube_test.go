@@ -4974,21 +4974,28 @@ spec:
 		ctrName := "ctr1"
 		podName := "pod1"
 		// create a symlink at the volume mount location so we can make sure we don't resolve that to the host location.
-		ctr := getCtr(withName(ctrName), withVolumeMount("/test", "", false), withImage(CITEST_IMAGE), withCmd([]string{"sh", "-c", "ln -sf " + testfile + " /test/foo"}))
-		pod := getPod(withPodName(podName), withVolume(getConfigMapVolume(volumeName, nil, false, nil)), withCtr(ctr))
+		ctr := getCtr(withName(ctrName), withVolumeMount("/test", "", false), withImage(ALPINE), withCmd([]string{"sh", "-c", "ln -sf " + testfile + " /test/foo"}))
+		pod := getPod(withPodName(podName), withVolume(getConfigMapVolume(volumeName, nil, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
 		yamls := []string{cmYaml, podYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		play := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
 		// wait for the container to finish to ensure the symlink was created
-		podmanTest.PodmanExitCleanly("wait", podName+"-"+ctrName)
-		podmanTest.PodmanExitCleanly("kube", "down", kubeYaml)
+		wait := podmanTest.Podman([]string{"wait", podName + "-" + ctrName})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+		down := podmanTest.Podman([]string{"kube", "down", kubeYaml})
+		down.WaitWithDefaultTimeout()
+		Expect(down).Should(Exit(0))
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
-		Expect(kube).To(ExitWithError(125, `cannot create file "foo" at volume mountpoint`))
+		Expect(kube).Should(Exit(125))
+		Expect(kube.ErrorToString()).To(ContainSubstring(`cannot create file "foo" at volume mountpoint`))
 
 		Expect(testfile).ToNot(BeAnExistingFile(), "file should never be created on the host")
 	})

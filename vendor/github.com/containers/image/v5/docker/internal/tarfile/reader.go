@@ -57,7 +57,7 @@ func NewReaderFromFile(sys *types.SystemContext, path string) (*Reader, error) {
 // The caller should call .Close() on the returned archive when done.
 func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Reader, error) {
 	// Save inputStream to a temporary file
-	tarCopyFile, err := os.CreateTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "docker-tar")
+	tarCopyFile, err := tmpdir.CreateBigFileTemp(sys, "docker-tar")
 	if err != nil {
 		return nil, fmt.Errorf("creating temporary file: %w", err)
 	}

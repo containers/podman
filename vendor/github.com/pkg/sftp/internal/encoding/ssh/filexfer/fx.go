@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ type Status uint32
 // Defines the various SSH_FX_* values.
 const (
 	// see draft-ietf-secsh-filexfer-02
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-7
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-7
 	StatusOK = Status(iota)
 	StatusEOF
 	StatusNoSuchFile
@@ -21,28 +21,28 @@ const (
 	StatusConnectionLost
 	StatusOPUnsupported
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-03#section-7
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-03.txt#section-7
 	StatusV4InvalidHandle
 	StatusV4NoSuchPath
 	StatusV4FileAlreadyExists
 	StatusV4WriteProtect
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-04#section-7
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-04.txt#section-7
 	StatusV4NoMedia
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-05#section-7
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-05.txt#section-7
 	StatusV5NoSpaceOnFilesystem
 	StatusV5QuotaExceeded
 	StatusV5UnknownPrincipal
 	StatusV5LockConflict
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-06#section-8
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-06.txt#section-8
 	StatusV6DirNotEmpty
 	StatusV6NotADirectory
 	StatusV6InvalidFilename
 	StatusV6LinkLoop
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-07#section-8
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-07.txt#section-8
 	StatusV6CannotDelete
 	StatusV6InvalidParameter
 	StatusV6FileIsADirectory
@@ -50,10 +50,10 @@ const (
 	StatusV6ByteRangeLockRefused
 	StatusV6DeletePending
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-08#section-8.1
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-08.txt#section-8.1
 	StatusV6FileCorrupt
 
-	// https://tools.ietf.org/html/draft-ietf-secsh-filexfer-10#section-9.1
+	// https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-10.txt#section-9.1
 	StatusV6OwnerInvalid
 	StatusV6GroupInvalid
 

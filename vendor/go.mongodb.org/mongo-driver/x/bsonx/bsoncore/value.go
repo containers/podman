@@ -323,7 +323,7 @@ func (v Value) String() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$timestamp":{"t":"%s","i":"%s"}}`, strconv.FormatUint(uint64(t), 10), strconv.FormatUint(uint64(i), 10))
+		return fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i)
 	case bsontype.Int64:
 		i64, ok := v.Int64OK()
 		if !ok {

@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -29,12 +32,12 @@ type ImageDiskUsage struct {
 // storage.  Note that a single image may yield multiple usage reports, one for
 // each repository tag.
 func (r *Runtime) DiskUsage(ctx context.Context) ([]ImageDiskUsage, int64, error) {
-	layerTree, err := r.layerTree()
+	images, err := r.ListImages(ctx, nil, nil)
 	if err != nil {
 		return nil, -1, err
 	}
 
-	images, err := r.ListImages(ctx, nil, nil)
+	layerTree, err := r.layerTree(images)
 	if err != nil {
 		return nil, -1, err
 	}

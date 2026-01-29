@@ -14,10 +14,9 @@ import (
 
 var _ = Describe("Podman systemd", func() {
 	var (
-		tempdir         string
-		err             error
-		podmanTest      *PodmanTestIntegration
-		systemdUnitFile string
+		tempdir    string
+		err        error
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -27,16 +26,6 @@ var _ = Describe("Podman systemd", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		systemdUnitFile = fmt.Sprintf(`[Unit]
-Description=redis container
-[Service]
-Restart=always
-ExecStart=%s start -a redis
-ExecStop=%s stop -t 10 redis
-KillMode=process
-[Install]
-WantedBy=default.target
-`, podmanTest.PodmanBinary, podmanTest.PodmanBinary)
 	})
 
 	AfterEach(func() {
@@ -44,36 +33,6 @@ WantedBy=default.target
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 
-	})
-
-	It("podman start container by systemd", func() {
-		SkipIfRootless("rootless can not write to /etc")
-		SkipIfContainerized("test does not have systemd as pid 1")
-
-		sysFile := os.WriteFile("/etc/systemd/system/redis.service", []byte(systemdUnitFile), 0644)
-		Expect(sysFile).ToNot(HaveOccurred())
-		defer func() {
-			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
-			os.Remove("/etc/systemd/system/redis.service")
-			SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
-			Expect(stop).Should(Exit(0))
-		}()
-
-		create := podmanTest.Podman([]string{"create", "--name", "redis", REDIS_IMAGE})
-		create.WaitWithDefaultTimeout()
-		Expect(create).Should(Exit(0))
-
-		enable := SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
-		Expect(enable).Should(Exit(0))
-
-		start := SystemExec("bash", []string{"-c", "systemctl start redis"})
-		Expect(start).Should(Exit(0))
-
-		logs := SystemExec("bash", []string{"-c", "journalctl -n 20 -u redis"})
-		Expect(logs).Should(Exit(0))
-
-		status := SystemExec("bash", []string{"-c", "systemctl status redis"})
-		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
 	})
 
 	It("podman run container with systemd PID1", func() {

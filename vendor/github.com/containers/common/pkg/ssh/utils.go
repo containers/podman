@@ -15,11 +15,9 @@ import (
 	"golang.org/x/term"
 )
 
+const sshdPort = 22
+
 func Validate(user *url.Userinfo, path string, port int, identity string) (*config.Destination, *url.URL, error) {
-	sock := ""
-	if strings.Contains(path, "/run") {
-		sock = strings.Split(path, "/run")[1]
-	}
 	// url.Parse NEEDS ssh://, if this ever fails or returns some nonsense, that is why.
 	uri, err := url.Parse(path)
 	if err != nil {
@@ -32,26 +30,18 @@ func Validate(user *url.Userinfo, path string, port int, identity string) (*conf
 	}
 
 	if uri.Port() == "" {
-		if port != 0 {
-			uri.Host = net.JoinHostPort(uri.Host, strconv.Itoa(port))
-		} else {
-			uri.Host = net.JoinHostPort(uri.Host, "22")
+		if port == 0 {
+			port = sshdPort
 		}
+		uri.Host = net.JoinHostPort(uri.Host, strconv.Itoa(port))
 	}
 
 	if user != nil {
 		uri.User = user
 	}
 
-	uriStr := ""
-	if len(sock) > 0 {
-		uriStr = "ssh://" + uri.User.Username() + "@" + uri.Host + "/run" + sock
-	} else {
-		uriStr = "ssh://" + uri.User.Username() + "@" + uri.Host
-	}
-
 	dst := config.Destination{
-		URI: uriStr,
+		URI: uri.String(),
 	}
 
 	if len(identity) > 0 {
@@ -155,7 +145,7 @@ func ParseScpArgs(options ConnectionScpOptions) (string, string, string, bool, e
 	if strings.Contains(localPath, "ssh://") {
 		localPath = strings.Split(localPath, "ssh://")[1]
 	}
-	remotePath := ""
+	var remotePath string
 	swap := false
 	if split := strings.Split(localPath, ":"); len(split) == 2 {
 		// save to remote, load to local
@@ -176,11 +166,15 @@ func ParseScpArgs(options ConnectionScpOptions) (string, string, string, bool, e
 }
 
 func DialNet(sshClient *ssh.Client, mode string, url *url.URL) (net.Conn, error) {
-	port, err := strconv.Atoi(url.Port())
-	if err != nil {
-		return nil, err
+	port := sshdPort
+	if url.Port() != "" {
+		p, err := strconv.Atoi(url.Port())
+		if err != nil {
+			return nil, err
+		}
+		port = p
 	}
-	if _, _, err = Validate(url.User, url.Hostname(), port, ""); err != nil {
+	if _, _, err := Validate(url.User, url.Hostname(), port, ""); err != nil {
 		return nil, err
 	}
 	return sshClient.Dial(mode, url.Path)

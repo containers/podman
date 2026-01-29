@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "release-1.29"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -21,20 +21,22 @@ env:
     IN_PODMAN: 'false'
     # root or rootless
     PRIV_NAME: root
+    # default "mention the $BUILDAH_RUNTIME in the task alias, with initial whitespace" value
+    RUNTIME_N: ""
 
     ####
     #### Cache-image names to test with
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-37"
-    PRIOR_FEDORA_NAME: "fedora-36"
-    UBUNTU_NAME: "ubuntu-2204"
+    FEDORA_NAME: "fedora-41"
+    PRIOR_FEDORA_NAME: "fedora-40"
+    DEBIAN_NAME: "debian-13"
 
-    IMAGE_SUFFIX: "c6300530360713216"
+    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
     IN_PODMAN_IMAGE: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
 
@@ -55,7 +57,7 @@ gce_instance: &standardvm
     image_project: "${IMAGE_PROJECT}"
     zone: "us-central1-c"  # Required by Cirrus for the time being
     cpu: 2
-    memory: "4Gb"
+    memory: "4G"
     disk: 200  # Gigabytes, do not set less than 200 per obscure GCE docs re: I/O performance
     image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
@@ -68,14 +70,14 @@ meta_task:
     container:
         image: "quay.io/libpod/imgts:latest"
         cpu: 1
-        memory: 1
+        memory: "1G"
 
     env:
         # Space-separated list of images used by this repository state
         IMGNAMES: |-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${UBUNTU_CACHE_IMAGE_NAME}
+            ${DEBIAN_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
@@ -92,7 +94,7 @@ smoke_task:
     name: "Smoke Test"
 
     gce_instance:
-        memory: "12Gb"
+        memory: "12G"
 
     # Don't bother running on branches (including cron), or for tags.
     only_if: $CIRRUS_PR != ''
@@ -120,7 +122,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.17
+        image: docker.io/library/golang:1.22
         cpu: 1
         memory: 1
 
@@ -134,6 +136,9 @@ vendor_task:
 # Confirm cross-compile ALL architectures on a Mac OS-X VM.
 cross_build_task:
     name: "Cross Compile"
+    gce_instance:
+        cpu: 8
+        memory: "24G"
     alias: cross_build
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
@@ -154,9 +159,10 @@ cross_build_task:
     binary_artifacts:
         path: ./bin/*
 
-
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
+    gce_instance:
+      cpu: 4
     alias: unit
     only_if: &not_build_docs >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
@@ -167,7 +173,7 @@ unit_task:
       - vendor
       - cross_build
 
-    timeout_in: 1h
+    timeout_in: 90m
 
     matrix:
         - env:
@@ -176,27 +182,25 @@ unit_task:
               STORAGE_DRIVER: 'overlay'
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
     unit_test_script: '${SCRIPT_BASE}/test.sh unit |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
 
 
 conformance_task:
-    name: 'Build Conformance w/ $STORAGE_DRIVER'
+    name: 'Debian Conformance w/ $STORAGE_DRIVER'
     alias: conformance
     only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
 
     gce_instance:
-        image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+        cpu: 4
+        image_name: "${DEBIAN_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
     matrix:
         - env:
             STORAGE_DRIVER: 'vfs'
+            TMPDIR: '/var/tmp'
         - env:
             STORAGE_DRIVER: 'overlay'
 
@@ -205,7 +209,7 @@ conformance_task:
 
 
 integration_task:
-    name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
+    name: "Integration $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
     alias: integration
     only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
@@ -216,30 +220,63 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
         - env:
             DISTRO_NV: "${PRIOR_FEDORA_NAME}"
             IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
         - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${DEBIAN_NAME}"
+            IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
         # OVERLAY
         - env:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
         - env:
             DISTRO_NV: "${PRIOR_FEDORA_NAME}"
             IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
         - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${DEBIAN_NAME}"
+            IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
 
     gce_instance:
         image_name: "$IMAGE_NAME"
+        cpu: 4
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -260,7 +297,7 @@ integration_task:
         golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
 
 integration_rootless_task:
-    name: "Integration rootless $DISTRO_NV w/ $STORAGE_DRIVER"
+    name: "Integration rootless $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
     alias: integration_rootless
     only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
@@ -269,18 +306,36 @@ integration_rootless_task:
         # Running rootless tests on overlay
         # OVERLAY
         - env:
-            DISTRO_NV: "${FEDORA_NAME}"
-            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-            PRIV_NAME: rootless
-        - env:
             DISTRO_NV: "${PRIOR_FEDORA_NAME}"
             IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
         - env:
-            DISTRO_NV: "${UBUNTU_NAME}"
-            IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            PRIV_NAME: rootless
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            PRIV_NAME: rootless
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${DEBIAN_NAME}"
+            IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
 
@@ -303,6 +358,10 @@ in_podman_task:
     alias: in_podman
     only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
+
+    gce_instance:
+        cpu: 8
+        memory: "8G"
 
     env:
         # This is key, cause the scripts to re-execute themselves inside a container.
@@ -372,6 +431,8 @@ test_image_build_task:
 # set of tasks all passed, and allows confirming that based on the status
 # of this task.
 success_task:
+    # N/B: The prow merge-bot (tide) is sensitized to this exact name, DO NOT CHANGE IT.
+    # Ref: https://github.com/openshift/release/pull/48909
     name: "Total Success"
     alias: success
 

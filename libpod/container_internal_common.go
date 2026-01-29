@@ -18,6 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
@@ -457,6 +459,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		var gidMappings []idtools.IDMap
 
 		switch {
+		case c.config.IDMappings.AutoUserNs && len(c.config.IDMappings.GIDMap) == 0:
+			// With userns=auto, the GID mappings are allocated later by storage,
+			// so we can't determine which supplementary GIDs will be available.
+			// Skip adding them to avoid setgroups() errors.
+			gidMappings = []idtools.IDMap{}
 		case len(c.config.IDMappings.GIDMap) > 0:
 			gidMappings = c.config.IDMappings.GIDMap
 		case rootless.IsRootless():
@@ -488,7 +495,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			if isGIDAvailable {
 				g.AddProcessAdditionalGid(uint32(gid))
 			} else {
-				logrus.Warnf("Additional gid=%d is not present in the user namespace, skip setting it", gid)
+				if len(gidMappings) > 0 {
+					logrus.Warnf("Additional gid=%d is not present in the user namespace, skip setting it", gid)
+				}
 			}
 		}
 	}
@@ -762,7 +771,7 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 			return fmt.Errorf("unable to create notify %q dir: %w", notifyDir, err)
 		}
 	}
-	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
+	if err := c.relabel(notifyDir, c.MountLabel(), true); err != nil {
 		return fmt.Errorf("relabel failed %q: %w", notifyDir, err)
 	}
 	logrus.Debugf("Add bindmount notify %q dir", notifyDir)
@@ -1994,7 +2003,7 @@ func (c *Container) generateResolvConf() error {
 	}
 
 	networkBackend := c.runtime.config.Network.NetworkBackend
-	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
+	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers.Get())+len(c.config.DNSServer))
 
 	// If NetworkBackend is `netavark` do not populate `/etc/resolv.conf`
 	// with custom dns server since after https://github.com/containers/netavark/pull/452
@@ -2004,7 +2013,7 @@ func (c *Container) generateResolvConf() error {
 	// Exception: Populate `/etc/resolv.conf` if container is not connected to any network
 	// ( i.e len(netStatus)==0 ) since in such case netavark is not invoked at all.
 	if networkBackend != string(types.Netavark) || len(netStatus) == 0 {
-		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers.Get()...)
 		for _, ip := range c.config.DNSServer {
 			nameservers = append(nameservers, ip.String())
 		}
@@ -2027,15 +2036,15 @@ func (c *Container) generateResolvConf() error {
 	// Set DNS search domains
 	search := networkSearchDomains
 
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
-		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches))
-		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches...)
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches.Get()) > 0 {
+		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches.Get()))
+		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches.Get()...)
 		customSearch = append(customSearch, c.config.DNSSearch...)
 		search = customSearch
 	}
 
-	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions))
-	options = append(options, c.runtime.config.Containers.DNSOptions...)
+	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions.Get()))
+	options = append(options, c.runtime.config.Containers.DNSOptions.Get()...)
 	options = append(options, c.config.DNSOption...)
 
 	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
@@ -2183,7 +2192,7 @@ func (c *Container) bindMountRootFile(source, dest string) error {
 	if err := os.Chown(source, c.RootUID(), c.RootGID()); err != nil {
 		return err
 	}
-	if err := label.Relabel(source, c.MountLabel(), false); err != nil {
+	if err := c.relabel(source, c.MountLabel(), false); err != nil {
 		return err
 	}
 
@@ -2686,7 +2695,7 @@ func (c *Container) createSecretMountDir() error {
 		if err := os.MkdirAll(src, 0755); err != nil {
 			return err
 		}
-		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
+		if err := c.relabel(src, c.config.MountLabel, false); err != nil {
 			return err
 		}
 		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
@@ -2780,7 +2789,7 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 	}
 	// only relabel on initial creation of container
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateUnknown) {
-		label, err := label.FileLabel(src)
+		label, err := selinux.FileLabel(src)
 		if err != nil {
 			return err
 		}
@@ -2789,7 +2798,12 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 			return nil
 		}
 	}
-	return label.Relabel(src, mountLabel, shared)
+	err := label.Relabel(src, mountLabel, shared)
+	if errors.Is(err, unix.ENOTSUP) {
+		logrus.Debugf("Labeling not supported on %q", src)
+		return nil
+	}
+	return err
 }
 
 func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid int) error {
