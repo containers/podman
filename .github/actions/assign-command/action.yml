@@ -1,0 +1,54 @@
+name: 'Assign Command'
+description: 'Assign PR reviewers via /assign command in comments'
+
+inputs:
+  comment-body:
+    description: 'The comment body to parse'
+    required: true
+  pr-number:
+    description: 'The PR number to assign'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Parse and assign users
+      shell: bash
+      env:
+        COMMENT_BODY: ${{ inputs.comment-body }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+      run: |
+        # Extract the line containing /assign
+        ASSIGN_LINE=$(echo "$COMMENT_BODY" | grep '/assign' | head -1)
+
+        if [ -z "$ASSIGN_LINE" ]; then
+          echo "No /assign command found"
+          exit 0
+        fi
+
+        # Get everything after /assign on that line
+        AFTER_CMD=$(echo "$ASSIGN_LINE" | sed 's|.*/assign||')
+
+        # Extract valid GitHub usernames (alphanumeric and hyphens, 1-39 chars)
+        # Remove @ symbols first, then extract username patterns
+        USERS=$(echo "$AFTER_CMD" | tr -d '@' | grep -oE '[a-zA-Z0-9][-a-zA-Z0-9]{0,38}' | xargs)
+
+        if [ -z "$USERS" ]; then
+          echo "No users found in /assign command"
+          exit 0
+        fi
+
+        echo "Assigning: $USERS"
+
+        # Assign each user
+        ASSIGNED=""
+        for USER in $USERS; do
+          if gh pr edit "$PR_NUMBER" --add-assignee "$USER" 2>/dev/null; then
+            ASSIGNED="$ASSIGNED @$USER"
+          fi
+        done
+
+        # Post confirmation if any users were assigned
+        if [ -n "$ASSIGNED" ]; then
+          gh pr comment "$PR_NUMBER" --body "Assigned:$ASSIGNED"
+        fi
