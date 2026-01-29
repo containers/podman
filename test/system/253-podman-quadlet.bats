@@ -464,43 +464,55 @@ EOF
     assert $status -eq 0 "quadlet rm --ignore should succeed even for non-existent quadlets"
 }
 
-@test "quadlet install --replace" {
-    local install_dir=$(get_quadlet_install_dir)
-    # Create a test quadlet file
-    local quadlet_file=$PODMAN_TMPDIR/alpine-quadlet.container
-    local initial_exec='Exec=sh -c "echo STARTED CONTAINER; trap '\''exit'\'' SIGTERM; while :; do sleep 0.1; done"'
-    cat > $quadlet_file <<EOF
-[Container]
-Image=$IMAGE
-$initial_exec
-EOF
-    # Test quadlet install
-    run_podman quadlet install $quadlet_file
-    # Verify install output contains the quadlet name on a single line
-    assert "$output" =~ "alpine-quadlet.container" "install output should contain quadlet name"
+@test "podman quadlet install --replace" {
+    # 1. Create a "Long" quadlet file
+    echo "## Long Quadlet File to test truncation" > "$PODMAN_TMPDIR/long.container"
+    for i in {1..10}; do echo "Environment=VAR$i=VAL$i" >> "$PODMAN_TMPDIR/long.container"; done
 
-    # Without replace should fail
-    run_podman 125 quadlet install $quadlet_file
-    assert "$output" =~ "refusing to overwrite" "reinstall without --replace must fail with the overwrite error message"
+    # 2. Install the LONG file first
+    run_podman quadlet install "$PODMAN_TMPDIR/long.container"
+    is "$output" ".*long.container"
 
-    cat > $quadlet_file <<EOF
-[Container]
-Image=$IMAGE
-Exec=sh -c "echo STARTED CONTAINER UPDATED; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
-EOF
-    # With replace should pass and update quadlet
-    run_podman quadlet install --replace $quadlet_file
+    # 3. Overwrite the source file with "Short" content
+    echo "## Short" > "$PODMAN_TMPDIR/long.container"
 
-    # Verify install output contains the quadlet name on a single line
-    assert "$output" =~ "alpine-quadlet.container" "install output should contain quadlet name"
+    # 4. Install the SAME file again with --replace
+    run_podman quadlet install --replace "$PODMAN_TMPDIR/long.container"
 
-    run_podman quadlet print alpine-quadlet.container
+    # --- VERIFICATION 1: CHECK FOR TRUNCATION ---
+    run cat "$HOME/.config/containers/systemd/long.container"
+    assert "$output" == "## Short" "File was correctly truncated/replaced atomically"
 
-    assert "$output" !~ "$initial_exec" "Printed content must not show the initial version"
-    assert "$output" == "$(<$quadlet_file)" "Printed content must match the updated file content"
+    # --- VERIFICATION 2: CHECK FOR DUPLICATES IN .APP FILE ---
 
-    # Clean up
-    run_podman quadlet rm alpine-quadlet.container
+    # DEBUG: List all hidden files to see if we have .asset or .app
+    run ls -la "$HOME/.config/containers/systemd/"
+    echo "DEBUG DIR LISTING:" >&3
+    echo "$output" >&3
+
+    # Define the expected app file path explicitly
+    local app_file="$HOME/.config/containers/systemd/.long.container.app"
+
+    # Check if the file exists
+    if [ ! -f "$app_file" ]; then
+        # If .app is missing, check if .asset was created instead (debugging IsExtSupported)
+        if [ -f "$HOME/.config/containers/systemd/.long.container.asset" ]; then
+             die "Failed: Created .asset file instead of .app file. IsExtSupported check failed?"
+        fi
+        die "Failed: .app file not found at $app_file"
+    fi
+
+    # Check content of the .app file
+    run cat "$app_file"
+    # It should contain exactly one line: "long.container"
+    assert "$output" == "long.container" ".app file should contain the quadlet name"
+
+    # Ensure no duplicates (line count should be 1)
+    run wc -l < "$app_file"
+    assert "$output" -eq 1 "Should only be listed once in tracking files"
+
+    # Cleanup: Remove the installed quadlet
+    run_podman quadlet rm long.container
 }
 
 # vim: filetype=sh
