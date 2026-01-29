@@ -89,7 +89,7 @@ jobs:
       run: |
           make release-artifacts
     - name: Upload to Actions as artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: release-artifacts
         path: release/*
@@ -139,7 +139,7 @@ jobs:
       run: |
         make ARCH=aarch64 notarize &> /dev/null
     - name: Artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: mac-installers
         path: |
@@ -170,7 +170,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Download Windows zip artifact
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: release-artifacts
         path: ${{ github.workspace }}\release-artifacts
@@ -230,7 +230,7 @@ jobs:
         Copy-Item -Path "podman-${env:VERSION}.msi" -Destination "podman-installer-windows-${env:PODMAN_ARCH}.msi"
         Pop-Location
     - name: Upload the MSI
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: win-msi-${{ matrix.arch }}
         path: |
@@ -267,7 +267,7 @@ jobs:
     - name: Display release notes
       run: cat $VERSION-release-notes.md
     - name: Download all artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
     - name: Show artifacts
       run: |
         mv win-installer/* release-artifacts
