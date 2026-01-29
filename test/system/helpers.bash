@@ -1399,7 +1399,7 @@ function gen-cert-pair {
   cn=$1 key=$2 cert=$3
   shift 3
   openssl req -x509 \
-    -quiet \
+    \
     -nodes \
     -newkey rsa:4096 -keyout "${key}" \
     -out "${cert}" \
