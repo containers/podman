@@ -19,7 +19,7 @@ func addUserModeNetworking(userData *UserData, mc *vmconfigs.MachineConfig) erro
 		return err
 	}
 
-	userData.WriteFiles = []WriteFile{
+	userData.AddWriteFiles([]WriteFile{
 		{
 			Path:        "/etc/NetworkManager/system-connections/vsock0.nmconnection",
 			Content:     hutil.HyperVVsockNMConnection,
@@ -32,14 +32,14 @@ func addUserModeNetworking(userData *UserData, mc *vmconfigs.MachineConfig) erro
 			Permissions: "0644",
 			Owner:       "root",
 		},
-	}
+	})
 
-	userData.RunCmd = []string{
+	userData.AddRunCmds([]string{
 		"install -o root -g root -m 0755 /mnt/gvforwarder /usr/local/bin/gvforwarder",
 		"nmcli connection reload",
 		"systemctl daemon-reload",
 		"systemctl enable --now vsock-network.service",
-	}
+	})
 
 	userData.Mounts = [][]string{
 		{"/dev/sr0", "/mnt", "iso9660", "defaults,ro", "0", "0"},
