@@ -1,5 +1,20 @@
 # Release Notes
 
+## 5.8.0
+### Features
+- Quadlet `.container` files now support a new key, `AppArmor`, for configuring the container's AppArmor profile ([#27095](https://github.com/containers/podman/issues/27095)).
+
+### Changes
+- The `podman secret create -` command no longer requires that the secret be provided through a pipe, and instead allows typing the secret through the terminal ([#27879](https://github.com/containers/podman/issues/27879)).
+
+### Bugfixes
+- Fixed a bug where containers created by `podman play kube` with a healthcheck using the `initialDelaySeconds` option would run healthchecks before the initial delay had expired ([#27678](https://github.com/containers/podman/issues/27678)).
+- Fixed a bug where healthchecks would sometimes fail to execute due to systemd rate limits.
+- Fixed a bug where the `podman export` command would emit a `Mount` event instead of an `Export` event.
+
+### API
+- Fixed a bug where the Compat and Libpod Logs endpoints for Containers did not use nanosecond-level precision for reported timestamps ([#27961](https://github.com/containers/podman/issues/27691)).
+
 ## 5.7.1
 ### Bugfixes
 - Fixed a bug where adding devices to emulated Linux containers on FreeBSD did not work.
