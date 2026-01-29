@@ -1,0 +1,325 @@
+name: Cherry Pick to Release Branch
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [closed]
+
+jobs:
+  cherry-pick:
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/cherry-pick ')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Get PR details
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_API_URL: ${{ github.event.issue.pull_request.url }}
+        run: |
+          pr_url="$PR_API_URL"
+          pr_data=$(gh api "$pr_url")
+          merged=$(echo "$pr_data" | jq -r '.merged')
+          merge_sha=$(echo "$pr_data" | jq -r '.merge_commit_sha')
+
+          if [ "$merged" == "true" ]; then
+            echo "PR is merged"
+            echo "pr_state=merged" >> $GITHUB_OUTPUT
+            echo "merge_sha=$merge_sha" >> $GITHUB_OUTPUT
+          else
+            echo "PR is open"
+            echo "pr_state=open" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check maintainer authorization
+        id: auth
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_STATE: ${{ steps.pr.outputs.pr_state }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Fetch MAINTAINERS.md and extract GitHub usernames for allowed roles
+          # Uses gh api for authentication (works with private repos)
+          # Allowed roles: Core Maintainer, Community Manager, Maintainer and Community Manager, Maintainer
+          maintainers=$(gh api "repos/${REPO}/contents/MAINTAINERS.md" -q '.content' | base64 -d | \
+            grep -E '\|\s*(Core Maintainer|Community Manager|Maintainer and Community Manager|Maintainer)\s*\|' | \
+            grep -oP '\[[a-zA-Z0-9][a-zA-Z0-9-]*\]\(https://github\.com/[a-zA-Z0-9][a-zA-Z0-9-]*/?\)' | \
+            sed 's/\[\([^]]*\)\].*/\1/' | \
+            sort -u)
+
+          if echo "$maintainers" | grep -qx "$COMMENT_AUTHOR"; then
+            echo "User $COMMENT_AUTHOR is authorized"
+            echo "authorized=true" >> $GITHUB_OUTPUT
+          else
+            echo "User $COMMENT_AUTHOR is not a maintainer"
+            # Only post error comment for merged PRs; silently ignore for open PRs
+            if [ "$PR_STATE" == "merged" ]; then
+              gh pr comment "$PR_NUMBER" --body "Sorry, only maintainers can use the \`/cherry-pick\` command."
+            fi
+            echo "authorized=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Parse cherry-pick command
+        id: parse
+        if: steps.auth.outputs.authorized == 'true'
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          # Extract branch name from /cherry-pick <branch> command
+          branch=$(echo "$COMMENT_BODY" | grep -oP '/cherry-pick\s+\K\S+' | head -1)
+
+          if [ -z "$branch" ]; then
+            echo "Could not parse branch from comment"
+            echo "branch=" >> $GITHUB_OUTPUT
+          else
+            echo "Target branch: $branch"
+            echo "branch=$branch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        if: steps.auth.outputs.authorized == 'true' && steps.parse.outputs.branch != ''
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure git
+        if: steps.auth.outputs.authorized == 'true' && steps.parse.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Configure git to use token for push (avoids credential persistence in checkout)
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+
+      - name: Handle open PR - queue acknowledgment
+        if: steps.auth.outputs.authorized == 'true' && steps.parse.outputs.branch != '' && steps.pr.outputs.pr_state == 'open'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          TARGET_BRANCH: ${{ steps.parse.outputs.branch }}
+        run: |
+          # Check if branch exists
+          if ! git ls-remote --exit-code origin "$TARGET_BRANCH" > /dev/null 2>&1; then
+            echo "Branch $TARGET_BRANCH does not exist"
+            gh pr comment "$PR_NUMBER" --body "Cherry-pick cannot be queued: branch \`$TARGET_BRANCH\` does not exist."
+            exit 1
+          fi
+
+          gh pr comment "$PR_NUMBER" --body "Queued cherry-pick to \`$TARGET_BRANCH\` - will run when PR merges."
+
+      - name: Cherry-pick to release branch
+        if: steps.auth.outputs.authorized == 'true' && steps.parse.outputs.branch != '' && steps.pr.outputs.pr_state == 'merged'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          MERGE_SHA: ${{ steps.pr.outputs.merge_sha }}
+          TARGET_BRANCH: ${{ steps.parse.outputs.branch }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          echo "Processing cherry-pick to $TARGET_BRANCH"
+
+          # Check if branch exists
+          if ! git ls-remote --exit-code origin "$TARGET_BRANCH" > /dev/null 2>&1; then
+            echo "Branch $TARGET_BRANCH does not exist"
+            gh pr comment "$PR_NUMBER" --body "@$COMMENT_AUTHOR Cherry-pick failed: branch \`$TARGET_BRANCH\` does not exist."
+            exit 1
+          fi
+
+          # Checkout target branch
+          git checkout "$TARGET_BRANCH"
+          git pull origin "$TARGET_BRANCH"
+
+          # Attempt cherry-pick
+          if git cherry-pick "$MERGE_SHA" --mainline 1; then
+            echo "Cherry-pick to $TARGET_BRANCH successful"
+            git push origin "$TARGET_BRANCH"
+            gh pr comment "$PR_NUMBER" --body "@$COMMENT_AUTHOR Cherry-pick succeeded! Changes have been applied to \`$TARGET_BRANCH\`."
+          else
+            echo "Cherry-pick to $TARGET_BRANCH failed"
+            git cherry-pick --abort || true
+
+            gh pr comment "$PR_NUMBER" --body "@$COMMENT_AUTHOR Cherry-pick to \`$TARGET_BRANCH\` failed due to conflicts.
+
+          Please cherry-pick manually:
+          \`\`\`bash
+          git fetch origin
+          git checkout $TARGET_BRANCH
+          git cherry-pick $MERGE_SHA -m 1
+          # resolve conflicts
+          git push origin $TARGET_BRANCH
+          \`\`\`"
+            exit 1
+          fi
+
+      - name: Clear git credentials
+        if: always()
+        run: |
+          git remote set-url origin "https://github.com/${{ github.repository }}.git" || true
+
+  cherry-pick-on-merge:
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Fetch comments and find cherry-pick requests
+        id: find-requests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Fetch MAINTAINERS.md and extract GitHub usernames for allowed roles
+          # Uses gh api for authentication (works with private repos)
+          # Allowed roles: Core Maintainer, Community Manager, Maintainer and Community Manager, Maintainer
+          maintainers=$(gh api "repos/${REPO}/contents/MAINTAINERS.md" -q '.content' | base64 -d | \
+            grep -E '\|\s*(Core Maintainer|Community Manager|Maintainer and Community Manager|Maintainer)\s*\|' | \
+            grep -oP '\[[a-zA-Z0-9][a-zA-Z0-9-]*\]\(https://github\.com/[a-zA-Z0-9][a-zA-Z0-9-]*/?\)' | \
+            sed 's/\[\([^]]*\)\].*/\1/' | \
+            sort -u)
+
+          # Fetch all comments on the PR
+          comments=$(gh api "repos/${REPO}/issues/$PR_NUMBER/comments" --paginate)
+
+          # Extract cherry-pick requests from maintainer comments, deduplicate by branch
+          branches=""
+          seen_branches=""
+
+          while IFS= read -r line; do
+            user=$(echo "$line" | jq -r '.user')
+            body=$(echo "$line" | jq -r '.body')
+
+            # Check if user is a maintainer
+            if ! echo "$maintainers" | grep -qx "$user"; then
+              continue
+            fi
+
+            # Extract branch from /cherry-pick command
+            branch=$(echo "$body" | grep -oP '/cherry-pick\s+\K\S+' | head -1)
+            if [ -z "$branch" ]; then
+              continue
+            fi
+
+            # Deduplicate
+            if echo "$seen_branches" | grep -qx "$branch"; then
+              continue
+            fi
+
+            seen_branches=$(printf '%s\n%s' "$seen_branches" "$branch")
+            if [ -z "$branches" ]; then
+              branches="$branch"
+            else
+              branches="$branches,$branch"
+            fi
+          done < <(echo "$comments" | jq -c '.[] | {user: .user.login, body: .body}')
+
+          echo "Found branches: $branches"
+          echo "branches=$branches" >> $GITHUB_OUTPUT
+
+          if [ -z "$branches" ]; then
+            echo "No cherry-pick requests found"
+            echo "has_requests=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_requests=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        if: steps.find-requests.outputs.has_requests == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure git
+        if: steps.find-requests.outputs.has_requests == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Configure git to use token for push (avoids credential persistence in checkout)
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+
+      - name: Process cherry-picks
+        if: steps.find-requests.outputs.has_requests == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          BRANCHES: ${{ steps.find-requests.outputs.branches }}
+        run: |
+          results=""
+          failed_branches=""
+
+          IFS=',' read -ra branch_array <<< "$BRANCHES"
+          for branch in "${branch_array[@]}"; do
+            echo "Processing cherry-pick to $branch"
+
+            # Check if branch exists
+            if ! git ls-remote --exit-code origin "$branch" > /dev/null 2>&1; then
+              echo "Branch $branch does not exist"
+              results="$results
+          - \`$branch\`: ✗ Failed (branch does not exist)"
+              failed_branches="$failed_branches $branch"
+              continue
+            fi
+
+            # Reset to main branch before each cherry-pick
+            git checkout main
+            git checkout "$branch"
+            git pull origin "$branch"
+
+            # Attempt cherry-pick
+            if git cherry-pick "$MERGE_SHA" --mainline 1; then
+              echo "Cherry-pick to $branch successful"
+              git push origin "$branch"
+              results="$results
+          - \`$branch\`: ✓ Success"
+            else
+              echo "Cherry-pick to $branch failed"
+              git cherry-pick --abort || true
+              results="$results
+          - \`$branch\`: ✗ Failed (conflicts)"
+              failed_branches="$failed_branches $branch"
+            fi
+          done
+
+          # Build summary comment
+          comment="Cherry-pick results:
+          $results"
+
+          # Add manual instructions for failed branches
+          if [ -n "$failed_branches" ]; then
+            comment="$comment
+
+          To manually cherry-pick failed branches:
+          \`\`\`bash
+          git fetch origin
+          git checkout <branch>
+          git cherry-pick $MERGE_SHA -m 1
+          # resolve conflicts
+          git push origin <branch>
+          \`\`\`"
+          fi
+
+          gh pr comment "$PR_NUMBER" --body "$comment"
+
+      - name: Clear git credentials
+        if: always()
+        run: |
+          git remote set-url origin "https://github.com/${{ github.repository }}.git" || true
