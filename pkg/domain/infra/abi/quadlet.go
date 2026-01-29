@@ -339,6 +339,10 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 
 	if !replace {
 		osFlags |= os.O_EXCL
+	} else {
+		// If replacing, truncate the file to ensure no old content persists	
+        // if the new file is smaller than the original.
+		osFlags |= os.O_TRUNC
 	}
 
 	file, err := os.OpenFile(finalPath, osFlags, 0o644)
@@ -384,6 +388,19 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 // appendStringToFile appends the given text to the specified file.
 // If the file does not exist, it will be created with 0644 permissions.
 func appendStringToFile(filePath, text string) error {
+	// Check if the entry already exists to avoid duplicates (idempotency).
+    // We ignore errors here; if the file cannot be read or doesn't exist,
+    // we proceed to try writing to it below.
+	lines, err := getAssetListFromFile(filePath)
+	if err == nil {
+		for _, line := range lines {
+			if line == text {
+				// Entry already exists, do nothing
+				return nil
+			}
+		}
+	}
+
 	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
