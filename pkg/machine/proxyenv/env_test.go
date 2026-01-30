@@ -2,9 +2,11 @@ package proxyenv
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/common/pkg/config"
 )
 
 func Test_getProxyScript(t *testing.T) {
@@ -60,6 +62,13 @@ systemctl daemon-reload
 `,
 		},
 	}
+
+	// Unset all proxy env vars first
+	for _, envVar := range config.ProxyEnv {
+		t.Setenv(envVar, "") // needed for restoral during cleanup
+		os.Unsetenv(envVar)
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, e := range tt.args.envs {
