@@ -312,4 +312,55 @@ load helpers
 
     run_podman rm -f -t0 $cid
 }
+
+# bats test_tags=ci:parallel
+@test "podman exec - resource limits" {
+    skip_if_rootless_cgroupsv1 "setting resource limits not supported on cgroupv1 for rootless"
+
+    run_podman run -d $IMAGE top
+    cid="$output"
+
+    # Test CPU limits (requires crun >= 1.9 or runc >= 1.2)
+    run_podman 0+125 exec --cpus=0.5 $cid echo "CPU limit test"
+    if [[ $status -eq 125 ]]; then
+        skip "Runtime does not support --cpus for exec"
+    fi
+    assert "$output" = "CPU limit test" "exec with --cpus should work"
+    
+    # Verify CPU limits are actually applied
+    run_podman exec --cpus=0.5 $cid cat /sys/fs/cgroup/cpu.max
+    # cpu.max format is "$quota $period" (e.g., "50000 100000" for 0.5 CPUs)
+    assert "$output" =~ "[0-9]+ [0-9]+" "CPU limit should be set in cgroup"
+    # Verify the actual values (0.5 CPUs should be 50000 quota / 100000 period)
+    if [[ "$output" =~ ^([0-9]+)\ ([0-9]+)$ ]]; then
+        quota="${BASH_REMATCH[1]}"
+        period="${BASH_REMATCH[2]}"
+        # Calculate CPUs: quota / period (should be approximately 0.5)
+        cpu_value=$(awk "BEGIN {print $quota / $period}")
+        assert "$cpu_value" =~ "0\.5" "CPU limit should be 0.5 CPUs"
+    fi
+
+    # Test memory limits
+    run_podman 0+125 exec --memory=256m $cid echo "Memory limit test"
+    if [[ $status -eq 125 ]]; then
+        skip "Runtime does not support --memory for exec"
+    fi
+    assert "$output" = "Memory limit test" "exec with --memory should work"
+
+    # Test CPU shares
+    run_podman 0+125 exec --cpu-shares=512 $cid echo "CPU shares test"
+    if [[ $status -eq 125 ]]; then
+        skip "Runtime does not support --cpu-shares for exec"
+    fi
+    assert "$output" = "CPU shares test" "exec with --cpu-shares should work"
+
+    # Test multiple resource limits together
+    run_podman 0+125 exec --cpus=0.5 --memory=256m --cpu-shares=512 $cid echo "Combined limits test"
+    if [[ $status -eq 125 ]]; then
+        skip "Runtime does not support resource limits for exec"
+    fi
+    assert "$output" = "Combined limits test" "exec with multiple resource limits should work"
+
+    run_podman rm -f -t0 $cid
+}
 # vim: filetype=sh
