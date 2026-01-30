@@ -30,16 +30,17 @@ Maintainers and Reviewers for the Skopeo and Buildah projects are found in their
 | Jhon Honce        | [jwhonce](https://github.com/jwhonce)                    | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Jan Kaluza        | [jankaluza](https://github.com/jankaluza)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Craig Loewen      | [craigloewen-msft](https://github.com/craigloewen-msft)  | Reviewer                         | [Microsoft](https://github.com/microsoft)    |
-| Urvashi Mohnani   | [umohnani8](https://github.com/umohnani8)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Aditya Rajan      | [flouthoc](https://github.com/flouthoc)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
-| Valentin Rothberg | [vrothberg](https://github.com/vrothberg)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Lewis Roy         | [ninja-quokka](https://github.com/ninja-quokka)          | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Nicola Sella      | [inknos](https://github.com/inknos)                      | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Dan Walsh         | [rhatdan](https://github.com/rhatdan)                    | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 
 ## Alumni
 
-None at present
+| Maintainer        | GitHub ID                                 | Project Roles | Affiliation                                  |
+|-------------------|-------------------------------------------|---------------|----------------------------------------------|
+| Urvashi Mohnani   | [umohnani8](https://github.com/umohnani8) | Reviewer      | [Red Hat](https://github.com/RedHatOfficial) |
+| Valentin Rothberg | [vrothberg](https://github.com/vrothberg) | Reviewer      | [Red Hat](https://github.com/RedHatOfficial) |
 
 ## Credits
 
