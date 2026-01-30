@@ -11,7 +11,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.5.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.9.0
-	github.com/containers/buildah v1.42.0
+	github.com/containers/buildah v1.42.1-0.20260126144005-964d45f717ce
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.7
 	github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
@@ -65,8 +65,8 @@ require (
 	github.com/vbauerster/mpb/v8 v8.11.3
 	github.com/vishvananda/netlink v1.3.1
 	go.podman.io/common v0.66.2-0.20260126213724-1e46b0756b39
-	go.podman.io/image/v5 v5.38.1-0.20251209230740-724707234895
-	go.podman.io/storage v1.61.1-0.20251209230740-724707234895
+	go.podman.io/image/v5 v5.38.1-0.20260123202709-b5801a635dfa
+	go.podman.io/storage v1.61.1-0.20260123202709-b5801a635dfa
 	golang.org/x/crypto v0.47.0
 	golang.org/x/net v0.49.0
 	golang.org/x/sync v0.19.0
@@ -95,13 +95,13 @@ require (
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/platforms v1.0.0-rc.1 // indirect
+	github.com/containerd/platforms v1.0.0-rc.2 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containers/common v0.64.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
-	github.com/containers/luksy v0.0.0-20250910190358-2cf5bc928957 // indirect
+	github.com/containers/luksy v0.0.0-20251208191447-ca096313c38f // indirect
 	github.com/coreos/go-oidc/v3 v3.16.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
@@ -113,7 +113,7 @@ require (
 	github.com/ebitengine/purego v0.9.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fsouza/go-dockerclient v1.12.2 // indirect
+	github.com/fsouza/go-dockerclient v1.12.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -138,7 +138,7 @@ require (
 	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect
-	github.com/moby/buildkit v0.25.1 // indirect
+	github.com/moby/buildkit v0.26.3 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/moby/moby/api v1.52.0 // indirect
 	github.com/moby/moby/client v0.2.1 // indirect

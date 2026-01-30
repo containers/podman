@@ -144,7 +144,7 @@ func (ipnet *NetIPNet) UnmarshalJSON(b []byte) (err error) {
 			*ipnet = NetIPNet(*cidr)
 		}
 	}
-	return
+	return err
 }
 
 // IndexInfo contains information about a registry.

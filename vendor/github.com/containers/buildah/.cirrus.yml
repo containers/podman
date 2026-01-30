@@ -30,13 +30,13 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-42"
-    PRIOR_FEDORA_NAME: "fedora-41"
+    FEDORA_NAME: "fedora-43"
+    PRIOR_FEDORA_NAME: "fedora-42"
     RAWHIDE_NAME: "rawhide"
-    DEBIAN_NAME: "debian-13"
+    DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250910t092246z-f42f41d13"
+    IMAGE_SUFFIX: "c20251211t152018z-f43f42d14"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}" # Used temporarily for rust-podman-sequoia. After that RPM is available in stable Fedora releases, we can stop testing against Rawhide again.
@@ -127,7 +127,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.24.2
+        image: docker.io/library/golang:1.24.6
         cpu: 1
         memory: 1
 
@@ -224,6 +224,18 @@ integration_task:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
         # OVERLAY
         - env:
             DISTRO_NV: "${FEDORA_NAME}"
@@ -246,6 +258,18 @@ integration_task:
             IMAGE_NAME: "${RAWHIDE_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             TEST_BUILD_TAGS: 'containers_image_sequoia'
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
 
     gce_instance: &integration_gce_instance
         image_name: "$IMAGE_NAME"
@@ -269,53 +293,6 @@ integration_task:
         buildah_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_info'
         package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
         golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
-
-non_blocking_integration_task:
-    name: "Integration $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER (non-blocking)"
-    alias: non_blocking_integration
-    skip: *not_build_docs
-    depends_on: *smoke_vendor
-
-    matrix:
-        # VFS
-        - env:
-            DISTRO_NV: "${FEDORA_NAME}"
-            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
-            BUILDAH_RUNTIME: runc
-            RUNTIME_N: " using runc"
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
-            BUILDAH_RUNTIME: runc
-            RUNTIME_N: " using runc"
-        # OVERLAY
-        - env:
-            DISTRO_NV: "${FEDORA_NAME}"
-            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-            BUILDAH_RUNTIME: runc
-            RUNTIME_N: " using runc"
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-            BUILDAH_RUNTIME: runc
-            RUNTIME_N: " using runc"
-
-    gce_instance:
-        <<: *integration_gce_instance
-
-    # Separate scripts for separate outputs, makes debugging easier.
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
-    integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
-
-    always: *standardlogs
 
 integration_rootless_task:
     name: "Integration rootless $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
@@ -345,28 +322,6 @@ integration_rootless_task:
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
-
-    gce_instance:
-        <<: *integration_gce_instance
-
-    # Separate scripts for separate outputs, makes debugging easier.
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
-    integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
-
-    always:
-        <<: *standardlogs
-
-non_blocking_integration_rootless_task:
-    name: "Integration rootless $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER (non-blocking)"
-    alias: non_blocking_integration_rootless
-    skip: *not_build_docs
-    depends_on: *smoke_vendor
-
-    matrix:
         - env:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"

@@ -1,4 +1,4 @@
-package types
+package mkcwtypes
 
 // RegistrationRequest is the body of the request which we use for registering
 // this confidential workload with the attestation server.

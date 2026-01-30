@@ -51,16 +51,11 @@ func hostInfo() map[string]any {
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = unshare.IsRootless()
 
-	unified, err := cgroups.IsCgroup2UnifiedMode()
+	_, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
 		logrus.Error(err, "err reading cgroups mode")
 	}
-	cgroupVersion := "v1"
 	ociruntime := util.Runtime()
-	if unified {
-		cgroupVersion = "v2"
-	}
-	info["CgroupVersion"] = cgroupVersion
 	info["OCIRuntime"] = ociruntime
 
 	mi, err := system.ReadMemInfo()
