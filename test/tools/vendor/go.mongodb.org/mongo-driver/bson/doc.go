@@ -107,10 +107,13 @@
 // The name may be empty in order to specify options without overriding the default field name. The following options can
 // be used to configure behavior:
 //
-//  1. omitempty: If the omitempty struct tag is specified on a field, the field will be omitted from the marshaling if
-//     the field has an empty value, defined as false, 0, a nil pointer, a nil interface value, and any empty array,
-//     slice, map, or string.
-//     NOTE: It is recommended that this tag be used for all slice and map fields.
+//  1. omitempty: If the "omitempty" struct tag is specified on a field, the field will not be marshaled if it is set to
+//     an "empty" value. Numbers, booleans, and strings are considered empty if their value is equal to the zero value for
+//     the type (i.e. 0 for numbers, false for booleans, and "" for strings). Slices, maps, and arrays are considered
+//     empty if they are of length zero. Interfaces and pointers are considered empty if their value is nil. By default,
+//     structs are only considered empty if the struct type implements [bsoncodec.Zeroer] and the IsZero
+//     method returns true. Struct types that do not implement [bsoncodec.Zeroer] are never considered empty and will be
+//     marshaled as embedded documents. NOTE: It is recommended that this tag be used for all slice and map fields.
 //
 //  2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
 //     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For
