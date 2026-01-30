@@ -21,7 +21,6 @@ import (
 	"text/template"
 	"time"
 
-	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/logs"
 	"github.com/containers/podman/v6/pkg/checkpoint/crutils"
@@ -45,7 +44,7 @@ const (
 	// directly from the Go code, so const it here
 	// Important: The conmon attach socket uses an extra byte at the beginning of each
 	// message to specify the STREAM so we have to increase the buffer size by one
-	bufferSize = conmonConfig.BufSize + 1
+	conmonAttachBufferSize = 8193
 )
 
 // ConmonOCIRuntime is an OCI runtime managed by Conmon.
@@ -1506,7 +1505,7 @@ func (r *ConmonOCIRuntime) getOCIRuntimeVersion() (string, error) {
 // the HTTP connection. cid is the ID of the container the attach session is
 // running for (used solely for error messages).
 func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid string) error {
-	buf := make([]byte, bufferSize)
+	buf := make([]byte, conmonAttachBufferSize)
 	for {
 		numR, err := container.Read(buf)
 		logrus.Debugf("Read fd(%d) %d/%d bytes for container %s", int(buf[0]), numR, len(buf), cid)
@@ -1550,7 +1549,7 @@ func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid
 // Copy data from a container to an HTTP connection, for non-terminal attach.
 // Appends a header to multiplex input.
 func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid string, stdin, stdout, stderr bool) error {
-	buf := make([]byte, bufferSize)
+	buf := make([]byte, conmonAttachBufferSize)
 	for {
 		numR, err := container.Read(buf)
 		if numR > 0 {
