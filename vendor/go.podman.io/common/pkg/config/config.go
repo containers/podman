@@ -21,8 +21,6 @@ import (
 )
 
 const (
-	// userOverrideContainersConfig holds the containers config path overridden by the rootless user.
-	userOverrideContainersConfig = ".config/" + _configPath
 	// Token prefix for looking for helper binary under $BINDIR.
 	bindirPrefix = "$BINDIR"
 )
@@ -1078,8 +1076,10 @@ func findBindir() string {
 	}
 	execPath, err := os.Executable()
 	if err == nil {
-		// Resolve symbolic links to find the actual binary file path.
-		execPath, err = filepath.EvalSymlinks(execPath)
+		// Resolve symlinks for the binary path.
+		// On Windows, an additional symlink check is performed;
+		// on other platforms, this is equivalent to filepath.EvalSymlinks.
+		execPath, err = safeEvalSymlinks(execPath)
 	}
 	if err != nil {
 		// If failed to find executable (unlikely to happen), warn about it.

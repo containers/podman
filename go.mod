@@ -140,8 +140,8 @@ require (
 	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect
 	github.com/moby/buildkit v0.26.3 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
-	github.com/moby/moby/api v1.52.0 // indirect
-	github.com/moby/moby/client v0.2.1 // indirect
+	github.com/moby/moby/api v1.53.0 // indirect
+	github.com/moby/moby/client v0.2.2 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
@@ -191,4 +191,10 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
+)
+
+replace (
+	go.podman.io/common => github.com/Luap99/container-libs/common v0.0.0-20260130173836-dc3ba83f7a8e
+	go.podman.io/image/v5 => github.com/Luap99/container-libs/image/v5 v5.0.0-20260130173836-dc3ba83f7a8e
+	go.podman.io/storage => github.com/Luap99/container-libs/storage v0.0.0-20260130173836-dc3ba83f7a8e
 )
