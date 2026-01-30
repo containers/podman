@@ -2340,6 +2340,69 @@ func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
 	return etchosts.HostEntries{{IP: "127.0.0.1", Names: []string{c.Hostname(), c.config.Name}}}
 }
 
+// isUsingHostNetwork determines if a container is using host network, either directly
+// or through a pod or shared network namespace.
+func (c *Container) isUsingHostNetwork() bool {
+	// Check if container itself uses host network
+	if c.HostNetwork() || c.config.NetMode.IsHost() {
+		return true
+	}
+
+	// If container is in a pod, check if the pod uses host network
+	if c.PodID() != "" {
+		pod, err := c.runtime.LookupPod(c.PodID())
+		if err == nil && pod != nil {
+			// Try to get network mode from pod
+			networkMode := pod.NetworkMode()
+			if networkMode == "host" {
+				return true
+			}
+			// If NetworkMode() returned empty string (infra container not ready),
+			// try to check infra container directly as fallback
+			if networkMode == "" && pod.HasInfraContainer() {
+				infra, err := pod.infraContainer()
+				if err == nil && infra != nil {
+					if infra.HostNetwork() || infra.config.NetMode.IsHost() {
+						return true
+					}
+				}
+			}
+		}
+	}
+
+	// If container shares network namespace with another container, check that container
+	if c.config.NetNsCtr != "" {
+		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)
+		if err == nil && netNsCtr != nil {
+			if netNsCtr.HostNetwork() || netNsCtr.config.NetMode.IsHost() {
+				return true
+			}
+			// Also check if the shared container is in a pod with host network
+			if netNsCtr.PodID() != "" {
+				pod, err := c.runtime.LookupPod(netNsCtr.PodID())
+				if err == nil && pod != nil {
+					networkMode := pod.NetworkMode()
+					if networkMode == "host" {
+						return true
+					}
+					// If NetworkMode() returned empty string (infra container not ready),
+					// try to check infra container directly as fallback
+					if networkMode == "" && pod.HasInfraContainer() {
+						infra, err := pod.infraContainer()
+						if err == nil && infra != nil {
+							if infra.HostNetwork() || infra.config.NetMode.IsHost() {
+								return true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 // getHostsEntries returns the container ip host entries for the correct netmode
 func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	var entries etchosts.HostEntries
@@ -2427,6 +2490,7 @@ func (c *Container) addHosts() error {
 		NetworkInterface: c.runtime.network,
 		Exclude:          exclude,
 		PreferIP:         preferIP,
+		HostNetwork:      c.isUsingHostNetwork(),
 	})
 
 	return etchosts.New(&etchosts.Params{

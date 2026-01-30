@@ -773,6 +773,26 @@ nameserver 8.8.8.8" "nameserver order is correct"
     run_podman network rm -f $netname
 }
 
+# https://github.com/containers/podman/issues/27823
+# bats test_tags=ci:parallel
+@test "podman run --network=host uses localhost for host.containers.internal" {
+    run_podman run --rm --network=host $IMAGE cat /etc/hosts
+    assert "$output" =~ "127\.0\.0\.1[[:blank:]].*host\.containers\.internal" \
+           "host.containers.internal should resolve to 127.0.0.1 with --network=host"
+}
+
+# https://github.com/containers/podman/pull/27927
+# bats test_tags=ci:parallel
+@test "podman run in pod with host network uses localhost for host.containers.internal" {
+    local podname="test-pod-hostnet-$(random_string 10)"
+    run_podman pod create --name $podname --network host
+    run_podman run --rm --pod $podname $IMAGE cat /etc/hosts
+    assert "$output" =~ "127\.0\.0\.1[[:blank:]].*host\.containers\.internal" \
+           "host.containers.internal should resolve to 127.0.0.1 in pod with host network"
+    run_podman pod rm $podname
+}
+
+
 # bats test_tags=ci:parallel
 @test "podman run port forward range" {
     # we run a long loop of tests lets run all combinations before bailing out
