@@ -930,6 +930,17 @@ Fri Nov 19 23:10:55 UTC 2021
 $ podman run --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10 alpine ip addr
 ```
 
+### Define a healthcheck at run time and verify it
+
+```
+$ podman create -d --name healthcheck-example -p 8080:80 \
+  --health-cmd '["CMD-SHELL","wget -q --spider http://127.0.0.1:80 || exit 1"]' \
+  --health-interval 30s --health-timeout 5s --health-retries 3 \
+  docker.io/library/nginx:alpine
+
+$ podman inspect healthcheck-example | jq '.[0].State.Health'
+```
+
 ### Rootless Containers
 
 Podman runs as a non-root user on most systems. This feature requires that a new enough version of **shadow-utils**
