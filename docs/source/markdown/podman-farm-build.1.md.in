@@ -125,6 +125,8 @@ This option specifies the name of the farm to be used in the build process.
 
 @@option iidfile
 
+@@option iidfile-raw
+
 @@option inherit-annotations
 
 @@option inherit-labels

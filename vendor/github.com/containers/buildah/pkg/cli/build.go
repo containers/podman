@@ -112,7 +112,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	if c.Flag("build-context").Changed {
 		for _, contextString := range iopts.BuildContext {
 			av := strings.SplitN(contextString, "=", 2)
-			if len(av) > 1 {
+			// the key should be non-empty: we use "" as internal
+			// shorthand for the default build context when there's
+			// an overlay mounted over it
+			if len(av) > 1 && av[0] != "" {
 				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
 				if err != nil {
 					return options, nil, nil, fmt.Errorf("while parsing additional build context: %w", err)
@@ -405,6 +408,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		GroupAdd:                iopts.GroupAdd,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 iopts.Iidfile,
+		IIDFileRaw:              iopts.IidfileRaw,
 		IgnoreFile:              iopts.IgnoreFile,
 		In:                      stdin,
 		InheritLabels:           inheritLabels,
@@ -418,6 +422,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		LogRusage:               iopts.LogRusage,
 		LogSplitByPlatform:      iopts.LogSplitByPlatform,
 		Manifest:                iopts.Manifest,
+		MetadataFile:            iopts.MetadataFile,
 		MaxPullPushRetries:      iopts.Retry,
 		NamespaceOptions:        namespaceOptions,
 		NoCache:                 iopts.NoCache,

@@ -54,7 +54,7 @@ type BuildFlagsWrapper struct {
 // supported or don't make sense in the farm build use case
 var FarmBuildHiddenFlags = []string{
 	"arch", "all-platforms", "compress", "cw", "disable-content-trust",
-	"logsplit", "manifest", "os", "output", "platform", "sign-by", "signature-policy", "stdin",
+	"logsplit", "manifest", "metadata-file", "os", "output", "platform", "sign-by", "signature-policy", "stdin",
 	"variant",
 }
 
@@ -148,6 +148,9 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 
 	if cmd.Flag("output").Changed && registry.IsRemote() {
 		return nil, errors.New("'--output' option is not supported in remote mode")
+	}
+	if cmd.Flag("metadata-file").Changed && registry.IsRemote() {
+		return nil, errors.New("'--metadata-file' option is not supported in remote mode")
 	}
 
 	if buildOpts.Network == "none" {
@@ -612,6 +615,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		UnsetEnvs:               flags.UnsetEnvs,
 		UnsetLabels:             flags.UnsetLabels,
 		UnsetAnnotations:        flags.UnsetAnnotations,
+		MetadataFile:            flags.MetadataFile,
 	}
 
 	if c.Flag("created-annotation").Changed {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/ioutils"
 	"go.podman.io/storage/pkg/lockfile"
 )
@@ -19,12 +20,12 @@ func connectionsConfigFile() (string, error) {
 	if path, found := os.LookupEnv("PODMAN_CONNECTIONS_CONF"); found {
 		return path, nil
 	}
-	path, err := userConfigPath()
+	path, err := configfile.UserConfigPath()
 	if err != nil {
 		return "", err
 	}
 	// file is stored next to containers.conf
-	return filepath.Join(filepath.Dir(path), connectionsFile), nil
+	return filepath.Join(path, connectionsFile), nil
 }
 
 type ConnectionConfig struct {

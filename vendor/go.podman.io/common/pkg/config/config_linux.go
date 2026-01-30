@@ -6,12 +6,6 @@ import (
 )
 
 const (
-	// overrideContainersConfig holds the default config path overridden by the root user.
-	overrideContainersConfig = "/etc/" + _configPath
-
-	// defaultContainersConfig holds the default containers config path.
-	defaultContainersConfig = "/usr/share/" + _configPath
-
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
 	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
