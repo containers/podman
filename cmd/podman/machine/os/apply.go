@@ -12,7 +12,7 @@ import (
 )
 
 var applyCmd = &cobra.Command{
-	Use:               "apply [options] IMAGE [NAME]",
+	Use:               "apply [options] URI [NAME]",
 	Short:             "Apply an OCI image to a Podman Machine's OS",
 	Long:              "Apply custom layers from a containerized Fedora CoreOS OCI image on top of an existing VM",
 	PersistentPreRunE: validate.NoOp,
