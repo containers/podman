@@ -34,6 +34,8 @@ ln -fs /dev/null /etc/systemd/system/systemd-oomd.socket
 mkdir -p /etc/systemd/system/systemd-sysusers.service.d/
 echo CREATE_MAIL_SPOOL=no >> /etc/default/useradd
 adduser -m [USER] -G wheel
+sed -ir 's/65536/1000000/' /etc/subuid
+sed -ir 's/65536/1000000/' /etc/subgid
 mkdir -p /home/[USER]/.config/systemd/[USER]/
 chown [USER]:[USER] /home/[USER]/.config
 `

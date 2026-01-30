@@ -257,6 +257,30 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(0))
 		Expect(sshSession.outputToString()).To(ContainSubstring("yes"))
+
+		/* Validate that subid count is sufficiently large.
+		 * The subid and subgid files contain a line for each user with subid start and count,
+		 * separated by a double colon, for example: 'user:100000:65536'. Only the count is of
+		 * interest here, it should be sufficiently large to accommodate nested namespaces which is
+		 * required to run rootless Podman in Podman. The check assumes there is only 1 user.
+		 */
+		count_min := 1000000
+		for _, file := range []string{"/etc/subuid", "/etc/subgid"} {
+			cmd := fmt.Sprintf(`awk -F: 'NR==1 {print $NF}' %s`, file)
+			sshSession, err := mb.setName(mb.name).setCmd(ssh.withSSHCommand([]string{cmd})).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sshSession).To(Exit(0))
+
+			subid_count_str := sshSession.outputToString()
+			Expect(subid_count_str).ToNot(BeEmpty(), "No subid count found in %s", file)
+
+			subid_count, err := strconv.Atoi(subid_count_str)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(subid_count).To(BeNumerically(">=", count_min),
+				"Expected subid count %d to be >= %d in %s",
+				subid_count, count_min, file,
+			)
+		}
 	})
 
 	It("machine init with cpus, disk size, memory, timezone", func() {
