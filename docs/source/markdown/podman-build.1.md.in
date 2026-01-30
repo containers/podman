@@ -223,6 +223,8 @@ It does not affect _/etc/resolv.conf_ in the final image.
 
 @@option iidfile
 
+@@option iidfile-raw
+
 @@option inherit-annotations
 
 @@option inherit-labels
@@ -254,6 +256,8 @@ This option is not supported on the remote client, including Mac and Windows
 @@option memory
 
 @@option memory-swap
+
+@@option metadata-file
 
 @@option network.image
 
