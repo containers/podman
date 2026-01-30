@@ -380,29 +380,22 @@ func getFirstBootAppleVMIgnition(mc *vmconfigs.MachineConfig) ([]string, error) 
 
 func getFirstBootAppleVMCloudInit(mc *vmconfigs.MachineConfig) ([]string, error) {
 	if mc.LibKrunHypervisor == nil {
-		cloudInitArgs := []string{}
-
-		if mc.CloudInitConfig.UserData != nil {
-			cloudInitArgs = append(cloudInitArgs, mc.CloudInitConfig.UserData.GetPath())
+		// Always call GenerateUserDataFile
+		// if the user provided a custom user-data file, we use it and
+		// add additional data like mounts
+		// otherwise we generate a default user-data file
+		userDataFile, err := cloudinit.GenerateUserDataFile(mc)
+		if err != nil {
+			return nil, err
 		}
+		cloudInitArgs := []string{userDataFile}
 
 		if mc.CloudInitConfig.MetaData != nil {
 			cloudInitArgs = append(cloudInitArgs, mc.CloudInitConfig.MetaData.GetPath())
 		}
-
-		//if user did not pass any mandatory cloud-init files, we generate a default user-data file
-		if len(cloudInitArgs) == 0 {
-			userDataFile, err := cloudinit.GenerateUserDataFile(mc)
-			if err != nil {
-				return nil, err
-			}
-			cloudInitArgs = append(cloudInitArgs, userDataFile)
-		}
-
 		if mc.CloudInitConfig.NetworkConfig != nil {
 			cloudInitArgs = append(cloudInitArgs, mc.CloudInitConfig.NetworkConfig.GetPath())
 		}
-
 		return []string{"--cloud-init", strings.Join(cloudInitArgs, ",")}, nil
 	} else {
 		cloudinitISO, err := cloudinit.GenerateISO(mc)
