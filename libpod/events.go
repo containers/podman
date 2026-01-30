@@ -105,9 +105,11 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	intExitCode := int(exitCode)
 	e.ContainerExitCode = &intExitCode
 
-	e.Details = events.Details{
-		Attributes: c.Labels(),
+	attrs := c.Labels()
+	if c.state.OOMKilled {
+		e.OOMKilled = &c.state.OOMKilled
 	}
+	e.Details = events.Details{Attributes: attrs}
 
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write container exited event: %q", err)

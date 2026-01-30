@@ -127,6 +127,7 @@ Format the output to JSON Lines or using the given Go template.
 | .Image                | Name of image being run (string)                                     |
 | .Name                 | Container name (string)                                              |
 | .Network              | Name of network being used (string)                                  |
+| .OOMKilled            | Whether container was killed due to OOM (bool)                       |
 | .PodID                | ID of pod associated with container, if any                          |
 | .Status               | Event status (e.g., create, start, died, ...)                        |
 | .Time                 | Event timestamp (string)                                             |
