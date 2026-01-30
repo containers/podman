@@ -257,3 +257,10 @@ type V2S2Manifest struct {
 	// configuration.
 	Layers []V2S2Descriptor `json:"layers"`
 }
+
+const (
+	// github.com/moby/buildkit/exporter/containerimage/exptypes/types.go
+	ExporterImageDigestKey       = "containerimage.digest"
+	ExporterImageConfigDigestKey = "containerimage.config.digest"
+	ExporterImageDescriptorKey   = "containerimage.descriptor"
+)

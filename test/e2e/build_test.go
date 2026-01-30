@@ -310,6 +310,21 @@ var _ = Describe("Podman build", func() {
 		Expect("sha256:" + data[0].ID).To(Equal(string(id)))
 	})
 
+	It("podman build basic alpine and print id to external file without prefix (--iidfile-raw)", func() {
+		targetFile := filepath.Join(podmanTest.TempDir, "idFileRaw")
+
+		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicalpine", "--iidfile-raw", targetFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		id, _ := os.ReadFile(targetFile)
+
+		// Verify that id is correct (no sha256: prefix)
+		inspect := podmanTest.Podman([]string{"inspect", string(id)})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectImageJSON()
+		Expect(data[0].ID).To(Equal(string(id)))
+	})
+
 	It("podman Test PATH and reserved annotation in built image", func() {
 		path := "/tmp:/bin:/usr/bin:/usr/sbin"
 		session := podmanTest.Podman([]string{
@@ -1385,4 +1400,21 @@ COPY --from=img2 /etc/alpine-release /prefix-test/container-prefix.txt`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
+
+	It("podman build basic alpine and write metadata to external file", func() {
+		SkipIfRemote("--metadata-file is not supported in remote mode")
+		targetFile := filepath.Join(podmanTest.TempDir, "metadata.json")
+
+		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicalpine", "--metadata-file", targetFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Verify that metadata file exists and contains expected keys
+		metadata, err := os.ReadFile(targetFile)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(metadata).To(ContainSubstring("containerimage.config.digest"))
+		Expect(metadata).To(ContainSubstring("containerimage.digest"))
+		Expect(metadata).To(ContainSubstring("containerimage.descriptor"))
+	})
+
 })
