@@ -101,9 +101,12 @@ type Info struct {
 	Uptime             string
 }
 
+type Health = dockerContainer.HealthStatus
+
 type Container struct {
 	docker.Container
 	dockerBackend.ContainerCreateConfig
+	Health Health `json:"Health"`
 }
 
 type DiskUsage struct {
