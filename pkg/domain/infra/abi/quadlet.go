@@ -319,7 +319,7 @@ func getFileName(resp *http.Response, fileURL string) (string, error) {
 // Perform some minimal validation, but not much.
 // We can't know about a lot of problems without running the Quadlet binary, which we
 // only want to do once.
-func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile, _ bool) (string, error) {
+func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile, replace bool) (string, error) {
 	// First, validate that the source path exists and is a file
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -347,6 +347,15 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		return "", fmt.Errorf("unable to create temporary file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
+
+	// Check if destination already exists and replace is not set
+	if !replace {
+		if _, err := os.Stat(finalPath); err == nil {
+			tmpFile.Close()
+			os.Remove(tmpPath)
+			return "", fmt.Errorf("a Quadlet with name %s already exists, refusing to overwrite", filepath.Base(finalPath))
+		}
+	}
 
 	// Ensure we clean up the temp file if something goes wrong before the rename
 	defer func() {

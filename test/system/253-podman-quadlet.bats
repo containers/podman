@@ -498,6 +498,9 @@ EOF
     if [ ! -f "$app_file" ]; then
         # If .app is missing, check if .asset was created instead (debugging IsExtSupported)
         if [ -f "$install_dir/.long.container.asset" ]; then
-}
+             die "Failed: Created .asset file instead of .app file. IsExtSupported check failed?"
+        fi
+        die "Failed: .app file not found at $app_file"
+    fi
 
 # vim: filetype=sh
