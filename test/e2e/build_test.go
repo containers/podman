@@ -1416,5 +1416,4 @@ COPY --from=img2 /etc/alpine-release /prefix-test/container-prefix.txt`
 		Expect(metadata).To(ContainSubstring("containerimage.digest"))
 		Expect(metadata).To(ContainSubstring("containerimage.descriptor"))
 	})
-
 })
