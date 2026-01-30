@@ -381,14 +381,14 @@ func (ic *imageCopier) noPendingManifestUpdates() bool {
 func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context, targetInstance *digest.Digest) (*copySingleImageResult, error) {
 	destImageSource, err := ic.c.dest.Reference().NewImageSource(ctx, ic.c.options.DestinationCtx)
 	if err != nil {
-		logrus.Debugf("Unable to create destination image %s source: %v", ic.c.dest.Reference(), err)
+		logrus.Debugf("Unable to create destination image %s source: %v", transports.ImageName(ic.c.dest.Reference()), err)
 		return nil, nil
 	}
 	defer destImageSource.Close()
 
 	destManifest, destManifestType, err := destImageSource.GetManifest(ctx, targetInstance)
 	if err != nil {
-		logrus.Debugf("Unable to get destination image %s/%s manifest: %v", destImageSource, targetInstance, err)
+		logrus.Debugf("Unable to get destination image %s/%s manifest: %v", transports.ImageName(destImageSource.Reference()), targetInstance, err)
 		return nil, nil
 	}
 

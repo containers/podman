@@ -1,4 +1,4 @@
-package types
+package mkcwtypes
 
 import "github.com/containers/buildah/define"
 

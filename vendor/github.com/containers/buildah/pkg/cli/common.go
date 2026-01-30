@@ -26,8 +26,10 @@ import (
 
 // LayerResults represents the results of the layer flags
 type LayerResults struct {
-	ForceRm bool
-	Layers  bool
+	CacheStages bool
+	ForceRm     bool
+	Layers      bool
+	StageLabels bool
 }
 
 // UserNSResults represents the results for the UserNS flags
@@ -59,6 +61,7 @@ type BudResults struct {
 	BuildArg            []string
 	BuildArgFile        []string
 	BuildContext        []string
+	BuildIDFile         string
 	CacheFrom           []string
 	CacheTo             []string
 	CacheTTL            string
@@ -73,6 +76,7 @@ type BudResults struct {
 	Format              string
 	From                string
 	Iidfile             string
+	IidfileRaw          string
 	InheritLabels       bool
 	InheritAnnotations  bool
 	Label               []string
@@ -80,6 +84,7 @@ type BudResults struct {
 	Logfile             string
 	LogSplitByPlatform  bool
 	Manifest            string
+	MetadataFile        string
 	NoHostname          bool
 	NoHosts             bool
 	NoCache             bool
@@ -216,6 +221,8 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.BoolVar(&flags.ForceRm, "force-rm", false, "always remove intermediate containers after a build, even if the build is unsuccessful.")
 	fs.BoolVar(&flags.Layers, "layers", UseLayers(), "use intermediate layers during build. Use BUILDAH_LAYERS environment variable to override.")
+	fs.BoolVar(&flags.CacheStages, "cache-stages", false, "preserve intermediate stage images.")
+	fs.BoolVar(&flags.StageLabels, "stage-labels", false, "add metadata labels to intermediate stage images (requires --cache-stages).")
 	return fs
 }
 
@@ -252,6 +259,8 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringSliceVarP(&flags.File, "file", "f", []string{}, "`pathname or URL` of a Dockerfile")
 	fs.StringVar(&flags.Format, "format", DefaultFormat(), "`format` of the built image's manifest and metadata. Use BUILDAH_FORMAT environment variable to override.")
 	fs.StringVar(&flags.Iidfile, "iidfile", "", "`file` to write the image ID to")
+	fs.StringVar(&flags.IidfileRaw, "iidfile-raw", "", "`file` to write the image ID to (without algorithm prefix)")
+	fs.StringVar(&flags.BuildIDFile, "build-id-file", "", "`file` to write the build ID to")
 	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
 	fs.StringArrayVar(&flags.Label, "label", []string{}, "set metadata for an image (default [])")
 	fs.StringArrayVar(&flags.LayerLabel, "layer-label", []string{}, "set metadata for an intermediate image (default [])")
@@ -270,6 +279,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 		panic(fmt.Sprintf("error marking the rusage-logfile flag as hidden: %v", err))
 	}
 	fs.StringVar(&flags.Manifest, "manifest", "", "add the image to the specified manifest list. Creates manifest list if it does not exist")
+	fs.StringVar(&flags.MetadataFile, "metadata-file", "", "`file` to write metadata about the image to")
 	fs.BoolVar(&flags.NoCache, "no-cache", false, "do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
 	fs.BoolVar(&flags.NoHostname, "no-hostname", false, "do not create new /etc/hostname file for RUN instructions, use the one from the base image.")
 	fs.BoolVar(&flags.NoHosts, "no-hosts", false, "do not create new /etc/hosts file for RUN instructions, use the one from the base image.")
@@ -355,11 +365,14 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["hooks-dir"] = commonComp.AutocompleteNone
 	flagCompletion["ignorefile"] = commonComp.AutocompleteDefault
 	flagCompletion["iidfile"] = commonComp.AutocompleteDefault
+	flagCompletion["iidfile-raw"] = commonComp.AutocompleteDefault
+	flagCompletion["build-id-file"] = commonComp.AutocompleteDefault
 	flagCompletion["jobs"] = commonComp.AutocompleteNone
 	flagCompletion["label"] = commonComp.AutocompleteNone
 	flagCompletion["layer-label"] = commonComp.AutocompleteNone
 	flagCompletion["logfile"] = commonComp.AutocompleteDefault
 	flagCompletion["manifest"] = commonComp.AutocompleteDefault
+	flagCompletion["metadata-file"] = commonComp.AutocompleteDefault
 	flagCompletion["os"] = commonComp.AutocompleteNone
 	flagCompletion["os-feature"] = commonComp.AutocompleteNone
 	flagCompletion["os-version"] = commonComp.AutocompleteNone
@@ -542,6 +555,8 @@ func AliasFlags(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "os"
 	case "purge":
 		name = "rm"
+	case "raw-iidfile":
+		name = "iidfile-raw"
 	case "tty":
 		name = "terminal"
 	}
