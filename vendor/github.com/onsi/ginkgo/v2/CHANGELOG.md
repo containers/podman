@@ -1,3 +1,21 @@
+## 2.28.0
+
+Ginkgo's SemVer filter now supports filtering multiple components by SemVer version:
+
+```go
+It("should work in a specific version range (1.0.0, 2.0.0) and third-party dependency redis in [8.0.0, ~)", SemVerConstraint(">= 3.2.0"), ComponentSemVerConstraint("redis", ">= 8.0.0") func() {
+    // This test will only run when version is between 1.0.0 (exclusive) and 2.0.0 (exclusive) and redis version is >= 8.0.0
+})
+```
+
+can be filtered in or out with an invocation like:
+
+```bash
+ginkgo --sem-ver-filter="2.1.1, redis=8.2.0"
+```
+
+Huge thanks to @Icarus9913 for working on this!
+
 ## 2.27.5
 
 ### Fixes
