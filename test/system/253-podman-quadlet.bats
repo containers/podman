@@ -503,4 +503,15 @@ EOF
         die "Failed: .app file not found at $app_file"
     fi
 
-# vim: filetype=sh
+    # Check content of the .app file
+    run cat "$app_file"
+    # It should contain exactly one line: "long.container"
+    assert "$output" == "long.container" ".app file should contain the quadlet name"
+    
+    # Ensure no duplicates (line count should be 1)
+    run wc -l < "$app_file"
+    assert "$output" -eq 1 "Should only be listed once in tracking files"
+
+    # Cleanup: Remove the installed quadlet
+    run_podman quadlet rm long.container
+}
