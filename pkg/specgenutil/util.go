@@ -78,7 +78,8 @@ func CreateExpose(expose []string) (map[uint16]string, error) {
 }
 
 // CreatePortBindings iterates ports mappings into SpecGen format.
-func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
+// defaultHostIPs is the list of default host IPs to use when no IP is specified in the port mapping.
+func CreatePortBindings(ports []string, defaultHostIPs []string) ([]types.PortMapping, error) {
 	// --publish is formatted as follows:
 	// [[hostip:]hostport[-endPort]:]containerport[-endPort][/protocol]
 	toReturn := make([]types.PortMapping, 0, len(ports))
@@ -144,12 +145,21 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 			return nil, errors.New("invalid port format - format is [[hostIP:]hostPort:]containerPort")
 		}
 
-		newPort, err := parseSplitPort(hostIP, hostPort, ctrPort, proto)
-		if err != nil {
-			return nil, err
+		if hostIP == nil && len(defaultHostIPs) > 0 {
+			for _, defaultHostIP := range defaultHostIPs {
+				newPort, err := parseSplitPort(hostIP, hostPort, ctrPort, proto, defaultHostIP)
+				if err != nil {
+					return nil, err
+				}
+				toReturn = append(toReturn, newPort)
+			}
+		} else {
+			newPort, err := parseSplitPort(hostIP, hostPort, ctrPort, proto, "")
+			if err != nil {
+				return nil, err
+			}
+			toReturn = append(toReturn, newPort)
 		}
-
-		toReturn = append(toReturn, newPort)
 	}
 
 	return toReturn, nil
@@ -157,7 +167,7 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 
 // parseSplitPort parses individual components of the --publish flag to produce
 // a single port mapping in SpecGen format.
-func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) (types.PortMapping, error) {
+func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string, defaultHostIP string) (types.PortMapping, error) {
 	newPort := types.PortMapping{}
 	if ctrPort == "" {
 		return newPort, errors.New("must provide a non-empty container port to publish")
@@ -187,6 +197,13 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 			}
 			newPort.HostIP = testIP.String()
 		}
+	} else if defaultHostIP != "" {
+		// No host IP was specified in the port mapping, but a default is configured.
+		testIP := net.ParseIP(defaultHostIP)
+		if testIP == nil {
+			return newPort, fmt.Errorf("cannot parse default host IP %q as an IP address", defaultHostIP)
+		}
+		newPort.HostIP = testIP.String()
 	}
 	if hostPort != nil {
 		if *hostPort == "" {

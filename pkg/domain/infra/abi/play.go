@@ -733,7 +733,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	*ipIndex++
 
 	if len(options.PublishPorts) > 0 {
-		publishPorts, err := specgenutil.CreatePortBindings(options.PublishPorts)
+		defaultHostIPs := cfg.Network.DefaultHostIPs.Get()
+		publishPorts, err := specgenutil.CreatePortBindings(options.PublishPorts, defaultHostIPs)
 		if err != nil {
 			return nil, nil, err
 		}

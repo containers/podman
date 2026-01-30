@@ -185,7 +185,12 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	}
 
 	if len(restoreOptions.PublishPorts) > 0 {
-		pubPorts, err := specgenutil.CreatePortBindings(restoreOptions.PublishPorts)
+		cfg, err := runtime.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		defaultHostIPs := cfg.Network.DefaultHostIPs.Get()
+		pubPorts, err := specgenutil.CreatePortBindings(restoreOptions.PublishPorts, defaultHostIPs)
 		if err != nil {
 			return nil, err
 		}
