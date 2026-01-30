@@ -73,7 +73,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	// both failing and succeeding cases to match kube behavior.
 	// So don't run the health check log till the start period is over
 	if _, ok := c.config.Spec.Annotations[define.KubeHealthCheckAnnotation]; ok && inStartPeriod && !isStartup {
-		return define.HealthCheckDefined, "", nil
+		return define.HealthCheckSuccess, "", nil
 	}
 
 	hcCommand := c.HealthCheckConfig().Test
