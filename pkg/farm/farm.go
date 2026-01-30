@@ -268,6 +268,7 @@ func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.Bu
 	listBuilderOptions := listBuilderOptions{
 		cleanup:       options.Cleanup,
 		iidFile:       options.IIDFile,
+		iidFileRaw:    options.IIDFileRaw,
 		authfile:      options.Authfile,
 		skipTLSVerify: options.SkipTLSVerify,
 	}

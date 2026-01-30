@@ -16,6 +16,7 @@ import (
 type listBuilderOptions struct {
 	cleanup       bool
 	iidFile       string
+	iidFileRaw    string
 	authfile      string
 	skipTLSVerify *bool
 }
@@ -127,6 +128,11 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 	// Write the manifest list's ID file if we're expected to
 	if l.options.iidFile != "" {
 		if err := os.WriteFile(l.options.iidFile, []byte("sha256:"+listID), 0o644); err != nil {
+			return "", err
+		}
+	}
+	if l.options.iidFileRaw != "" {
+		if err := os.WriteFile(l.options.iidFileRaw, []byte(listID), 0o644); err != nil {
 			return "", err
 		}
 	}

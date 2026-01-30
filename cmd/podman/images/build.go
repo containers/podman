@@ -126,6 +126,15 @@ func build(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	if cmd.Flag("iidfile-raw").Changed {
+		f, err := os.Create(buildOpts.IidfileRaw)
+		if err != nil {
+			return err
+		}
+		if _, err := f.WriteString(report.ID); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
