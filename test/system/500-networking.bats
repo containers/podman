@@ -286,7 +286,7 @@ load helpers.network
     # FIXME: debugging for #11871
     run_podman exec $cid cat /etc/resolv.conf
     if is_rootless && ! is_remote; then
-        run_podman unshare --rootless-cni cat /etc/resolv.conf
+        run_podman unshare --rootless-netns cat /etc/resolv.conf
     fi
     ps uxww
 
@@ -430,15 +430,15 @@ load helpers.network
 }
 
 # bats test_tags=ci:parallel
-@test "podman rootless cni adds /usr/sbin to PATH" {
+@test "podman rootless adds /usr/sbin to PATH" {
     is_rootless || skip "only meaningful for rootless"
 
     local mynetname=testnet-$(safename)
     run_podman --noout network create $mynetname
     is "$output" "" "output should be empty"
 
-    # Test that rootless cni adds /usr/sbin to $PATH
-    # iptables is located under /usr/sbin and is needed for the CNI plugins.
+    # Test that rootless podman adds /usr/sbin to $PATH
+    # nftables is located under /usr/sbin and is needed for netavark.
     # Debian doesn't add /usr/sbin to $PATH for rootless users so we have to add it.
     PATH=/usr/local/bin:/usr/bin run_podman run --rm --network $mynetname $IMAGE ip addr
     is "$output" ".*eth0.*" "Interface eth0 not found in ip addr output"
@@ -473,7 +473,7 @@ load helpers.network
         assert "$output" =~ "$ipv6_regex" "resolv.conf should contain ipv6 nameserver"
     fi
 
-    # ipv4 cni
+    # ipv4 network
     local mysubnet=$(random_rfc1918_subnet)
     local netname=testnet1-$(safename)
 
@@ -485,7 +485,7 @@ load helpers.network
 
     run_podman network rm -t 0 -f $netname
 
-    # ipv6 cni
+    # ipv6 network
     mysubnet=fd00:4:4:4:4::/64
     netname=testnet2-$(safename)
 

@@ -29,6 +29,9 @@ var (
 	// does not exist.
 	ErrNoSuchExitCode = errors.New("no such exit code")
 
+	// ErrNoSuchQuadlet indicates the requested quadlet does not exist
+	ErrNoSuchQuadlet = errors.New("no such quadlet")
+
 	// ErrDepExists indicates that the current object has dependencies and
 	// cannot be removed before them.
 	ErrDepExists = errors.New("dependency exists")

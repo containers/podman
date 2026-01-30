@@ -67,6 +67,25 @@ func GetQuadletPrint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// QuadletExists checks if a quadlet exists by name
+func QuadletExists(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+
+	report, err := containerEngine.QuadletExists(r.Context(), name)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if !report.Value {
+		utils.Error(w, http.StatusNotFound, fmt.Errorf("no such quadlet: %s", name))
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+}
+
 // extractQuadletFiles extracts quadlet files from tar archive to a temporary directory
 func extractQuadletFiles(tempDir string, r io.ReadCloser) ([]string, error) {
 	quadletDir := filepath.Join(tempDir, "quadlets")

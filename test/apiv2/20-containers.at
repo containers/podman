@@ -30,6 +30,7 @@ t POST "containers/foo/attach?logs=true&stream=false" 200 \
   $'\001\031'$mytext
 
 # check old docker header
+t POST "/v1.40/containers/foo/attach?logs=true&stream=false" 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "vnd.docker.raw-stream docker v1.40"
 # check new vnd.docker.multiplexed-stream header
@@ -45,7 +46,7 @@ like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-s
 
 t POST "containers/foo/attach?logs=true&stream=false" 101
 response_headers=$(cat "$WORKDIR/curl.headers.out")
-like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "hijacked connection header: Content-type: application/vnd.docker.raw-stream"
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-stream.*" "hijacked connection header: Content-type: application/vnd.docker.multiplexed-stream"
 like "$response_headers" ".*Upgrade: tcp.*" "hijacked connection header: Upgrade: tcp"
 
 t POST "containers/foo/kill" 204

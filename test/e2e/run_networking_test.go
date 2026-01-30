@@ -28,7 +28,6 @@ var _ = Describe("Podman run networking", func() {
 
 	It("podman verify network scoped DNS server and also verify updating network dns server", func() {
 		// Following test is only functional with netavark and aardvark
-		SkipIfCNI(podmanTest)
 		net := createNetworkName("IntTest")
 		session := podmanTest.Podman([]string{"network", "create", net, "--dns", "1.1.1.1"})
 		session.WaitWithDefaultTimeout()
@@ -75,7 +74,6 @@ var _ = Describe("Podman run networking", func() {
 
 	It("podman network dns multiple servers", func() {
 		// Following test is only functional with netavark and aardvark
-		SkipIfCNI(podmanTest)
 		net := createNetworkName("IntTest")
 		session := podmanTest.Podman([]string{"network", "create", net, "--dns", "1.1.1.1,8.8.8.8", "--dns", "8.4.4.8"})
 		session.WaitWithDefaultTimeout()
@@ -164,7 +162,6 @@ var _ = Describe("Podman run networking", func() {
 	It("podman verify resolv.conf with --dns + --network", func() {
 		// Following test is only functional with netavark and aardvark
 		// since new behaviour depends upon output from of statusBlock
-		SkipIfCNI(podmanTest)
 		net := createNetworkName("IntTest")
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
@@ -1020,7 +1017,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).To(ExitWithError(125, "faccessat /run/netns/xxy: no such file or directory"))
 	})
 
-	It("podman run in custom CNI network with --static-ip", func() {
+	It("podman run in custom network with --static-ip", func() {
 		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
@@ -1134,7 +1131,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run check dns", func() {
-		SkipIfCNI(podmanTest)
 		pod := "testpod"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", pod})
 		session.WaitWithDefaultTimeout()

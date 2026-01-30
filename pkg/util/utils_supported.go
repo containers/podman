@@ -25,15 +25,15 @@ func GetRootlessConfigHomeDir() (string, error) {
 	return homedir.GetConfigHome()
 }
 
-// GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
-// the pause process.
-func GetRootlessPauseProcessPidPath() (string, error) {
+// GetRootlessStateDir returns the directory that holds the rootless state
+// (pause.pid and ns_handles files).
+func GetRootlessStateDir() (string, error) {
 	runtimeDir, err := homedir.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
-	// Note this path must be kept in sync with pkg/rootless/rootless_linux.go
+	// Note this path must be kept in sync with pkg/rootless/rootless_linux.c
 	// We only want a single pause process per user, so we do not want to use
 	// the tmpdir which can be changed via --tmpdir.
-	return filepath.Join(runtimeDir, "libpod", "tmp", "pause.pid"), nil
+	return filepath.Join(runtimeDir, "libpod", "tmp"), nil
 }

@@ -28,6 +28,7 @@ func systemdCreate(resources *cgroups.Resources, path string, c *systemdDbus.Con
 
 	var lastError error
 	for i := range 2 {
+		//nolint:prealloc // calculating the size here is too complicated
 		properties := []systemdDbus.Property{
 			systemdDbus.PropDescription("cgroup " + name),
 			systemdDbus.PropWants(slice),

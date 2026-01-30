@@ -1,4 +1,4 @@
-// Copyright 2015 RedHat, Inc.
+// Copyright 2015 Red Hat, Inc.
 // Copyright 2015 CoreOS, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -258,7 +258,7 @@ process:
 func simpleMessageFormatter(entry *JournalEntry) (string, error) {
 	msg, ok := entry.Fields["MESSAGE"]
 	if !ok {
-		return "", fmt.Errorf("no MESSAGE field present in journal entry")
+		return "", errors.New("no MESSAGE field present in journal entry")
 	}
 
 	usec := entry.RealtimeTimestamp

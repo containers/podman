@@ -370,7 +370,7 @@ func NewHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
 		})
 	t.logger = prefixLoggerForClientTransport(t)
 	// Add peer information to the http2client context.
-	t.ctx = peer.NewContext(t.ctx, t.getPeer())
+	t.ctx = peer.NewContext(t.ctx, t.Peer())
 
 	if md, ok := addr.Metadata.(*metadata.MD); ok {
 		t.md = *md
@@ -510,7 +510,7 @@ func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *ClientSt
 	return s
 }
 
-func (t *http2Client) getPeer() *peer.Peer {
+func (t *http2Client) Peer() *peer.Peer {
 	return &peer.Peer{
 		Addr:      t.remoteAddr,
 		AuthInfo:  t.authInfo, // Can be nil
@@ -551,6 +551,9 @@ func (t *http2Client) createHeaderFields(ctx context.Context, callHdr *CallHdr) 
 	hfLen := 7 // :method, :scheme, :path, :authority, content-type, user-agent, te
 	hfLen += len(authData) + len(callAuthData)
 	registeredCompressors := t.registeredCompressors
+	if callHdr.AcceptedCompressors != nil {
+		registeredCompressors = *callHdr.AcceptedCompressors
+	}
 	if callHdr.PreviousAttempts > 0 {
 		hfLen++
 	}
@@ -742,7 +745,7 @@ func (e NewStreamError) Error() string {
 // NewStream creates a stream and registers it into the transport as "active"
 // streams.  All non-nil errors returned will be *NewStreamError.
 func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*ClientStream, error) {
-	ctx = peer.NewContext(ctx, t.getPeer())
+	ctx = peer.NewContext(ctx, t.Peer())
 
 	// ServerName field of the resolver returned address takes precedence over
 	// Host field of CallHdr to determine the :authority header. This is because,
@@ -1485,7 +1488,7 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 		case "grpc-status":
 			code, err := strconv.ParseInt(hf.Value, 10, 32)
 			if err != nil {
-				se := status.New(codes.Internal, fmt.Sprintf("transport: malformed grpc-status: %v", err))
+				se := status.New(codes.Unknown, fmt.Sprintf("transport: malformed grpc-status: %v", err))
 				t.closeStream(s, se.Err(), true, http2.ErrCodeProtocol, se, nil, endStream)
 				return
 			}
@@ -1806,8 +1809,6 @@ func (t *http2Client) socketMetrics() *channelz.EphemeralSocketMetrics {
 		RemoteFlowControlWindow: t.getOutFlowWindow(),
 	}
 }
-
-func (t *http2Client) RemoteAddr() net.Addr { return t.remoteAddr }
 
 func (t *http2Client) incrMsgSent() {
 	if channelz.IsOn() {

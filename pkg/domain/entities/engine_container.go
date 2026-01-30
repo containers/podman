@@ -94,6 +94,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	PodStop(ctx context.Context, namesOrIds []string, options PodStopOptions) ([]*PodStopReport, error)
 	PodTop(ctx context.Context, options PodTopOptions) (*StringSliceReport, error)
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
+	QuadletExists(ctx context.Context, name string) (*BoolReport, error)
 	QuadletInstall(ctx context.Context, pathsOrURLs []string, options QuadletInstallOptions) (*QuadletInstallReport, error)
 	QuadletList(ctx context.Context, options QuadletListOptions) ([]*ListQuadlet, error)
 	QuadletPrint(ctx context.Context, quadlet string) (string, error)

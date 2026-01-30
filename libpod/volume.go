@@ -284,7 +284,7 @@ func (v *Volume) Mount() (string, error) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 	err := v.mount()
-	return v.config.MountPoint, err
+	return v.mountPoint(), err
 }
 
 func (v *Volume) Unmount() error {

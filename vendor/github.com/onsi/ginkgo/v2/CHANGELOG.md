@@ -1,3 +1,13 @@
+## 2.27.5
+
+### Fixes
+Don't make a new formatter for each GinkgoT(); that's just silly and uses precious memory
+
+## 2.27.4
+
+### Fixes
+- CurrentTreeConstructionNodeReport: fix for nested container nodes [59bc751]
+
 ## 2.27.3
 
 ### Fixes

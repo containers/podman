@@ -16,7 +16,7 @@ build() {
     fi
 
     echo "Building darwin"
-    if ! GOOS=darwin CGO_ENABLED=0 go build -tags "$REMOTETAGS" -o bin/podman-remote-darwin ./cmd/podman; then
+    if ! GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -tags "$REMOTETAGS" -o bin/podman-remote-darwin ./cmd/podman; then
         err+="\n - Darwin "
     fi
 
