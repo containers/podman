@@ -1,9 +1,11 @@
 package overlay
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -50,18 +52,40 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 			if !filepath.IsAbs(upperDir) {
 				upperDir = filepath.Join(contentDir, upperDir)
 			}
-		}
-
-		st, err := os.Stat(source)
-		if err != nil {
-			return mount, err
-		}
-		if err := os.Chmod(upperDir, st.Mode()); err != nil {
-			return mount, err
-		}
-		if stat, ok := st.Sys().(*syscall.Stat_t); ok {
-			if err := os.Chown(upperDir, int(stat.Uid), int(stat.Gid)); err != nil {
+		} else {
+			st, err := os.Stat(source)
+			if err != nil {
 				return mount, err
+			}
+			if err := os.Chmod(upperDir, st.Mode()); err != nil {
+				return mount, err
+			}
+			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
+				if err := os.Chown(upperDir, int(stat.Uid), int(stat.Gid)); err != nil {
+					if !errors.Is(err, syscall.EINVAL) {
+						return mount, err
+					}
+					overflowed := false
+					overflowUIDText, uerr := os.ReadFile("/proc/sys/kernel/overflowuid")
+					overflowGIDText, gerr := os.ReadFile("/proc/sys/kernel/overflowgid")
+					if uerr == nil && gerr == nil {
+						overflowUID, uerr := strconv.Atoi(strings.TrimSpace(string(overflowUIDText)))
+						overflowGID, gerr := strconv.Atoi(strings.TrimSpace(string(overflowGIDText)))
+						if uerr == nil && gerr == nil && int(stat.Uid) == overflowUID && int(stat.Gid) == overflowGID {
+							overflowed = true
+						}
+					}
+					if !overflowed {
+						return mount, err
+					}
+				}
+				times := []syscall.Timespec{
+					stat.Atim,
+					stat.Mtim,
+				}
+				if err := syscall.UtimesNano(upperDir, times); err != nil {
+					return mount, err
+				}
 			}
 		}
 		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", escapeColon(source), upperDir, workDir)

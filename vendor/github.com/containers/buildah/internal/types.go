@@ -22,4 +22,5 @@ type StageMountDetails struct {
 	IsImage                  bool   // true if the mountpoint is an image's rootfs
 	IsAdditionalBuildContext bool   // true if the mountpoint is an additional build context
 	MountPoint               string // mountpoint of the stage or image's root directory or path of the additional build context
+	IsWritesDiscardedOverlay bool   // this is an overlay that discards writes
 }

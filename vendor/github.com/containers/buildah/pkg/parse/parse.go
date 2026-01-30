@@ -60,7 +60,12 @@ const (
 	BuildahCacheDir = "buildah-cache"
 )
 
-var errInvalidSecretSyntax = errors.New("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV][,type=file|env]")
+var (
+	errInvalidSecretSyntax         = errors.New("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV][,type=file|env]")
+	errInvalidBuildContextPathname = errors.New(`invalid build context path ""`)
+	errInvalidBuildContextImage    = errors.New(`invalid build context image name ""`)
+	errInvalidBuildContextURL      = errors.New(`invalid build context image URL ""`)
+)
 
 // RepoNamesToNamedReferences parse the raw string to Named reference
 func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
@@ -244,21 +249,39 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	return commonOpts, nil
 }
 
-// GetAdditionalBuildContext consumes raw string and returns parsed AdditionalBuildContext
+// GetAdditionalBuildContext consumes a raw string and returns a parsed
+// AdditionalBuildContext describing the build context.
 func GetAdditionalBuildContext(value string) (define.AdditionalBuildContext, error) {
+	if value == "" {
+		// reject empty values (filesystem paths?), because elsewhere we use an
+		// empty string as an internal nickname for the default build context
+		return define.AdditionalBuildContext{}, errInvalidBuildContextPathname
+	}
 	ret := define.AdditionalBuildContext{IsURL: false, IsImage: false, Value: value}
 	if strings.HasPrefix(value, "docker-image://") {
 		ret.IsImage = true
 		ret.Value = strings.TrimPrefix(value, "docker-image://")
+		if ret.Value == "" {
+			return define.AdditionalBuildContext{}, errInvalidBuildContextImage
+		}
 	} else if strings.HasPrefix(value, "container-image://") {
 		ret.IsImage = true
 		ret.Value = strings.TrimPrefix(value, "container-image://")
+		if ret.Value == "" {
+			return define.AdditionalBuildContext{}, errInvalidBuildContextImage
+		}
 	} else if strings.HasPrefix(value, "docker://") {
 		ret.IsImage = true
 		ret.Value = strings.TrimPrefix(value, "docker://")
+		if ret.Value == "" {
+			return define.AdditionalBuildContext{}, errInvalidBuildContextImage
+		}
 	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
 		ret.IsImage = false
 		ret.IsURL = true
+		if strings.TrimPrefix(ret.Value, "http://") == "" || strings.TrimPrefix(ret.Value, "https://") == "" {
+			return define.AdditionalBuildContext{}, errInvalidBuildContextURL
+		}
 	} else {
 		path, err := filepath.Abs(value)
 		if err != nil {

@@ -1,6 +1,6 @@
 //go:build linux || darwin || freebsd || netbsd
 
-package util
+package util //nolint:revive,nolintlint
 
 import (
 	"os"
