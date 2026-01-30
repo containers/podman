@@ -245,7 +245,7 @@ func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detac
 
 func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeOutput, writeError bool, conn io.Reader) error {
 	var err error
-	buf := make([]byte, 8192+1) /* Sync with conmon STDIO_BUF_SIZE */
+	buf := make([]byte, conmonAttachBufferSize)
 	for {
 		nr, er := conn.Read(buf)
 		if nr > 0 {

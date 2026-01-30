@@ -61,8 +61,6 @@ github.com/containers/buildah v1.42.0 h1:hS+/sq6g74wNNYvX6d5/jx4awkwqibBxUxJ/P2o
 github.com/containers/buildah v1.42.0/go.mod h1:azIYkIUVSEiVVQi4hPm9ZsxuVNqb8HdSMlvaBzr8MtU=
 github.com/containers/common v0.64.2 h1:1xepE7QwQggUXxmyQ1Dbh6Cn0yd7ktk14sN3McSWf5I=
 github.com/containers/common v0.64.2/go.mod h1:o29GfYy4tefUuShm8mOn2AiL5Mpzdio+viHI7n24KJ4=
-github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
-github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.7 h1:mFMMU5CIXO9sbtsgECc90loUHx15km3AN6Zuhg3X4qM=
 github.com/containers/gvisor-tap-vsock v0.8.7/go.mod h1:Rf2gm4Lpac0IZbg8wwQDh7UuKCxHmnxar0hEZ08OXY8=
 github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860 h1:YOhl3KCie5f4vLmW3N6nnpucD6Wot0bHj2hSzL8ugU8=
