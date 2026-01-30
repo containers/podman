@@ -245,4 +245,45 @@ var _ = Describe("Podman artifact mount", func() {
 			Expect(session).To(ExitWithError(125, "/test: duplicate mount destination"))
 		}
 	})
+
+	It("podman create should fail with non-existent artifact", func() {
+		// Verify that creating a container with a non-existent artifact fails at creation time
+		cmd := []string{
+			"create",
+			"--name", "test-nonexistent",
+			"--mount", "type=artifact,source=nonexistent-artifact,destination=/data",
+			ALPINE,
+			"echo", "hello",
+		}
+		session := podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "validating artifact"))
+		Expect(session.ErrorToString()).To(ContainSubstring("nonexistent-artifact"))
+
+		// Ensure container was not created
+		rmSession := podmanTest.Podman([]string{"rm", "test-nonexistent"})
+		rmSession.WaitWithDefaultTimeout()
+		Expect(rmSession).To(ExitWithError(1, "no such container"))
+	})
+
+	It("podman run should fail with non-existent artifact", func() {
+		// Verify that running a container with a non-existent artifact fails at creation time
+		cmd := []string{
+			"run",
+			"--name", "test-run-nonexistent",
+			"--mount", "type=artifact,source=invalid-artifact-ref,destination=/test",
+			ALPINE,
+			"echo", "hello",
+		}
+		session := podmanTest.Podman(cmd)
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "validating artifact"))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid-artifact-ref"))
+
+		// Ensure container was not created
+		psSession := podmanTest.Podman([]string{"ps", "-a", "--filter", "name=test-run-nonexistent"})
+		psSession.WaitWithDefaultTimeout()
+		Expect(psSession).Should(ExitCleanly())
+		Expect(psSession.OutputToString()).ToNot(ContainSubstring("test-run-nonexistent"))
+	})
 })

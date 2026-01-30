@@ -47,6 +47,15 @@ import (
 	"go.podman.io/storage/pkg/unshare"
 )
 
+// ArtifactMountValidation contains the minimal information needed to validate
+// an artifact mount without requiring the full ContainerArtifactVolume structure.
+// This type is used to pass validation data to Runtime.ValidateArtifactMounts.
+type ArtifactMountValidation struct {
+	Source string
+	Title  string
+	Digest string
+}
+
 // Set up the JSON library for all of Libpod
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
