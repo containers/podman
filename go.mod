@@ -12,7 +12,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.9.0
 	github.com/containers/buildah v1.42.0
-	github.com/containers/gvisor-tap-vsock v0.8.7
+	github.com/containers/gvisor-tap-vsock v0.8.8-0.20260119141548-cb68c3ddabaf
 	github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.10.0
@@ -181,7 +181,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/mod v0.31.0 // indirect
+	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
