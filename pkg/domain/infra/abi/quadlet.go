@@ -172,7 +172,11 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				baseName := strings.TrimSuffix(filepath.Base(toInstall), filepath.Ext(toInstall))
 				assetFile = "." + baseName + ".app"
 			} else {
-				assetFile = "." + filepath.Base(toInstall) + ".asset"
+				if systemdquadlet.IsExtSupported(toInstall) {
+					assetFile = "." + filepath.Base(toInstall) + ".app"
+				} else {
+					assetFile = "." + filepath.Base(toInstall) + ".asset"
+				}
 			}
 			validateQuadletFile = true
 		}
@@ -335,45 +339,73 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
 	}
 
-	osFlags := os.O_CREATE | os.O_WRONLY
+	var destFile *os.File
+	var tempPath string
 
 	if !replace {
-		osFlags |= os.O_EXCL
-	}
-
-	file, err := os.OpenFile(finalPath, osFlags, 0o644)
-	if err != nil {
-		if errors.Is(err, fs.ErrExist) && !replace {
-			return "", fmt.Errorf("a Quadlet with name %s already exists, refusing to overwrite", filepath.Base(finalPath))
+		var err error
+		// O_EXCL ensures we fail if the file already exists (avoids TOCTOU race)
+		destFile, err = os.OpenFile(finalPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o644)
+		if err != nil {
+			if errors.Is(err, fs.ErrExist) {
+				return "", fmt.Errorf("a Quadlet with name %s already exists, refusing to overwrite", filepath.Base(finalPath))
+			}
+			return "", fmt.Errorf("unable to open file %s: %w", finalPath, err)
 		}
-		return "", fmt.Errorf("unable to open file %s: %w", filepath.Base(finalPath), err)
+	} else {
+		var err error
+		destFile, err = os.CreateTemp(filepath.Dir(finalPath), ".quadlet-install-*")
+		if err != nil {
+			return "", fmt.Errorf("unable to create temp file: %w", err)
+		}
+		tempPath = destFile.Name()
 	}
-	defer file.Close()
 
-	// Move the file in
+	defer func() {
+		if destFile != nil {
+			destFile.Close()
+		}
+		if tempPath != "" {
+			os.Remove(tempPath)
+		}
+	}()
+
 	srcFile, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("unable to open file: %w", err)
 	}
 	defer srcFile.Close()
 
-	err = fileutils.ReflinkOrCopy(srcFile, file)
+	err = fileutils.ReflinkOrCopy(srcFile, destFile)
 	if err != nil {
 		return "", fmt.Errorf("unable to copy file from %s to %s: %w", path, finalPath, err)
 	}
 
-	// When we install files using this function, caller of this function can turn off `validateQuadletFile`
-	// when they are installing `non-quadlet` files.
+	// Close before rename to flush writes; nil out to prevent double-close in defer
+	if err := destFile.Close(); err != nil {
+		return "", fmt.Errorf("unable to close file: %w", err)
+	}
+	destFile = nil
+
+	if tempPath != "" {
+		if err := os.Chmod(tempPath, 0o644); err != nil {
+			return "", fmt.Errorf("unable to set permissions on temp file: %w", err)
+		}
+
+		if err := os.Rename(tempPath, finalPath); err != nil {
+			return "", fmt.Errorf("unable to rename temp file to %s: %w", finalPath, err)
+		}
+		tempPath = ""
+	}
+
 	if !isQuadletFile {
-		err := appendStringToFile(filepath.Join(installDir, assetFile), filepath.Base(filepath.Clean(path)))
+		err := appendLineToFile(filepath.Join(installDir, assetFile), filepath.Base(filepath.Clean(path)))
 		if err != nil {
 			return "", fmt.Errorf("error while writing non-quadlet filename: %w", err)
 		}
 	} else if strings.HasSuffix(assetFile, ".app") {
-		// For quadlet files that are part of an application (indicated by .app extension),
-		// also write the quadlet filename to the .app file for proper application tracking
 		quadletName := filepath.Base(finalPath)
-		err := appendStringToFile(filepath.Join(installDir, assetFile), quadletName)
+		err := appendLineToFile(filepath.Join(installDir, assetFile), quadletName)
 		if err != nil {
 			return "", fmt.Errorf("error while writing quadlet filename to app file: %w", err)
 		}
@@ -381,17 +413,28 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 	return finalPath, nil
 }
 
-// appendStringToFile appends the given text to the specified file.
-// If the file does not exist, it will be created with 0644 permissions.
-func appendStringToFile(filePath, text string) error {
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+// appendLineToFile appends the given text as a line to the specified file,
+// ensuring it does not already exist (idempotency).
+func appendLineToFile(path, text string) error {
+	content, err := os.ReadFile(path)
+	if err == nil {
+		for _, line := range strings.Split(string(content), "\n") {
+			if line == text {
+				return nil // Already exists, do nothing
+			}
+		}
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(text + "\n")
-	return err
+	if _, err := f.WriteString(text + "\n"); err != nil {
+		return err
+	}
+	return nil
 }
 
 // quadletSection represents a single quadlet extracted from a multi-quadlet file
