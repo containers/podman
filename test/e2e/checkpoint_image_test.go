@@ -21,6 +21,8 @@ var _ = Describe("Podman checkpoint", func() {
 	)
 
 	BeforeEach(func() {
+		Skip("checkpoint tests disabled")
+		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
