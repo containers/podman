@@ -172,6 +172,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune dangling images", func() {
+		SkipIfRemote("podman-remote build does not reuse cache layers the same as local build")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 		none := podmanTest.Podman([]string{"images", "-a"})
