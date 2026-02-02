@@ -19,7 +19,7 @@ var stopCmd = &cobra.Command{
 	RunE:              stop,
 	Args:              cobra.MaximumNArgs(1),
 	Example:           `podman machine stop podman-machine-default`,
-	ValidArgsFunction: autocompleteMachine,
+	ValidArgsFunction: AutocompleteMachine,
 }
 
 func init() {

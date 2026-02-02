@@ -196,7 +196,10 @@ function check_shell_completion() {
                         _check_completion_end NoSpace
                     else
                         _check_completion_end Default
-                        _check_no_suggestions
+                        # machine os apply is special and offers images and normal shell completion
+                        if [[ "$cmd" != "apply"  ]]; then
+                            _check_no_suggestions
+                        fi
                     fi
                     ;;
 

@@ -212,6 +212,14 @@ func parseApplyInput(arg string) (string, string, error) {
 		registryTransport          = "registry"
 	)
 
+	// The order of this parsing matters.  Be careful when you edit.
+
+	// containers-storage:/home/user:localhost/fedora-bootc:latest
+	afterCS, hasCS := strings.CutPrefix(arg, containersStorageTransport+":")
+	if hasCS {
+		return containersStorageTransport, afterCS, nil
+	}
+
 	imgRef, err := alltransports.ParseImageName(arg)
 	if err == nil {
 		transportName := imgRef.Transport().Name()
@@ -261,11 +269,6 @@ func parseApplyInput(arg string) (string, string, error) {
 	afterOCI, hasOCI := strings.CutPrefix(arg, ociTransport+":")
 	if hasOCI {
 		return ociTransport, afterOCI, nil
-	}
-	// containers-storage:/home/user:localhost/fedora-bootc:latest
-	afterCS, hasCS := strings.CutPrefix(arg, containersStorageTransport+":")
-	if hasCS {
-		return containersStorageTransport, afterCS, nil
 	}
 
 	return "", "", fmt.Errorf("unknown transport %q given", arg)

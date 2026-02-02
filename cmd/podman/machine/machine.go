@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/validate"
 	"github.com/containers/podman/v6/libpod/events"
@@ -93,9 +94,9 @@ func autocompleteMachineCp(_ *cobra.Command, args []string, toComplete string) (
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
-// autocompleteMachine - Autocomplete machines.
-func autocompleteMachine(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if len(args) == 0 {
+// AutocompleteMachine - Autocomplete machines.
+func AutocompleteMachine(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if common.ValidCurrentCmdLine(cmd, args, toComplete) {
 		return getMachines(toComplete)
 	}
 	return nil, cobra.ShellCompDirectiveNoFileComp
