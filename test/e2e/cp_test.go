@@ -213,6 +213,7 @@ var _ = Describe("Podman cp", func() {
 	// it to the host and back to the container and make sure that we can
 	// access it, and (roughly) the right users own it.
 	It("podman cp from ctr chown ", func() {
+		SkipIfRemote("podman-remote cp fails when copying file to existing file path")
 		srcFile, err := os.CreateTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
 		defer srcFile.Close()
