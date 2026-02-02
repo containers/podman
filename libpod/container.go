@@ -1301,7 +1301,16 @@ func (c *Container) NetworkDisabled() (bool, error) {
 }
 
 func (c *Container) HostNetwork() bool {
-	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
+	// If container shares network namespace with another container, check that container
+	if c.config.NetNsCtr != "" {
+		netNsCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
+		if err != nil {
+			return false
+		}
+		return netNsCtr.HostNetwork()
+	}
+
+	if c.config.CreateNetNS {
 		return false
 	}
 	if c.config.Spec.Linux != nil {
