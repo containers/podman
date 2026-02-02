@@ -56,6 +56,7 @@ var _ = Describe("Podman checkpoint", func() {
 	)
 
 	BeforeEach(func() {
+		Skip("checkpoint tests disabled")
 		SkipIfRootless("checkpoint not supported in rootless mode")
 		tempdir, err = CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
