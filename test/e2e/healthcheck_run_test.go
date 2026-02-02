@@ -292,6 +292,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("Verify default time is used and no utf-8 escapes", func() {
+		SkipIfRemote("podman-remote build does not properly respect --format docker for HEALTHCHECK")
 		cwd, err := os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 
