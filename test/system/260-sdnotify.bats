@@ -144,6 +144,8 @@ READY=1" "sdnotify sent MAINPID and READY"
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "sdnotify : container" {
+    skip_if_rootless "READY=1 notification not received via socat in rootless mode"
+
     # Pull our systemd image. Retry in case of flakes.
     run_podman pull $SYSTEMD_IMAGE || \
         run_podman pull $SYSTEMD_IMAGE || \
