@@ -51,7 +51,7 @@ The format of this file is `USERNAME:UID:RANGE`
 * The initial UID allocated for the user.
 * The size of the range of UIDs allocated for the user.
 
-This means the user `johndoe` is allocated UIDs 100000-165535 as well as their standard UID in the `/etc/passwd` file.  NOTE: this is not currently supported with network installs; these files must be available locally to the host machine.  It is not possible to configure this with LDAP or Active Directory.
+This means the user `johndoe` is allocated UIDs 100000-165535 as well as their standard UID in the `/etc/passwd` file.
 
 Rather than updating the files directly, the `usermod` program can be used to assign UIDs and GIDs to a user.
 
@@ -63,6 +63,8 @@ grep johndoe /etc/subuid /etc/subgid
 ```
 
 If you update either `/etc/subuid` or `/etc/subgid`, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by running [`podman system migrate`](https://github.com/containers/podman/blob/main/docs/source/markdown/podman-system-migrate.1.md) as that user.
+
+NOTE: Starting with shadow-utils 4.9, pluggable data sources for subid ranges can be configured via `/etc/nsswitch.conf`. SSSD provides a plugin (`libsubid_sss.so`) that can retrieve subordinate ID ranges from a central identity server. Instead of managing local `/etc/subuid` and `/etc/subgid` files. To enable this, configure `/etc/nsswitch.conf` with `subid: sss`. SSSD 2.6.0 added support for the IPA provider, and SSSD 2.12.0 extended this to the generic LDAP provider. For more details on centrally managed subordinate IDs with FreeIPA, see the [FreeIPA subordinate IDs documentation](https://freeipa.readthedocs.io/en/latest/designs/subordinate-ids.html).
 
 #### Giving access to additional groups
 
