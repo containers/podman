@@ -57,8 +57,8 @@ echo "[Manager]" >> $SYSTEMD_USER_CONF
 for proxy in "http_proxy=proxy1" "https_proxy=sproxy1" "no_proxy=no1,no2"; do
 	printf "DefaultEnvironment=\"%s\"\n" "$proxy"  >> $SYSTEMD_SYSTEM_CONF
 	printf "DefaultEnvironment=\"%s\"\n" "$proxy"  >> $SYSTEMD_USER_CONF
-	printf "%q\n" "$proxy"  >> $ENVD_CONF
-	printf "export %q\n" "$proxy" >> $PROFILE_CONF
+	printf "%s\n" "$proxy"  >> $ENVD_CONF
+	printf "export %s\n" "$proxy" >> $PROFILE_CONF
 done
 
 systemctl daemon-reload
