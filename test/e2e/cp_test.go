@@ -93,6 +93,7 @@ var _ = Describe("Podman cp", func() {
 
 	// Copy a file to the container, then back to the host in --pid=host
 	It("podman cp --pid=host file", func() {
+		SkipIfRemote("podman-remote cp fails when copying file to existing file path")
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		srcFile, err := ioutil.TempFile("", "")
 		Expect(err).To(BeNil())
