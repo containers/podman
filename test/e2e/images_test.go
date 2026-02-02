@@ -450,6 +450,7 @@ RUN > file2
 	})
 
 	It("podman builder prune", func() {
+		SkipIfRemote("remote builds do not retain replaced/dangling images the same as local")
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 RUN > file
 `
