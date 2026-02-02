@@ -94,7 +94,7 @@ type Ignition struct {
 
 type IgnitionConfig struct {
 	Merge   []Resource `json:"merge,omitempty"`
-	Replace Resource   `json:"replace"`
+	Replace *Resource  `json:"replace,omitempty"`
 }
 
 type Link struct {
@@ -200,10 +200,10 @@ type Raid struct {
 type RaidOption string
 
 type Resource struct {
-	Compression  *string      `json:"compression,omitempty"`
-	HTTPHeaders  HTTPHeaders  `json:"httpHeaders,omitempty"`
-	Source       *string      `json:"source,omitempty"`
-	Verification Verification `json:"verification"`
+	Compression  *string       `json:"compression,omitempty"`
+	HTTPHeaders  HTTPHeaders   `json:"httpHeaders,omitempty"`
+	Source       *string       `json:"source,omitempty"`
+	Verification *Verification `json:"verification,omitempty"`
 }
 
 type SSHAuthorizedKey string
