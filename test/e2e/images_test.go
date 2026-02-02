@@ -428,6 +428,7 @@ LABEL "com.example.vendor"="Example Vendor"
 	})
 
 	It("podman image prune --filter", func() {
+		SkipIfRemote("remote builds do not retain replaced/dangling images the same as local")
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 RUN > file
 `
