@@ -2121,7 +2121,7 @@ func withVolumeMount(mountPath, subpath string, readonly bool) ctrOption {
 	}
 }
 
-func withEnv(name, value, valueFrom, refName, refKey string, optional bool) ctrOption { //nolint:unparam
+func withEnv(name, value, valueFrom, refName, refKey string, optional bool) ctrOption {
 	return func(c *Ctr) {
 		e := Env{
 			Name:      name,
@@ -3246,6 +3246,32 @@ var _ = Describe("Podman kube play", func() {
 		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
+	})
+
+	It("test env value takes precedence over envFrom configmap value", func() {
+		cm := getConfigMap(withConfigMapName("test-config-map"), withConfigMapData("MY_ENV_VAR", "1"))
+		cmYaml, err := getKubeYaml("configmap", cm)
+		Expect(err).ToNot(HaveOccurred())
+
+		pod := getPod(withCtr(getCtr(
+			withEnvFrom("test-config-map", "configmap", false),
+			withEnv("MY_ENV_VAR", "2", "", "", "", false),
+		)))
+
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		yamls := []string{cmYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		// env should override envFrom, so value should be "2" not "1"
+		Expect(inspect.OutputToString()).To(ContainSubstring(`MY_ENV_VAR=2`))
 	})
 
 	It("test duplicate container name", func() {
