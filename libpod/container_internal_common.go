@@ -2427,6 +2427,7 @@ func (c *Container) addHosts() error {
 		NetworkInterface: c.runtime.network,
 		Exclude:          exclude,
 		PreferIP:         preferIP,
+		HostNetwork:      c.HostNetwork(),
 	})
 
 	return etchosts.New(&etchosts.Params{
