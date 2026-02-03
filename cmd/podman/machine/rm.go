@@ -18,7 +18,7 @@ var rmCmd = &cobra.Command{
 	RunE:              rm,
 	Args:              cobra.MaximumNArgs(1),
 	Example:           `podman machine rm podman-machine-default`,
-	ValidArgsFunction: autocompleteMachine,
+	ValidArgsFunction: AutocompleteMachine,
 }
 
 var destroyOptions machine.RemoveOptions

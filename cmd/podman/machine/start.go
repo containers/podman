@@ -21,7 +21,7 @@ var (
 		RunE:              start,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine start podman-machine-default`,
-		ValidArgsFunction: autocompleteMachine,
+		ValidArgsFunction: AutocompleteMachine,
 	}
 	startOpts            = machine.StartOptions{}
 	setDefaultSystemConn bool

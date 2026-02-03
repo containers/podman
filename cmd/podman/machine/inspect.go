@@ -23,7 +23,7 @@ var (
 		PersistentPreRunE: machinePreRunE,
 		RunE:              inspect,
 		Example:           `podman machine inspect myvm`,
-		ValidArgsFunction: autocompleteMachine,
+		ValidArgsFunction: AutocompleteMachine,
 	}
 	inspectFlag = inspectFlagType{}
 )

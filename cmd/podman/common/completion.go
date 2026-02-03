@@ -504,12 +504,12 @@ func simplePathJoinUnix(p1, p2 string) string {
 	return p1 + "/" + p2
 }
 
-// validCurrentCmdLine validates the current cmd line
+// ValidCurrentCmdLine validates the current cmd line
 // It utilizes the Args function from the cmd struct
 // In most cases the Args function validates the args length but it
 // is also used to verify that --latest is not given with an argument.
 // This function helps to makes sure we only complete valid arguments.
-func validCurrentCmdLine(cmd *cobra.Command, args []string, toComplete string) bool {
+func ValidCurrentCmdLine(cmd *cobra.Command, args []string, toComplete string) bool {
 	if cmd.Args == nil {
 		// Without an Args function we cannot check so assume it's correct
 		return true
@@ -592,14 +592,14 @@ func getBoolCompletion(_ string) ([]string, cobra.ShellCompDirective) {
 /* Autocomplete Functions for cobra ValidArgsFunction */
 
 func AutocompleteArtifacts(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getArtifacts(cmd, toComplete)
 }
 
 func AutocompleteArtifactAdd(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) == 0 {
@@ -611,7 +611,7 @@ func AutocompleteArtifactAdd(cmd *cobra.Command, args []string, toComplete strin
 
 // AutocompleteContainers - Autocomplete all container names.
 func AutocompleteContainers(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getContainers(cmd, toComplete, completeDefault)
@@ -619,7 +619,7 @@ func AutocompleteContainers(cmd *cobra.Command, args []string, toComplete string
 
 // AutocompleteContainersCreated - Autocomplete only created container names.
 func AutocompleteContainersCreated(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getContainers(cmd, toComplete, completeDefault, "created")
@@ -627,7 +627,7 @@ func AutocompleteContainersCreated(cmd *cobra.Command, args []string, toComplete
 
 // AutocompleteContainersExited - Autocomplete only exited container names.
 func AutocompleteContainersExited(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getContainers(cmd, toComplete, completeDefault, "exited")
@@ -635,7 +635,7 @@ func AutocompleteContainersExited(cmd *cobra.Command, args []string, toComplete 
 
 // AutocompleteContainersPaused - Autocomplete only paused container names.
 func AutocompleteContainersPaused(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getContainers(cmd, toComplete, completeDefault, "paused")
@@ -643,7 +643,7 @@ func AutocompleteContainersPaused(cmd *cobra.Command, args []string, toComplete 
 
 // AutocompleteContainersRunning - Autocomplete only running container names.
 func AutocompleteContainersRunning(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getContainers(cmd, toComplete, completeDefault, "running")
@@ -651,7 +651,7 @@ func AutocompleteContainersRunning(cmd *cobra.Command, args []string, toComplete
 
 // AutocompleteContainersStartable - Autocomplete only created and exited container names.
 func AutocompleteContainersStartable(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getContainers(cmd, toComplete, completeDefault, "created", "exited")
@@ -659,7 +659,7 @@ func AutocompleteContainersStartable(cmd *cobra.Command, args []string, toComple
 
 // AutocompletePods - Autocomplete all pod names.
 func AutocompletePods(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getPods(cmd, toComplete, completeDefault)
@@ -668,7 +668,7 @@ func AutocompletePods(cmd *cobra.Command, args []string, toComplete string) ([]s
 // AutocompletePodsRunning - Autocomplete only running pod names.
 // It considers degraded as running.
 func AutocompletePodsRunning(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getPods(cmd, toComplete, completeDefault, "running", "degraded")
@@ -678,7 +678,7 @@ func AutocompletePodsRunning(cmd *cobra.Command, args []string, toComplete strin
 // When a pod has a few containers paused, that ends up in degraded state
 // So autocomplete degraded pod names as well
 func AutoCompletePodsPause(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getPods(cmd, toComplete, completeDefault, "paused", "degraded")
@@ -686,7 +686,7 @@ func AutoCompletePodsPause(cmd *cobra.Command, args []string, toComplete string)
 
 // AutocompleteForKube - Autocomplete all Podman objects supported by kube generate.
 func AutocompleteForKube(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	containers, _ := getContainers(cmd, toComplete, completeDefault)
@@ -704,7 +704,7 @@ func AutocompleteForGenerate(cmd *cobra.Command, args []string, toComplete strin
 
 // AutocompleteContainersAndPods - Autocomplete container names and pod names.
 func AutocompleteContainersAndPods(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	containers, _ := getContainers(cmd, toComplete, completeDefault)
@@ -714,7 +714,7 @@ func AutocompleteContainersAndPods(cmd *cobra.Command, args []string, toComplete
 
 // AutocompleteContainersAndImages - Autocomplete container names and pod names.
 func AutocompleteContainersAndImages(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	containers, _ := getContainers(cmd, toComplete, completeDefault)
@@ -724,7 +724,7 @@ func AutocompleteContainersAndImages(cmd *cobra.Command, args []string, toComple
 
 // AutocompleteVolumes - Autocomplete volumes.
 func AutocompleteVolumes(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getVolumes(cmd, toComplete)
@@ -732,7 +732,7 @@ func AutocompleteVolumes(cmd *cobra.Command, args []string, toComplete string) (
 
 // AutocompleteSecrets - Autocomplete secrets.
 func AutocompleteSecrets(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getSecrets(cmd, toComplete, completeDefault)
@@ -747,7 +747,7 @@ func AutocompleteSecretCreate(_ *cobra.Command, args []string, _ string) ([]stri
 
 // AutocompleteImages - Autocomplete images.
 func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getImages(cmd, toComplete)
@@ -755,7 +755,7 @@ func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([
 
 // AutocompleteQuadlets - Autocomplete quadlets.
 func AutocompleteQuadlets(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getQuadlets(cmd, toComplete)
@@ -763,7 +763,7 @@ func AutocompleteQuadlets(cmd *cobra.Command, args []string, toComplete string) 
 
 // AutocompleteManifestListAndMember - Autocomplete names of manifest lists and digests of items in them.
 func AutocompleteManifestListAndMember(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) == 0 {
@@ -787,7 +787,7 @@ func AutocompletePodExitPolicy(_ *cobra.Command, _ []string, _ string) ([]string
 
 // AutocompleteCreateRun - Autocomplete only the fist argument as image and then do file completion.
 func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) < 1 {
@@ -829,7 +829,7 @@ func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string)
 
 // AutocompleteRegistries - Autocomplete registries.
 func AutocompleteRegistries(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getRegistries()
@@ -837,7 +837,7 @@ func AutocompleteRegistries(cmd *cobra.Command, args []string, toComplete string
 
 // AutocompleteNetworks - Autocomplete networks.
 func AutocompleteNetworks(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getNetworks(cmd, toComplete, completeDefault)
@@ -860,7 +860,7 @@ func AutocompleteDefaultOneArg(_ *cobra.Command, args []string, _ string) ([]str
 
 // AutocompleteCommitCommand - Autocomplete podman commit command args.
 func AutocompleteCommitCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) == 0 {
@@ -875,7 +875,7 @@ func AutocompleteCommitCommand(cmd *cobra.Command, args []string, toComplete str
 
 // AutocompleteCpCommand - Autocomplete podman cp command args.
 func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) < 2 {
@@ -921,7 +921,7 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 
 // AutocompleteExecCommand - Autocomplete podman exec command args.
 func AutocompleteExecCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) == 0 {
@@ -932,7 +932,7 @@ func AutocompleteExecCommand(cmd *cobra.Command, args []string, toComplete strin
 
 // AutocompleteRunlabelCommand - Autocomplete podman container runlabel command args.
 func AutocompleteRunlabelCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) == 0 {
@@ -949,7 +949,7 @@ func AutocompleteRunlabelCommand(cmd *cobra.Command, args []string, toComplete s
 
 // AutocompleteContainerOneArg - Autocomplete containers as fist arg.
 func AutocompleteContainerOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) == 0 {
@@ -991,7 +991,7 @@ func AutocompleteTopCmd(cmd *cobra.Command, args []string, toComplete string) ([
 
 // AutocompleteInspect - Autocomplete podman inspect.
 func AutocompleteInspect(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	containers, _ := getContainers(cmd, toComplete, completeDefault)
@@ -1010,7 +1010,7 @@ func AutocompleteInspect(cmd *cobra.Command, args []string, toComplete string) (
 }
 
 func AutoCompleteFarms(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	farms, err := podmanConfig.ContainersConfDefaultsRO.GetAllFarms()
@@ -1029,7 +1029,7 @@ func AutoCompleteFarms(cmd *cobra.Command, args []string, toComplete string) ([]
 
 // AutocompleteSystemConnections - Autocomplete system connections.
 func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
@@ -1050,7 +1050,7 @@ func AutocompleteSystemConnections(cmd *cobra.Command, args []string, toComplete
 
 // AutocompleteScp returns a list of connections, images, or both, depending on the amount of arguments
 func AutocompleteScp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	switch len(args) {
@@ -1957,7 +1957,7 @@ func AutocompleteCompressionFormat(_ *cobra.Command, _ []string, _ string) ([]st
 
 // AutocompleteClone - Autocomplete container and image names
 func AutocompleteClone(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	switch len(args) {
@@ -1977,7 +1977,7 @@ func AutocompleteClone(cmd *cobra.Command, args []string, toComplete string) ([]
 
 // AutocompleteSSH - Autocomplete ssh modes
 func AutocompleteSSH(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	if !validCurrentCmdLine(cmd, args, toComplete) {
+	if !ValidCurrentCmdLine(cmd, args, toComplete) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return []string{string(ssh.GolangMode), string(ssh.NativeMode)}, cobra.ShellCompDirectiveNoFileComp

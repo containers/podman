@@ -4,7 +4,7 @@
 podman\-machine\-os\-apply - Apply an OCI image to a Podman Machine's OS
 
 ## SYNOPSIS
-**podman machine os apply** [*options*] *image* [vm]
+**podman machine os apply** [*options*] *uri* [vm]
 
 ## DESCRIPTION
 
@@ -19,7 +19,16 @@ customized distribution and cannot be updated with this command.
 Note: WSL-based machines are upgradable by using the `podman machine ssh <machine_name>` command followed by `sudo dnf update`.  This can, however, result in unexpected results in
 Podman client and server version differences.
 
-The applying of the OCI image is done by a command called `bootc`.
+The applying of the OCI image is done by a command called `bootc` and specifically `bootc switch`.  By default, this command
+takes an OCI registry image reference like `quay.io/custom/machine-os:latest`.  However, `bootc` also
+understands references with different transports. At present, Podman will support the following transports:
+
+* containers-storage
+* oci
+* oci-archive
+* registry
+
+Examples for these transports in URI form are provided below.
 
 Podman machine images are stored as OCI images at `quay.io/podman/machine-os`. When applying an image using this
 command, the fully qualified OCI reference name must be used including tag where the tag is the
@@ -47,15 +56,37 @@ bootable OCI image.
 Note: This may result in having a newer Podman version inside the machine
 than the client.  Unexpected results may occur.
 
-Update the default Podman machine to the most recent Podman 6.1 bootable
-OCI image.
+Apply a new custom operating system from an OCI bootable image on quay.
 ```
-$ podman machine os apply quay.io/podman/machine-os:6.1
+$ podman machine os apply quay.io/custom/machine-os:latest
 ```
 
-Update the specified Podman machine to latest Podman 6.1 bootable OCI image.
+Apply a new custom operating system to a specific machine from an OCI bootable image on quay.
 ```
-$ podman machine os apply quay.io/podman/machine-os:6.1 mymachine
+$ podman machine os apply quay.io/custom/machine-os:latest mymachine
+```
+
+Apply a new custom operating system that was pulled or built on your existing machine by the unprivileged user.
+Note the use of brackets around the path because this command is run by the root user.
+```
+$ podman machine os apply containers-storage:[/home/core/.local/share/containers/storage]localhost/mycustomimage:latest
+```
+
+Apply a new custom operating system that was pulled or built on your existing machine by the privileged user.  Note that
+because a privileged user built or pulled the image, `bootc` will resolve that users storage and the path
+is not needed.
+```
+$ podman machine os apply containers-storage:localhost/mycustomimage:latest
+```
+
+Apply a new custom operating system from an OCI archive in tar form.
+```
+$ podman machine os apply oci-archive:/tmp/oci-image.tar
+```
+
+Apply a new custom operating system from an OCI formatted directory.
+```
+$ podman machine os apply oci:/tmp/oci-image/
 ```
 
 ## SEE ALSO

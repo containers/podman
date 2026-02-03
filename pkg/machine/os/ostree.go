@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/opencontainers/go-digest"
@@ -16,6 +17,7 @@ import (
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/transports/alltransports"
 	"go.podman.io/image/v5/types"
 )
 
@@ -27,7 +29,17 @@ type OSTree struct{}
 // is pulled from an OCI registry.  We simply pass the user
 // input to bootc without any manipulation.
 func (dist *OSTree) Apply(image string, _ ApplyOptions) error {
-	cli := []string{"bootc", "switch", image}
+	t, pathOrImageRef, err := parseApplyInput(image)
+	if err != nil {
+		return err
+	}
+	cli := []string{"bootc", "switch"}
+	// registry is the default transport and therefore not
+	// necessary
+	if t != "registry" {
+		cli = append(cli, "--transport", t)
+	}
+	cli = append(cli, pathOrImageRef)
 	cmd := exec.Command("sudo", cli...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -184,4 +196,80 @@ func printJSON(out UpgradeOutput) error {
 	}
 	fmt.Println(string(b))
 	return nil
+}
+
+// parseApplyInput takes well known OCI references and splits them up. this
+// function should only be used to deal with bootc transports.  podman takes
+// the entire reference as an oci reference but bootc requires we use
+// --transport if the default transport is not used.  also, bootc's default
+// transport is "registry" which mimics docker in the way it is handled.
+func parseApplyInput(arg string) (string, string, error) {
+	var (
+		containersStorageTransport = "containers-storage"
+		dockerTransport            = "docker"
+		ociArchiveTransport        = "oci-archive"
+		ociTransport               = "oci"
+		registryTransport          = "registry"
+	)
+
+	// The order of this parsing matters.  Be careful when you edit.
+
+	// containers-storage:/home/user:localhost/fedora-bootc:latest
+	afterCS, hasCS := strings.CutPrefix(arg, containersStorageTransport+":")
+	if hasCS {
+		return containersStorageTransport, afterCS, nil
+	}
+
+	imgRef, err := alltransports.ParseImageName(arg)
+	if err == nil {
+		transportName := imgRef.Transport().Name()
+		if imgRef.DockerReference() != nil {
+			// bootc  docs do not show the docker transport, but the
+			// code apparently does handle it and because docker is
+			// a well-known transport, we do as well, but we change
+			// it to registry for convenience.
+			if transportName == dockerTransport {
+				transportName = registryTransport
+			}
+			// docker://quay.io/fedora/fedora-bootc:40
+			return transportName, imgRef.DockerReference().String(), nil
+		}
+
+		imagePath := imgRef.StringWithinTransport()
+		if transportName == ociTransport { //nolint:staticcheck
+			// oci:/tmp/oci-image
+			imagePath, _, _ = strings.Cut(imagePath, ":")
+		} else if transportName == ociArchiveTransport {
+			// oci-archive:/tmp/myimage.tar
+			imagePath = strings.TrimSuffix(imagePath, ":")
+		}
+		return transportName, imagePath, nil
+	}
+
+	// quay.io/fedora/fedora-bootc:40
+	if _, err := reference.ParseNamed(arg); err == nil {
+		return registryTransport, arg, nil
+	}
+
+	// registry://quay.io/fedora/fedora-bootc:40
+	afterReg, hasRegistry := strings.CutPrefix(arg, registryTransport+"://")
+	if hasRegistry {
+		return registryTransport, afterReg, nil
+	}
+
+	// oci-archive:/var/tmp/fedora-bootc.tar
+	// oci-archive:/mnt/usb/images/myapp.tar
+	afterOCIArchive, hasOCIArchive := strings.CutPrefix(arg, ociArchiveTransport+":")
+	if hasOCIArchive {
+		return ociArchiveTransport, afterOCIArchive, nil
+	}
+
+	// oci:/tmp/oci-image
+	// oci:/var/mnt/usb/bootc-image
+	afterOCI, hasOCI := strings.CutPrefix(arg, ociTransport+":")
+	if hasOCI {
+		return ociTransport, afterOCI, nil
+	}
+
+	return "", "", fmt.Errorf("unknown transport %q given", arg)
 }
