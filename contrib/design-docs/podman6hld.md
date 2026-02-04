@@ -87,7 +87,7 @@ and an ugly bug, we added SQLite3 support.  SQLite has been the default since 4.
 [deprecation notice for Podman 5.7](https://issues.redhat.com/browse/RUN-3343), and remove this as an option for 6.0.
 
 We must also remove code in Podman’s test suite that specifically tests BoltDB.  There will be a small amount of work,
-presumably cleanup, in [common](https://github.com/containers/common) as well.
+presumably cleanup, in [container-libs](https://github.com/containers/container-libs) as well.
 
 ## **--network-cmd-path**
 
@@ -106,7 +106,7 @@ In Podman 6, Podman will no longer support Intel based Macs.  You can read a [wi
 # Configuration files {#configuration-files}
 
 Podman 6 will address a long standing problem with our configuration files largely centered around the remote client.
-When the remote client was introduced, [containers-common](https://github.com/containers/common) already existed. While we did introduce remote client
+When the remote client was introduced, [container-lib/common](https://github.com/containers/container-libs/tree/main/common) already existed. While we did introduce remote client
 related content to the containers.conf files, we did not take an overall look at how the remote client would impact our
 configuration files.  With the popularity of our Windows and Mac clients, this became more exacerbated and the
 introduction of the “machine” function only made that worse.  In Podman 6, we must make containers-common more aware

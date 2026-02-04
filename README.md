@@ -95,7 +95,7 @@ Podman uses OCI projects and best of breed libraries for different aspects:
 - Networking: Networking support through use of [Netavark](https://github.com/containers/netavark) and [Aardvark](https://github.com/containers/aardvark-dns).  Rootless networking is handled via [pasta](https://passt.top/passt) or [slirp4netns](https://github.com/rootless-containers/slirp4netns).
 - Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
 - Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes, used by both Podman and CRI-O.
-- Seccomp: A unified [Seccomp](https://github.com/containers/common/blob/main/pkg/seccomp/seccomp.json) policy for Podman, Buildah, and CRI-O.
+- Seccomp: A unified [Seccomp](https://github.com/containers/container-libs/blob/main/common/pkg/seccomp/seccomp.json) policy for Podman, Buildah, and CRI-O.
 
 ## Podman Information for Developers
 
@@ -104,7 +104,7 @@ For blogs, release announcements and more, please checkout the [podman.io](https
 **[Installation notes](install.md)**
 Information on how to install Podman in your environment.
 
-**[OCI Hooks Support](https://github.com/containers/common/blob/main/pkg/hooks/README.md)**
+**[OCI Hooks Support](https://github.com/containers/container-libs/blob/main/common/pkg/hooks/README.md)**
 Information on how Podman configures [OCI Hooks][spec-hooks] to run when launching a container.
 
 **[Podman API](https://docs.podman.io/en/latest/_static/api.html)**

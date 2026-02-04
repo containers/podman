@@ -27,7 +27,7 @@ $ podman system renumber
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**
 
 ## HISTORY
 February 2019, Originally compiled by Matt Heon (mheon at redhat dot com)

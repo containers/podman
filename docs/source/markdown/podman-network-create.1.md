@@ -34,7 +34,7 @@ The netavark backend allows the use of so called *netavark plugins*, see the
 [plugin-API.md](https://github.com/containers/netavark/blob/main/plugin-API.md)
 documentation in netavark. The binary must be placed in a specified directory
 so podman can discover it, this list is set in `netavark_plugin_dirs` in
-**[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+**[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**
 under the `[network]` section.
 
 The name of the plugin can then be used as driver to create a network for your plugin.
@@ -205,7 +205,7 @@ newnet
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-network-ls(1)](podman-network-ls.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-network(1)](podman-network.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-network-ls(1)](podman-network-ls.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**
 
 ## HISTORY
 August 2021, Updated with the new network format by Paul Holzinger <pholzing@redhat.com>

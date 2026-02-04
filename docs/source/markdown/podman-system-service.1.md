@@ -105,7 +105,7 @@ Connections that present no certificate or a certificate not signed by one of th
 Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
 
 The default timeout can be changed via the `service_timeout=VALUE` field in containers.conf.
-See **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** for more information.
+See **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)** for more information.
 
 ## EXAMPLES
 
@@ -155,7 +155,7 @@ podman system service --time 0 unix:///var/run/mypodman.sock
 This starts the API service listening on the custom socket `/var/run/mypodman.sock` with no inactivity timeout (runs indefinitely).
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**
 
 ## HISTORY
 January 2020, Originally compiled by Brent Baude `<bbaude@redhat.com>`

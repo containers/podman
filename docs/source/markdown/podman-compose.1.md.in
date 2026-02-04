@@ -20,4 +20,4 @@ By default, `podman compose` will emit a warning saying that it executes an exte
 To see supported options of the installed compose provider, please run `podman compose --help`.
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**

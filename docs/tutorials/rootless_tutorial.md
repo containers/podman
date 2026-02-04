@@ -31,7 +31,7 @@ The major user-facing difference between the two is outlined in [this blog post]
 > [!note]
 > pasta's default situation of not being able to communicate between the container and the host has been fixed in Podman 5.3: see [Podman 5.3 changes for improved networking experience with pasta](https://blog.podman.io/2024/10/podman-5-3-changes-for-improved-networking-experience-with-pasta/).
 
-The default rootless networking tool can be selected in **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** under the `[network]` section with `default_rootless_network_cmd`, which can be set to `pasta` (default) or `slirp4netns`.
+The default rootless networking tool can be selected in **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)** under the `[network]` section with `default_rootless_network_cmd`, which can be set to `pasta` (default) or `slirp4netns`.
 
 ### `/etc/subuid` and `/etc/subgid` configuration
 
@@ -125,7 +125,7 @@ Note: in environments without `XDG` environment variables, Podman internally set
   - `/run/user/$UID` on `systemd` environments
   - `$TMPDIR/podman-run-$UID` otherwise
 
-The three main configuration files are [containers.conf](https://github.com/containers/common/blob/main/docs/containers.conf.5.md), [storage.conf](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md) and [registries.conf](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md). The user can modify these files as they wish.
+The three main configuration files are [containers.conf](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md), [storage.conf](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md) and [registries.conf](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md). The user can modify these files as they wish.
 
 #### containers.conf
 Podman reads
