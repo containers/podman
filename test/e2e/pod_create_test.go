@@ -731,6 +731,7 @@ ENTRYPOINT ["sleep","99999"]
 	})
 
 	It("podman pod create with --userns=auto", func() {
+		SkipIfRemote("pod userns inheritance broken in remote mode in v4.4.1, fixed by d230a6b912")
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 		name := u.Username
