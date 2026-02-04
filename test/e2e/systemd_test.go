@@ -70,6 +70,10 @@ var _ = Describe("Podman systemd", func() {
 		stats.WaitWithDefaultTimeout()
 		Expect(stats).Should(Exit(0))
 
+		// rootless with cgroupfs creates init.scope, skip cgroup path check
+		if isRootless() && podmanTest.CgroupManager == "cgroupfs" {
+			return
+		}
 		cgroupPath := podmanTest.Podman([]string{"inspect", "--format='{{.State.CgroupPath}}'", ctrName})
 		cgroupPath.WaitWithDefaultTimeout()
 		Expect(cgroupPath).Should(Exit(0))
