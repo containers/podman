@@ -24,6 +24,8 @@ type Event struct {
 	// ContainerExitCode is for storing the exit code of a container which can
 	// be used for "internal" event notification
 	ContainerExitCode *int `json:",omitempty"`
+	// OOMKilled indicates whether the container was killed by an OOM condition
+	OOMKilled *bool `json:",omitempty"`
 	// ID can be for the container, image, volume, etc
 	ID string `json:",omitempty"`
 	// Image used where applicable
