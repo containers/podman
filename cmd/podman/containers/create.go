@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/utils"
+	"github.com/containers/podman/v6/internal/localapi"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/specgen"
@@ -159,6 +160,7 @@ func create(cmd *cobra.Command, args []string) error {
 	if err := specgenutil.FillOutSpecGen(s, &cliVals, args); err != nil {
 		return err
 	}
+	localapi.WarnIfMachineVolumesUnavailable(registry.PodmanConfig(), cliVals.Volume)
 	s.RawImageName = rawImageName
 
 	// Include the command used to create the container.
