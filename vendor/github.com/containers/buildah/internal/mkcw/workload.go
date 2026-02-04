@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/internal/mkcw/types"
+	types "github.com/containers/buildah/internal/mkcw/types"
 )
 
 type (

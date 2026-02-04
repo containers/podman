@@ -118,11 +118,12 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flag("iidfile").Changed {
-		f, err := os.Create(buildOpts.Iidfile)
-		if err != nil {
+		if err := os.WriteFile(buildOpts.Iidfile, []byte("sha256:"+report.ID), 0o644); err != nil {
 			return err
 		}
-		if _, err := f.WriteString("sha256:" + report.ID); err != nil {
+	}
+	if cmd.Flag("iidfile-raw").Changed {
+		if err := os.WriteFile(buildOpts.IidfileRaw, []byte(report.ID), 0o644); err != nil {
 			return err
 		}
 	}

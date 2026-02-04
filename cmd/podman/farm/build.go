@@ -109,6 +109,11 @@ func build(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	opts.IIDFile = iidFile
+	iidFileRaw, err := cmd.Flags().GetString("iidfile-raw")
+	if err != nil {
+		return err
+	}
+	opts.IIDFileRaw = iidFileRaw
 	// only set tls-verify if it has been changed by the user
 	// if it hasn't we will read the registries.conf on the farm
 	// nodes for further configuration

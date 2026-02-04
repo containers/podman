@@ -19,10 +19,10 @@ import (
 
 // Options for MountWithOptions().
 type Options struct {
-	// The Upper directory is normally writable layer in an overlay mount.
-	// Note!! : Following API does not handles escaping or validates correctness of the values
-	// passed to UpperDirOptionFragment instead API will try to pass values as is it
-	// to the `mount` command. It is user's responsibility to make sure they pre-validate
+	// The Upper directory is normally the writable layer in an overlay mount.
+	// Note!! : Following API does not handle escaping or validate the correctness of the values
+	// passed to UpperDirOptionFragment; instead the API will try to pass values as-given
+	// to the `mount` command. It is the caller's responsibility to make sure they pre-validate
 	// these values. Invalid inputs may lead to undefined behaviour.
 	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
 	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
@@ -30,9 +30,9 @@ type Options struct {
 	// `comma`, `backslash` ,`colon` and any other special characters
 	UpperDirOptionFragment string
 	// The Workdir is used to prepare files as they are switched between the layers.
-	// Note!! : Following API does not handles escaping or validates correctness of the values
-	// passed to WorkDirOptionFragment instead API will try to pass values as is it
-	// to the `mount` command. It is user's responsibility to make sure they pre-validate
+	// Note!! : Following API does not handle escaping or validate the correctness of the values
+	// passed to WorkDirOptionFragment; instead the API will try to pass values as-given
+	// to the `mount` command. It is the caller's responsibility to make sure they pre-validate
 	// these values. Invalid inputs may lead to undefined behaviour.
 	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
 	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
