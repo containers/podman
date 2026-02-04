@@ -682,7 +682,7 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
+		Expect(session.OutputToString()).To(Equal(u.Username))
 
 		// root owns /usr
 		session = podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "stat", "-c%u", "/usr"})
@@ -715,10 +715,10 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(err).ToNot(HaveOccurred())
 		// container inside pod inherits user from infra container if --user is not set
 		// etc/passwd entry will look like USERNAME:*:1000:1000:Full User Name:/:/bin/sh
-		exec1 := podmanTest.Podman([]string{"exec", ctrName, "cat", "/etc/passwd"})
+		exec1 := podmanTest.Podman([]string{"exec", ctrName, "id", "-un"})
 		exec1.WaitWithDefaultTimeout()
 		Expect(exec1).Should(Exit(0))
-		Expect(exec1.OutputToString()).To(ContainSubstring(u.Name))
+		Expect(exec1.OutputToString()).To(Equal(u.Username))
 
 		exec2 := podmanTest.Podman([]string{"exec", ctrName, "useradd", "testuser"})
 		exec2.WaitWithDefaultTimeout()
@@ -733,7 +733,7 @@ ENTRYPOINT ["sleep","99999"]
 	It("podman pod create with --userns=auto", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -768,7 +768,7 @@ ENTRYPOINT ["sleep","99999"]
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -804,7 +804,7 @@ ENTRYPOINT ["sleep","99999"]
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -841,7 +841,7 @@ ENTRYPOINT ["sleep","99999"]
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
