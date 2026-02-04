@@ -1135,4 +1135,33 @@ EOF
     is "$output" ".*${pasta_iface}.*"
 }
 
+@test "podman run - default_host_ips from containers.conf" {
+    skip_if_remote "CONTAINERS_CONF_OVERRIDE redirect does not work on remote"
+
+    local port=$(random_free_port)
+    local ctrport=80
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[network]
+  default_host_ips = ["127.0.0.1", "::1"]
+EOF
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run -d -p $port:$ctrport $IMAGE sleep 60
+    cid="$output"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman inspect $cid --format "{{.HostConfig.PortBindings}}"
+    assert "$output" =~ "127\.0\.0\.1" \
+        "HostIP should contain 127.0.0.1 from config"
+    assert "$output" =~ "::1" \
+        "HostIP should contain ::1 from config"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman rm -f -t0 $cid
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run -d -p 0.0.0.0:$port:$ctrport $IMAGE sleep 60
+    cid="$output"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman inspect $cid --format "{{.HostConfig.PortBindings}}"
+    assert "$output" =~ "0\.0\.0\.0" \
+        "Explicit 0.0.0.0 should override config"
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman rm -f -t0 $cid
+}
+
 # vim: filetype=sh

@@ -306,6 +306,27 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.Networks = normalizeNetworks
 	}
 
+	// If `default_host_ips` is set and HostIP is empty
+	// Create port mappings for each non empty HostIP * DefaultHostIP
+	if len(ctr.config.PortMappings) > 0 {
+		defaultHostIPs := r.config.Network.DefaultHostIPs.Get()
+		if len(defaultHostIPs) > 0 {
+			expanded := make([]types.PortMapping, 0, len(ctr.config.PortMappings)*len(defaultHostIPs))
+			for _, pm := range ctr.config.PortMappings {
+				if pm.HostIP == "" {
+					for _, ip := range defaultHostIPs {
+						newPM := pm
+						newPM.HostIP = ip
+						expanded = append(expanded, newPM)
+					}
+				} else {
+					expanded = append(expanded, pm)
+				}
+			}
+			ctr.config.PortMappings = expanded
+		}
+	}
+
 	// Validate the container
 	if err := ctr.validate(); err != nil {
 		return nil, err
