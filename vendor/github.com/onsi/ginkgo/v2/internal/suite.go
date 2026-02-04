@@ -1043,7 +1043,7 @@ func (suite *Suite) runNode(node Node, specDeadline time.Time, text string) (typ
 			}
 
 			progressReport = progressReport.WithoutOtherGoroutines()
-			sc.cancel(fmt.Errorf(interruptStatus.Message()))
+			sc.cancel(fmt.Errorf("%s", interruptStatus.Message()))
 
 			if interruptStatus.Level == interrupt_handler.InterruptLevelBailOut {
 				if interruptStatus.ShouldIncludeProgressReport() {
