@@ -161,6 +161,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=auto", func() {
+		SkipIfRemote("userns=auto not applied in remote mode in v4.4.1, fixed by d230a6b912")
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 		name := u.Username
