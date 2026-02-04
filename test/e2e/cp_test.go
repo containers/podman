@@ -72,12 +72,14 @@ var _ = Describe("Podman cp", func() {
 
 		// Copy FROM the container.
 
-		destFile, err := ioutil.TempFile("", "")
-		Expect(err).To(BeNil())
-		defer destFile.Close()
-		defer os.Remove(destFile.Name())
+		destFile, err := os.CreateTemp("", "")
+		Expect(err).ToNot(HaveOccurred())
+		destFileName := destFile.Name()
+		destFile.Close()
+		os.Remove(destFileName)
+		defer os.Remove(destFileName)
 
-		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
+		session = podmanTest.Podman([]string{"cp", name + ":foo", destFileName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -86,8 +88,8 @@ var _ = Describe("Podman cp", func() {
 		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
-		roundtripContent, err := ioutil.ReadFile(destFile.Name())
-		Expect(err).To(BeNil())
+		roundtripContent, err := os.ReadFile(destFileName)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
 
@@ -121,18 +123,20 @@ var _ = Describe("Podman cp", func() {
 
 		// Copy FROM the container.
 
-		destFile, err := ioutil.TempFile("", "")
-		Expect(err).To(BeNil())
-		defer destFile.Close()
-		defer os.Remove(destFile.Name())
+		destFile, err := os.CreateTemp("", "")
+		Expect(err).ToNot(HaveOccurred())
+		destFileName := destFile.Name()
+		destFile.Close()
+		os.Remove(destFileName)
+		defer os.Remove(destFileName)
 
-		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
+		session = podmanTest.Podman([]string{"cp", name + ":foo", destFileName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
-		roundtripContent, err := ioutil.ReadFile(destFile.Name())
-		Expect(err).To(BeNil())
+		roundtripContent, err := os.ReadFile(destFileName)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
 
