@@ -29,6 +29,16 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 	if err != nil {
 		return nil
 	}
+	var (
+		oomKilled bool
+		hasOOM    bool
+	)
+	if raw, ok := e.Actor.Attributes["oomKilled"]; ok {
+		if parsed, err := strconv.ParseBool(raw); err == nil {
+			oomKilled = parsed
+			hasOOM = true
+		}
+	}
 	image := e.Actor.Attributes["image"]
 	name := e.Actor.Attributes["name"]
 	network := e.Actor.Attributes["network"]
@@ -41,7 +51,8 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 	delete(details, "podId")
 	delete(details, "error")
 	delete(details, "containerExitCode")
-	return &libpodEvents.Event{
+	delete(details, "oomKilled")
+	newEvent := &libpodEvents.Event{
 		ContainerExitCode: &exitCode,
 		ID:                e.Actor.ID,
 		Image:             image,
@@ -57,6 +68,10 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 			Attributes: details,
 		},
 	}
+	if hasOOM {
+		newEvent.OOMKilled = &oomKilled
+	}
+	return newEvent
 }
 
 // ConvertToEntitiesEvent converts a libpod event to an entities one.
@@ -69,6 +84,9 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *types.Event {
 	attributes["name"] = e.Name
 	if e.ContainerExitCode != nil {
 		attributes["containerExitCode"] = strconv.Itoa(*e.ContainerExitCode)
+	}
+	if e.OOMKilled != nil {
+		attributes["oomKilled"] = strconv.FormatBool(*e.OOMKilled)
 	}
 	attributes["podId"] = e.PodID
 	if e.Network != "" {
