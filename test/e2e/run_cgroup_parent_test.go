@@ -51,6 +51,9 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("no --cgroup-parent", func() {
+		if isRootless() && podmanTest.CgroupManager == "cgroupfs" {
+			Skip("rootless with cgroupfs does not use libpod_parent")
+		}
 		cgroup := "/libpod_parent"
 		if !Containerized() && podmanTest.CgroupManager != "cgroupfs" {
 			if isRootless() {
