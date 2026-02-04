@@ -40,6 +40,31 @@ var _ = Describe("Podman UserNS support", func() {
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 
+	// Note: Lot of tests for build with --userns=auto are already there in buildah
+	// but they are skipped in podman CI because bud tests are executed in rootfull
+	// environment ( where mappings for the `containers` user is not present in /etc/subuid )
+	// causing them to skip hence this is a redundant test for sanity to make sure
+	// we don't break this feature for podman-remote.
+	It("podman build with --userns=auto", func() {
+		u, err := user.Current()
+		Expect(err).ToNot(HaveOccurred())
+		name := u.Username
+		if name == "root" {
+			name = "containers"
+		}
+		content, err := os.ReadFile("/etc/subuid")
+		if err != nil {
+			Skip("cannot read /etc/subuid")
+		}
+		if !strings.Contains(string(content), name) {
+			Skip("cannot find mappings for the current user")
+		}
+		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.userns-auto", "-t", "test", "--userns=auto"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// `1024` is the default size or length of the range of user IDs
+		// that is mapped between the two user namespaces by --userns=auto.
+		Expect(session.OutputToString()).To(ContainSubstring(fmt.Sprintf("%d", storage.AutoUserNsMinSize)))
 	})
 
 	It("podman uidmapping and gidmapping", func() {
@@ -93,8 +118,8 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
-		Expect(err).To(BeNil())
-		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session.OutputToString()).To(Equal(u.Username))
 	})
 
 	It("podman --userns=keep-id root owns /usr", func() {
@@ -137,8 +162,8 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman --userns=auto", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
-		name := u.Name
+		Expect(err).ToNot(HaveOccurred())
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -168,7 +193,7 @@ var _ = Describe("Podman UserNS support", func() {
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -206,7 +231,7 @@ var _ = Describe("Podman UserNS support", func() {
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -235,7 +260,7 @@ var _ = Describe("Podman UserNS support", func() {
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
