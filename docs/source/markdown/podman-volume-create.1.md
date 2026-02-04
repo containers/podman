@@ -26,7 +26,7 @@ The **image** driver uses an image as the backing store of for the volume.
 An overlay filesystem is created, which allows changes to the volume to be committed as a new layer on top of the image.
 
 Using a value other than **local** or **image**, Podman attempts to create the volume using a volume plugin with the given name.
-Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** configuration file.
+Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)** configuration file.
 
 #### **--gid**=*gid*
 
@@ -214,7 +214,7 @@ If performance is the priority, please check out the more performant [goofys](ht
 
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[podman-volume(1)](podman-volume.1.md)**, **mount(8)**, **xfs_quota(8)**, **xfs_quota(8)**, **projects(5)**, **projid(5)**
+**[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**, **[podman-volume(1)](podman-volume.1.md)**, **mount(8)**, **xfs_quota(8)**, **xfs_quota(8)**, **projects(5)**, **projid(5)**
 
 ## HISTORY
 January 2020, updated with information on volume plugins by Matthew Heon <mheon@redhat.com>

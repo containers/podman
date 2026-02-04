@@ -193,7 +193,7 @@ Users can modify defaults by creating the `$HOME/.config/containers/containers.c
 Podman uses builtin defaults if no containers.conf file is found.
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-system-service(1)](podman-system-service.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-system-service(1)](podman-system-service.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**
 
 ### Troubleshooting
 

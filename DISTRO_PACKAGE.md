@@ -29,7 +29,7 @@ This illustrates the subpackage breakdown as well as top-level dependencies.
 
 Podman requires a *runtime*, a *runtime monitor*, a *pause process*,
 and *networking tools*. In Fedora, some of these requirements are indirectly
-specified via [containers-common](https://github.com/containers/common);
+specified via [container-libs/common](https://github.com/containers/container-libs/tree/main/common);
 the nested tree looks like this:
 ```
     Podman
@@ -108,4 +108,4 @@ fine-tune config settings and dependencies.
 
 You will probably be responsible for packaging this.
 The best starting point is its
-[RPM spec file](https://github.com/containers/common/blob/main/rpm/containers-common.spec).
+[RPM spec file](https://github.com/containers/container-libs/blob/main/common/rpm/containers-common.spec).

@@ -1406,7 +1406,7 @@ Executing a step in a `Dockerfile`/`Containerfile` which mounts secrets using `-
 
 #### Symptom
 
-A `RUN` line in the `Dockerfile`/`Containerfile` contains a [secret mount](https://github.com/containers/common/blob/main/docs/Containerfile.5.md) such as `--mount=type=secret,id=MY_USER,target=/etc/dnf/vars/MY_USER`.
+A `RUN` line in the `Dockerfile`/`Containerfile` contains a [secret mount](https://github.com/containers/container-libs/blob/main/common/docs/Containerfile.5.md) such as `--mount=type=secret,id=MY_USER,target=/etc/dnf/vars/MY_USER`.
 When running `podman build` the process fails with an error message like:
 
 ```

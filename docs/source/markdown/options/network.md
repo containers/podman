@@ -72,7 +72,7 @@ Valid _mode_ values are:
     to disable automatic port forwarding based on bound ports. Similarly, **-T none**
     and **-U none** are given to disable the same functionality from container to
     host. \
-    All options can also be set in **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**;
+    All options can also be set in **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**;
     see the `pasta_options` key under the network section in that file. \
     Some examples:
     - **pasta:--map-gw**: Allow the container to directly reach the host using the

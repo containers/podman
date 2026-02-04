@@ -263,7 +263,7 @@ provider="hyperv"
 ```
 
 Find the complete list of configuration options in the
-[documentation](https://github.com/containers/common/blob/main/docs/containers.conf.5.md).
+[documentation](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md).
 
 ### Create and start a podman machine
 

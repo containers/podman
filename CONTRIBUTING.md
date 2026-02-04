@@ -37,7 +37,7 @@ Reproducers make finding and fixing issues much easier for maintainers.
 The easier it is for us to reproduce a bug, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
-Security issues should NOT be reported via Github and should instead be reported via the process described [here](https://github.com/containers/common/blob/main/SECURITY.md).
+Security issues should NOT be reported via Github and should instead be reported via the process described [here](https://github.com/containers/container-libs/blob/main/SECURITY.md).
 
 ## Working On Issues
 
@@ -248,7 +248,7 @@ For example:
 
 ```
 Fixes: #00000
-Fixes: https://github.com/containers/common/issues/00000
+Fixes: https://github.com/containers/container-libs/issues/00000
 Fixes: https://issues.redhat.com/browse/RHEL-00000
 Fixes: RHEL-00000
 ```
