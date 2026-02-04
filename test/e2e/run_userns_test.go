@@ -228,6 +228,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=auto:uidmapping=", func() {
+		SkipIfRemote("intermediate ID lookup in uidmapping not supported in v4.4.1, fixed by d5cf46e807")
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 
@@ -257,6 +258,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=auto:gidmapping=", func() {
+		SkipIfRemote("intermediate ID lookup in gidmapping not supported in v4.4.1, fixed by d5cf46e807")
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 
