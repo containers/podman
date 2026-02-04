@@ -262,6 +262,39 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
+	It("podman generate kube on pod with user namespace", func() {
+		u, err := user.Current()
+		Expect(err).ToNot(HaveOccurred())
+		name := u.Username
+		if name == "root" {
+			name = "containers"
+		}
+		content, err := os.ReadFile("/etc/subuid")
+		if err != nil {
+			Skip("cannot read /etc/subuid")
+		}
+		if !strings.Contains(string(content), name) {
+			Skip("cannot find mappings for the current user")
+		}
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testPod", "--userns=auto"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"create", "--name", "topcontainer", "--pod", "testPod", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testPod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		expected := false
+		Expect(pod.Spec).To(HaveField("HostUsers", &expected))
+	})
+
 	It("podman generate kube on pod with host network", func() {
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testHostNetwork", "--network", "host"})
 		podSession.WaitWithDefaultTimeout()
