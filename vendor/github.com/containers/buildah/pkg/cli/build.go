@@ -279,7 +279,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			if err != nil {
 				return options, nil, nil, err
 			}
-			if buildOption.IsStdout {
+			if buildOption.Type == define.BuildOutputStdout {
 				iopts.Quiet = true
 			}
 		}

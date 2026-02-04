@@ -109,11 +109,18 @@ type Secret struct {
 	SourceType string
 }
 
+type BuildOutputType int
+
+const (
+	BuildOutputStdout   BuildOutputType = 0 // stream tar to stdout
+	BuildOutputLocalDir BuildOutputType = 1
+	BuildOutputTar      BuildOutputType = 2
+)
+
 // BuildOutputOptions contains the the outcome of parsing the value of a build --output flag
 type BuildOutputOption struct {
-	Path     string // Only valid if !IsStdout
-	IsDir    bool
-	IsStdout bool
+	Type BuildOutputType
+	Path string // Only valid if Type is local dir or tar
 }
 
 // ConfidentialWorkloadOptions encapsulates options which control whether or not
