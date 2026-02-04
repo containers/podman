@@ -236,6 +236,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman --userns=auto:size=%d", func() {
+		SkipIfRemote("auto-sizing with --user broken in v4.4.1, fixed by d5cf46e807")
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
