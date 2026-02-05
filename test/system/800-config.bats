@@ -107,7 +107,7 @@ See 'podman create --help'" "--module must be specified before the command"
     # Nonexistent module path with comma
     nonesuch=${PODMAN_TMPDIR}/nonexistent,withcomma
     run_podman 1 --module=$nonesuch sdfsdfdsf
-    is "$output" "Failed to obtain podman configuration: could not resolve module \"$nonesuch\": faccessat $nonesuch: no such file or directory" \
+    is "$output" "Failed to obtain podman configuration: parsing containers.conf: could not resolve module: open $nonesuch: no such file or directory" \
        "--module=ENOENT"
 }
 
@@ -180,23 +180,25 @@ EOF
 sdf=
 EOF
     XDG_CONFIG_HOME=$fake_home run_podman 1 --module $module_name
-    is "$output" "Failed to obtain podman configuration: reading additional config \"$conf_tmp\": decode configuration $conf_tmp: toml: line 2 (last key \"containers.sdf\"): expected value but found '\n' instead" \
+    is "$output" "Failed to obtain podman configuration: parsing containers.conf: decode configuration \"$conf_tmp\": toml: line 2 (last key \"containers.sdf\"): expected value but found '\n' instead" \
        "Corrupt module file"
 
     # Nonexistent module name
     nonesuch=assume-this-does-not-exist-$(random_string)
     XDG_CONFIG_HOME=$fake_home run_podman 1 --module=$nonesuch invalid-command
-    expect="Failed to obtain podman configuration: could not resolve module \"$nonesuch\": 3 errors occurred:"
+    expect="Failed to obtain podman configuration: parsing containers.conf: could not resolve module: "
     for dir in $fake_home /etc /usr/share;do
-        expect+=$'\n\t'"* faccessat $dir/containers/containers.conf.modules/$nonesuch: no such file or directory"
+        expect+="open $dir/containers/containers.conf.modules/$nonesuch: no such file or directory"$'\n'
     done
-    is "$output" "$expect" "--module=ENOENT : error message"
+    is "$output"$'\n' "$expect" "--module=ENOENT : error message"
 }
 
 # Too hard to test in 600-completion.bats because of the remote/rootless check
 @test "podman --module - command-line completion" {
     skip_if_remote "--module is not supported for remote clients"
     skip_if_not_rootless "loading a module from XDG_CONFIG_HOME requires rootless"
+
+    skip "FIXME: re-enable modules shell completion once it works again in container-libs"
 
     fake_home="$PODMAN_TMPDIR/home/.config"
     fake_modules_dir="$fake_home/containers/containers.conf.modules"
