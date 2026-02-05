@@ -35,6 +35,8 @@ load helpers.network
 
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827
 @test "podman networking: port on localhost" {
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
     random_1=$(random_string 30)
     random_2=$(random_string 30)
 
@@ -98,6 +100,8 @@ load helpers.network
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 @test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
     skip_if_cgroupsv1 "FIXME: #15025: run --uidmap fails on cgroups v1"
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -702,6 +706,8 @@ EOF
 }
 
 @test "podman run port forward range" {
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
     for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit; do
         local range=$(random_free_port_range 3)
         # die() inside $(...) does not actually stop us.
