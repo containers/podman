@@ -527,3 +527,17 @@ type quadletListResponse struct {
 	// in:body
 	Body []entities.ListQuadlet
 }
+
+// Quadlet file
+// swagger:response
+type quadletFileResponse struct {
+	// in:body
+	Body string
+}
+
+// Quadlet remove
+// swagger:response
+type quadletRemoveResponse struct {
+	// in:body
+	Body entities.QuadletRemoveReport
+}

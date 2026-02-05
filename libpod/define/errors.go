@@ -29,6 +29,9 @@ var (
 	// does not exist.
 	ErrNoSuchExitCode = errors.New("no such exit code")
 
+	// ErrNoSuchQuadlet indicates the requested quadlet does not exist
+	ErrNoSuchQuadlet = errors.New("no such quadlet")
+
 	// ErrDepExists indicates that the current object has dependencies and
 	// cannot be removed before them.
 	ErrDepExists = errors.New("dependency exists")
@@ -62,6 +65,9 @@ var (
 	ErrCtrStateInvalid = errors.New("container state improper")
 	// ErrCtrStateRunning indicates a container is running.
 	ErrCtrStateRunning = errors.New("container is running")
+	// ErrQuadletRunning indicates the quadlet is running and cannot be
+	// removed without force.
+	ErrQuadletRunning = errors.New("quadlet is running")
 	// ErrExecSessionStateInvalid indicates that an exec session is in an
 	// improper state for the requested operation
 	ErrExecSessionStateInvalid = errors.New("exec session state improper")
