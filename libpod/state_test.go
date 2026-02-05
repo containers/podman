@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,35 +15,17 @@ import (
 	"go.podman.io/storage"
 )
 
-// Returns state, tmp directory containing all state files, lock manager, and
-// error.
-// Closing the state and removing the given tmp directory should be sufficient
-// to clean up.
-type emptyStateFunc func() (State, string, lock.Manager, error)
-
-const (
-	tmpDirPrefix = "libpod_state_test_"
-)
+type emptyStateFunc func(t *testing.T) (State, lock.Manager)
 
 var testedStates = map[string]emptyStateFunc{
 	"sqlite": getEmptySqliteState,
 }
 
-func getEmptySqliteState() (_ State, _ string, _ lock.Manager, retErr error) {
-	tmpDir, err := os.MkdirTemp("", tmpDirPrefix)
-	if err != nil {
-		return nil, "", nil, err
-	}
-	defer func() {
-		if retErr != nil {
-			os.RemoveAll(tmpDir)
-		}
-	}()
-
+func getEmptySqliteState(t *testing.T) (State, lock.Manager) {
+	t.Helper()
+	tmpDir := t.TempDir()
 	lockManager, err := lock.NewInMemoryManager(16)
-	if err != nil {
-		return nil, "", nil, err
-	}
+	require.NoError(t, err)
 
 	runtime := new(Runtime)
 	runtime.config = new(config.Config)
@@ -56,28 +37,20 @@ func getEmptySqliteState() (_ State, _ string, _ lock.Manager, retErr error) {
 	runtime.storageSet.StaticDirSet = true
 
 	state, err := NewSqliteState(runtime)
-	if err != nil {
-		return nil, "", nil, err
-	}
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		state.Close()
+	})
 
-	return state, tmpDir, lockManager, nil
+	return state, lockManager
 }
 
 func runForAllStates(t *testing.T, testFunc func(*testing.T, State, lock.Manager)) {
 	for stateName, stateFunc := range testedStates {
-		state, path, manager, err := stateFunc()
-		if err != nil {
-			t.Fatalf("Error initializing state %s: %v", stateName, err)
-		}
-		defer os.RemoveAll(path)
-		defer state.Close()
-
-		success := t.Run(stateName, func(t *testing.T) {
+		t.Run(stateName, func(t *testing.T) {
+			state, manager := stateFunc(t)
 			testFunc(t, state, manager)
 		})
-		if !success {
-			t.Fail()
-		}
 	}
 }
 
