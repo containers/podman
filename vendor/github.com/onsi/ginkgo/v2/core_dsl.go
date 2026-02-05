@@ -362,9 +362,9 @@ func extractSuiteConfiguration(args []any) (Labels, SemVerConstraints, Component
 
 	configErrors = types.VetConfig(flagSet, suiteConfig, reporterConfig)
 	if len(configErrors) > 0 {
-		fmt.Fprintf(formatter.ColorableStdErr, formatter.F("{{red}}Ginkgo detected configuration issues:{{/}}\n"))
+		fmt.Fprint(formatter.ColorableStdErr, formatter.F("{{red}}Ginkgo detected configuration issues:{{/}}\n"))
 		for _, err := range configErrors {
-			fmt.Fprintf(formatter.ColorableStdErr, err.Error())
+			fmt.Fprint(formatter.ColorableStdErr, err.Error())
 		}
 		os.Exit(1)
 	}
