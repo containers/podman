@@ -170,6 +170,8 @@ function random_ip() {
 }
 
 @test "podman pod create - hashtag AllTheOptions" {
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
     mac=$(random_mac)
     add_host_ip=$(random_ip)
     add_host_n=$(random_string | tr A-Z a-z).$(random_string | tr A-Z a-z).xyz
