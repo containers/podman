@@ -175,7 +175,7 @@ function random_ip() {
 }
 
 @test "podman pod create - hashtag AllTheOptions" {
-    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
 
     mac=$(random_mac)
     add_host_ip=$(random_ip)
