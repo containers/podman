@@ -317,6 +317,18 @@ func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 		}
 		inheritedArgs := argInstructionsInStages[from]
 		thisStageArgs := slices.Clone(inheritedArgs)
+		filteredUserArgs := make(map[string]string)
+		for k, v := range b.UserArgs {
+			for _, a := range b.GlobalAllowedArgs {
+				if a == k {
+					filteredUserArgs[k] = v
+				}
+			}
+		}
+		userArgs := envMapAsSlice(filteredUserArgs)
+		userArgs = mergeEnv(envMapAsSlice(b.BuiltinArgDefaults), userArgs)
+		userArgs = mergeEnv(envMapAsSlice(builtinArgDefaults), userArgs)
+		userArgs = mergeEnv(envMapAsSlice(b.HeadingArgs), userArgs)
 		for _, child := range s.Node.Children {
 			if !strings.EqualFold(child.Value, command.Arg) {
 				continue
@@ -329,7 +341,12 @@ func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 			}
 			next := child.Next
 			for next != nil {
-				thisStageArgs = append(thisStageArgs, next.Value)
+				processedValue, err := ProcessWord(next.Value, userArgs)
+				if err != nil {
+					return fmt.Errorf("processing ARG %q", next.Value)
+				}
+				thisStageArgs = append(thisStageArgs, processedValue)
+				userArgs = mergeEnv(userArgs, []string{processedValue})
 				next = next.Next
 			}
 		}
@@ -492,6 +509,10 @@ type Builder struct {
 	// Raw platform string specified with `FROM --platform` of the stage
 	// It's up to the implementation or client to parse and use this field
 	Platform string
+	// After contains the stage name specified with `FROM --after=<stage>`. This
+	// declares a dependency on another stage. It's up to the implementation or
+	// client to handle this field.
+	After string
 
 	// Overrides for TARGET... and BUILD... values. TARGET... values are
 	// typically only necessary if the builder's target platform is not the
