@@ -441,6 +441,8 @@ _EOF
 }
 
 @test "podman kube play - URL" {
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
