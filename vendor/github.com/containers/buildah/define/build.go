@@ -204,6 +204,12 @@ type BuildOptions struct {
 	// specified, indicating that the shared, system-wide default policy
 	// should be used.
 	SignaturePolicyPath string
+	// SourcePolicyFile specifies the path to a BuildKit-compatible source
+	// policy JSON file. When specified, source references (e.g., base images
+	// in FROM instructions) are evaluated against the policy rules. Rules
+	// can DENY specific sources or CONVERT them to different references
+	// (e.g., pinning tags to digests).
+	SourcePolicyFile string
 	// SkipUnusedStages allows users to skip stages in a multi-stage builds
 	// which do not contribute anything to the target stage. Expected default
 	// value is true.
@@ -264,6 +270,8 @@ type BuildOptions struct {
 	IIDFile string
 	// IIDFileRaw tells the builder to write the image ID to the specified file without the algorithm prefix
 	IIDFileRaw string
+	// BuildIDFile tells the builder to write the build ID to the specified file
+	BuildIDFile string
 	// Squash tells the builder to produce an image with a single layer instead of with
 	// possibly more than one layer, by only committing a new layer after processing the
 	// final instruction.
@@ -278,6 +286,12 @@ type BuildOptions struct {
 	OnBuild []string
 	// Layers tells the builder to commit an image for each step in the Dockerfile.
 	Layers bool
+	// CacheStages tells the builder to preserve intermediate stage images instead of removing them.
+	CacheStages bool
+	// StageLabels tells the builder to add metadata labels to intermediate stage images for easier recognition.
+	// These labels include stage name, base image, build ID, and parent stage name (when a stage uses another
+	// stage as its base). This option requires CacheStages to be enabled.
+	StageLabels bool
 	// NoCache tells the builder to build the image from scratch without checking for a cache.
 	// It creates a new set of cached images for the build.
 	NoCache bool

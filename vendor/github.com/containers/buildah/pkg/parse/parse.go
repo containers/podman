@@ -734,6 +734,9 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 
 // GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
 // Takes `buildOutput` as string and returns BuildOutputOption
+// This function will read an argument of `type=tar` as "output in a local folder names type=tar"
+//
+// Deprecated: This function is now internal
 func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 	if buildOutput == "-" {
 		// Feature parity with buildkit, output tar to stdout
