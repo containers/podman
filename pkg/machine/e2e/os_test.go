@@ -1,48 +1,32 @@
 package e2e_test
 
-// import (
-// 	. "github.com/onsi/ginkgo/v2"
-// 	. "github.com/onsi/gomega"
-// 	. "github.com/onsi/gomega/gexec"
-// )
+import (
+	"fmt"
 
-// var _ = Describe("podman machine os apply", func() {
+	"github.com/containers/podman/v6/pkg/machine/define"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
+)
 
-// 	It("apply machine", func() {
-// 		i := new(initMachine)
-// 		foo1, err := mb.setName("foo1").setCmd(i.withImage(mb.imagePath)).run()
-// 		Expect(err).ToNot(HaveOccurred())
-// 		Expect(foo1).To(Exit(0))
-
-// 		apply := new(applyMachineOS)
-// 		applySession, err := mb.setName("foo1").setCmd(apply.args([]string{"quay.io/baude/podman_next"})).run()
-// 		Expect(err).ToNot(HaveOccurred())
-// 		Expect(applySession).To(Exit(0))
-// 	})
-
-// 	It("apply machine from containers-storage", func() {
-// 		i := new(initMachine)
-// 		foo1, err := mb.setName("foo1").setCmd(i.withImage(mb.imagePath)).run()
-// 		Expect(err).ToNot(HaveOccurred())
-// 		Expect(foo1).To(Exit(0))
-
-// 		ssh := &sshMachine{}
-// 		sshSession, err := mb.setName("foo1").setCmd(ssh.withSSHComand([]string{"podman", "pull", "quay.io/baude/podman_next"})).run()
-// 		Expect(err).ToNot(HaveOccurred())
-// 		Expect(sshSession).To(Exit(0))
-
-// 		apply := new(applyMachineOS)
-// 		applySession, err := mb.setName("foo1").setCmd(apply.args([]string{"quay.io/baude/podman_next"})).run()
-// 		Expect(err).ToNot(HaveOccurred())
-// 		Expect(applySession).To(Exit(0))
-// 		Expect(applySession.outputToString()).To(ContainSubstring("Pulling from: containers-storage"))
-// 	})
-
-// 	It("apply machine not exist", func() {
-// 		apply := new(applyMachineOS)
-// 		applySession, err := mb.setName("foo1").setCmd(apply.args([]string{"quay.io/baude/podman_next", "notamachine"})).run()
-// 		Expect(err).ToNot(HaveOccurred())
-// 		Expect(applySession).To(Exit(125))
-// 		Expect(applySession.errorToString()).To(ContainSubstring("not exist"))
-// 	})
-// })
+var _ = Describe("podman machine os apply", func() {
+	It("apply machine", func() {
+		if p := testProvider.VMType(); p == define.WSLVirt {
+			i := new(initMachine)
+			session, err := mb.setCmd(i.withFakeImage(mb)).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session).To(Exit(0))
+		}
+		machineName := "foobar"
+		a := new(applyMachineOS)
+		applySession, err := mb.setName(machineName).setCmd(a.withImage("quay.io/foobar:latest").withRestart()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(applySession.ExitCode()).To(Equal(125))
+		switch testProvider.VMType() {
+		case define.WSLVirt:
+			Expect(applySession.errorToString()).To(ContainSubstring("this command is not supported for WSL"))
+		default:
+			Expect(applySession.errorToString()).To(ContainSubstring(fmt.Sprintf("%s: VM does not exist", machineName)))
+		}
+	})
+})
