@@ -352,6 +352,129 @@ status: {}
     run_podman inspect --format "{{.HostConfig.LogConfig.Type}}" test_pod-test
     is "$output" "$default_driver" "play kube uses default log driver"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
+    run_podman 125 inspect test_pod-test
+    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+    run_podman pod rm -a
+    run_podman rm -a
+}
+
+@test "podman kube play - URL" {
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+
+    HOST_PORT=$(random_free_port)
+    SERVER=http://127.0.0.1:$HOST_PORT
+
+    run_podman run -d --name myyaml -p "$HOST_PORT:80" \
+    -v $PODMAN_TMPDIR/test.yaml:/var/www/testpod.yaml:Z \
+    -w /var/www \
+    $IMAGE /bin/busybox-extras httpd -f -p 80
+
+    run_podman kube play $SERVER/testpod.yaml
+    run_podman inspect test_pod-test --format "{{.State.Running}}"
+    is "$output" "true"
+    run_podman kube down $SERVER/testpod.yaml
+    run_podman 125 inspect test_pod-test
+    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+
+    run_podman pod rm -a -f
+    run_podman rm -a -f
+    run_podman rm -f -t0 myyaml
+}
+
+@test "podman play with init container" {
+    _write_test_yaml command=
+    cat >>$PODMAN_TMPDIR/test.yaml <<EOF
+  - command:
+    - ls
+    - /dev/shm/test1
+    image: $IMAGE
+    name: testCtr
+  initContainers:
+  - command:
+    - touch
+    - /dev/shm/test1
+    image: $IMAGE
+    name: initCtr
+EOF
+
+    run_podman kube play $PODMAN_TMPDIR/test.yaml
+    assert "$output" !~ "level=" "init containers should not generate logrus.Error"
+    run_podman inspect --format "{{.State.ExitCode}}" test_pod-testCtr
+    is "$output" "0" "init container should have created /dev/shm/test1"
+
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
+}
+
+@test "podman kube play - hostport" {
+    HOST_PORT=$(random_free_port)
+    _write_test_yaml
+    cat >>$PODMAN_TMPDIR/test.yaml <<EOF
+    - name: server
+      image: $IMAGE
+      ports:
+        - name: hostp
+          containerPort: $HOST_PORT
+EOF
+
+    run_podman kube play $PODMAN_TMPDIR/test.yaml
+    run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
+    assert "$output" = "map[$HOST_PORT/tcp:[{ $HOST_PORT}]]"
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
+
+    run_podman pod rm -a -f
+    run_podman rm -a -f
+}
+
+@test "podman kube play - multi-pod YAML" {
+    skip_if_remote "service containers only work locally"
+    skip_if_journald_unavailable
+
+    # Create the YAMl file, with two pods, each with one container
+    yaml_source="$PODMAN_TMPDIR/test.yaml"
+    for n in 1 2;do
+        _write_test_yaml labels="app: pod$n" name="pod$n" ctrname="ctr$n"
+
+        # Separator between two yaml halves
+        if [[ $n = 1 ]]; then
+            echo "---" >>$yaml_source
+        fi
+    done
+
+    # Run `play kube` in the background as it will wait for the service
+    # container to exit.
+    timeout --foreground -v --kill=10 60 \
+        $PODMAN play kube --service-container=true --log-driver journald $yaml_source &>/dev/null &
+
+    # The name of the service container is predictable: the first 12 characters
+    # of the hash of the YAML file followed by the "-service" suffix
+    yaml_sha=$(sha256sum $yaml_source)
+    service_container="${yaml_sha:0:12}-service"
+    # Wait for the containers to be running
+    container_1=pod1-ctr1
+    container_2=pod1-ctr2
+    for i in $(seq 1 20); do
+        run_podman "?" container wait $container_1 $container_2 $service_container --condition="running"
+        if [[ $status == 0 ]]; then
+            break
+        fi
+        sleep 0.5
+        # Just for debugging
+        run_podman ps -a
+    done
+    if [[ $status != 0 ]]; then
+        die "container $container_1, $container_2 and/or $service_container did not start"
+    fi
+
+    # Stop the pods, make sure that no ugly error logs show up and that the
+    # service container will implicitly get stopped as well
+    run_podman pod stop pod1 pod2
+    assert "$output" !~ "Stopping"
+    _ensure_container_running $service_container false
+
+    run_podman kube down $yaml_source
 }
