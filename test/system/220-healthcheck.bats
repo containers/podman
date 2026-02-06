@@ -101,12 +101,13 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     run -0 systemctl list-units
     cidmatch=$(grep "$cid" <<<"$output")
     echo "$cidmatch"
-    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run $cid" \
+    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run --ignore-result $cid" \
            "Healthcheck systemd unit exists"
 
     # Check that the right service option is applied so we don't hit the systemd restart limit.
     # Even though the code sets StartLimitIntervalSec the systemd command prints StartLimitInterval*U*Sec
-    run -0 systemctl show "$cid-*.service"
+    # Use show --all otherwise the glob might not match the already inactive transient unit.
+    run -0 systemctl show --all "$cid-*.service"
     assert "$output" =~ "StartLimitIntervalUSec=0" "The hc service has the right interval set"
 
     current_time=$(date --iso-8601=ns)
