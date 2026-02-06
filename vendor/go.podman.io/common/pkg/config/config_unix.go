@@ -33,3 +33,7 @@ func userConfigPath() (string, error) {
 func overrideContainersConfigPath() (string, error) {
 	return overrideContainersConfig, nil
 }
+
+func safeEvalSymlinks(filePath string) (string, error) {
+	return filepath.EvalSymlinks(filePath)
+}
