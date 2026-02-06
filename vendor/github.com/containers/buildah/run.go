@@ -175,7 +175,7 @@ type RunOptions struct {
 	// unmounted if Run() returned an error
 	ExternalImageMounts []string
 	// System context of current build
-	SystemContext *types.SystemContext
+	SystemContext *types.SystemContext `json:"-"`
 	// CgroupManager to use for running OCI containers
 	CgroupManager string
 	// CDIConfigDir is the location of CDI configuration files, if the files in
