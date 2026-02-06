@@ -14,6 +14,7 @@ var (
 	INFRA_IMAGE       = "quay.io/libpod/k8s-pause:3.5"
 	BB                = "quay.io/libpod/busybox:latest"
 	HEALTHCHECK_IMAGE = "quay.io/libpod/alpine_healthcheck:latest"
+	fedoraMinimal     = "quay.io/libpod/systemd-image:20240124"
 
 	// ImageCacheDir is initialized at runtime.
 	// e.g., filepath.Join(os.TempDir(), "imagecachedir")
