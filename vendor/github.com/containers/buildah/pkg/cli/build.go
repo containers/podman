@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
+	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -222,6 +223,14 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
 	}
 
+	if iopts.StageLabels && !iopts.CacheStages {
+		return options, nil, nil, errors.New("'stage-labels' requires 'cache-stages'")
+	}
+
+	if iopts.BuildIDFile != "" && !iopts.StageLabels {
+		return options, nil, nil, errors.New("'build-id-file' requires 'stage-labels'")
+	}
+
 	if c.Flag("compress").Changed {
 		logrus.Debugf("--compress option specified but is ignored")
 	}
@@ -278,11 +287,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		for _, buildOutput := range iopts.BuildOutputs {
 			// if any of these go to stdout, we need to avoid
 			// interspersing our random output in with it
-			buildOption, err := parse.GetBuildOutput(buildOutput)
+			buildOption, err := internalParse.GetBuildOutput(buildOutput)
 			if err != nil {
 				return options, nil, nil, err
 			}
-			if buildOption.IsStdout {
+			if buildOption.Type == internalParse.BuildOutputStdout {
 				iopts.Quiet = true
 			}
 		}
@@ -384,8 +393,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Architecture:            systemContext.ArchitectureChoice,
 		Args:                    args,
 		BlobDirectory:           iopts.BlobCache,
+		BuildIDFile:             iopts.BuildIDFile,
 		BuildOutputs:            iopts.BuildOutputs,
 		CacheFrom:               cacheFrom,
+		CacheStages:             iopts.CacheStages,
 		CacheTo:                 cacheTo,
 		CacheTTL:                cacheTTL,
 		CDIConfigDir:            iopts.CDIConfigDir,
@@ -445,9 +456,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
+		SourcePolicyFile:        iopts.SourcePolicyFile,
 		SkipUnusedStages:        skipUnusedStages,
 		SourceDateEpoch:         sourceDateEpoch,
 		Squash:                  iopts.Squash,
+		StageLabels:             iopts.StageLabels,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,
 		Timestamp:               timestamp,

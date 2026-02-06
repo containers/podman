@@ -20,11 +20,13 @@ import (
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/internal/metadata"
+	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/internal/sanitize"
 	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
+	"github.com/containers/buildah/pkg/sourcepolicy"
 	"github.com/containers/buildah/util"
 	docker "github.com/fsouza/go-dockerclient"
 	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
@@ -81,6 +83,7 @@ type stageExecutor struct {
 	argsFromContainerfile []string
 	hasLink               bool
 	isLastStep            bool
+	fromName              string // original FROM value (stage name or image name) before resolution to image ID
 }
 
 // Preserve informs the stage executor that from this point on, it needs to
@@ -978,6 +981,55 @@ func (s *stageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		}
 		from = base
 	}
+
+	// Apply source policy if one is configured and this is not "scratch" or a stage reference.
+	// Stage references are handled separately and don't need policy evaluation since they
+	// refer to images built within this same build.
+	if s.executor.sourcePolicy != nil && from != "scratch" {
+		// Check if 'from' references a previous stage by name, index, or image ID
+		isStageRef := false
+		for i, st := range s.stages[:s.index] {
+			if st.Name == from || strconv.Itoa(i) == from {
+				isStageRef = true
+				break
+			}
+		}
+		// Also check if 'from' is an image ID that was created by a previous stage
+		// (this happens when execute() resolves stage names to image IDs before calling prepare)
+		if !isStageRef {
+			s.executor.stagesLock.Lock()
+			for _, imgID := range s.executor.imageMap {
+				if imgID == from {
+					isStageRef = true
+					break
+				}
+			}
+			s.executor.stagesLock.Unlock()
+		}
+
+		if !isStageRef {
+			sourceID := sourcepolicy.ImageSourceIdentifier(from)
+			decision, matched, err := s.executor.sourcePolicy.Evaluate(sourceID)
+			if err != nil {
+				return nil, fmt.Errorf("evaluating source policy for %q: %w", from, err)
+			}
+
+			if matched {
+				switch decision.Action {
+				case sourcepolicy.ActionDeny:
+					return nil, fmt.Errorf("source %q denied by source policy: %s", from, decision.Reason)
+				case sourcepolicy.ActionConvert:
+					// Extract the new image reference from the policy decision
+					newFrom := sourcepolicy.ExtractImageRef(decision.TargetRef)
+					logrus.Debugf("source policy: converting %q to %q (%s)", from, newFrom, decision.Reason)
+					from = newFrom
+				case sourcepolicy.ActionAllow:
+					logrus.Debugf("source policy: allowing %q (%s)", from, decision.Reason)
+				}
+			}
+		}
+	}
+
 	sanitizedFrom, err := s.sanitizeFrom(from, tmpdir.GetTempDir())
 	if err != nil {
 		return nil, fmt.Errorf("invalid base image specification %q: %w", from, err)
@@ -1203,6 +1255,11 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 	stage := s.stage
 	ib := stage.Builder
 	checkForLayers := s.executor.layers && s.executor.useCache
+	// When --cache-stages is used, disable cache lookup to ensure a fresh build.
+	// Subsequent builds without --cache-stages still can use these intermediate images as cache.
+	if s.executor.cacheStages {
+		checkForLayers = false
+	}
 	moreStages := s.index < len(s.stages)-1
 	lastStage := !moreStages
 	onlyBaseImage := false
@@ -1221,6 +1278,12 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		return "", nil, false, err
 	}
 	pullPolicy := s.executor.pullPolicy
+	// Capture the original FROM value (stage/image name) before it's converted to image ID.
+	// Needed for indication in stage labels when an
+	// intermediate stage uses another stage as its base.
+	if s.fromName == "" {
+		s.fromName = base
+	}
 	s.executor.stagesLock.Lock()
 	var preserveBaseImageAnnotationsAtStageStart bool
 	if stageImage, isPreviousStage := s.executor.imageMap[base]; isPreviousStage {
@@ -1310,11 +1373,11 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 	}
 
 	// Parse and populate buildOutputOption if needed
-	var buildOutputOptions []define.BuildOutputOption
+	var buildOutputOptions []internalParse.BuildOutputOption
 	if lastStage && len(s.executor.buildOutputs) > 0 {
 		for _, buildOutput := range s.executor.buildOutputs {
 			logrus.Debugf("generating custom build output with options %q", buildOutput)
-			buildOutputOption, err := parse.GetBuildOutput(buildOutput)
+			buildOutputOption, err := internalParse.GetBuildOutput(buildOutput)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("failed to parse build output %q: %w", buildOutput, err)
 			}
@@ -1835,6 +1898,30 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		}
 
 		s.hasLink = false
+	}
+
+	// If --cache-stages is enabled and this is not the last stage, commit the intermediate stage image.
+	// However, skip committing if this stage is a parent stage used as a base
+	// by another intermediate stage - only commit the final stage in such a chain.
+	if s.executor.cacheStages && !lastStage {
+		// Check if this stage is used as base by another intermediate stage
+		_, isParentStage := s.executor.intermediateStageParents[s.name]
+		if isParentStage {
+			logrus.Debugf("Skipping commit for intermediate stage %s (index %d) - used as base by another intermediate stage", s.name, s.index)
+		} else {
+			logrus.Debugf("Committing intermediate stage %s (index %d) for --cache-stages", s.name, s.index)
+			createdBy := fmt.Sprintf("/bin/sh -c #(nop) STAGE %s", s.name)
+			// Determine if we need a new layer or just metadata:
+			// - If stage was already committed (imgID != ""), only add labels (emptyLayer=true)
+			// - If not yet committed (imgID == ""), capture filesystem changes (emptyLayer=false)
+			emptyLayer := imgID != ""
+			// Commit the stage without squashing, using empty output name (intermediate image)
+			imgID, commitResults, err = s.commit(ctx, createdBy, emptyLayer, "", false, false)
+			if err != nil {
+				return "", nil, false, fmt.Errorf("committing intermediate stage %s: %w", s.name, err)
+			}
+			logrus.Debugf("Committed intermediate stage %s with ID %s", s.name, imgID)
+		}
 	}
 
 	return imgID, commitResults, onlyBaseImage, nil
@@ -2548,6 +2635,23 @@ func (s *stageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}
+	// Add stage metadata labels if --cache-stages and --stage-labels are enabled.
+	// IMPORTANT: This must be done AFTER copying config.Labels to ensure stage labels
+	// are not overwritten by inherited labels from parent stages (stages that serve as base).
+	if output == "" && s.executor.cacheStages && s.executor.stageLabels {
+		s.builder.SetLabel("io.buildah.stage.name", s.name)
+		s.builder.SetLabel("io.buildah.stage.base", s.builder.FromImage)
+
+		// Check if this stage uses another stage as its base (using the original FROM value).
+		// s.fromName contains the stage name before resolution to image ID.
+		if s.fromName != "" && s.executor.stages[s.fromName] != nil {
+			s.builder.SetLabel("io.buildah.stage.parent_name", s.fromName)
+		}
+
+		if s.executor.buildID != "" {
+			s.builder.SetLabel("io.buildah.build.id", s.executor.buildID)
+		}
+	}
 	switch s.executor.commonBuildOptions.IdentityLabel {
 	case types.OptionalBoolTrue:
 		s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
@@ -2621,7 +2725,7 @@ func (s *stageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	return results.ImageID, results, nil
 }
 
-func (s *stageExecutor) generateBuildOutput(buildOutputOpts define.BuildOutputOption) error {
+func (s *stageExecutor) generateBuildOutput(buildOutputOpts internalParse.BuildOutputOption) error {
 	forceTimestamp := s.executor.timestamp
 	if s.executor.sourceDateEpoch != nil {
 		forceTimestamp = s.executor.sourceDateEpoch
