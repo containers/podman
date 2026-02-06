@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/buildah/copier"
@@ -59,6 +60,37 @@ const (
 	// create uniquely-named files, but we don't want to try to use their
 	// contents until after they've been written to
 	containerExcludesSubstring = ".tmp"
+
+	// Windows-specific PAX record keys
+	keyFileAttr     = "MSWINDOWS.fileattr"
+	keySDRaw        = "MSWINDOWS.rawsd"
+	keyCreationTime = "LIBARCHIVE.creationtime"
+	// FILE_ATTRIBUTE_ values
+	fileAttributeDirectory = "16"
+	fileAttributeArchive   = "32"
+
+	// Windows Security Descriptors (base64-encoded)
+	// SDDL: O:BAG:SYD:(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;;FA;;;BA)(A;OICIIO;GA;;;CO)(A;OICI;0x1200a9;;;BU)(A;CI;LC;;;BU)(A;CI;DC;;;BU)
+	// Owner: Built-in Administrators (BA)
+	// Group: Local System (SY)
+	// DACL:
+	//   - Allow OBJECT_INHERIT+CONTAINER_INHERIT Full Access to Built-in Administrators (BA)
+	//   - Allow OBJECT_INHERIT+CONTAINER_INHERIT Full Access to Local System (SY)
+	//   - Allow Full Access to Built-in Administrators (BA)
+	//   - Allow OBJECT_INHERIT+CONTAINER_INHERIT+INHERIT_ONLY Generic All to Creator Owner (CO)
+	//   - Allow OBJECT_INHERIT+CONTAINER_INHERIT Read/Execute permissions to Built-in Users (BU)
+	//   - Allow CONTAINER_INHERIT List Contents to Built-in Users (BU)
+	//   - Allow CONTAINER_INHERIT Delete Child to Built-in Users (BU)
+	winSecurityDescriptorDirectory = "AQAEgBQAAAAkAAAAAAAAADAAAAABAgAAAAAABSAAAAAgAgAAAQEAAAAAAAUSAAAAAgCoAAcAAAAAAxgA/wEfAAECAAAAAAAFIAAAACACAAAAAxQA/wEfAAEBAAAAAAAFEgAAAAAAGAD/AR8AAQIAAAAAAAUgAAAAIAIAAAALFAAAAAAQAQEAAAAAAAMAAAAAAAMYAKkAEgABAgAAAAAABSAAAAAhAgAAAAIYAAQAAAABAgAAAAAABSAAAAAhAgAAAAIYAAIAAAABAgAAAAAABSAAAAAhAgAA"
+
+	// SDDL: O:BAG:SYD:(A;;FA;;;BA)(A;;FA;;;SY)(A;;0x1200a9;;;BU)
+	// Owner: Built-in Administrators (BA)
+	// Group: Local System (SY)
+	// DACL:
+	//   - Allow Full Access to Built-in Administrators (BA)
+	//   - Allow Full Access to Local System (SY)
+	//   - Allow Read/Execute permissions to Built-in Users (BU)
+	winSecurityDescriptorFile = "AQAEgBQAAAAkAAAAAAAAADAAAAABAgAAAAAABSAAAAAgAgAAAQEAAAAAAAUSAAAAAgBMAAMAAAAAABgA/wEfAAECAAAAAAAFIAAAACACAAAAABQA/wEfAAEBAAAAAAAFEgAAAAAAGACpABIAAQIAAAAAAAUgAAAAIQIAAA=="
 )
 
 // ExtractRootfsOptions is consumed by ExtractRootfs() which allows users to
@@ -112,6 +144,7 @@ type containerImageRef struct {
 	unsetAnnotations      []string
 	setAnnotations        []string
 	createdAnnotation     types.OptionalBool
+	os                    string
 }
 
 type blobLayerInfo struct {
@@ -173,7 +206,7 @@ func expectedDockerDiffIDs(image docker.V2Image) int {
 
 // Extract the container's whole filesystem as a filesystem image, wrapped
 // in LUKS-compatible encryption.
-func (i *containerImageRef) extractConfidentialWorkloadFS(options ConfidentialWorkloadOptions) (io.ReadCloser, error) {
+func (i *containerImageRef) extractConfidentialWorkloadFS(options ConfidentialWorkloadOptions, systemContext *types.SystemContext) (io.ReadCloser, error) {
 	var image v1.Image
 	if err := json.Unmarshal(i.oconfig, &image); err != nil {
 		return nil, fmt.Errorf("recreating OCI configuration for %q: %w", i.containerID, err)
@@ -211,6 +244,9 @@ func (i *containerImageRef) extractConfidentialWorkloadFS(options ConfidentialWo
 		FirmwareLibrary:          options.FirmwareLibrary,
 		GraphOptions:             i.store.GraphOptions(),
 		ExtraImageContent:        i.extraImageContent,
+	}
+	if systemContext != nil {
+		archiveOptions.BaseTLSConfig = systemContext.BaseTLSConfig
 	}
 	rc, _, err := mkcw.Archive(mountPoint, &image, archiveOptions)
 	if err != nil {
@@ -787,7 +823,7 @@ func (mb *ociManifestBuilder) manifestAndConfig() ([]byte, []byte, error) {
 }
 
 // filterExclusionsByImage returns a slice of the members of "exclusions" which are present in the image with the specified ID
-func (i containerImageRef) filterExclusionsByImage(ctx context.Context, exclusions []copier.EnsureParentPath, imageID string) ([]copier.EnsureParentPath, error) {
+func (i containerImageRef) filterExclusionsByImage(ctx context.Context, systemContext *types.SystemContext, exclusions []copier.EnsureParentPath, imageID string) ([]copier.EnsureParentPath, error) {
 	if len(exclusions) == 0 || imageID == "" {
 		return nil, nil
 	}
@@ -804,6 +840,7 @@ func (i containerImageRef) filterExclusionsByImage(ctx context.Context, exclusio
 			FromImage:       imageID,
 			PullPolicy:      define.PullNever,
 			ContainerSuffix: "tmp",
+			SystemContext:   systemContext,
 		}); err2 == nil {
 			mountPoint, err = b.Mount(i.mountLabel)
 			cleanup = func() {
@@ -852,7 +889,7 @@ func (i containerImageRef) filterExclusionsByImage(ctx context.Context, exclusio
 	return paths, nil
 }
 
-func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemContext) (src types.ImageSource, err error) {
+func (i *containerImageRef) NewImageSource(ctx context.Context, systemContext *types.SystemContext) (src types.ImageSource, err error) {
 	// These maps will let us check if a layer ID is part of one group or another.
 	parentLayerIDs := make(map[string]bool)
 	apiLayerIDs := make(map[string]bool)
@@ -1019,7 +1056,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 		var layerExclusions []copier.ConditionalRemovePath
 		if i.confidentialWorkload.Convert {
 			// Convert the root filesystem into an encrypted disk image.
-			rc, err = i.extractConfidentialWorkloadFS(i.confidentialWorkload)
+			rc, err = i.extractConfidentialWorkloadFS(i.confidentialWorkload, systemContext)
 			if err != nil {
 				return nil, err
 			}
@@ -1055,7 +1092,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 					// And we _might_ need to filter out directories that modified
 					// by creating and removing mount targets, _if_ they were the
 					// same in the base image for this stage.
-					layerPullUps, err := i.filterExclusionsByImage(ctx, i.layerPullUps, i.fromImageID)
+					layerPullUps, err := i.filterExclusionsByImage(ctx, systemContext, i.layerPullUps, i.fromImageID)
 					if err != nil {
 						return nil, fmt.Errorf("checking which exclusions are in base image %q: %w", i.fromImageID, err)
 					}
@@ -1084,6 +1121,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 		diffBeingAltered := i.compression != archive.Uncompressed
 		diffBeingAltered = diffBeingAltered || i.layerModTime != nil || i.layerLatestModTime != nil
 		diffBeingAltered = diffBeingAltered || len(layerExclusions) != 0
+		diffBeingAltered = diffBeingAltered || i.os == "windows"
 		if diffBeingAltered {
 			destHasher = digest.Canonical.Digester()
 			multiWriter = io.MultiWriter(counter, destHasher.Hash())
@@ -1099,11 +1137,13 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 			return nil, fmt.Errorf("compressing %s: %w", what, err)
 		}
 		writer := io.MultiWriter(writeCloser, srcHasher.Hash())
-
 		// Use specified timestamps in the layer, if we're doing that for history
 		// entries.
 		nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
-		writeCloser = makeFilteredLayerWriteCloser(nestedWriteCloser, i.layerModTime, i.layerLatestModTime, layerExclusions)
+		writeCloser, err = makeFilteredLayerWriteCloser(nestedWriteCloser, i.layerModTime, i.layerLatestModTime, layerExclusions, i.os == "windows")
+		if err != nil {
+			return nil, fmt.Errorf("creating filter write closer %s: %w", what, err)
+		}
 		writer = writeCloser
 		// Okay, copy from the raw diff through the filter, compressor, and counter and
 		// digesters.
@@ -1373,9 +1413,9 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool, timest
 // no later than layerLatestModTime (if a value is provided for it).
 // This implies that if both values are provided, the archive's timestamps will
 // be set to the earlier of the two values.
-func makeFilteredLayerWriteCloser(wc io.WriteCloser, layerModTime, layerLatestModTime *time.Time, exclusions []copier.ConditionalRemovePath) io.WriteCloser {
-	if layerModTime == nil && layerLatestModTime == nil && len(exclusions) == 0 {
-		return wc
+func makeFilteredLayerWriteCloser(wc io.WriteCloser, layerModTime, layerLatestModTime *time.Time, exclusions []copier.ConditionalRemovePath, windows bool) (io.WriteCloser, error) {
+	if layerModTime == nil && layerLatestModTime == nil && len(exclusions) == 0 && !windows {
+		return wc, nil
 	}
 	exclusionsMap := make(map[string]copier.ConditionalRemovePath)
 	for _, exclusionSpec := range exclusions {
@@ -1385,19 +1425,22 @@ func makeFilteredLayerWriteCloser(wc io.WriteCloser, layerModTime, layerLatestMo
 		}
 		exclusionsMap[pathSpec] = exclusionSpec
 	}
+	var initialized bool
 	wc = newTarFilterer(wc, func(hdr *tar.Header) (skip, replaceContents bool, replacementContents io.Reader) {
-		// Changing a zeroed field to a non-zero field can affect the
-		// format that the library uses for writing the header, so only
-		// change fields that are already set to avoid changing the
-		// format (and as a result, changing the length) of the header
-		// that we write.
 		modTime := hdr.ModTime
-		nameSpec := strings.Trim(path.Clean(hdr.Name), "/")
-		if conditions, ok := exclusionsMap[nameSpec]; ok {
-			if (conditions.ModTime == nil || conditions.ModTime.Equal(modTime)) &&
-				(conditions.Owner == nil || (conditions.Owner.UID == hdr.Uid && conditions.Owner.GID == hdr.Gid)) &&
-				(conditions.Mode == nil || (*conditions.Mode&os.ModePerm == os.FileMode(hdr.Mode)&os.ModePerm)) {
-				return true, false, nil
+		if layerModTime != nil || layerLatestModTime != nil || len(exclusions) != 0 {
+			// Changing a zeroed field to a non-zero field can affect the
+			// format that the library uses for writing the header, so only
+			// change fields that are already set to avoid changing the
+			// format (and as a result, changing the length) of the header
+			// that we write.
+			nameSpec := strings.Trim(path.Clean(hdr.Name), "/")
+			if conditions, ok := exclusionsMap[nameSpec]; ok {
+				if (conditions.ModTime == nil || conditions.ModTime.Equal(modTime)) &&
+					(conditions.Owner == nil || (conditions.Owner.UID == hdr.Uid && conditions.Owner.GID == hdr.Gid)) &&
+					(conditions.Mode == nil || (*conditions.Mode&os.ModePerm == os.FileMode(hdr.Mode)&os.ModePerm)) {
+					return true, false, nil
+				}
 			}
 		}
 		if layerModTime != nil {
@@ -1415,9 +1458,70 @@ func makeFilteredLayerWriteCloser(wc io.WriteCloser, layerModTime, layerLatestMo
 		if !hdr.ChangeTime.IsZero() {
 			hdr.ChangeTime = modTime
 		}
+		if windows {
+			isDir := hdr.Typeflag == tar.TypeDir
+			if initialized {
+				hdr.Name = path.Join("Files", hdr.Name)
+				if isDir {
+					hdr.Name += "/"
+				}
+				if hdr.Linkname != "" {
+					hdr.Linkname = path.Join("Files", hdr.Linkname)
+					if isDir {
+						hdr.Linkname += "/"
+					}
+				}
+			}
+			// ensure all header fields are set in a way that is expected for Windows images
+			if hdr.PAXRecords == nil {
+				hdr.PAXRecords = map[string]string{}
+			}
+			hdr.Format = tar.FormatPAX
+			if isDir {
+				hdr.Mode |= syscall.S_IFDIR
+				hdr.PAXRecords[keyFileAttr] = fileAttributeDirectory
+				hdr.PAXRecords[keySDRaw] = winSecurityDescriptorDirectory
+			} else if hdr.Typeflag == tar.TypeReg {
+				hdr.Mode |= syscall.S_IFREG
+				hdr.PAXRecords[keyFileAttr] = fileAttributeArchive
+				hdr.PAXRecords[keySDRaw] = winSecurityDescriptorFile
+			}
+			if !hdr.ModTime.IsZero() {
+				hdr.PAXRecords[keyCreationTime] = fmt.Sprintf("%d.%09d", hdr.ModTime.Unix(), hdr.ModTime.Nanosecond())
+			}
+		}
 		return false, false, nil
 	})
-	return wc
+	if windows {
+		// prep the archive by writing the Files/ and Hives/ directories to the writer.
+		// This fulfills a requirement of Windows images
+		winTarWriter := tar.NewWriter(wc)
+		now := time.Now()
+		h := &tar.Header{
+			Name:     "Hives/",
+			Typeflag: tar.TypeDir,
+			ModTime:  now,
+			Mode:     0o755,
+		}
+		if err := winTarWriter.WriteHeader(h); err != nil {
+			return nil, err
+		}
+		h = &tar.Header{
+			Name:     "Files/",
+			Typeflag: tar.TypeDir,
+			ModTime:  now,
+			Mode:     0o755,
+		}
+		if err := winTarWriter.WriteHeader(h); err != nil {
+			return nil, err
+		}
+		// As we plan to continue to add to the archive, Flush() needs to be used, rather than Close().
+		if err := winTarWriter.Flush(); err != nil {
+			return nil, err
+		}
+	}
+	initialized = true
+	return wc, nil
 }
 
 // makeLinkedLayerInfos calculates the size and digest information for a layer
@@ -1475,7 +1579,10 @@ func (b *Builder) makeLinkedLayerInfos(layers []LinkedLayer, layerType string, l
 
 			digester := digest.Canonical.Digester()
 			sizeCountedFile := ioutils.NewWriteCounter(io.MultiWriter(digester.Hash(), f))
-			wc := makeFilteredLayerWriteCloser(ioutils.NopWriteCloser(sizeCountedFile), layerModTime, layerLatestModTime, nil)
+			wc, err := makeFilteredLayerWriteCloser(ioutils.NopWriteCloser(sizeCountedFile), layerModTime, layerLatestModTime, nil, false)
+			if err != nil {
+				return err
+			}
 			_, copyErr := io.Copy(wc, rc)
 			wcErr := wc.Close()
 			if err := rc.Close(); err != nil {
@@ -1677,6 +1784,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		layerMountTargets:     layerMountTargets,
 		layerPullUps:          layerPullUps,
 		createdAnnotation:     options.CreatedAnnotation,
+		os:                    b.OCIv1.OS,
 	}
 	if ref.created != nil {
 		for i := range ref.preEmptyLayers {
