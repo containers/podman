@@ -364,8 +364,14 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 				return fmt.Errorf("no value specified for --platform=")
 			}
 			b.Platform = platformString
+		case strings.HasPrefix(arg, "--after="):
+			afterStage := strings.TrimPrefix(arg, "--after=")
+			if afterStage == "" {
+				return fmt.Errorf("no value specified for --after=")
+			}
+			b.After = afterStage
 		default:
-			return fmt.Errorf("FROM only supports the --platform flag")
+			return fmt.Errorf("FROM only supports the --platform and --after flags")
 		}
 	}
 	b.RunConfig.Image = name

@@ -112,5 +112,5 @@ docker rmi registry.fedoraproject.org/fedora-minimal:42-aarch64; docker pull reg
 docker rmi mirror.gcr.io/golang:1.24; docker pull mirror.gcr.io/golang:1.24
 docker rmi mirror.gcr.io/nginx; docker pull mirror.gcr.io/nginx
 chmod -R go-w ./dockerclient/testdata
-go test ./dockerclient -tags conformance -timeout 30m
+env DOCKER_API_VERSION=1.44 go test ./dockerclient -tags conformance -timeout 30m
 ```
