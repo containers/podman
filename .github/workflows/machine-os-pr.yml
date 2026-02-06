@@ -29,7 +29,7 @@ jobs:
       - name: Get version
         id: getversion
         run: |
-          VERSION=$(curl "https://raw.githubusercontent.com/$PODMAN_REPO/$SHA/version/rawversion/version.go" | sed -n 's/^const RawVersion = \"\([0-9]\+\.[0-9]\+\.[0-9]\+\(-rc[0-9]\+\|-dev\)\?\)"$/\1/p')
+          VERSION=$(curl --fail "https://raw.githubusercontent.com/$PODMAN_REPO/$SHA/version/rawversion/version.go" | sed -n 's/^const RawVersion = \"\([0-9]\+\.[0-9]\+\.[0-9]\+\(-rc[0-9]\+\|-dev\)\?\)"$/\1/p')
           # ignore -dev version bumps unless on main
           if [[ -z "$VERSION" ]] ; then
             echo "::error:: Invalid version string"
@@ -48,7 +48,7 @@ jobs:
       - name: Check machine-os-branch
         if: steps.getversion.outputs.update == 'true'
         run: |
-          if ! curl -s "https://api.github.com/repos/$UPSTREAM_MACHINE_OS/branches" | jq -e --arg branch "${GITHUB_BASE_REF}" '.[] | select(.name==$branch)'; then
+          if ! curl --fail -s "https://api.github.com/repos/$UPSTREAM_MACHINE_OS/branches" | jq -e --arg branch "${GITHUB_BASE_REF}" '.[] | select(.name==$branch)'; then
             echo "::error:: Release branch does not exist."
             echo "::error:: Please push $branch to $UPSTREAM_MACHINE_OS, then re-run this task."
             exit 1

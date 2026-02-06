@@ -360,7 +360,7 @@ case "$TEST_FLAVOR" in
         ;;
     compose_v2)
         showrun dnf -y remove docker-compose
-        showrun curl -SL https://github.com/docker/compose/releases/download/v2.32.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+        showrun curl --fail -SL https://github.com/docker/compose/releases/download/v2.32.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
         showrun chmod +x /usr/local/bin/docker-compose
         ;& # Continue with next item
     apiv2)
