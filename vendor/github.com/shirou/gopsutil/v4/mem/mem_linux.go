@@ -187,6 +187,12 @@ func fillFromMeminfoWithContext(ctx context.Context) (*VirtualMemoryStat, *ExVir
 				return ret, retEx, err
 			}
 			ret.Sunreclaim = t * 1024
+		case "KernelStack":
+			t, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return ret, retEx, err
+			}
+			retEx.KernelStack = t * 1024
 		case "PageTables":
 			t, err := strconv.ParseUint(value, 10, 64)
 			if err != nil {

@@ -56,7 +56,7 @@ require (
 	github.com/opencontainers/selinux v1.13.1
 	github.com/openshift/imagebuilder v1.2.20
 	github.com/rootless-containers/rootlesskit/v2 v2.3.6
-	github.com/shirou/gopsutil/v4 v4.25.12
+	github.com/shirou/gopsutil/v4 v4.26.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10

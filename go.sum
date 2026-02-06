@@ -343,8 +343,8 @@ github.com/secure-systems-lab/go-securesystemslib v0.10.0 h1:l+H5ErcW0PAehBNrBxo
 github.com/secure-systems-lab/go-securesystemslib v0.10.0/go.mod h1:MRKONWmRoFzPNQ9USRF9i1mc7MvAVvF1LlW8X5VWDvk=
 github.com/sergi/go-diff v1.4.0 h1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=
 github.com/sergi/go-diff v1.4.0/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
-github.com/shirou/gopsutil/v4 v4.25.12 h1:e7PvW/0RmJ8p8vPGJH4jvNkOyLmbkXgXW4m6ZPic6CY=
-github.com/shirou/gopsutil/v4 v4.25.12/go.mod h1:EivAfP5x2EhLp2ovdpKSozecVXn1TmuG7SMzs/Wh4PU=
+github.com/shirou/gopsutil/v4 v4.26.1 h1:TOkEyriIXk2HX9d4isZJtbjXbEjf5qyKPAzbzY0JWSo=
+github.com/shirou/gopsutil/v4 v4.26.1/go.mod h1:medLI9/UNAb0dOI9Q3/7yWSqKkj00u+1tgY8nvv41pc=
 github.com/sigstore/fulcio v1.8.1 h1:PmoQv3XmhjR2BWFWw5LcMUXJPmhyizOIL7HeYnpio58=
 github.com/sigstore/fulcio v1.8.1/go.mod h1:7tP3KW9eCGlPYRj5N4MSuUOat7CkeIHuXZ2jAUQ+Rwc=
 github.com/sigstore/protobuf-specs v0.5.0 h1:F8YTI65xOHw70NrvPwJ5PhAzsvTnuJMGLkA4FIkofAY=

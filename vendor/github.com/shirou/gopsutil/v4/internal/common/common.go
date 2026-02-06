@@ -7,6 +7,7 @@ package common
 //  - linux (amd64, arm)
 //  - freebsd (amd64)
 //  - windows (amd64)
+//  - aix (ppc64)
 
 import (
 	"bufio"
@@ -463,4 +464,8 @@ func Round(val float64, n int) float64 {
 	pow10 := math.Pow(10, float64(n))
 	// Multiply the value by pow10, round it, then divide it by pow10
 	return math.Round(val*pow10) / pow10
+}
+
+func timeSince(ts uint64) uint64 {
+	return uint64(time.Now().Unix()) - ts
 }
