@@ -62,6 +62,7 @@ var _ = Describe("Podman UserNS support", func() {
 	// causing them to skip hence this is a redundant test for sanity to make sure
 	// we don't break this feature for podman-remote.
 	It("podman build with --userns=auto", func() {
+		SkipIfRemote("--userns=auto not properly applied in remote mode in v4.4.1")
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 		name := u.Username
