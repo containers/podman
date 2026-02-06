@@ -218,6 +218,22 @@ PS C:\Users\User> podman run ubi9-micro date
 Thu May 5 21:56:42 UTC 2022
 ```
 
+If you get this error instead:
+
+```
+Cannot connect to Podman. Please verify your connection to the Linux system using `podman system connection list`, or try `podman machine init` and `podman machine start` to manage a new Linux VM
+Error: unable to connect to Podman socket: Get "http://d/v5.7.1/libpod/_ping": ssh: rejected: connect failed (open failed)
+```
+
+try to restart the machine in rootful mode like this:
+
+```
+podman machine stop
+podman machine set --rootful
+podman machine start
+podman run ubi8-micro date
+```
+
 Port Forwarding
 ---------------
 
