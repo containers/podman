@@ -7,7 +7,9 @@ load helpers.network
     rand=$(random_string 30)
 
     err_no_such_cmd="Error:.*/no/such/command.*[Nn]o such file or directory"
-    err_no_exec_dir="Error:.*exec.*permission denied"
+    # runc: RHEL8 on 2023-07-17: "is a directory".
+    # Everything else (crun; runc on debian): "permission denied"
+    err_no_exec_dir="Error:.*exec.*\\\(permission denied\\\|is a directory\\\)"
 
     tests="
 true              |   0 |
