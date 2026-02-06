@@ -15,6 +15,7 @@ import (
 
 	buildahDefine "github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/containers/buildah/pkg/parse"
 	buildahUtil "github.com/containers/buildah/pkg/util"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -192,7 +193,7 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 	)
 	if len(args) > 0 {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := buildahDefine.TempDirForURL("", "buildah", args[0])
+		tempDir, subDir, err := download.TempDirForURL("", "buildah", args[0], nil)
 		if err != nil {
 			return nil, fmt.Errorf("prepping temporary context directory: %w", err)
 		}
