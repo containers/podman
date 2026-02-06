@@ -490,6 +490,14 @@ spec:
     skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
     skip_if_aarch64 "FIXME: #15074 - flakes often on aarch64"
 
+    # runc requires minimum 6MB memory, crun can work with 5MB
+    local memory_limit="5m"
+    local memory_max_bytes="5242880"
+    if [[ $(podman_runtime) == "runc" ]]; then
+        memory_limit="6m"
+        memory_max_bytes="6291456"
+    fi
+
     # create loopback device
     lofile=${PODMAN_TMPDIR}/disk.img
     fallocate -l 1k  ${lofile}
@@ -508,7 +516,7 @@ spec:
     # FIXME: #15464: blkio-weight-device not working
     expected_limits="
 cpu.max         | 500000 100000
-memory.max      | 5242880
+memory.max      | $memory_max_bytes
 memory.swap.max | 1068498944
 io.bfq.weight   | default 50
 io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
@@ -516,7 +524,7 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
 
     for cgm in systemd cgroupfs; do
         local name=resources-$cgm
-        run_podman --cgroup-manager=$cgm pod create --name=$name --cpus=5 --memory=5m --memory-swap=1g --cpu-shares=1000 --cpuset-cpus=0 --cpuset-mems=0 --device-read-bps=${LOOPDEVICE}:1mb --device-write-bps=${LOOPDEVICE}:1mb --blkio-weight=50
+        run_podman --cgroup-manager=$cgm pod create --name=$name --cpus=5 --memory=$memory_limit --memory-swap=1g --cpu-shares=1000 --cpuset-cpus=0 --cpuset-mems=0 --device-read-bps=${LOOPDEVICE}:1mb --device-write-bps=${LOOPDEVICE}:1mb --blkio-weight=50
         run_podman --cgroup-manager=$cgm pod start $name
         run_podman pod inspect --format '{{.CgroupPath}}' $name
         local cgroup_path="$output"
