@@ -257,7 +257,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		if !ok || refName == "" {
 			// Same trick as for the dir transport: we cannot use
 			// the path to a directory as the name.
-			storageName, err = getImageID(ctx, ref, nil)
+			storageName, err = getImageID(ctx, ref, &r.systemContext)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -276,7 +276,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		switch len(storageName) {
 		case 0:
 			// If there's no reference name in the annotations, compute an ID.
-			storageName, err = getImageID(ctx, ref, nil)
+			storageName, err = getImageID(ctx, ref, &r.systemContext)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -302,7 +302,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		// Path-based transports (e.g., dir) may include invalid
 		// characters, so we should pessimistically generate an ID
 		// instead of looking at the StringWithinTransport().
-		storageName, err = getImageID(ctx, ref, nil)
+		storageName, err = getImageID(ctx, ref, &r.systemContext)
 		if err != nil {
 			return nil, nil, err
 		}

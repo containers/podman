@@ -23,6 +23,7 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/chrootuser"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/hashicorp/go-multierror"
 	"github.com/moby/sys/userns"
@@ -90,6 +91,10 @@ type AddAndCopyOptions struct {
 	CertPath string
 	// Allow downloading sources from HTTPS where TLS verification fails.
 	InsecureSkipTLSVerify types.OptionalBool
+	// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+	// The effect of setting any other options (cryptographic keys, InsecureSkipTLSVerify, callbacks, etc.) is UNDEFINED,
+	// may be inconsistent in various use cases, and may change over time.
+	BaseTLSConfig *tls.Config
 	// MaxRetries is the maximum number of attempts we'll make to retrieve
 	// contents from a remote location.
 	MaxRetries int
@@ -138,18 +143,27 @@ func sourceIsRemote(source string) bool {
 }
 
 // getURL writes a tar archive containing the named content
-func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest, certPath string, insecureSkipTLSVerify types.OptionalBool, timestamp *time.Time) error {
+//
+// baseTLSConfig, if not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+// The effect of setting any other options (cryptographic keys, InsecureSkipTLSVerify, callbacks, etc.) is UNDEFINED,
+// may be inconsistent in various use cases, and may change over time.
+func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest, certPath string, insecureSkipTLSVerify types.OptionalBool, baseTLSConfig *tls.Config, timestamp *time.Time) error {
 	url, err := url.Parse(src)
 	if err != nil {
 		return err
 	}
-	tlsClientConfig := &tls.Config{
-		// As of 2025-08, tlsconfig.ClientDefault() differs from Go 1.23 defaults only in CipherSuites;
-		// so, limit us to only using that value. If go-connections/tlsconfig changes its policy, we
-		// will want to consider that and make a decision whether to follow suit.
-		// There is some chance that eventually the Go default will be to require TLS 1.3, and that point
-		// we might want to drop the dependency on go-connections entirely.
-		CipherSuites: tlsconfig.ClientDefault().CipherSuites,
+	var tlsClientConfig *tls.Config
+	if baseTLSConfig != nil {
+		tlsClientConfig = baseTLSConfig.Clone()
+	} else {
+		tlsClientConfig = &tls.Config{
+			// As of 2025-08, tlsconfig.ClientDefault() differs from Go 1.23 defaults only in CipherSuites;
+			// so, limit us to only using that value. If go-connections/tlsconfig changes its policy, we
+			// will want to consider that and make a decision whether to follow suit.
+			// There is some chance that eventually the Go default will be to require TLS 1.3, and that point
+			// we might want to drop the dependency on go-connections entirely.
+			CipherSuites: tlsconfig.ClientDefault().CipherSuites,
+		}
 	}
 	if err := tlsclientconfig.SetupCertificates(certPath, tlsClientConfig); err != nil {
 		return err
@@ -605,7 +619,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					defer wg.Done()
 					defer pipeWriter.Close()
 					var cloneDir, subdir string
-					cloneDir, subdir, getErr = define.TempDirForURL(tmpdir.GetTempDir(), "", src)
+					cloneDir, subdir, getErr = download.TempDirForURL(tmpdir.GetTempDir(), "", src, options.BaseTLSConfig)
 					if getErr != nil {
 						return
 					}
@@ -630,7 +644,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			} else {
 				go func() {
 					getErr = retry.IfNecessary(context.TODO(), func() error {
-						return getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest, options.CertPath, options.InsecureSkipTLSVerify, options.Timestamp)
+						return getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest, options.CertPath, options.InsecureSkipTLSVerify, options.BaseTLSConfig, options.Timestamp)
 					}, &retry.Options{
 						MaxRetry: options.MaxRetries,
 						Delay:    options.RetryDelay,

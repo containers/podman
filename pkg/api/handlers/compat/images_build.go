@@ -20,6 +20,7 @@ import (
 
 	"github.com/containers/buildah"
 	buildahDefine "github.com/containers/buildah/define"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/internal/localapi"
 	"github.com/containers/podman/v6/libpod"
@@ -238,7 +239,7 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 	remote := query.Get("remote")
 
 	if utils.IsLibpodRequest(r) && remote != "" {
-		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", remote)
+		tempDir, subDir, err := download.TempDirForURL(anchorDir, "buildah", remote, nil)
 		if err != nil {
 			return nil, utils.GetInternalServerError(genSpaceErr(err))
 		}
@@ -938,7 +939,7 @@ func handleLocalBuildContexts(query url.Values, anchorDir string) (*BuildContext
 		switch {
 		case strings.HasPrefix(value, "url:"):
 			value = strings.TrimPrefix(value, "url:")
-			tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", value)
+			tempDir, subdir, err := download.TempDirForURL(anchorDir, "buildah", value, nil)
 			if err != nil {
 				return nil, utils.GetInternalServerError(genSpaceErr(err))
 			}
@@ -1124,7 +1125,7 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 		logrus.Debugf("name: %q, context: %q", name, value)
 
 		if urlValue, ok := strings.CutPrefix(value, "url:"); ok {
-			tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", urlValue)
+			tempDir, subdir, err := download.TempDirForURL(anchorDir, "buildah", urlValue, nil)
 			if err != nil {
 				return nil, fmt.Errorf("downloading URL %q: %w", name, err)
 			}

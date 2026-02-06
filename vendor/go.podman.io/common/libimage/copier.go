@@ -36,9 +36,6 @@ const (
 
 // CopyOptions allow for customizing image-copy operations.
 type CopyOptions struct {
-	// If set, will be used for copying the image.  Fields below may
-	// override certain settings.
-	SystemContext *types.SystemContext
 	// Allows for customizing the source reference lookup.  This can be
 	// used to use custom blob caches.
 	SourceLookupReferenceFunc LookupReferenceFunc

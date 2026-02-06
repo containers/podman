@@ -15,6 +15,6 @@ func WriteFileFlagsFromTarHeader(path string, hdr *tar.Header) error {
 	return nil
 }
 
-func resetImmutable(path string, fi *os.FileInfo) error {
+func resetImmutable(_ string, _ *os.FileInfo) error {
 	return nil
 }
