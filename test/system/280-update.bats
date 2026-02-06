@@ -90,12 +90,20 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
             fi
         fi
 
+        # Determine the "path = newvalue" string for this cgroup
         tuple=$cgv1
         if is_cgroupsv2; then
             tuple=$cgv2
         fi
         if [[ $tuple = '-' ]]; then
             echo "[ skipping --$opt : N/A on cgroups v$cgv ]"
+            continue
+        fi
+
+        # Sigh. bfq doesn't exist on Debian (2024-03)
+        read path op expect <<<"$tuple"
+        if [[ ! -e /sys/fs/cgroup/$path ]]; then
+            echo "[ skipping --$opt : /sys/fs/cgroup/$path does not exist ]"
             continue
         fi
 
