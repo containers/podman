@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -113,12 +114,12 @@ func (q *QEMUStubber) waitForMachineToStop(mc *vmconfigs.MachineConfig) error {
 }
 
 // Stop uses the qmp monitor to call a system_powerdown
-func (q *QEMUStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
+func (q *QEMUStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 	if err := mc.Refresh(); err != nil {
 		return err
 	}
 
-	stopErr := q.stopLocked(mc)
+	stopErr := q.stopLocked(mc, hardStop)
 
 	// Make sure that the associated QEMU process gets killed in case it's
 	// still running (#16054).
@@ -145,7 +146,7 @@ func (q *QEMUStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 }
 
 // stopLocked stops the machine and expects the caller to hold the machine's lock.
-func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
+func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig, hardStop bool) error {
 	// check if the qmp socket is there. if not, qemu instance is gone
 	if err := fileutils.Exists(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		// Right now it is NOT an error to stop a stopped machine
@@ -165,10 +166,14 @@ func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 	// Simple JSON formation for the QAPI
+	qemuCommand := "system_powerdown"
+	if hardStop {
+		qemuCommand = "quit"
+	}
 	stopCommand := struct {
 		Execute string `json:"execute"`
 	}{
-		Execute: "system_powerdown",
+		Execute: qemuCommand,
 	}
 
 	input, err := json.Marshal(stopCommand)
@@ -190,7 +195,13 @@ func (q *QEMUStubber) stopLocked(mc *vmconfigs.MachineConfig) error {
 	}()
 
 	if _, err = qmpMonitor.Run(input); err != nil {
-		return err
+		//if we are doing a hard stop, we expect the socket to potentially drop
+		var opErr *net.OpError
+		if hardStop && (errors.As(err, &opErr) || errors.Is(err, io.EOF)) {
+			logrus.Debugf("QMP monitor closed during quit: %v", err)
+		} else {
+			return err
+		}
 	}
 
 	// Remove socket
