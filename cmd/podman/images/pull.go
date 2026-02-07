@@ -16,6 +16,7 @@ import (
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -149,6 +150,11 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		pullOptions.SkipTLSVerify = types.NewOptionalBool(!pullOptions.TLSVerifyCLI)
 	}
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return err
+	}
+	pullOptions.BaseTLSConfig = baseTLSConfig
 
 	pullPolicy, err := config.ParsePullPolicy(pullOptions.PolicyCLI)
 	if err != nil {

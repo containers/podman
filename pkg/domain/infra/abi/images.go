@@ -292,6 +292,9 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	pullOptions.Variant = options.Variant
 	pullOptions.SignaturePolicyPath = options.SignaturePolicy
 	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+	// FIXME: options.BaseTLSConfig is not used, libimage ignores the SystemContext value in PullOptions.
+	// For non-remote use cases, we set SystemContext.BaseTLSConfig when initializing the runtime,
+	// and that one is used.
 	pullOptions.Writer = options.Writer
 	pullOptions.OciDecryptConfig = options.OciDecryptConfig
 	pullOptions.MaxRetries = options.Retry

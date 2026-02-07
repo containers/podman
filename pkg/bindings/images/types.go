@@ -226,6 +226,8 @@ type PullOptions struct {
 	RetryDelay *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool `schema:"-"`
+	// BaseTLSConfig contains TLS algorithm options, encoded using the go.podman.io/v5/pkg/cli/basetls format.
+	BaseTLSConfig *string
 	// Username for authenticating against the registry.
 	Username *string `schema:"-"`
 	// Variant will overwrite the local variant for image pulls.

@@ -183,6 +183,21 @@ func (o *PullOptions) GetSkipTLSVerify() bool {
 	return *o.SkipTLSVerify
 }
 
+// WithBaseTLSConfig set field BaseTLSConfig to given value
+func (o *PullOptions) WithBaseTLSConfig(value string) *PullOptions {
+	o.BaseTLSConfig = &value
+	return o
+}
+
+// GetBaseTLSConfig returns value of field BaseTLSConfig
+func (o *PullOptions) GetBaseTLSConfig() string {
+	if o.BaseTLSConfig == nil {
+		var z string
+		return z
+	}
+	return *o.BaseTLSConfig
+}
+
 // WithUsername set field Username to given value
 func (o *PullOptions) WithUsername(value string) *PullOptions {
 	o.Username = &value

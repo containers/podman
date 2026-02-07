@@ -7,6 +7,7 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/pkg/cli/basetls"
 	"go.podman.io/image/v5/signature/signer"
 	"go.podman.io/image/v5/types"
 )
@@ -40,7 +41,7 @@ type (
 )
 
 // ImagePullOptions are the arguments for pulling images.
-type ImagePullOptions struct {
+type ImagePullOptions struct { // FIXME: update all setters
 	// AllTags can be specified to pull all tags of an image. Note
 	// that this only works if the image does not include a tag.
 	AllTags bool
@@ -72,6 +73,8 @@ type ImagePullOptions struct {
 	SignaturePolicy string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify types.OptionalBool
+	// BaseTLSConfig contains TLS algorithm options
+	BaseTLSConfig *basetls.Config
 	// PullPolicy whether to pull new image
 	PullPolicy config.PullPolicy
 	// Writer is used to display copy information including progress bars.

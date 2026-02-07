@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/pkg/cli/basetls"
 	"go.podman.io/image/v5/types"
 )
 
@@ -31,14 +32,15 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		AllTags    bool   `schema:"allTags"`
-		CompatMode bool   `schema:"compatMode"`
-		PullPolicy string `schema:"policy"`
-		Quiet      bool   `schema:"quiet"`
-		Reference  string `schema:"reference"`
-		Retry      uint   `schema:"retry"`
-		RetryDelay string `schema:"retrydelay"`
-		TLSVerify  bool   `schema:"tlsVerify"`
+		AllTags       bool   `schema:"allTags"`
+		CompatMode    bool   `schema:"compatMode"`
+		PullPolicy    string `schema:"policy"`
+		Quiet         bool   `schema:"quiet"`
+		Reference     string `schema:"reference"`
+		Retry         uint   `schema:"retry"`
+		RetryDelay    string `schema:"retrydelay"`
+		TLSVerify     bool   `schema:"tlsVerify"`
+		BaseTLSConfig string `schema:"baseTLSConfig"`
 		// Platform fields below:
 		Arch    string `schema:"Arch"`
 		OS      string `schema:"OS"`
@@ -77,6 +79,14 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		pullOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+	if query.BaseTLSConfig != "" {
+		var config basetls.Config
+		if err := config.UnmarshalText([]byte(query.BaseTLSConfig)); err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+		// FIXME: options.BaseTLSConfig is not used, libimage ignores the SystemContext value in PullOptions.
 	}
 
 	// Do the auth dance.
