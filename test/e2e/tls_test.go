@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -109,6 +111,60 @@ var _ = Describe("--tls-details", func() {
 	})
 
 	// FIXME: this should contain many more tests to exercise libimage.Runtime.{SystemContext,imageContext,LibimageRuntime}.
+
+	It("podman --tls-details login", func() {
+		caDir := GinkgoT().TempDir()
+		caPath := filepath.Join(caDir, "ca.crt")
+
+		for _, e := range expected {
+			err := os.WriteFile(caPath, e.server.certBytes, 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			// Not podmanFailTLSDetails because this is a client-side operation, so the
+			// "if remote, no certificates" conditions don’t apply.
+			session := podmanTest.Podman([]string{"--tls-details", e.tlsDetails, "login", "--cert-dir", caDir, "-u", "user", "-p", "pass", e.server.hostPort})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithErrorRegex(125, e.expected))
+		}
+	})
+
+	It("podman --tls-details logout", func() {
+		// Logout only accesses a registry in a very specific situation:
+		// - The primary auth file does not contain the credentials
+		// - A secondary auth file does contain them
+		// - Secondary auth files are _only_ consulted if the primary one is determined
+		//   automatically, not from --authfile. Luckily XDG_RUNTIME_DIR and XDG_CONFIG_HOME
+		//   counts as “automatically”.
+		xdgRuntimeDir := GinkgoT().TempDir()
+		Expect(os.MkdirAll(filepath.Join(xdgRuntimeDir, "containers"), 0o700)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(xdgRuntimeDir, "containers", "auth.json"),
+			[]byte(`{"auths":{}}`), 0o600)).To(Succeed())
+
+		xdgConfigHome := GinkgoT().TempDir()
+		Expect(os.MkdirAll(filepath.Join(xdgConfigHome, "containers"), 0o700)).To(Succeed())
+		secondaryAuthFile := filepath.Join(xdgConfigHome, "containers", "auth.json")
+
+		for _, e := range expected {
+			Expect(os.WriteFile(secondaryAuthFile, []byte(`{"auths":{"`+e.server.hostPort+`":{"auth":"dXNlcjpwYXNz"}}}`), 0o600)).To(Succeed())
+
+			// The failure to connect to the registry is not reported to users, it is only visible
+			// in the debug log.
+			session := podmanTest.PodmanWithOptions(PodmanExecOptions{
+				Env: append(slices.Clone(os.Environ()),
+					"XDG_RUNTIME_DIR="+xdgRuntimeDir,
+					"XDG_CONFIG_HOME="+xdgConfigHome),
+			}, "--log-level", "debug",
+				"--tls-details", e.tlsDetails, "logout", e.server.hostPort)
+			session.WaitWithDefaultTimeout()
+
+			// --cert-dir is not available in logout. Compare podmanFailTLSDetailsWithCAKnowledge .
+			expected := e.expected
+			if expected == teapotRegex {
+				expected = `certificate signed by unknown authority`
+			}
+			Expect(session).Should(ExitWithErrorRegex(125,
+				`level=debug msg="Ping https://`+regexp.QuoteMeta(e.server.hostPort)+`/v2/[^\n]*`+expected))
+		}
+	})
 
 	It("podman --tls-details pull", func() {
 		caDir := GinkgoT().TempDir()
