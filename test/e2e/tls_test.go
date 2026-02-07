@@ -107,6 +107,17 @@ var _ = Describe("--tls-details", func() {
 		}
 	})
 
+	It("podman --tls-details login", func() {
+		caDir := GinkgoT().TempDir()
+		caPath := filepath.Join(caDir, "ca.crt")
+
+		for _, e := range expected {
+			err := os.WriteFile(caPath, e.server.certBytes, 0o644)
+			Expect(err).ToNot(HaveOccurred())
+			podmanFailTLSDetails(&e, "login", "--cert-dir", caDir, "-u", "user", "-p", "pass", e.server.hostPort)
+		}
+	})
+
 	It("podman --tls-details pull", func() {
 		caDir := GinkgoT().TempDir()
 		caPath := filepath.Join(caDir, "ca.crt")
