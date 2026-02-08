@@ -225,7 +225,10 @@ func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 	go func() {
 		buf := make([]byte, 2048)
 		for {
-			serverConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+			err := serverConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+			if err != nil {
+				return
+			}
 			n, _, err := serverConn.ReadFromUnix(buf)
 			if err != nil {
 				close(done)
@@ -248,7 +251,7 @@ func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 			},
 		},
 
-		waitFunc: func(ctx context.Context, waitTimeout time.Duration, cond ...string) (int32, error) {
+		waitFunc: func(waitTimeout time.Duration, cond ...string) (int32, error) {
 			time.Sleep(100 * time.Millisecond)
 			return 1, nil
 		},
@@ -286,11 +289,11 @@ func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 
 type fakeContainer struct {
 	*Container
-	waitFunc func(ctx context.Context, waitTimeout time.Duration, conditions ...string) (int32, error)
+	waitFunc func(waitTimeout time.Duration, conditions ...string) (int32, error)
 }
 
-func (f *fakeContainer) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...string) (int32, error) {
-	return f.waitFunc(ctx, waitTimeout, conditions...)
+func (f *fakeContainer) WaitForConditionWithInterval(_ context.Context, waitTimeout time.Duration, conditions ...string) (int32, error) {
+	return f.waitFunc(waitTimeout, conditions...)
 }
 
 func init() {
