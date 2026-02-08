@@ -1344,18 +1344,20 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 		defer c.lock.Lock()
 	}
 
-	healthStartPeriod := c.config.HealthCheckConfig.StartPeriod
-	needsExtension := healthStartPeriod > 0
-	var extendedTotal time.Duration
-	extension := 30 * time.Second
-	timerFreq := 25 * time.Second
+	var healthStartPeriod time.Duration
 
-	if needsExtension {
-		timer := time.NewTicker(timerFreq)
+	if shc := c.config.StartupHealthCheckConfig; shc != nil && shc.StartPeriod > 0 {
+		healthStartPeriod = shc.StartPeriod
+	} else if hc := c.config.HealthCheckConfig; hc != nil && hc.StartPeriod > 0 {
+		healthStartPeriod = hc.StartPeriod
+	}
+
+	if healthStartPeriod > 0 {
+		var extendedTotal time.Duration
+		timer := time.NewTicker(25 * time.Second)
 		extendCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		defer timer.Stop()
-
 		// compute next chunk
 		sendExtend := func() {
 			remaining := healthStartPeriod - extendedTotal
@@ -1363,7 +1365,7 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 				return
 			}
 
-			step := extension
+			step := 30 * time.Second
 			if step > remaining {
 				step = remaining
 			}
@@ -1371,7 +1373,7 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 			// Build the EXTEND message
 			msg := fmt.Sprintf("EXTEND_TIMEOUT_USEC=%d", step.Microseconds())
 			if err := notifyproxy.SendMessage(c.config.SdNotifySocket, msg); err != nil {
-				logrus.Errorf("EXTEND_TIMEOUT_USEC failed in health-wait: %w", err)
+				logrus.Errorf("EXTEND_TIMEOUT_USEC failed in health-wait: %v", err)
 			} else {
 				logrus.Debugf("Extended startup by %v (total %v / %v)",
 					step, extendedTotal+step, healthStartPeriod)
