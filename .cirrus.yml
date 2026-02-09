@@ -269,7 +269,8 @@ alt_build_task:
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
     always: *runner_stats
-
+    # HACK: Extend timeout to allow our gigantic backports PR to work
+    timeout_in: 150m
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
