@@ -52,7 +52,7 @@ query="{
 }\"
 }"
 
-result=$(curl -s -H "Authorization: bearer $CIRRUS_REPO_CLONE_TOKEN" -H "Accept: application/vnd.github.antiope-preview+json" -H "Content-Type: application/json" -X POST --data @- https://api.github.com/graphql <<<"$query")
+result=$(curl --fail -s -H "Authorization: bearer $CIRRUS_REPO_CLONE_TOKEN" -H "Accept: application/vnd.github.antiope-preview+json" -H "Content-Type: application/json" -X POST --data @- https://api.github.com/graphql <<<"$query")
 
 labels=$(jq -r '.data.repository.pullRequest.labels.nodes[]?.name' <<<"$result")
 

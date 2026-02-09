@@ -25,15 +25,15 @@ podman_version:
 
 $(TMP_BIN)/gvproxy:
 	mkdir -p $(TMP_BIN)
-	cd $(TMP_BIN) && curl -sLo gvproxy $(GVPROXY_RELEASE_URL)
+	cd $(TMP_BIN) && curl --fail -sLo gvproxy $(GVPROXY_RELEASE_URL)
 
 $(TMP_BIN)/vfkit:
 	mkdir -p $(TMP_BIN)
-	cd $(TMP_BIN) && curl -sLo vfkit $(VFKIT_RELEASE_URL)
+	cd $(TMP_BIN) && curl --fail -sLo vfkit $(VFKIT_RELEASE_URL)
 
 $(TMP_BIN)/krunkit.tgz:
 	mkdir -p $(TMP_BIN)
-	cd $(TMP_BIN) && curl -sLo krunkit.tgz $(KRUNKIT_RELEASE_URL)
+	cd $(TMP_BIN) && curl --fail -sLo krunkit.tgz $(KRUNKIT_RELEASE_URL)
 
 packagedir: podman_version package_root Distribution welcome.html
 	mkdir -p $(PACKAGE_DIR)

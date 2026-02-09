@@ -289,7 +289,7 @@ jobs:
           title="${title/rc/"RC"}"
         else
           # check if this version should not be marked latest
-          prevrelease=$(curl --retry 3 --silent -m 10 --connect-timeout 5 "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest")
+          prevrelease=$(curl --fail --retry 3 --silent -m 10 --connect-timeout 5 "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest")
           prevvers=$(echo "$prevrelease" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed -e "s/^v//")
           vers=${VERSION#"v"}
           echo "${prevvers},${vers}"
