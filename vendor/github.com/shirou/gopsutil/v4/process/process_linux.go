@@ -346,7 +346,7 @@ func (p *Process) ChildrenWithContext(ctx context.Context) ([]*Process, error) {
 	ret := make([]*Process, 0, len(statFiles))
 	for _, statFile := range statFiles {
 		statContents, err := os.ReadFile(statFile)
-		if err != nil {
+		if err != nil || len(statContents) == 0 {
 			continue
 		}
 		fields := splitProcStat(statContents)
@@ -1038,6 +1038,9 @@ func (p *Process) fillFromTIDStatWithContext(ctx context.Context, tid int32) (ui
 	}
 
 	contents, err := os.ReadFile(statPath)
+	if err == nil && len(contents) == 0 {
+		err = fmt.Errorf("process %d: stat file is empty, process may have terminated", pid)
+	}
 	if err != nil {
 		return 0, 0, nil, 0, 0, 0, nil, err
 	}

@@ -6,6 +6,7 @@ package common
 import (
 	"errors"
 	"fmt"
+	"math"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -81,22 +82,22 @@ func NewCoreFoundationLib() (*CoreFoundationLib, error) {
 	return &CoreFoundationLib{library}, nil
 }
 
-func (c *CoreFoundationLib) CFGetTypeID(cf uintptr) int32 {
+func (c *CoreFoundationLib) CFGetTypeID(cf uintptr) int64 {
 	fn := getFunc[CFGetTypeIDFunc](c.library, "CFGetTypeID")
 	return fn(cf)
 }
 
-func (c *CoreFoundationLib) CFNumberCreate(allocator uintptr, theType int32, valuePtr uintptr) unsafe.Pointer {
+func (c *CoreFoundationLib) CFNumberCreate(allocator uintptr, theType int64, valuePtr uintptr) unsafe.Pointer {
 	fn := getFunc[CFNumberCreateFunc](c.library, "CFNumberCreate")
 	return fn(allocator, theType, valuePtr)
 }
 
-func (c *CoreFoundationLib) CFNumberGetValue(num uintptr, theType int32, valuePtr uintptr) bool {
+func (c *CoreFoundationLib) CFNumberGetValue(num uintptr, theType int64, valuePtr uintptr) bool {
 	fn := getFunc[CFNumberGetValueFunc](c.library, "CFNumberGetValue")
 	return fn(num, theType, valuePtr)
 }
 
-func (c *CoreFoundationLib) CFDictionaryCreate(allocator uintptr, keys, values *unsafe.Pointer, numValues int32,
+func (c *CoreFoundationLib) CFDictionaryCreate(allocator uintptr, keys, values *unsafe.Pointer, numValues int64,
 	keyCallBacks, valueCallBacks uintptr,
 ) unsafe.Pointer {
 	fn := getFunc[CFDictionaryCreateFunc](c.library, "CFDictionaryCreate")
@@ -113,27 +114,27 @@ func (c *CoreFoundationLib) CFDictionaryGetValue(theDict, key uintptr) unsafe.Po
 	return fn(theDict, key)
 }
 
-func (c *CoreFoundationLib) CFArrayGetCount(theArray uintptr) int32 {
+func (c *CoreFoundationLib) CFArrayGetCount(theArray uintptr) int64 {
 	fn := getFunc[CFArrayGetCountFunc](c.library, "CFArrayGetCount")
 	return fn(theArray)
 }
 
-func (c *CoreFoundationLib) CFArrayGetValueAtIndex(theArray uintptr, index int32) unsafe.Pointer {
+func (c *CoreFoundationLib) CFArrayGetValueAtIndex(theArray uintptr, index int64) unsafe.Pointer {
 	fn := getFunc[CFArrayGetValueAtIndexFunc](c.library, "CFArrayGetValueAtIndex")
 	return fn(theArray, index)
 }
 
-func (c *CoreFoundationLib) CFStringCreateMutable(alloc uintptr, maxLength int32) unsafe.Pointer {
+func (c *CoreFoundationLib) CFStringCreateMutable(alloc uintptr, maxLength int64) unsafe.Pointer {
 	fn := getFunc[CFStringCreateMutableFunc](c.library, "CFStringCreateMutable")
 	return fn(alloc, maxLength)
 }
 
-func (c *CoreFoundationLib) CFStringGetLength(theString uintptr) int32 {
+func (c *CoreFoundationLib) CFStringGetLength(theString uintptr) int64 {
 	fn := getFunc[CFStringGetLengthFunc](c.library, "CFStringGetLength")
 	return fn(theString)
 }
 
-func (c *CoreFoundationLib) CFStringGetCString(theString uintptr, buffer CStr, bufferSize int32, encoding uint32) {
+func (c *CoreFoundationLib) CFStringGetCString(theString uintptr, buffer CStr, bufferSize int64, encoding uint32) {
 	fn := getFunc[CFStringGetCStringFunc](c.library, "CFStringGetCString")
 	fn(theString, buffer, bufferSize, encoding)
 }
@@ -143,7 +144,7 @@ func (c *CoreFoundationLib) CFStringCreateWithCString(alloc uintptr, cStr string
 	return fn(alloc, cStr, encoding)
 }
 
-func (c *CoreFoundationLib) CFDataGetLength(theData uintptr) int32 {
+func (c *CoreFoundationLib) CFDataGetLength(theData uintptr) int64 {
 	fn := getFunc[CFDataGetLengthFunc](c.library, "CFDataGetLength")
 	return fn(theData)
 }
@@ -175,7 +176,7 @@ func (l *IOKitLib) IOServiceGetMatchingService(mainPort uint32, matching uintptr
 	return fn(mainPort, matching)
 }
 
-func (l *IOKitLib) IOServiceGetMatchingServices(mainPort uint32, matching uintptr, existing *uint32) int {
+func (l *IOKitLib) IOServiceGetMatchingServices(mainPort uint32, matching uintptr, existing *uint32) int32 {
 	fn := getFunc[IOServiceGetMatchingServicesFunc](l.library, "IOServiceGetMatchingServices")
 	return fn(mainPort, matching, existing)
 }
@@ -185,12 +186,12 @@ func (l *IOKitLib) IOServiceMatching(name string) unsafe.Pointer {
 	return fn(name)
 }
 
-func (l *IOKitLib) IOServiceOpen(service, owningTask, connType uint32, connect *uint32) int {
+func (l *IOKitLib) IOServiceOpen(service, owningTask, connType uint32, connect *uint32) int32 {
 	fn := getFunc[IOServiceOpenFunc](l.library, "IOServiceOpen")
 	return fn(service, owningTask, connType, connect)
 }
 
-func (l *IOKitLib) IOServiceClose(connect uint32) int {
+func (l *IOKitLib) IOServiceClose(connect uint32) int32 {
 	fn := getFunc[IOServiceCloseFunc](l.library, "IOServiceClose")
 	return fn(connect)
 }
@@ -200,12 +201,12 @@ func (l *IOKitLib) IOIteratorNext(iterator uint32) uint32 {
 	return fn(iterator)
 }
 
-func (l *IOKitLib) IORegistryEntryGetName(entry uint32, name CStr) int {
+func (l *IOKitLib) IORegistryEntryGetName(entry uint32, name CStr) int32 {
 	fn := getFunc[IORegistryEntryGetNameFunc](l.library, "IORegistryEntryGetName")
 	return fn(entry, name)
 }
 
-func (l *IOKitLib) IORegistryEntryGetParentEntry(entry uint32, plane string, parent *uint32) int {
+func (l *IOKitLib) IORegistryEntryGetParentEntry(entry uint32, plane string, parent *uint32) int32 {
 	fn := getFunc[IORegistryEntryGetParentEntryFunc](l.library, "IORegistryEntryGetParentEntry")
 	return fn(entry, plane, parent)
 }
@@ -215,7 +216,7 @@ func (l *IOKitLib) IORegistryEntryCreateCFProperty(entry uint32, key, allocator 
 	return fn(entry, key, allocator, options)
 }
 
-func (l *IOKitLib) IORegistryEntryCreateCFProperties(entry uint32, properties unsafe.Pointer, allocator uintptr, options uint32) int {
+func (l *IOKitLib) IORegistryEntryCreateCFProperties(entry uint32, properties unsafe.Pointer, allocator uintptr, options uint32) int32 {
 	fn := getFunc[IORegistryEntryCreateCFPropertiesFunc](l.library, "IORegistryEntryCreateCFProperties")
 	return fn(entry, properties, allocator, options)
 }
@@ -225,12 +226,12 @@ func (l *IOKitLib) IOObjectConformsTo(object uint32, className string) bool {
 	return fn(object, className)
 }
 
-func (l *IOKitLib) IOObjectRelease(object uint32) int {
+func (l *IOKitLib) IOObjectRelease(object uint32) int32 {
 	fn := getFunc[IOObjectReleaseFunc](l.library, "IOObjectRelease")
 	return fn(object)
 }
 
-func (l *IOKitLib) IOConnectCallStructMethod(connection, selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int {
+func (l *IOKitLib) IOConnectCallStructMethod(connection, selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int32 {
 	fn := getFunc[IOConnectCallStructMethodFunc](l.library, "IOConnectCallStructMethod")
 	return fn(connection, selector, inputStruct, inputStructCnt, outputStruct, outputStructCnt)
 }
@@ -240,7 +241,7 @@ func (l *IOKitLib) IOHIDEventSystemClientCreate(allocator uintptr) unsafe.Pointe
 	return fn(allocator)
 }
 
-func (l *IOKitLib) IOHIDEventSystemClientSetMatching(client, match uintptr) int {
+func (l *IOKitLib) IOHIDEventSystemClientSetMatching(client, match uintptr) int32 {
 	fn := getFunc[IOHIDEventSystemClientSetMatchingFunc](l.library, "IOHIDEventSystemClientSetMatching")
 	return fn(client, match)
 }
@@ -279,12 +280,12 @@ func NewSystemLib() (*SystemLib, error) {
 
 func (s *SystemLib) HostProcessorInfo(host uint32, flavor int32, outProcessorCount *uint32, outProcessorInfo uintptr,
 	outProcessorInfoCnt *uint32,
-) int {
+) int32 {
 	fn := getFunc[HostProcessorInfoFunc](s.library, "host_processor_info")
 	return fn(host, flavor, outProcessorCount, outProcessorInfo, outProcessorInfoCnt)
 }
 
-func (s *SystemLib) HostStatistics(host uint32, flavor int32, hostInfoOut uintptr, hostInfoOutCnt *uint32) int {
+func (s *SystemLib) HostStatistics(host uint32, flavor int32, hostInfoOut uintptr, hostInfoOutCnt *uint32) int32 {
 	fn := getFunc[HostStatisticsFunc](s.library, "host_statistics")
 	return fn(host, flavor, hostInfoOut, hostInfoOutCnt)
 }
@@ -299,12 +300,12 @@ func (s *SystemLib) MachTaskSelf() uint32 {
 	return fn()
 }
 
-func (s *SystemLib) MachTimeBaseInfo(info uintptr) int {
+func (s *SystemLib) MachTimeBaseInfo(info uintptr) int32 {
 	fn := getFunc[MachTimeBaseInfoFunc](s.library, "mach_timebase_info")
 	return fn(info)
 }
 
-func (s *SystemLib) VMDeallocate(targetTask uint32, vmAddress, vmSize uintptr) int {
+func (s *SystemLib) VMDeallocate(targetTask uint32, vmAddress, vmSize uintptr) int32 {
 	fn := getFunc[VMDeallocateFunc](s.library, "vm_deallocate")
 	return fn(targetTask, vmAddress, vmSize)
 }
@@ -327,21 +328,21 @@ const (
 // IOKit types and constants.
 type (
 	IOServiceGetMatchingServiceFunc       func(mainPort uint32, matching uintptr) uint32
-	IOServiceGetMatchingServicesFunc      func(mainPort uint32, matching uintptr, existing *uint32) int
+	IOServiceGetMatchingServicesFunc      func(mainPort uint32, matching uintptr, existing *uint32) int32
 	IOServiceMatchingFunc                 func(name string) unsafe.Pointer
-	IOServiceOpenFunc                     func(service, owningTask, connType uint32, connect *uint32) int
-	IOServiceCloseFunc                    func(connect uint32) int
+	IOServiceOpenFunc                     func(service, owningTask, connType uint32, connect *uint32) int32
+	IOServiceCloseFunc                    func(connect uint32) int32
 	IOIteratorNextFunc                    func(iterator uint32) uint32
-	IORegistryEntryGetNameFunc            func(entry uint32, name CStr) int
-	IORegistryEntryGetParentEntryFunc     func(entry uint32, plane string, parent *uint32) int
+	IORegistryEntryGetNameFunc            func(entry uint32, name CStr) int32
+	IORegistryEntryGetParentEntryFunc     func(entry uint32, plane string, parent *uint32) int32
 	IORegistryEntryCreateCFPropertyFunc   func(entry uint32, key, allocator uintptr, options uint32) unsafe.Pointer
-	IORegistryEntryCreateCFPropertiesFunc func(entry uint32, properties unsafe.Pointer, allocator uintptr, options uint32) int
+	IORegistryEntryCreateCFPropertiesFunc func(entry uint32, properties unsafe.Pointer, allocator uintptr, options uint32) int32
 	IOObjectConformsToFunc                func(object uint32, className string) bool
-	IOObjectReleaseFunc                   func(object uint32) int
-	IOConnectCallStructMethodFunc         func(connection, selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int
+	IOObjectReleaseFunc                   func(object uint32) int32
+	IOConnectCallStructMethodFunc         func(connection, selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int32
 
 	IOHIDEventSystemClientCreateFunc      func(allocator uintptr) unsafe.Pointer
-	IOHIDEventSystemClientSetMatchingFunc func(client, match uintptr) int
+	IOHIDEventSystemClientSetMatchingFunc func(client, match uintptr) int32
 	IOHIDServiceClientCopyEventFunc       func(service uintptr, eventType int64,
 		options int32, timeout int64) unsafe.Pointer
 	IOHIDServiceClientCopyPropertyFunc     func(service, property uintptr) unsafe.Pointer
@@ -364,20 +365,20 @@ const (
 
 // CoreFoundation types and constants.
 type (
-	CFGetTypeIDFunc        func(cf uintptr) int32
-	CFNumberCreateFunc     func(allocator uintptr, theType int32, valuePtr uintptr) unsafe.Pointer
-	CFNumberGetValueFunc   func(num uintptr, theType int32, valuePtr uintptr) bool
-	CFDictionaryCreateFunc func(allocator uintptr, keys, values *unsafe.Pointer, numValues int32,
+	CFGetTypeIDFunc        func(cf uintptr) int64
+	CFNumberCreateFunc     func(allocator uintptr, theType int64, valuePtr uintptr) unsafe.Pointer
+	CFNumberGetValueFunc   func(num uintptr, theType int64, valuePtr uintptr) bool
+	CFDictionaryCreateFunc func(allocator uintptr, keys, values *unsafe.Pointer, numValues int64,
 		keyCallBacks, valueCallBacks uintptr) unsafe.Pointer
 	CFDictionaryAddValueFunc      func(theDict, key, value uintptr)
 	CFDictionaryGetValueFunc      func(theDict, key uintptr) unsafe.Pointer
-	CFArrayGetCountFunc           func(theArray uintptr) int32
-	CFArrayGetValueAtIndexFunc    func(theArray uintptr, index int32) unsafe.Pointer
-	CFStringCreateMutableFunc     func(alloc uintptr, maxLength int32) unsafe.Pointer
-	CFStringGetLengthFunc         func(theString uintptr) int32
-	CFStringGetCStringFunc        func(theString uintptr, buffer CStr, bufferSize int32, encoding uint32)
+	CFArrayGetCountFunc           func(theArray uintptr) int64
+	CFArrayGetValueAtIndexFunc    func(theArray uintptr, index int64) unsafe.Pointer
+	CFStringCreateMutableFunc     func(alloc uintptr, maxLength int64) unsafe.Pointer
+	CFStringGetLengthFunc         func(theString uintptr) int64
+	CFStringGetCStringFunc        func(theString uintptr, buffer CStr, bufferSize int64, encoding uint32)
 	CFStringCreateWithCStringFunc func(alloc uintptr, cStr string, encoding uint32) unsafe.Pointer
-	CFDataGetLengthFunc           func(theData uintptr) int32
+	CFDataGetLengthFunc           func(theData uintptr) int64
 	CFDataGetBytePtrFunc          func(theData uintptr) unsafe.Pointer
 	CFReleaseFunc                 func(cf uintptr)
 )
@@ -387,6 +388,7 @@ const (
 	KCFNumberSInt64Type   = 4
 	KCFNumberIntType      = 9
 	KCFAllocatorDefault   = 0
+	KCFNotFound           = -1
 )
 
 // libSystem types and constants.
@@ -397,12 +399,12 @@ type MachTimeBaseInfo struct {
 
 type (
 	HostProcessorInfoFunc func(host uint32, flavor int32, outProcessorCount *uint32, outProcessorInfo uintptr,
-		outProcessorInfoCnt *uint32) int
-	HostStatisticsFunc   func(host uint32, flavor int32, hostInfoOut uintptr, hostInfoOutCnt *uint32) int
+		outProcessorInfoCnt *uint32) int32
+	HostStatisticsFunc   func(host uint32, flavor int32, hostInfoOut uintptr, hostInfoOutCnt *uint32) int32
 	MachHostSelfFunc     func() uint32
 	MachTaskSelfFunc     func() uint32
-	MachTimeBaseInfoFunc func(info uintptr) int
-	VMDeallocateFunc     func(targetTask uint32, vmAddress, vmSize uintptr) int
+	MachTimeBaseInfoFunc func(info uintptr) int32
+	VMDeallocateFunc     func(targetTask uint32, vmAddress, vmSize uintptr) int32
 )
 
 const (
@@ -489,7 +491,7 @@ func NewSMC() (*SMC, error) {
 	}, nil
 }
 
-func (s *SMC) CallStruct(selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int {
+func (s *SMC) CallStruct(selector uint32, inputStruct, inputStructCnt, outputStruct uintptr, outputStructCnt *uintptr) int32 {
 	return s.lib.IOConnectCallStructMethod(s.conn, selector, inputStruct, inputStructCnt, outputStruct, outputStructCnt)
 }
 
@@ -503,13 +505,12 @@ func (s *SMC) Close() error {
 
 type CStr []byte
 
-func NewCStr(length int32) CStr {
+func NewCStr(length int64) CStr {
 	return make(CStr, length)
 }
 
-func (s CStr) Length() int32 {
-	// Include null terminator to make CFStringGetCString properly functions
-	return int32(len(s)) + 1
+func (s CStr) Length() int64 {
+	return int64(len(s))
 }
 
 func (s CStr) Ptr() *byte {
@@ -549,4 +550,12 @@ func GoString(cStr *byte) string {
 		length++
 	}
 	return string(unsafe.Slice(cStr, length))
+}
+
+// https://github.com/apple-oss-distributions/CF/blob/dc54c6bb1c1e5e0b9486c1d26dd5bef110b20bf3/CFString.c#L463
+func GetCFStringBufLengthForUTF8(length int64) int64 {
+	if length > (math.MaxInt64 / 3) {
+		return KCFNotFound
+	}
+	return length*3 + 1 // includes null terminator
 }

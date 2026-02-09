@@ -748,9 +748,10 @@ func (p *Process) OpenFilesWithContext(ctx context.Context) ([]OpenFilesStat, er
 		}
 
 		var fileName string
-		ch := make(chan struct{})
+		ch := make(chan struct{}, 1)
 
 		go func() {
+			defer close(ch)
 			var buf [syscall.MAX_LONG_PATH]uint16
 			n, err := windows.GetFinalPathNameByHandle(windows.Handle(file), &buf[0], syscall.MAX_LONG_PATH, 0)
 			if err != nil {
