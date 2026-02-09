@@ -232,9 +232,14 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     run_podman system connection rm env-override
     run_podman system connection rm cli-override
 
-    _run_podman_remote 125 --remote ps
-    assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
-        "test absence of default connection"
+    # Test absence of default connection
+    # Unset PODMAN_SOCKET to avoid false positives when running under remotesystem
+    (
+        unset PODMAN_SOCKET
+        _run_podman_remote 125 --remote ps
+        assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
+            "test absence of default connection"
+    )
 }
 
 # vim: filetype=sh
