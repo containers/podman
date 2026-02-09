@@ -285,6 +285,14 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 	return manager, nil
 }
 
+func getBoltDBPath(runtime *Runtime) string {
+	baseDir := runtime.config.Engine.StaticDir
+	if runtime.storageConfig.TransientStore {
+		baseDir = runtime.config.Engine.TmpDir
+	}
+	return filepath.Join(baseDir, "bolt_state.db")
+}
+
 func getDBState(runtime *Runtime) (State, error) {
 	// TODO - if we further break out the state implementation into
 	// libpod/state, the config could take care of the code below.  It
@@ -296,11 +304,7 @@ func getDBState(runtime *Runtime) (State, error) {
 	}
 
 	// get default boltdb path
-	baseDir := runtime.config.Engine.StaticDir
-	if runtime.storageConfig.TransientStore {
-		baseDir = runtime.config.Engine.TmpDir
-	}
-	boltDBPath := filepath.Join(baseDir, "bolt_state.db")
+	boltDBPath := getBoltDBPath(runtime)
 
 	switch backend {
 	case config.DBBackendDefault:
@@ -638,6 +642,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		if err2 := runtime.refresh(ctx, runtimeAliveFile); err2 != nil {
 			return err2
 		}
+	} else if os.Getenv("SUPPRESS_BOLTDB_WARNING") == "" && os.Getenv("CI_DESIRED_DATABASE") != "boltdb" && runtime.state.Type() == "boltdb" {
+		// Only warn about the database if we're not refreshing the state.
+		// Refresh will attempt an automatic migration.
+		logrus.Warnf("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs using the `podman system migrate --migrate-db` command. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
 	}
 
 	// Check current boot ID - will be written to the alive file.
@@ -822,6 +830,19 @@ func (r *Runtime) Shutdown(force bool) error {
 // Does not check validity as the runtime is not valid until after this has run
 func (r *Runtime) refresh(ctx context.Context, alivePath string) error {
 	logrus.Debugf("Podman detected system restart - performing state refresh")
+
+	if os.Getenv("CI_DESIRED_DATABASE") != "boltdb" {
+		if err := r.checkCanMigrate(); err != nil {
+			if errors.Is(err, errCannotMigrateHardcodedBolt) {
+				logrus.Infof("Refusing to automatically migrate from BoltDB to SQLite as BoltDB is hardcoded in containers.conf")
+			}
+		} else {
+			// We are always safe to continue if this fails; the old database will still be in use.
+			if err := r.migrateDB(); err != nil {
+				logrus.Errorf("Automatic migration from BoltDB to SQLite failed: %v", err)
+			}
+		}
+	}
 
 	// Clear state of database if not running in container
 	if !graphRootMounted() {
