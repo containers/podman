@@ -422,7 +422,7 @@ func RemoveAllHVSockRegistryEntries() error {
 		return err
 	}
 
-	allSocks := []*HVSockRegistryEntry{}
+	allSocks := make([]*HVSockRegistryEntry, 0, len(networkSocks)+len(eventsSocks)+len(fileserverSocks))
 	allSocks = append(allSocks, networkSocks...)
 	allSocks = append(allSocks, eventsSocks...)
 	allSocks = append(allSocks, fileserverSocks...)

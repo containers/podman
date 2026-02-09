@@ -460,17 +460,22 @@ func withUser(s string, user string) string {
 	return strings.ReplaceAll(s, "[USER]", user)
 }
 
-func wslInvoke(dist string, arg ...string) error {
-	newArgs := []string{"-u", "root", "-d", dist}
+func wslCmd(dist string, arg ...string) *exec.Cmd {
+	preArgs := []string{"-u", "root", "-d", dist}
+	newArgs := make([]string, 0, len(preArgs)+len(arg))
+	newArgs = append(newArgs, preArgs...)
 	newArgs = append(newArgs, arg...)
-	cmd := wutil.NewWSLCommand(newArgs...)
+
+	return wutil.NewWSLCommand(newArgs...)
+}
+
+func wslInvoke(dist string, arg ...string) error {
+	cmd := wslCmd(dist, arg...)
 	return runCmdPassThrough(cmd)
 }
 
 func wslPipe(input string, dist string, arg ...string) error {
-	newArgs := []string{"-u", "root", "-d", dist}
-	newArgs = append(newArgs, arg...)
-	cmd := wutil.NewWSLCommand(newArgs...)
+	cmd := wslCmd(dist, arg...)
 	return pipeCmdPassThrough(cmd, input)
 }
 
