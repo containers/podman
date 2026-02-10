@@ -1012,6 +1012,7 @@ BOGUS=foo
 		Entry("name.volume", "name.volume"),
 		Entry("podmanargs.volume", "podmanargs.volume"),
 		Entry("uid.volume", "uid.volume"),
+		Entry("volume-uid-gid.volume", "volume-uid-gid.volume"),
 		Entry("image.volume", "image.volume"),
 		Entry("Volume - global args", "globalargs.volume"),
 		Entry("Volume - Containers Conf Modules", "containersconfmodule.volume"),
