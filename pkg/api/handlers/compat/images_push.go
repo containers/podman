@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v6/libpod"
+	handlers "github.com/containers/podman/v6/pkg/api/handlers"
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
+	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/auth"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi"
-	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
@@ -130,7 +132,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	referenceWritten := false
 	writeReference := func() {
 		if !referenceWritten {
-			var report jsonmessage.JSONMessage
+			var report jsonstream.Message
 			report.Status = fmt.Sprintf("The push refers to repository [%s]", imageName)
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
@@ -150,7 +152,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 loop: // break out of for/select infinite loop
 	for {
-		var report jsonmessage.JSONMessage
+		var report handlers.LegacyJSONMessage
 
 		select {
 		case e := <-options.Progress:
@@ -161,12 +163,20 @@ loop: // break out of for/select infinite loop
 				report.Status = "Preparing"
 			case types.ProgressEventRead:
 				report.Status = "Pushing"
-				report.Progress = &jsonmessage.JSONProgress{
+				report.Progress = &jsonstream.Progress{
 					Current: int64(e.Offset),
 					Total:   e.Artifact.Size,
 				}
-				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
-				report.ProgressMessage = report.Progress.String()
+				if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
+					b, err := json.Marshal(&jsonstream.Message{
+						Status:   report.Status,
+						Progress: report.Progress,
+						ID:       report.ID,
+					})
+					if err == nil {
+						report.ProgressMessage = string(b)
+					}
+				}
 			case types.ProgressEventSkipped:
 				report.Status = "Layer already exists"
 			case types.ProgressEventDone:
@@ -188,11 +198,13 @@ loop: // break out of for/select infinite loop
 					writeStatusCode(http.StatusInternalServerError)
 					msg = err.Error()
 				}
-				report.Error = &jsonmessage.JSONError{
+				report.Error = &jsonstream.Error{
 					Message: msg,
 				}
 				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
-				report.ErrorMessage = msg
+				if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
+					report.ErrorMessage = msg
+				}
 				if err := enc.Encode(report); err != nil {
 					logrus.Warnf("Failed to json encode error %q", err.Error())
 				}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,12 +26,11 @@ import (
 	"github.com/containers/podman/v6/pkg/signal"
 	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/containers/podman/v6/pkg/util"
-	dockerBackend "github.com/docker/docker/api/types/backend"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/storage"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -283,6 +283,15 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	utils.WaitContainerDocker(w, r)
 }
 
+func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *handlers.LegacyNetworkSettings) {
+	for index, ip := range input.SecondaryIPAddresses {
+		output.SecondaryIPAddresses[index].PrefixLen = ip.PrefixLength
+	}
+	for index, ip := range input.SecondaryIPv6Addresses {
+		output.SecondaryIPv6Addresses[index].PrefixLen = ip.PrefixLength
+	}
+}
+
 func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error) {
 	imageID, imageName := l.Image()
 
@@ -348,7 +357,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
-	ports := []container.Port{}
+	ports := []container.PortSummary{}
 	for portKey, bindings := range inspect.NetworkSettings.Ports {
 		portNum, proto, ok := strings.Cut(portKey, "/")
 		if !ok {
@@ -362,7 +371,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 
 		if len(bindings) == 0 {
 			// Exposed but not published
-			ports = append(ports, container.Port{
+			ports = append(ports, container.PortSummary{
 				PrivatePort: uint16(containerPort),
 				Type:        proto,
 			})
@@ -372,9 +381,16 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 				if err != nil {
 					return nil, fmt.Errorf("invalid HostPort: %v", err)
 				}
+				addr := netip.Addr{}
+				if b.HostIP != "" {
+					addr, err = netip.ParseAddr(b.HostIP)
+					if err != nil {
+						return nil, fmt.Errorf("invalid HostIP: %v", err)
+					}
+				}
 
-				ports = append(ports, container.Port{
-					IP:          b.HostIP,
+				ports = append(ports, container.PortSummary{
+					IP:          addr,
 					PrivatePort: uint16(containerPort),
 					PublicPort:  uint16(hostPortInt),
 					Type:        proto,
@@ -402,7 +418,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	}
 
 	return &handlers.Container{
-		Container: container.Summary{
+		Summary: container.Summary{
 			ID:         l.ID(),
 			Names:      []string{fmt.Sprintf("/%s", l.Name())},
 			Image:      imageName,
@@ -413,7 +429,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			SizeRw:     sizeRW,
 			SizeRootFs: sizeRootFs,
 			Labels:     l.Labels(),
-			State:      stateStr,
+			State:      container.ContainerState(stateStr),
 			Status:     status,
 			// FIXME: this seems broken, the field is never shown in the API output.
 			HostConfig: struct {
@@ -426,20 +442,11 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,
 		},
-		ContainerCreateConfig: dockerBackend.ContainerCreateConfig{},
+		ContainerCreateConfig: handlers.ContainerCreateConfig{},
 	}, nil
 }
 
-func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *container.NetworkSettings) {
-	for index, ip := range input.SecondaryIPAddresses {
-		output.SecondaryIPAddresses[index].PrefixLen = ip.PrefixLength
-	}
-	for index, ip := range input.SecondaryIPv6Addresses {
-		output.SecondaryIPv6Addresses[index].PrefixLen = ip.PrefixLength
-	}
-}
-
-func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResponse, error) {
+func LibpodToContainerJSON(l *libpod.Container, sz bool) (*handlers.LegacyImageInspect, error) {
 	imageID, imageName := l.Image()
 	inspect, err := l.Inspect(sz)
 	if err != nil {
@@ -465,7 +472,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 	}
 
 	// map our statuses to Docker's statuses
-	switch state.Status {
+	switch string(state.Status) {
 	case define.ContainerStateConfigured.String(), define.ContainerStateCreated.String():
 		state.Status = "created"
 	case define.ContainerStateRunning.String(), define.ContainerStateStopping.String():
@@ -483,7 +490,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 	if l.HasHealthCheck() && state.Status != "created" {
 		state.Health = &container.Health{}
 		if inspect.State.Health != nil {
-			state.Health.Status = inspect.State.Health.Status
+			state.Health.Status = container.HealthStatus(inspect.State.Health.Status)
 			state.Health.FailingStreak = inspect.State.Health.FailingStreak
 			log := inspect.State.Health.Log
 
@@ -537,29 +544,31 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 		Data: inspect.GraphDriver.Data,
 	}
 
-	cb := container.ContainerJSONBase{
-		ID:              l.ID(),
-		Created:         l.CreatedTime().UTC().Format(time.RFC3339Nano), // Docker uses UTC
-		Path:            inspect.Path,
-		Args:            inspect.Args,
-		State:           &state,
-		Image:           "sha256:" + imageID,
-		ResolvConfPath:  inspect.ResolvConfPath,
-		HostnamePath:    inspect.HostnamePath,
-		HostsPath:       inspect.HostsPath,
-		LogPath:         l.LogPath(),
-		Name:            fmt.Sprintf("/%s", l.Name()),
-		RestartCount:    int(inspect.RestartCount),
-		Driver:          inspect.Driver,
-		Platform:        "linux",
-		MountLabel:      inspect.MountLabel,
-		ProcessLabel:    inspect.ProcessLabel,
-		AppArmorProfile: inspect.AppArmorProfile,
-		ExecIDs:         inspect.ExecIDs,
-		HostConfig:      &hc,
-		GraphDriver:     graphDriver,
-		SizeRw:          inspect.SizeRw,
-		SizeRootFs:      &inspect.SizeRootFs,
+	cb := handlers.LegacyImageInspect{
+		InspectResponse: container.InspectResponse{
+			ID:              l.ID(),
+			Created:         l.CreatedTime().UTC().Format(time.RFC3339Nano), // Docker uses UTC
+			Path:            inspect.Path,
+			Args:            inspect.Args,
+			State:           &state,
+			Image:           "sha256:" + imageID,
+			ResolvConfPath:  inspect.ResolvConfPath,
+			HostnamePath:    inspect.HostnamePath,
+			HostsPath:       inspect.HostsPath,
+			LogPath:         l.LogPath(),
+			Name:            fmt.Sprintf("/%s", l.Name()),
+			RestartCount:    int(inspect.RestartCount),
+			Driver:          inspect.Driver,
+			Platform:        "linux",
+			MountLabel:      inspect.MountLabel,
+			ProcessLabel:    inspect.ProcessLabel,
+			AppArmorProfile: inspect.AppArmorProfile,
+			ExecIDs:         inspect.ExecIDs,
+			HostConfig:      &hc,
+			GraphDriver:     &graphDriver,
+			SizeRw:          inspect.SizeRw,
+			SizeRootFs:      &inspect.SizeRootFs,
+		},
 	}
 
 	// set Path and Args
@@ -583,42 +592,47 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 		}
 	}
 
-	// Apparently the compiler can't convert a map[string]struct{} into a nat.PortSet
-	// (Despite a nat.PortSet being that exact struct with some types added)
-	var exposedPorts nat.PortSet
+	// Convert to moby PortSet.
+	var exposedPorts network.PortSet
 	if len(inspect.Config.ExposedPorts) > 0 {
-		exposedPorts = make(nat.PortSet)
+		exposedPorts = make(network.PortSet, len(inspect.Config.ExposedPorts))
 		for p := range inspect.Config.ExposedPorts {
-			exposedPorts[nat.Port(p)] = struct{}{}
+			mp, err := network.ParsePort(p)
+			if err != nil {
+				return nil, fmt.Errorf("invalid exposed port %q: %w", p, err)
+			}
+			exposedPorts[mp] = struct{}{}
 		}
 	}
 
-	config := container.Config{
-		Hostname:        l.Hostname(),
-		Domainname:      inspect.Config.DomainName,
-		User:            l.User(),
-		AttachStdin:     inspect.Config.AttachStdin,
-		AttachStdout:    inspect.Config.AttachStdout,
-		AttachStderr:    inspect.Config.AttachStderr,
-		ExposedPorts:    exposedPorts,
-		Tty:             inspect.Config.Tty,
-		OpenStdin:       inspect.Config.OpenStdin,
-		StdinOnce:       inspect.Config.StdinOnce,
-		Env:             inspect.Config.Env,
-		Cmd:             l.Command(),
-		Healthcheck:     healthcheck,
-		ArgsEscaped:     false,
-		Image:           imageName,
-		Volumes:         nil,
-		WorkingDir:      l.WorkingDir(),
-		Entrypoint:      l.Entrypoint(),
-		NetworkDisabled: false,
-		MacAddress:      "",
-		OnBuild:         nil,
-		Labels:          l.Labels(),
-		StopSignal:      strconv.Itoa(int(l.StopSignal())),
-		StopTimeout:     &stopTimeout,
-		Shell:           nil,
+	config := handlers.ContainerConfig{
+		Config: container.Config{
+			Hostname:        l.Hostname(),
+			Domainname:      inspect.Config.DomainName,
+			User:            l.User(),
+			AttachStdin:     inspect.Config.AttachStdin,
+			AttachStdout:    inspect.Config.AttachStdout,
+			AttachStderr:    inspect.Config.AttachStderr,
+			ExposedPorts:    exposedPorts,
+			Tty:             inspect.Config.Tty,
+			OpenStdin:       inspect.Config.OpenStdin,
+			StdinOnce:       inspect.Config.StdinOnce,
+			Env:             inspect.Config.Env,
+			Cmd:             l.Command(),
+			Healthcheck:     healthcheck,
+			ArgsEscaped:     false,
+			Image:           imageName,
+			Volumes:         nil,
+			WorkingDir:      l.WorkingDir(),
+			Entrypoint:      l.Entrypoint(),
+			NetworkDisabled: false,
+			OnBuild:         nil,
+			Labels:          l.Labels(),
+			StopSignal:      strconv.Itoa(int(l.StopSignal())),
+			StopTimeout:     &stopTimeout,
+			Shell:           nil,
+		},
+		MacAddress: "",
 	}
 
 	m, err := json.Marshal(inspect.Mounts)
@@ -644,7 +658,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 		return nil, err
 	}
 
-	networkSettings := container.NetworkSettings{}
+	networkSettings := handlers.LegacyNetworkSettings{}
 	if err := json.Unmarshal(n, &networkSettings); err != nil {
 		return nil, err
 	}
@@ -656,13 +670,10 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 		networkSettings.Networks = map[string]*network.EndpointSettings{}
 	}
 
-	c := container.InspectResponse{
-		ContainerJSONBase: &cb,
-		Mounts:            mounts,
-		Config:            &config,
-		NetworkSettings:   &networkSettings,
-	}
-	return &c, nil
+	cb.Mounts = mounts
+	cb.Config = &config
+	cb.NetworkSettings = &networkSettings
+	return &cb, nil
 }
 
 func formatCapabilities(slice []string) {

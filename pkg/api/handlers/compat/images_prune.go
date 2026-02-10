@@ -15,7 +15,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi"
 	"github.com/containers/podman/v6/pkg/util"
-	dockerImage "github.com/docker/docker/api/types/image"
+	dockerImage "github.com/moby/moby/api/types/image"
 )
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
