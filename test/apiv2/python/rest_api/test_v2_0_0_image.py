@@ -108,7 +108,45 @@ class ImageTestCase(APITestCase):
         self.assertFalse(keys["error"], "Expected no errors")
         self.assertTrue(keys["id"], "Expected to find id stanza")
         self.assertTrue(keys["images"], "Expected to find images stanza")
-        self.assertFalse(keys["stream"], "Expected to find stream progress stanza's")
+        self.assertFalse(keys["stream"], "Expected not to find stream progress stanza's")
+
+        r = requests.post(self.uri("/images/pull?reference=quay.io/f4ee35641334/f6fda4bb"))
+        self.assertNotEqual(r.status_code, 200, r.status_code)
+        text = r.text
+        keys = {
+            "cause": False,
+            "message": False,
+            "response": False,
+        }
+        # Read and record stanza's from pull
+        for line in str.splitlines(text):
+            obj = json.loads(line)
+            key_list = list(obj.keys())
+            for k in key_list:
+                keys[k] = True
+
+        self.assertTrue(keys["cause"], "Expected to find cause stanza")
+        self.assertTrue(keys["message"], "Expected to find message stanza")
+        self.assertTrue(keys["response"], "Expected to find response stanza")
+
+        r = requests.post(self.uri("/images/pull?reference=quay.io/f4ee35641334/f6fda4bb&quiet=true"))
+        self.assertNotEqual(r.status_code, 200, r.status_code)
+        text = r.text
+        keys = {
+            "cause": False,
+            "message": False,
+            "response": False,
+        }
+        # Read and record stanza's from pull
+        for line in str.splitlines(text):
+            obj = json.loads(line)
+            key_list = list(obj.keys())
+            for k in key_list:
+                keys[k] = True
+
+        self.assertTrue(keys["cause"], "Expected to find cause stanza")
+        self.assertTrue(keys["message"], "Expected to find message stanza")
+        self.assertTrue(keys["response"], "Expected to find response stanza")
 
     def test_create(self):
         r = requests.post(

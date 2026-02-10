@@ -44,6 +44,20 @@ type artifactBadAuth struct {
 	Body errorhandling.ErrorModel
 }
 
+// Repository reported authentication error
+// swagger:response
+type repositoryBadAuth struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
+// Repository reported authorization error
+// swagger:response
+type repositoryForbidden struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
 // No such network
 // swagger:response
 type networkNotFound struct {
