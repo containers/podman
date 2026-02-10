@@ -24,7 +24,7 @@ import (
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
-	"github.com/docker/docker/api/types/mount"
+	"github.com/moby/moby/api/types/mount"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
@@ -219,7 +219,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// expose ports
 	expose := make([]string, 0, len(cc.Config.ExposedPorts))
 	for p := range cc.Config.ExposedPorts {
-		expose = append(expose, fmt.Sprintf("%s/%s", p.Port(), p.Proto()))
+		expose = append(expose, fmt.Sprintf("%d/%s", p.Num(), p.Proto()))
 	}
 
 	// mounts type=tmpfs/bind,source=...,target=...=,opt=val
@@ -268,7 +268,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// dns
 	dns := make([]net.IP, 0, len(cc.HostConfig.DNS))
 	for _, d := range cc.HostConfig.DNS {
-		dns = append(dns, net.ParseIP(d))
+		dns = append(dns, net.IP(d.AsSlice()))
 	}
 
 	// publish
@@ -282,12 +282,16 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 			if err != nil {
 				return nil, nil, err
 			}
+			hostIP := ""
+			if pb.HostIP.IsValid() {
+				hostIP = pb.HostIP.String()
+			}
 			tmpPort := types.PortMapping{
-				HostIP:        pb.HostIP,
-				ContainerPort: uint16(port.Int()),
+				HostIP:        hostIP,
+				ContainerPort: port.Num(),
 				HostPort:      uint16(hostport),
 				Range:         0,
-				Protocol:      port.Proto(),
+				Protocol:      string(port.Proto()),
 			}
 			specPorts = append(specPorts, tmpPort)
 		}
@@ -332,7 +336,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// This field is deprecated since API v1.44 where
 	// EndpointSettings.MacAddress is used instead (and has precedence
 	// below).  Let's still use it for backwards compat.
-	containerMacAddress := cc.MacAddress //nolint:staticcheck
+	containerMacAddress := cc.MacAddress
 
 	// network names
 	switch {
@@ -345,39 +349,27 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 				netOpts.Aliases = endpoint.Aliases
 
 				// if IP address is provided
-				if len(endpoint.IPAddress) > 0 {
-					staticIP := net.ParseIP(endpoint.IPAddress)
-					if staticIP == nil {
-						return nil, nil, fmt.Errorf("failed to parse the ip address %q", endpoint.IPAddress)
-					}
+				if endpoint.IPAddress.IsValid() {
+					staticIP := net.IP(endpoint.IPAddress.AsSlice())
 					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 				}
 
 				if endpoint.IPAMConfig != nil {
 					// if IPAMConfig.IPv4Address is provided
-					if len(endpoint.IPAMConfig.IPv4Address) > 0 {
-						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv4Address)
-						if staticIP == nil {
-							return nil, nil, fmt.Errorf("failed to parse the ipv4 address %q", endpoint.IPAMConfig.IPv4Address)
-						}
+					if endpoint.IPAMConfig.IPv4Address.IsValid() {
+						staticIP := net.IP(endpoint.IPAMConfig.IPv4Address.AsSlice())
 						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 					}
+
 					// if IPAMConfig.IPv6Address is provided
-					if len(endpoint.IPAMConfig.IPv6Address) > 0 {
-						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv6Address)
-						if staticIP == nil {
-							return nil, nil, fmt.Errorf("failed to parse the ipv6 address %q", endpoint.IPAMConfig.IPv6Address)
-						}
+					if endpoint.IPAMConfig.IPv6Address.IsValid() {
+						staticIP := net.IP(endpoint.IPAMConfig.IPv6Address.AsSlice())
 						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 					}
 				}
 				// If MAC address is provided
-				if len(endpoint.MacAddress) > 0 {
-					staticMac, err := net.ParseMAC(endpoint.MacAddress)
-					if err != nil {
-						return nil, nil, fmt.Errorf("failed to parse the mac address %q", endpoint.MacAddress)
-					}
-					netOpts.StaticMAC = types.HardwareAddr(staticMac)
+				if len(endpoint.MacAddress) != 0 {
+					netOpts.StaticMAC = types.HardwareAddr(net.HardwareAddr(endpoint.MacAddress))
 				} else if len(containerMacAddress) > 0 {
 					// docker-compose only sets one mac address for the container on the container config
 					// If there are more than one network attached it will end up on the first one,

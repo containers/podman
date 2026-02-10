@@ -14,7 +14,7 @@ import (
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/docker/docker/api/types/registry"
+	"github.com/moby/moby/api/types/registry"
 	"go.podman.io/common/pkg/auth"
 	DockerClient "go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/types"

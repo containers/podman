@@ -28,7 +28,6 @@ import (
 	"github.com/containers/podman/v6/pkg/specgen/generate"
 	systemdDefine "github.com/containers/podman/v6/pkg/systemd/define"
 	"github.com/containers/podman/v6/pkg/util"
-	"github.com/docker/docker/pkg/meminfo"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/common/libimage"
@@ -38,6 +37,7 @@ import (
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
 	itypes "go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/system"
 	"sigs.k8s.io/yaml"
 	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
 )
@@ -1272,7 +1272,7 @@ func getContainerResources(container v1.Container) (v1.ResourceRequirements, err
 	requests := container.Resources.Requests
 
 	if limits == nil || limits.Memory().IsZero() {
-		mi, err := meminfo.Read()
+		mi, err := system.ReadMemInfo()
 		if err != nil {
 			return result, err
 		}

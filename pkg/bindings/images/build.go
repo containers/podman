@@ -27,11 +27,11 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/util"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
 	gzip "github.com/klauspost/pgzip"
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	imageTypes "go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"
@@ -48,8 +48,8 @@ type devino struct {
 var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)
 
 type BuildResponse struct {
-	Stream string                 `json:"stream,omitempty"`
-	Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
+	Stream string            `json:"stream,omitempty"`
+	Error  *jsonstream.Error `json:"errorDetail,omitempty"`
 	// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
 	ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
 	Aux          json.RawMessage `json:"aux,omitempty"`
