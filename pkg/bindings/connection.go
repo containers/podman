@@ -113,7 +113,12 @@ type Options struct {
 	TLSCertFile string
 	TLSKeyFile  string
 	TLSCAFile   string
-	Machine     bool
+	// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+	// The effect of setting any other options (cryptographic keys, InsecureSkipTLSVerify, callbacks, etc.) is UNDEFINED,
+	// may be inconsistent in various use cases, and may change over time.
+	// Consumers of this value are expected to .Clone() the config and then apply other options.
+	BaseTLSConfig *tls.Config
+	Machine       bool
 }
 
 func orEnv(s string, env string) string {
@@ -139,6 +144,8 @@ func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Contex
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
+		// FIXME? This has security policy concerns similar to opts.BaseTLSConfig;
+		// we don’t currently allow similarly configuring ssh cryptography.
 		conn, err := sshClient(_url, uri, identity, opts.Machine)
 		if err != nil {
 			return nil, err
@@ -346,9 +353,14 @@ func tcpClient(_url *url.URL, opts Options) (Connection, error) {
 		DialContext:        dialContext,
 		DisableCompression: true,
 	}
+	if opts.BaseTLSConfig != nil {
+		transport.TLSClientConfig = opts.BaseTLSConfig.Clone()
+	}
 	if len(opts.TLSCAFile) != 0 || len(opts.TLSCertFile) != 0 || len(opts.TLSKeyFile) != 0 {
 		logrus.Debugf("using TLS cert=%s key=%s ca=%s", opts.TLSCertFile, opts.TLSKeyFile, opts.TLSCAFile)
-		transport.TLSClientConfig = &tls.Config{}
+		if transport.TLSClientConfig == nil {
+			transport.TLSClientConfig = &tls.Config{}
+		}
 		connection.tls = true
 	}
 	if len(opts.TLSCAFile) != 0 {
