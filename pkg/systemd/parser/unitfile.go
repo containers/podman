@@ -879,6 +879,15 @@ func (f *UnitFile) Add(groupName string, key string, value string) {
 	group.add(key, value)
 }
 
+func (f *UnitFile) AddEscaped(groupName string, key string, value string) {
+	if wordNeedEscape(value) {
+		var escaped strings.Builder
+		appendEscapeWord(&escaped, value)
+		value = escaped.String()
+	}
+	f.Add(groupName, key, value)
+}
+
 func (f *UnitFile) AddCmdline(groupName string, key string, args []string) {
 	f.Add(groupName, key, escapeWords(args))
 }

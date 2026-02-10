@@ -51,7 +51,8 @@ The Podman generator reads the search paths above and reads files with the exten
 `.volume`, `.network`, `.build`, `.pod`, `.kube`, and `.artifact`, and for each file generates a similarly named `.service` file. Be aware that
 existing vendor services (i.e., in `/usr/`) are replaced if they have the same name. The generated unit files can
 be started and managed with `systemctl` like any other systemd service. `systemctl {--user} list-unit-files`
-lists existing unit files on the system.
+lists existing unit files on the system. To list unit files of a user who has `/sbin/nologin` as a login shell,
+run `sudo systemctl --machine username@ --user list-unit-files`.
 
 The Podman files use the same format as [regular systemd unit files](https://www.freedesktop.org/software/systemd/man/systemd.syntax.html).
 Each file type has a custom section (for example, `[Container]`) that is handled by Podman, and all
@@ -84,14 +85,13 @@ or [DynamicUser](https://www.freedesktop.org/software/systemd/man/latest/systemd
 systemd options. If you want to run a rootless Quadlet, you will need to create the user
 and add the unit file to one of the above rootless unit search paths.
 
-Note: When a Quadlet is starting, Podman often pulls or builds one more container images which may take a considerable amount of time.
-Systemd defaults service start time to 90 seconds, or fails the service. Pre-pulling the image or extending
-the systemd timeout time for the service using the *TimeoutStartSec* Service option can fix the problem.
-A word of caution: *TimeoutStartSec* is not available for `Type=oneshot` units. Refer to `systemd.service(5)`
-for more information on how to handle long startup times for units which do not need to stay active
-once their main process has finished.
+When a Quadlet unit starts, Podman may need to pull or build container images, which can take significantly longer
+than systemd's default 90-second service startup limit. If this causes the unit to fail, you can either pre-pull the
+required images or increase the service's startup timeout using the *TimeoutStartSec* option. Keep in mind, however,
+that *TimeoutStartSec* cannot be used with units that specify `Type=oneshot` (their startup timeout is disabled by
+default). For further details on *TimeoutStartSec*, see `systemd.service(5)`.
 
-Adding the following snippet to a Quadlet file extends the systemd timeout to 15 minutes.
+Adding the following snippet to a Quadlet file extends the startup timeout to 15 minutes.
 
 ```
 [Service]
@@ -305,6 +305,7 @@ Valid options for `[Container]` are listed below:
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
 | AddHost=example\.com:192.168.10.11   | --add-host example.com:192.168.10.11                 |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
+| AppArmor="alternate-profile"         | --security-opt apparmor=alternate-profile            |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
 | CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
 | ContainerName=name                   | --name name                                          |
@@ -330,7 +331,7 @@ Valid options for `[Container]` are listed below:
 | HealthMaxLogSize=500                 | --health-max-log-size=500                            |
 | HealthOnFailure=kill                 | --health-on-failure=kill                             |
 | HealthRetries=5                      | --health-retries=5                                   |
-| HealthStartPeriod=1m                 | --health-start-period=period=1m                      |
+| HealthStartPeriod=1m                 | --health-start-period=1m                             |
 | HealthStartupCmd=command             | --health-startup-cmd=command                         |
 | HealthStartupInterval=1m             | --health-startup-interval=1m                         |
 | HealthStartupRetries=8               | --health-startup-retries=8                           |
@@ -427,6 +428,10 @@ Set one or more OCI annotations on the container. The format is a list of `key=v
 similar to `Environment`.
 
 This key can be listed multiple times.
+
+### `AppArmor=`
+
+Sets the apparmor confinement profile for the container. A value of `unconfined` turns off apparmor confinement.
 
 ### `AutoUpdate=`
 
@@ -1597,13 +1602,13 @@ Valid options for `[Volume]` are listed below:
 | Device=tmpfs                        | --opt device=tmpfs                        |
 | Driver=image                        | --driver=image                            |
 | GlobalArgs=--log-level=debug        | --log-level=debug                         |
-| Group=192                           | --opt group=192                           |
+| Group=192                           | --opt "o=group=192"                       |
 | Image=quay.io/centos/centos\:latest | --opt image=quay.io/centos/centos\:latest |
 | Label="foo=bar"                     | --label "foo=bar"                         |
 | Options=XYZ                         | --opt "o=XYZ"                             |
 | PodmanArgs=--driver=image           | --driver=image                            |
 | Type=type                           | Filesystem type of Device                 |
-| User=123                            | --opt uid=123                             |
+| User=123                            | --opt "o=uid=123"                         |
 | VolumeName=foo                      | podman volume create foo                  |
 
 Supported keys in `[Volume]` section are:
@@ -1730,7 +1735,7 @@ Valid options for `[Build]` are listed below:
 | ForceRM=false                       | --force-rm=false                            |
 | GlobalArgs=--log-level=debug        | --log-level=debug                           |
 | GroupAdd=keep-groups                | --group-add=keep-groups                     |
-| IgnoreFile=/path/to/.customignore   | --ignorefile=/path/to/.customignore         |
+| IgnoreFile=/path/to/\.customignore  | --ignorefile=/path/to/\.customignore        |
 | ImageTag=localhost/imagename        | --tag=localhost/imagename                   |
 | Label=label                         | --label=label                               |
 | Network=host                        | --network=host                              |
@@ -2367,7 +2372,7 @@ Image=quay.io/example/my-app:latest
 Mount=type=artifact,source=my-artifact.artifact,destination=/etc/config
 ```
 
-Example for Container in a Pod:
+Example for a container in a Pod:
 
 `test.pod`
 ```
@@ -2383,7 +2388,7 @@ Exec=sh -c "sleep inf"
 Pod=test.pod
 ```
 
-Example for a Pod with a oneshot Startup Task:
+Example for a Pod with a one-shot startup task:
 
 `test.pod`
 ```

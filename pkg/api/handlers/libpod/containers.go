@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v5/libpod"
@@ -21,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -408,6 +410,54 @@ func InitContainer(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
+// UInt64OrMinusOne is a small helper that unmarshals JSON numbers and allows negative numbers,
+// mapping them to uint64 max to represent "unlimited" for rlimits.
+type UInt64OrMinusOne uint64
+
+func (x *UInt64OrMinusOne) UnmarshalJSON(b []byte) error {
+	var n json.Number
+
+	dec := json.NewDecoder(strings.NewReader(string(b)))
+	dec.UseNumber()
+	if err := dec.Decode(&n); err != nil {
+		return err
+	}
+
+	// Handle signed numbers for the unlimited/maximum case
+	if i, err := n.Int64(); err == nil {
+		if i < 0 {
+			*x = UInt64OrMinusOne(^uint64(0))
+			return nil
+		}
+		*x = UInt64OrMinusOne(uint64(i))
+		return nil
+	}
+
+	// Handle large unsigned values
+	u, err := strconv.ParseUint(n.String(), 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse UInt64OrMinusOne: %w", err)
+	}
+	*x = UInt64OrMinusOne(u)
+	return nil
+}
+
+type WirePOSIXRlimit struct {
+	// Type of the rlimit to set
+	Type string `json:"type"`
+	// Hard is the hard limit for the specified type
+	Hard UInt64OrMinusOne `json:"hard"`
+	// Soft is the soft limit for the specified type
+	Soft UInt64OrMinusOne `json:"soft"`
+}
+
+// updateEntitiesWire mirrors handlers.UpdateEntities but allows -1 for rlimits
+// via the WirePOSIXRlimit numbers.
+type updateEntitiesWire struct {
+	handlers.UpdateEntities
+	Rlimits []WirePOSIXRlimit `json:"r_limits,omitempty"`
+}
+
 func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
@@ -445,15 +495,22 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	options := &handlers.UpdateEntities{}
-	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
+	wire := updateEntitiesWire{}
+	if err := json.NewDecoder(r.Body).Decode(&wire); err != nil {
+		utils.InternalServerError(w, fmt.Errorf("decode(): %w", err))
 		return
 	}
 
+	options := wire.UpdateEntities
 	resourceLimits, err := specgenutil.UpdateMajorAndMinorNumbers(&options.LinuxResources, &options.UpdateContainerDevicesLimits)
 	if err != nil {
 		utils.InternalServerError(w, err)
+		return
+	}
+
+	rlimits, err := parseRLimits(wire.Rlimits)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("invalid rlimit: %w", err))
 		return
 	}
 
@@ -464,6 +521,7 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		RestartRetries:                  restartRetries,
 		Env:                             options.Env,
 		UnsetEnv:                        options.UnsetEnv,
+		Rlimits:                         rlimits,
 	}
 
 	err = ctr.Update(updateOptions)
@@ -472,4 +530,20 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, ctr.ID())
+}
+
+// parseRLimits parses slice of WirePOSIXRlimit to slice of specs.POSIXRlimit.
+func parseRLimits(rLimits []WirePOSIXRlimit) ([]specs.POSIXRlimit, error) {
+	rl := []specs.POSIXRlimit{}
+	for _, rLimit := range rLimits {
+		if rLimit.Type == "" {
+			return nil, fmt.Errorf("invalid value for POSIXRlimit.type: empty")
+		}
+		rl = append(rl, specs.POSIXRlimit{
+			Type: rLimit.Type,
+			Soft: uint64(rLimit.Soft),
+			Hard: uint64(rLimit.Hard),
+		})
+	}
+	return rl, nil
 }

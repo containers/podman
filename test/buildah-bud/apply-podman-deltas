@@ -276,7 +276,7 @@ skip_if_remote "compat API does not support oci-archive tags" \
                "build-with-timestamp-applies-to-oci-archive"
 
 # 2025-10-212 "'build proxy' environment is not sent over the API, comment in https://github.com/containers/podman/pull/27343"
-skip_if_remote "http_proxy env is not send via remote API" \
+skip_if_remote "http_proxy env is not sent via remote API" \
                "build proxy - ADD URL"
 
 ###############################################################################

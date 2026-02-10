@@ -62,6 +62,7 @@ const (
 	KeyAddHost               = "AddHost"
 	KeyAllTags               = "AllTags"
 	KeyAnnotation            = "Annotation"
+	KeyAppArmor              = "AppArmor"
 	KeyArch                  = "Arch"
 	KeyArtifact              = "Artifact"
 	KeyAuthFile              = "AuthFile"
@@ -248,6 +249,7 @@ var (
 				KeyAddDevice:             true,
 				KeyAddHost:               true,
 				KeyAnnotation:            true,
+				KeyAppArmor:              true,
 				KeyAutoUpdate:            true,
 				KeyCgroupsMode:           true,
 				KeyContainerName:         true,
@@ -775,6 +777,11 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
 	}
 
+	apparmor, hasApparmor := container.Lookup(ContainerGroup, KeyAppArmor)
+	if hasApparmor && len(apparmor) > 0 {
+		podman.add("--security-opt", fmt.Sprintf("apparmor=%s", apparmor))
+	}
+
 	devices := container.LookupAllStrv(ContainerGroup, KeyAddDevice)
 	for _, device := range devices {
 		if device[0] == '-' {
@@ -1151,7 +1158,7 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 			if devValid {
 				podman.add("--opt", fmt.Sprintf("type=%s", devType))
 				if devType == "bind" {
-					service.Add(UnitGroup, "RequiresMountsFor", dev)
+					service.AddEscaped(UnitGroup, "RequiresMountsFor", dev)
 				}
 			} else {
 				return nil, warnings, fmt.Errorf("key Type can't be used without Device")
@@ -1929,7 +1936,7 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	}
 	if source[0] == '/' {
 		// Absolute path
-		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
+		serviceUnitFile.AddEscaped(UnitGroup, "RequiresMountsFor", source)
 	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) || strings.HasSuffix(source, ".artifact") {
 		sourceUnitInfo, ok := unitsInfoMap[source]
 		if !ok {

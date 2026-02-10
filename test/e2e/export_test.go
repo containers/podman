@@ -52,4 +52,22 @@ var _ = Describe("Podman export", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError(125, "invalid filename (should not contain ':')"))
 	})
+
+	It("podman export emits export event", func() {
+		_, ec, cid := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		outfile := filepath.Join(podmanTest.TempDir, "container.tar")
+		result := podmanTest.Podman([]string{"export", "-o", outfile, cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+
+		eventsResult := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=export", "--since", "30s"})
+		eventsResult.WaitWithDefaultTimeout()
+		Expect(eventsResult).Should(ExitCleanly())
+		events := eventsResult.OutputToStringArray()
+		Expect(events).ToNot(BeEmpty(), "export event should be present")
+		Expect(events[0]).To(ContainSubstring("export"))
+		Expect(events[0]).To(ContainSubstring(cid))
+	})
 })

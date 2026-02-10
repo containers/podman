@@ -351,7 +351,7 @@ func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.Bu
 	buildResults.Range(func(_, v any) bool {
 		result, ok := v.(buildResult)
 		if !ok {
-			fmt.Fprintf(os.Stderr, "report %v not a build result?", v)
+			fmt.Fprintf(os.Stderr, "report %v not a build result?\n", v)
 			return false
 		}
 		perArchBuilds[result.report] = result.builder

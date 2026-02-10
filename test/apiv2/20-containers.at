@@ -30,6 +30,7 @@ t POST "containers/foo/attach?logs=true&stream=false" 200 \
   $'\001\031'$mytext
 
 # check old docker header
+t POST "/v1.40/containers/foo/attach?logs=true&stream=false" 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
 like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "vnd.docker.raw-stream docker v1.40"
 # check new vnd.docker.multiplexed-stream header
@@ -45,7 +46,7 @@ like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-s
 
 t POST "containers/foo/attach?logs=true&stream=false" 101
 response_headers=$(cat "$WORKDIR/curl.headers.out")
-like "$response_headers" ".*Content-Type: application/vnd\.docker\.raw-stream.*" "hijacked connection header: Content-type: application/vnd.docker.raw-stream"
+like "$response_headers" ".*Content-Type: application/vnd\.docker\.multiplexed-stream.*" "hijacked connection header: Content-type: application/vnd.docker.multiplexed-stream"
 like "$response_headers" ".*Upgrade: tcp.*" "hijacked connection header: Upgrade: tcp"
 
 t POST "containers/foo/kill" 204
@@ -158,6 +159,18 @@ like "$(<$WORKDIR/curl.headers.out)" ".*HTTP.* 200 OK.*" \
      "Received headers from /container/<id>/logs"
 
 podman rm -f -t0 $CTRNAME
+
+# verify API logs return timestamps with nanosecond precision
+CTRNAME=timestamp-test
+podman run --name $CTRNAME -d $IMAGE sh -c "echo test message"
+podman wait $CTRNAME
+t GET "containers/${CTRNAME}/logs?timestamps=true&stdout=true" 200
+# /logs returns application/octet-stream with binary headers. Strip null bytes.
+# Verify timestamp format includes nanoseconds (LogTimeFormat with 9 zero-padded digits)
+# Timezone can be 'Z' (UTC) or '+/-HH:MM'
+like "$(tr -d \\0 <$WORKDIR/curl.result.out)" ".*[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}T[0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}\\.[0-9]\\{9\\}\\(Z\\|[+-][0-9]\\{2\\}:[0-9]\\{2\\}\\).*test message.*" \
+     "logs timestamps should include nanosecond precision"
+podman rm -f $CTRNAME
 
 CTRNAME=test123
 podman run --name $CTRNAME -d $IMAGE top
@@ -581,6 +594,31 @@ t GET containers/$cid/json 200 \
   .Config.Healthcheck.Timeout=30000000000 \
   .Config.Healthcheck.Retries=3
 
+t DELETE containers/$cid?v=true 204
+
+# Test Compat Create with healthcheck preserving arguments with spaces
+HEALTHCHECK_TMPD=$(mktemp -d podman-apiv2-test.healthcheck.XXXXXXXX)
+cat >$HEALTHCHECK_TMPD/create.json <<EOF
+{
+  "Image": "$IMAGE",
+  "Cmd": ["top"],
+  "Healthcheck": {
+    "Test": ["CMD", "/usr/bin/test", "--arg=value with spaces", "another arg"]
+  }
+}
+EOF
+t POST containers/create $HEALTHCHECK_TMPD/create.json 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Healthcheck.Test[0]="CMD" \
+  .Config.Healthcheck.Test[1]="/usr/bin/test" \
+  .Config.Healthcheck.Test[2]="--arg=value with spaces" \
+  .Config.Healthcheck.Test[3]="another arg"
+
+t DELETE containers/$cid?v=true 204
+rm -rf $HEALTHCHECK_TMPD
+
 # compat api: Test for mount options support
 # Sigh, JSON can't handle octal. 0755(octal) = 493(decimal)
 payload='{"Mounts":[{"Type":"tmpfs","Target":"/mnt/scratch","TmpfsOptions":{"SizeBytes":1024,"Mode":493}}]}'
@@ -841,6 +879,10 @@ t POST containers/create \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 
+t POST containers/$cid/update \
+  Ulimits='[{"Name":"memlock","Soft":-1,"Hard":-1}]' \
+  200
+
 t DELETE containers/$cid 204
 
 # Libpod API
@@ -850,6 +892,10 @@ t POST libpod/containers/create \
   201                    \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
+
+t POST libpod/containers/$cid/update \
+  r_limits='[{"type":"memlock","soft":-1,"hard":-1}]' \
+  201
 
 t DELETE containers/$cid 204
 

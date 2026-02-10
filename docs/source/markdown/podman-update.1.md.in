@@ -94,6 +94,10 @@ Changing this setting resets the timer, depending on the state of the container.
 
 @@option restart
 
+@@option ulimit
+
+Note: Ulimit changes apply after container restart.
+
 @@option unsetenv.update
 
 
@@ -107,6 +111,11 @@ podman update --cpus=0.5 ctrID
 Update the latest container with a new cpu value:
 ```
 podman update --latest --cpus=1
+```
+
+Update a container's ulimit:
+```
+podman update --ulimit nofile=1024:1024 ctrID
 ```
 
 Update a container with multiple options at ones:

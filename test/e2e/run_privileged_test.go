@@ -144,17 +144,24 @@ var _ = Describe("Podman privileged container tests", func() {
 			Skip("Can't determine NoNewPrivs")
 		}
 
+		fields := strings.Fields(cap.OutputToString())
+		if fields[1] != "0" {
+			Skip("NoNewPrivs set")
+		}
+
 		session := podmanTest.Podman([]string{"run", BB, "grep", "NoNewPrivs", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		privs := strings.Split(session.OutputToString(), ":")
+		privs := strings.Fields(session.OutputToString())
+		Expect(privs[1]).To(Equal("0"), "NoNewPrivs should be 0 without security-opt")
+
 		session = podmanTest.Podman([]string{"run", "--security-opt", "no-new-privileges", BB, "grep", "NoNewPrivs", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		noprivs := strings.Split(session.OutputToString(), ":")
-		Expect(privs[1]).To(Not(Equal(noprivs[1])))
+		noprivs := strings.Fields(session.OutputToString())
+		Expect(noprivs[1]).To(Equal("1"), "NoNewPrivs should be 1 with security-opt")
 	})
 
 })

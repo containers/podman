@@ -21,6 +21,23 @@ import (
 
 const host = "host"
 
+// userNSConflictsWithPod returns an error if the user namespace mode
+// conflicts with pod namespace sharing requirements.
+// Containers in a pod must use the same user namespace to avoid ownership and
+// capability issues with shared resources.
+func userNSConflictsWithPod(pod *libpod.Pod, mode specgen.NamespaceMode) error {
+	if pod != nil && pod.HasInfraContainer() {
+		// Allow modes that don't create a new user namespace
+		switch mode {
+		case specgen.FromPod, specgen.Default, specgen.Host, specgen.FromContainer:
+			return nil
+		default:
+			return fmt.Errorf("cannot set user namespace mode when joining pod with infra container: %w", define.ErrInvalidArg)
+		}
+	}
+	return nil
+}
+
 // Get the default namespace mode for any given namespace type.
 func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod) (specgen.Namespace, error) {
 	// The default for most is private
@@ -211,7 +228,11 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		}
 	}
 
-	// User
+	// Validate that user namespace mode is compatible with pod.
+	if err := userNSConflictsWithPod(pod, s.UserNS.NSMode); err != nil {
+		return nil, err
+	}
+
 	switch s.UserNS.NSMode {
 	case specgen.KeepID:
 		opts, err := namespaces.UsernsMode(s.UserNS.String()).GetKeepIDOptions()
@@ -247,6 +268,10 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			return nil, fmt.Errorf("looking up container to share user namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithUserNSFrom(userCtr))
+	case specgen.Private:
+	case specgen.Auto:
+	case specgen.NoMap:
+	case specgen.Path:
 	}
 
 	// This wipes the UserNS settings that get set from the infra container
@@ -255,8 +280,6 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	if s.IDMappings != nil {
 		if pod == nil {
 			toReturn = append(toReturn, libpod.WithIDMappings(*s.IDMappings))
-		} else if pod.HasInfraContainer() && (len(s.IDMappings.UIDMap) > 0 || len(s.IDMappings.GIDMap) > 0) {
-			return nil, fmt.Errorf("cannot specify a new uid/gid map when entering a pod with an infra container: %w", define.ErrInvalidArg)
 		}
 	}
 	if s.User != "" {

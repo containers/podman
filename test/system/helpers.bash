@@ -251,6 +251,9 @@ function defer-assertion-failures() {
 function basic_teardown() {
     echo "# [teardown]" >&2
 
+    PODMAN_CMD=("${PODMAN}")
+    add_podman_args PODMAN_CMD
+
     # Free any ports reserved by our test
     if [[ -d $PORT_LOCK_DIR ]]; then
         mylocks=$(grep -wlr $BATS_SUITE_TEST_NUMBER $PORT_LOCK_DIR || true)

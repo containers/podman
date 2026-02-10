@@ -100,7 +100,8 @@ var _ = Describe("Podman run", func() {
 		tempFileName := tempFile.Name()
 		session := podmanTest.Podman([]string{"--config", tempFileName, "run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(1, fmt.Sprintf(`Supplied --config file (%s) is not a directory`, tempFileName)))
+		// Note: ErrorToString() uses strings.Fields() which normalizes whitespace, so we're not testing the trailing newline
+		Expect(session).Should(ExitWithError(1, fmt.Sprintf("Supplied --config file (%s) is not a directory", tempFileName)))
 	})
 
 	It("podman run from manifest list", func() {

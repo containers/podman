@@ -317,8 +317,10 @@ func (s *SQLiteState) ValidateDBConfig(_ *Runtime) (defErr error) {
 		return err
 	}
 
+	// Ignoring prevents a race condition where multiple Podman processes
+	// might try to initialize the database at the same time.
 	const createRow = `
-        INSERT INTO DBconfig VALUES (
+        INSERT OR IGNORE INTO DBconfig VALUES (
                 ?, ?, ?,
                 ?, ?, ?,
                 ?, ?, ?

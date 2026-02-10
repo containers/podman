@@ -6,6 +6,7 @@
 
 load helpers
 load helpers.network
+load helpers.registry
 
 @test "podman build - basic test" {
     rand_filename=$(random_string 20)
@@ -16,13 +17,11 @@ load helpers.network
     dockerfile=$tmpdir/Dockerfile
     cat >$dockerfile <<EOF
 FROM $IMAGE
-RUN apk add nginx
 RUN echo $rand_content > /$rand_filename
 EOF
 
-    # The 'apk' command can take a long time to fetch files; bump timeout
     imgname="b-$(safename)"
-    PODMAN_TIMEOUT=240 run_podman build -t $imgname --format=docker $tmpdir
+    run_podman build -t $imgname --format=docker $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     # $IMAGE is preloaded, so we should never re-pull
@@ -949,6 +948,61 @@ EOF
     is "$output" \
        ".*Error: creating build container: quay.io/libpod/nosuchimage:nosuchtag: image not known" \
        "--pull-never fails with expected error message"
+}
+
+@test "podman build --pull=newer" {
+    skip_if_remote "tests depend on start_registry which does not work with podman-remote"
+    start_registry
+
+    local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    local image_for_test=$registry/i-$(safename):$(random_string)
+    local authfile=$PODMAN_TMPDIR/authfile.json
+    local tmpdir=$PODMAN_TMPDIR/build-test
+
+    run_podman login --authfile=$authfile \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    # Generate a test image and push it to the registry.
+    # For safety in parallel runs, test image must be isolated
+    # from $IMAGE. A simple add-tag will not work. (#23756)
+    run_podman create -q $IMAGE true
+    local tmpcid=$output
+    run_podman commit -q $tmpcid $image_for_test
+    run_podman rm $tmpcid
+    run_podman image push --tls-verify=false --authfile=$authfile $image_for_test
+
+    local tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+
+    # Now build using $image_for_test
+    cat >$tmpdir/Containerfile <<EOF
+FROM $image_for_test
+EOF
+
+    # Build the image
+    run_podman build $tmpdir --pull=newer --tls-verify=false --authfile=$authfile
+    is "$output" ".*pull" "pull seen in log"
+    is "$output" ".*COMMIT" "COMMIT seen in log"
+
+    # Build again
+    run_podman build $tmpdir --pull=newer --tls-verify=false --authfile=$authfile
+    assert "$output" !~ "pull" "should not pull the image again"
+
+    # Now refresh the remote image
+    run_podman create -q $IMAGE true
+    local tmpcid=$output
+    run_podman commit -q $tmpcid $image_for_test
+    run_podman rm $tmpcid
+    run_podman image push --tls-verify=false --authfile=$authfile $image_for_test
+
+    # Build one more time
+    run_podman build $tmpdir --pull=newer --tls-verify=false --authfile=$authfile
+    is "$output" ".*pull" "pull seen in log"
+
+    run_podman image rm --ignore $image_for_test
 }
 
 @test "podman build --logfile test" {

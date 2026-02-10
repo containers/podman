@@ -269,7 +269,8 @@ alt_build_task:
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
     always: *runner_stats
-
+    # HACK: Extend timeout to allow our gigantic backports PR to work
+    timeout_in: 150m
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
@@ -808,7 +809,7 @@ podman_machine_aarch64_task:
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
-    timeout_in: 30m
+    timeout_in: 40m
     env:
         TEST_FLAVOR: "machine-linux"
         TEST_BUILD_TAGS: ""

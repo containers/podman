@@ -27,7 +27,7 @@ const (
 // Version is the version of the build.
 var Version = semver.MustParse(rawversion.RawVersion)
 
-// See https://docs.docker.com/engine/api/v1.40/
+// See https://docs.docker.com/reference/api/engine/
 // libpod compat handlers are expected to honor docker API versions
 
 // APIVersion provides the current and minimal API versions for compat and libpod endpoint trees
@@ -40,7 +40,7 @@ var APIVersion = map[Tree]map[Level]semver.Version{
 		MinimalAPI: semver.MustParse("4.0.0"),
 	},
 	Compat: {
-		CurrentAPI: semver.MustParse("1.41.0"),
+		CurrentAPI: semver.MustParse("1.44.0"),
 		MinimalAPI: semver.MustParse("1.24.0"),
 	},
 }

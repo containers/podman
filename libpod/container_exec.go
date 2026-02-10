@@ -180,14 +180,7 @@ func (c *Container) getUniqueExecSessionID() string {
 	found := true
 	// This really ought to be a do-while, but Go doesn't have those...
 	for found {
-		found = false
-		for id := range c.state.ExecSessions {
-			if id == sessionID {
-				found = true
-				break
-			}
-		}
-		if found {
+		if _, found = c.state.ExecSessions[sessionID]; found {
 			sessionID = stringid.GenerateRandomID()
 		}
 	}
@@ -821,87 +814,7 @@ func (c *Container) ExecResize(sessionID string, newSize resize.TerminalSize) er
 }
 
 func (c *Container) healthCheckExec(config *ExecConfig, timeout time.Duration, streams *define.AttachStreams) (int, error) {
-	unlock := true
-	if !c.batched {
-		c.lock.Lock()
-		defer func() {
-			if unlock {
-				c.lock.Unlock()
-			}
-		}()
-
-		if err := c.syncContainer(); err != nil {
-			return -1, err
-		}
-	}
-
-	if err := c.verifyExecConfig(config); err != nil {
-		return -1, err
-	}
-
-	if !c.ensureState(define.ContainerStateRunning) {
-		return -1, fmt.Errorf("can only create exec sessions on running containers: %w", define.ErrCtrStateInvalid)
-	}
-
-	session, err := c.createExecSession(config)
-	if err != nil {
-		return -1, err
-	}
-
-	if c.state.ExecSessions == nil {
-		c.state.ExecSessions = make(map[string]*ExecSession)
-	}
-	c.state.ExecSessions[session.ID()] = session
-	defer delete(c.state.ExecSessions, session.ID())
-
-	opts, err := prepareForExec(c, session)
-	if err != nil {
-		return -1, err
-	}
-	defer func() {
-		// cleanupExecBundle MUST be called with the parent container locked.
-		if !unlock && !c.batched {
-			c.lock.Lock()
-			unlock = true
-
-			if err := c.syncContainer(); err != nil {
-				logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
-				// Normally we'd want to continue here, get rid of the exec directory.
-				// But the risk of proceeding into a function that can mutate state with a bad state is high.
-				// Lesser of two evils is to bail and leak a directory.
-				return
-			}
-		}
-		if err := c.cleanupExecBundle(session.ID()); err != nil {
-			logrus.Errorf("Container %s light exec session cleanup error: %v", c.ID(), err)
-		}
-	}()
-
-	pid, attachErrChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts, streams, nil)
-	if err != nil {
-		return -1, err
-	}
-	session.PID = pid
-	session.PIDData = getPidData(pid)
-
-	if !c.batched {
-		c.lock.Unlock()
-		unlock = false
-	}
-
-	select {
-	case err = <-attachErrChan:
-		if err != nil {
-			return -1, fmt.Errorf("container %s light exec session with pid: %d error: %v", c.ID(), pid, err)
-		}
-	case <-time.After(timeout):
-		if err := c.ociRuntime.ExecStopContainer(c, session.ID(), 0); err != nil {
-			return -1, err
-		}
-		return -1, fmt.Errorf("%v of %s", define.ErrHealthCheckTimeout, c.HealthCheckConfig().Timeout.String())
-	}
-
-	return c.readExecExitCode(session.ID())
+	return c.execLightweight(config, streams, timeout)
 }
 
 func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan resize.TerminalSize) (int, error) {
@@ -1319,4 +1232,100 @@ func justWriteExecExitCode(c *Container, sessionID string, exitCode int, emitEve
 
 	// Finally, save our changes.
 	return c.save()
+}
+
+// execLightweight executes a command in a container without creating a persistent exec session.
+// It is used by both ExecNoSession and healthCheckExec to avoid code duplication.
+func (c *Container) execLightweight(config *ExecConfig, streams *define.AttachStreams, timeout time.Duration) (int, error) {
+	if err := c.verifyExecConfig(config); err != nil {
+		return -1, err
+	}
+
+	unlock := true
+	if !c.batched {
+		c.lock.Lock()
+		defer func() {
+			if unlock {
+				c.lock.Unlock()
+			}
+		}()
+
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
+	}
+
+	if !c.ensureState(define.ContainerStateRunning) {
+		return -1, fmt.Errorf("can only create exec sessions on running containers: %w", define.ErrCtrStateInvalid)
+	}
+
+	session, err := c.createExecSession(config)
+	if err != nil {
+		return -1, err
+	}
+
+	if c.state.ExecSessions == nil {
+		c.state.ExecSessions = make(map[string]*ExecSession)
+	}
+	c.state.ExecSessions[session.ID()] = session
+	defer delete(c.state.ExecSessions, session.ID())
+
+	opts, err := prepareForExec(c, session)
+	if err != nil {
+		return -1, err
+	}
+	defer func() {
+		if err := c.cleanupExecBundle(session.ID()); err != nil {
+			logrus.Errorf("Container %s light exec session cleanup error: %v", c.ID(), err)
+		}
+	}()
+
+	pid, attachErrChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts, streams, nil)
+	if err != nil {
+		// Check if the error is command not found before returning
+		if exitCode := define.ExitCode(err); exitCode == define.ExecErrorCodeNotFound {
+			return exitCode, err
+		}
+		return define.ExecErrorCodeGeneric, err
+	}
+	session.PID = pid
+	session.PIDData = getPidData(pid)
+
+	if !c.batched {
+		c.lock.Unlock()
+		unlock = false
+	}
+
+	// Handle timeout for health checks
+	if timeout > 0 {
+		select {
+		case err = <-attachErrChan:
+			if err != nil {
+				return -1, fmt.Errorf("container %s light exec session with pid: %d error: %v", c.ID(), pid, err)
+			}
+		case <-time.After(timeout):
+			if err := c.ociRuntime.ExecStopContainer(c, session.ID(), 0); err != nil {
+				return -1, err
+			}
+			return -1, fmt.Errorf("%v of %s", define.ErrHealthCheckTimeout, timeout.String())
+		}
+	} else {
+		// For no-session exec, wait for completion without timeout
+		err = <-attachErrChan
+		if err != nil && !errors.Is(err, define.ErrDetach) {
+			// Check if the error is command not found
+			if exitCode := define.ExitCode(err); exitCode == define.ExecErrorCodeNotFound {
+				return exitCode, err
+			}
+			return define.ExecErrorCodeGeneric, err
+		}
+	}
+
+	return c.readExecExitCode(session.ID())
+}
+
+// ExecNoSession executes a command in a container without creating a persistent exec session.
+// It skips database operations and minimizes container locking for performance.
+func (c *Container) ExecNoSession(config *ExecConfig, streams *define.AttachStreams, _ <-chan resize.TerminalSize) (int, error) {
+	return c.execLightweight(config, streams, 0)
 }

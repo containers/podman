@@ -1800,7 +1800,18 @@ func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([
 		"name=":    func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeNames) },
 		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeDefault) },
 		"pod=":     func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeDefault) },
-		"since=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
+		"restart-policy=": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return []string{
+				define.RestartPolicyAlways,
+				define.RestartPolicyNo,
+				define.RestartPolicyOnFailure,
+				define.RestartPolicyUnlessStopped,
+			}, cobra.ShellCompDirectiveNoFileComp
+		},
+		"should-start-on-boot=": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
+		},
+		"since=": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
 		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return containerStatuses, cobra.ShellCompDirectiveNoFileComp
 		},

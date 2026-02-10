@@ -545,7 +545,7 @@ func (c *Container) Export(out io.Writer) error {
 		return fmt.Errorf("cannot mount container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
-	defer c.newContainerEvent(events.Mount)
+	defer c.newContainerEvent(events.Export)
 	return c.export(out)
 }
 
@@ -1091,6 +1091,28 @@ func (c *Container) ShouldRestart(_ context.Context) bool {
 		}
 	}
 	return c.shouldRestart()
+}
+
+// Indicate whether or not the container will should start after a reboot of system
+func (c *Container) ShouldStartOnBoot() bool {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false
+		}
+	}
+
+	if c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated) {
+		return false
+	}
+
+	configuredRestartPolicy := c.RestartPolicy()
+	isAlways := configuredRestartPolicy == define.RestartPolicyAlways
+	isUnlessStopped := configuredRestartPolicy == define.RestartPolicyUnlessStopped && !c.state.StoppedByUser
+
+	return isAlways || isUnlessStopped
 }
 
 // CopyFromArchive copies the contents from the specified tarStream to path

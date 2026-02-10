@@ -369,6 +369,7 @@ func PushArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 	defer auth.RemoveAuthfile(authfile)
 
+	artifactsPushOptions.Authfile = authfile
 	if authConf != nil {
 		artifactsPushOptions.Username = authConf.Username
 		artifactsPushOptions.Password = authConf.Password

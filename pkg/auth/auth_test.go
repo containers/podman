@@ -392,6 +392,8 @@ func TestParseMultiAuthHeader(t *testing.T) {
 	}{
 		// Empty header
 		{input: "", expected: nil},
+		// Empty JSON object {}=e30= base64-encoded
+		{input: "e30=", expected: nil},
 		// "null"
 		{input: "null", expected: nil},
 		// Invalid JSON

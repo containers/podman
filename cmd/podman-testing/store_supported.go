@@ -38,7 +38,7 @@ func init() {
 func storeBefore() error {
 	defaultStoreOptions, err := storage.DefaultStoreOptions()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "selecting storage options: %v", err)
+		fmt.Fprintf(os.Stderr, "selecting storage options: %v\n", err)
 		return nil
 	}
 	globalStorageOptions = defaultStoreOptions

@@ -440,14 +440,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(umaskFlagName, completion.AutocompleteNone)
 
-		ulimitFlagName := "ulimit"
-		createFlags.StringSliceVar(
-			&cf.Ulimit,
-			ulimitFlagName, cf.Ulimit,
-			"Ulimit options",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(ulimitFlagName, completion.AutocompleteNone)
-
 		userFlagName := "user"
 		createFlags.StringVarP(
 			&cf.User,
@@ -574,6 +566,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Unset environment default variables in container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(unsetenvFlagName, completion.AutocompleteNone)
+
+		ulimitFlagName := "ulimit"
+		createFlags.StringSliceVar(
+			&cf.Ulimit,
+			ulimitFlagName, cf.Ulimit,
+			"Ulimit options",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(ulimitFlagName, completion.AutocompleteNone)
 
 		healthCmdFlagName := "health-cmd"
 		createFlags.StringVar(

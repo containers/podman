@@ -940,30 +940,28 @@ EOF
     run_podman 1 run --rm $IMAGE grep $user /etc/passwd
     run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
 
-    # find a user with a uid > 100 that is a valid octal
     # Issue #19800
-    octal_user=$(awk -F\: '$1!="nobody" && $3>100 && $3~/^[0-7]+$/ {print $1 " " $3; exit}' /etc/passwd)
-    # test only if a valid user was found
-    if test -n "$octal_user"; then
-        read octal_username octal_userid <<< $octal_user
-        run_podman run --user=$octal_username --hostuser=$octal_username --rm $IMAGE id -u
-        is "$output" "$octal_userid"
+    # Use the rootless user ID which is likely to be octal on CI as new user IDs start with 1000.
+    userid=$(id -u)
+    if [[ $userid =~ ^[0-7]+$ ]]; then
+        run_podman run --user=$user --hostuser=$user --rm $IMAGE id -u
+        is "$output" "$userid"
     fi
 
-    user=$(id -u)
-
-    userspec=$(id -un):$(id -g)
-    run_podman run --hostuser=$user --user $userspec --rm $IMAGE sh -c 'echo $(id -un):$(id -g)'
+    group=$(id -gn)
+    groupid=$(id -g)
+    userspec=$user:$groupid
+    run_podman run --hostuser=$userid --user $userspec --rm $IMAGE sh -c 'echo $(id -un):$(id -g)'
     is "$output" "$userspec"
 
-    run_podman run --hostuser=$user --user $userspec --group-entry="$(id -gn):x:$(id -g):" --rm $IMAGE sh -c 'echo $(id -un):$(id -gn)'
-    is "$output" "$(id -un):$(id -gn)"
+    run_podman run --hostuser=$userid --user $userspec --group-entry="$group:x:$groupid:" --rm $IMAGE sh -c 'echo $(id -un):$(id -gn)'
+    is "$output" "$user:$group"
 
-    run_podman 126 run --hostuser=$user --user "$(id -un):$(id -gn)" --rm $IMAGE sh -c 'echo $(id -un):$(id -gn)'
+    run_podman 126 run --hostuser=$userid --user "$user:$group" --rm $IMAGE sh -c 'echo $(id -un):$(id -gn)'
     is "$output" "Error:.* no matching entries in group file"
 
-    run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
-    run_podman run --hostuser=$user --user $user --rm $IMAGE grep $user /etc/passwd
+    run_podman run --hostuser=$userid --rm $IMAGE grep $userid /etc/passwd
+    run_podman run --hostuser=$userid --user $userid --rm $IMAGE grep $userid /etc/passwd
     user=bogus
     run_podman 126 run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
 }
@@ -1224,6 +1222,14 @@ EOF
     ctr_id=$output
     is "$run_output" "$ctr_id" "Did not find container ID in the output"
     run_podman rm $ctr_name
+}
+
+# Regression test for https://github.com/containers/podman/issues/27414
+# bats test_tags=ci:parallel
+@test "podman run with empty --detach-keys" {
+    # Empty string should disable detaching, not error with "invalid detach keys"
+    run_podman run --rm --detach-keys="" $IMAGE echo "success"
+    is "$output" "success" "empty detach-keys should work"
 }
 
 # 15895: --privileged + --systemd = hide /dev/ttyNN

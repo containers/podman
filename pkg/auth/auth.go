@@ -336,6 +336,9 @@ func parseMultiAuthHeader(authHeader string) (map[string]types.DockerAuthConfig,
 
 	// Now convert to the internal types.
 	authConfigs := make(map[string]types.DockerAuthConfig)
+	if len(dockerAuthConfigs) == 0 {
+		return nil, nil
+	}
 	for server := range dockerAuthConfigs {
 		authConfigs[server] = dockerAuthToImageAuth(dockerAuthConfigs[server])
 	}

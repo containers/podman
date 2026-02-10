@@ -50,7 +50,7 @@ Add a sigstore signature at the destination using a private key at the specified
 
 ## EXAMPLE
 
-Push the specified iage to a container registry:
+Push the specified image to a container registry:
 ```
 $ podman artifact push quay.io/baude/artifact:single
 Getting image source signatures
