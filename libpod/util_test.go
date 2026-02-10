@@ -163,7 +163,7 @@ func Test_discoverGPUVendorFromCDI(t *testing.T) {
 		expectError  bool
 	}{
 		{
-			name:		 "Nil vendors",
+			name:         "Nil vendors",
 			vendors:      nil,
 			expectError:  true,
 			expectVendor: "",
