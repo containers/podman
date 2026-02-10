@@ -101,12 +101,13 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     run -0 systemctl list-units
     cidmatch=$(grep "$cid" <<<"$output")
     echo "$cidmatch"
-    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run $cid" \
+    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run --ignore-result $cid" \
            "Healthcheck systemd unit exists"
 
     # Check that the right service option is applied so we don't hit the systemd restart limit.
     # Even though the code sets StartLimitIntervalSec the systemd command prints StartLimitInterval*U*Sec
-    run -0 systemctl show "$cid-*.service"
+    # Use show --all otherwise the glob might not match the already inactive transient unit.
+    run -0 systemctl show --all "$cid-*.service"
     assert "$output" =~ "StartLimitIntervalUSec=0" "The hc service has the right interval set"
 
     current_time=$(date --iso-8601=ns)
@@ -453,6 +454,35 @@ function _check_health_log {
 
     run_podman inspect $ctr --format "{{.State.Health.Log}}"
     assert "$output" !~ "$msg" "Health log message not found"
+
+    run_podman rm -f -t0 $ctr
+}
+
+@test "podman healthcheck --ignore-result" {
+    ctr="c-h-$(safename)"
+
+    run_podman run -d --name $ctr                  \
+           --health-cmd /home/podman/healthcheck   \
+           --health-retries=1                      \
+           --health-interval=disable               \
+           $IMAGE /home/podman/pause
+
+    # Healthcheck should succeed normally
+    run_podman healthcheck run $ctr
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    # Now make the healthcheck fail
+    run_podman exec $ctr touch /uh-oh
+    run_podman 1 healthcheck run $ctr
+    is "$output" "unhealthy" "output from 'podman healthcheck run' without --ignore-result"
+
+    # With --ignore-result, we should still get "unhealthy" but exit 0
+    run_podman healthcheck run --ignore-result $ctr
+    is "$output" "unhealthy" "output from 'podman healthcheck run --ignore-result'"
+
+    # It should NOT suppress fatal errors however (e.g., nonexistent container)
+    run_podman 125 healthcheck run --ignore-result "nonexistent-$(safename)"
+    assert "$output" =~ "no such container"
 
     run_podman rm -f -t0 $ctr
 }

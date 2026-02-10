@@ -4,7 +4,7 @@
 podman\-healthcheck\-run - Run a container healthcheck
 
 ## SYNOPSIS
-**podman healthcheck run** *container*
+**podman healthcheck run** [*options*] *container*
 
 ## DESCRIPTION
 
@@ -25,6 +25,10 @@ Possible errors that can occur during the healthcheck are:
 
 Print usage statement
 
+#### **--ignore-result**
+
+Exit with code 0 regardless of the healthcheck result and if the container is
+still in the startup period. Other errors will not be ignored.
 
 ## EXAMPLES
 

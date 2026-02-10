@@ -47,7 +47,7 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 		cmd = append(cmd, "--log-level=debug", "--syslog")
 	}
 
-	cmd = append(cmd, "healthcheck", "run", c.ID())
+	cmd = append(cmd, "healthcheck", "run", "--ignore-result", c.ID())
 
 	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
