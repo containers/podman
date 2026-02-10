@@ -130,7 +130,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if query.CompatMode {
-		utils.CompatPull(r.Context(), w, runtime, query.Reference, pullPolicy, pullOptions)
+		utils.CompatPull(r, w, runtime, query.Reference, pullPolicy, pullOptions)
 		return
 	}
 

@@ -5,7 +5,7 @@ package compat
 import (
 	"time"
 
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/types/container"
 )
 
 // CPUStats aggregates and wraps all CPU related info of container

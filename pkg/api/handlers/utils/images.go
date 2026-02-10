@@ -3,17 +3,18 @@
 package utils
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/containers/podman/v6/libpod"
+	"github.com/containers/podman/v6/pkg/api/handlers"
+	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/docker/distribution/registry/api/errcode"
-	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
@@ -124,7 +125,8 @@ type pullResult struct {
 	err    error
 }
 
-func CompatPull(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, reference string, pullPolicy config.PullPolicy, pullOptions *libimage.PullOptions) {
+func CompatPull(r *http.Request, w http.ResponseWriter, runtime *libpod.Runtime, reference string, pullPolicy config.PullPolicy, pullOptions *libimage.PullOptions) {
+	ctx := r.Context()
 	progress := make(chan types.ProgressProperties)
 	pullOptions.Progress = progress
 
@@ -156,8 +158,8 @@ func CompatPull(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runt
 
 loop: // break out of for/select infinite loop
 	for {
-		report := jsonmessage.JSONMessage{}
-		report.Progress = &jsonmessage.JSONProgress{}
+		report := handlers.LegacyJSONMessage{}
+		report.Progress = &jsonstream.Progress{}
 		select {
 		case e := <-progress:
 			writeStatusCode(http.StatusOK)
@@ -169,8 +171,17 @@ loop: // break out of for/select infinite loop
 				report.Status = "Downloading"
 				report.Progress.Current = int64(e.Offset)
 				report.Progress.Total = e.Artifact.Size
-				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
-				report.ProgressMessage = report.Progress.String()
+				// Deprecated field, but because consumers might still read it keep it.
+				if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
+					b, err := json.Marshal(&jsonstream.Message{
+						Status:   report.Status,
+						Progress: report.Progress,
+						ID:       report.ID,
+					})
+					if err == nil {
+						report.ProgressMessage = string(b)
+					}
+				}
 			case types.ProgressEventSkipped:
 				report.Status = "Already exists"
 			case types.ProgressEventDone:
@@ -191,11 +202,13 @@ loop: // break out of for/select infinite loop
 					writeStatusCode(http.StatusInternalServerError)
 				}
 				msg := err.Error()
-				report.Error = &jsonmessage.JSONError{
+				report.Error = &jsonstream.Error{
 					Message: msg,
 				}
 				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
-				report.ErrorMessage = msg
+				if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
+					report.ErrorMessage = msg
+				}
 			} else {
 				pulledImages := pullRes.images
 				if len(pulledImages) > 0 {
@@ -204,11 +217,13 @@ loop: // break out of for/select infinite loop
 					report.ID = img[0:12]
 				} else {
 					msg := "internal error: no images pulled"
-					report.Error = &jsonmessage.JSONError{
+					report.Error = &jsonstream.Error{
 						Message: msg,
 					}
 					//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
-					report.ErrorMessage = msg
+					if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
+						report.ErrorMessage = msg
+					}
 					writeStatusCode(http.StatusInternalServerError)
 				}
 			}
@@ -217,7 +232,7 @@ loop: // break out of for/select infinite loop
 			// This is necessary for compatibility with the Docker API.
 			if err != nil && !progressSent {
 				msg := errorhandling.Cause(err).Error()
-				message := jsonmessage.JSONError{
+				message := jsonstream.Error{
 					Message: msg,
 				}
 				if err := enc.Encode(message); err != nil {

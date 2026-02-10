@@ -7,7 +7,7 @@ import (
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/types/container"
 )
 
 func getPreCPUStats(stats *define.ContainerStats) CPUStats {

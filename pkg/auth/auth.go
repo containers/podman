@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	dockerAPITypes "github.com/docker/docker/api/types/registry"
+	dockerAPITypes "github.com/moby/moby/api/types/registry"
 	"github.com/sirupsen/logrus"
 	imageAuth "go.podman.io/image/v5/pkg/docker/config"
 	"go.podman.io/image/v5/types"

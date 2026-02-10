@@ -5,6 +5,7 @@ package compat
 import (
 	"fmt"
 	"net/http"
+	"net/netip"
 	"os"
 	goRuntime "runtime"
 	"strings"
@@ -16,10 +17,10 @@ import (
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/api/types/swarm"
-	dockerSystem "github.com/docker/docker/api/types/system"
 	"github.com/google/uuid"
+	"github.com/moby/moby/api/types/registry"
+	"github.com/moby/moby/api/types/swarm"
+	dockerSystem "github.com/moby/moby/api/types/system"
 	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
@@ -83,7 +84,6 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 			InitBinary:          "",
 			InitCommit:          dockerSystem.Commit{},
 			Isolation:           "",
-			KernelMemoryTCP:     false,
 			KernelVersion:       infoData.Host.Kernel,
 			Labels:              nil,
 			LiveRestoreEnabled:  false,
@@ -155,11 +155,9 @@ func getServiceConfig(runtime *libpod.Runtime) *registry.ServiceConfig {
 	}
 
 	return &registry.ServiceConfig{
-		AllowNondistributableArtifactsCIDRs:     make([]*registry.NetIPNet, 0),
-		AllowNondistributableArtifactsHostnames: make([]string, 0),
-		InsecureRegistryCIDRs:                   make([]*registry.NetIPNet, 0),
-		IndexConfigs:                            indexConfs,
-		Mirrors:                                 make([]string, 0),
+		InsecureRegistryCIDRs: make([]netip.Prefix, 0),
+		IndexConfigs:          indexConfs,
+		Mirrors:               make([]string, 0),
 	}
 }
 
@@ -249,8 +247,13 @@ func getDefaultAddressPools(configInfo *config.Config) []dockerSystem.NetworkAdd
 			continue
 		}
 
+		pfx, err := netip.ParsePrefix(pool.Base.String())
+		if err != nil {
+			continue
+		}
+
 		pools = append(pools, dockerSystem.NetworkAddressPool{
-			Base: pool.Base.String(),
+			Base: pfx,
 			Size: pool.Size,
 		})
 	}
