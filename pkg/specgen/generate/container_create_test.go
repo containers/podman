@@ -48,9 +48,7 @@ func TestExtractCDIDevices(t *testing.T) {
 			},
 			expectedOptions: []libpod.CtrCreateOption{libpod.WithCDI([]string{"example.com/class=device"})},
 			expectedGenerator: specgen.SpecGenerator{
-				ContainerStorageConfig: specgen.ContainerStorageConfig{
-					Devices: []specs.LinuxDevice{},
-				},
+				ContainerStorageConfig: specgen.ContainerStorageConfig{},
 			},
 		},
 		{
@@ -72,11 +70,42 @@ func TestExtractCDIDevices(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "gpus flag adds options",
+			generator: specgen.SpecGenerator{
+				ContainerStorageConfig: specgen.ContainerStorageConfig{
+					GPUs: []string{"all"},
+				},
+			},
+			expectedOptions: []libpod.CtrCreateOption{libpod.WithGPUs([]string{"all"})},
+			expectedGenerator: specgen.SpecGenerator{
+				ContainerStorageConfig: specgen.ContainerStorageConfig{
+					GPUs: []string{"all"},
+				},
+			},
+		},
+		{
+			description: "gpus flag works with CDI devices",
+			generator: specgen.SpecGenerator{
+				ContainerStorageConfig: specgen.ContainerStorageConfig{
+					GPUs: []string{"all"},
+					Devices: []specs.LinuxDevice{
+						{Path: "example.com/class=device"},
+					},
+				},
+			},
+			expectedOptions: []libpod.CtrCreateOption{libpod.WithGPUs([]string{"all"}), libpod.WithCDI([]string{"example.com/class=device"})},
+			expectedGenerator: specgen.SpecGenerator{
+				ContainerStorageConfig: specgen.ContainerStorageConfig{
+					GPUs: []string{"all"},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			options := ExtractCDIDevices(&tc.generator)
+			options := ExtractCDIDevices(&tc.generator, tc.containerConfDevices, tc.defaultHostDevices)
 			require.EqualValues(t, len(tc.expectedOptions), len(options))
 			require.EqualValues(t, tc.expectedGenerator, tc.generator)
 		})
