@@ -261,12 +261,20 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 			for _, containerfile := range m {
 				// Add path to containerfile if it is not URL
 				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
-					if filepath.IsAbs(containerfile) {
-						containerfile = filepath.Clean(filepath.FromSlash(containerfile))
-					} else {
-						containerfile = filepath.Join(buildContext.ContextDirectory,
-							filepath.Clean(filepath.FromSlash(containerfile)))
+					cleaned := filepath.Clean(filepath.FromSlash(containerfile))
+					if filepath.VolumeName(cleaned) != "" {
+						return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("invalid path"))
 					}
+
+					resolved := cleaned
+					if !filepath.IsAbs(cleaned) {
+						resolved = filepath.Join(buildContext.ContextDirectory, cleaned)
+					}
+					rel, relErr := filepath.Rel(buildContext.ContextDirectory, resolved)
+					if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+						return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("path escapes build context"))
+					}
+					containerfile = resolved
 				}
 				buildContext.ContainerFiles = append(buildContext.ContainerFiles, containerfile)
 			}
