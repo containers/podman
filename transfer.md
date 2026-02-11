@@ -51,19 +51,19 @@ There are other equivalents for these tools
 | `docker login`   | [`podman login`](./docs/source/markdown/podman-login.1.md)      |
 | `docker logout`  | [`podman logout`](./docs/source/markdown/podman-logout.1.md)    |
 | `docker logs` | [`podman logs`](./docs/source/markdown/podman-logs.1.md)           |
-| `docker manifest `| [`podman manifest`](./docs.source/markdown/podman-manifest.1.md)           |
+| `docker manifest `| [`podman manifest`](./docs/source/markdown/podman-manifest.1.md)           |
 | `docker manifest annotate`  | [`podman manifest annotate`](./docs/source/markdown/podman-manifest-annotate.1.md)   |
 | `docker manifest create` | [`podman manifest create`](./docs/source/markdown/podman-manifest-create.1.md)   |
 | `docker manifest inspect`| [`podman manifest inspect`](./docs/source/markdown/podman-manifest-inspect.1.md) |
 | `docker manifest push`   | [`podman manifest push`](./docs/source/markdown/podman-manifest-push.1.md)       |
-| `docker manifest rm`     | [`podman manifest rm`](./docs.source/markdown/podman-manifest-rm.1.md)           |
-| `docker network `        | [`podman network`](./docs.source/markdown/podman-network.1.md)                   |
+| `docker manifest rm`     | [`podman manifest rm`](./docs/source/markdown/podman-manifest-rm.1.md)           |
+| `docker network `        | [`podman network`](./docs/source/markdown/podman-network.1.md)                   |
 | `docker network connect` | [`podman network connect`](./docs/source/markdown/podman-network-connect.1.md)   |
 | `docker network create`  | [`podman network create`](./docs/source/markdown/podman-network-create.1.md)     |
 | `docker network disconnect`| [`podman network disconnect`](./docs/source/markdown/podman-network-disconnect.1.md)|
 | `docker network inspect` | [`podman network inspect`](./docs/source/markdown/podman-network-inspect.1.md)   |
 | `docker network ls`      | [`podman network ls`](./docs/source/markdown/podman-network-ls.1.md)             |
-| `docker network rm`      | [`podman network rm`](./docs.source/markdown/podman-network-rm.1.md)             |
+| `docker network rm`      | [`podman network rm`](./docs/source/markdown/podman-network-rm.1.md)             |
 | `docker pause`   | [`podman pause`](./docs/source/markdown/podman-pause.1.md)      |
 | `docker port`    | [`podman port`](./docs/source/markdown/podman-port.1.md)        |
 | `docker ps`      | [`podman ps`](./docs/source/markdown/podman-ps.1.md)            |
@@ -81,14 +81,14 @@ There are other equivalents for these tools
 | `docker secret inspect`  | [`podman secret`](./docs/source/markdown/podman-secret-inspect.1.md)|
 | `docker secret ls`  | [`podman secret`](./docs/source/markdown/podman-secret-ls.1.md)|
 | `docker secret rm`  | [`podman secret`](./docs/source/markdown/podman-secret-rm.1.md)|
-| `docker service` | [`podman service`](./docs/source/markdown/podman-service.1.md)  |
+| `docker service` | [`podman service`](./docs/source/markdown/podman-system-service.1.md)  |
 | `docker start`   | [`podman start`](./docs/source/markdown/podman-start.1.md)      |
 | `docker stats`   | [`podman stats`](./docs/source/markdown/podman-stats.1.md)      |
 | `docker stop`    | [`podman stop`](./docs/source/markdown/podman-stop.1.md)        |
 | `docker system ` | [`podman system`](./docs/source/markdown/podman-system.1.md)    |
 | `docker system df`     | [`podman system df`](./docs/source/markdown/podman-system-df.1.md)      |
 | `docker system events`   | [`podman system events`](./docs/source/markdown/podman-events.1.md)  |
-| `docker system info`   | [`podman system info`](./docs/source/markdown/podman-system-info.1.md)  |
+| `docker system info`   | [`podman system info`](./docs/source/markdown/podman-info.1.md)  |
 | `docker system prune`  | [`podman system prune`](./docs/source/markdown/podman-system-prune.1.md)|
 | `docker tag`     | [`podman tag`](./docs/source/markdown/podman-tag.1.md)          |
 | `docker top`     | [`podman top`](./docs/source/markdown/podman-top.1.md)          |
@@ -136,7 +136,6 @@ The following podman commands do not have a Docker equivalent:
 * [`podman container checkpoint`](/docs/source/markdown/podman-container-checkpoint.1.md)
 * [`podman container cleanup`](/docs/source/markdown/podman-container-cleanup.1.md)
 * [`podman container exists`](/docs/source/markdown/podman-container-exists.1.md)
-* [`podman container refresh`](/docs/source/markdown/podman-container-refresh.1.md)
 * [`podman container restore`](/docs/source/markdown/podman-container-restore.1.md)
 * [`podman container runlabel`](/docs/source/markdown/podman-container-runlabel.1.md)
 * [`podman generate `](./docs/source/markdown/podman-generate.1.md)
@@ -167,8 +166,8 @@ The following podman commands do not have a Docker equivalent:
 * [`podman network exists`](./docs/source/markdown/podman-network-exists.1.md)
 * [`podman network prune`](./docs/source/markdown/podman-network-prune.1.md)
 * [`podman network reload`](./docs/source/markdown/podman-network-reload.1.md)
-* [`podman play `](./docs/source/markdown/podman-play.1.md)
-* [`podman play kube`](./docs/source/markdown/podman-play-kube.1.md)
+* [`podman play `](./docs/source/markdown/podman-kube.1.md)
+* [`podman kube play`](./docs/source/markdown/podman-kube-play.1.md)
 * [`podman pod `](./docs/source/markdown/podman-pod.1.md)
 * [`podman pod create`](./docs/source/markdown/podman-pod-create.1.md)
 * [`podman pod exists`](./docs/source/markdown/podman-pod-exists.1.md)
@@ -190,10 +189,10 @@ The following podman commands do not have a Docker equivalent:
 * [`podman system connection list`](./docs/source/markdown/podman-system-connection-list.1.md)
 * [`podman system connection remove`](./docs/source/markdown/podman-system-connection-remove.1.md)
 * [`podman system connection rename`](./docs/source/markdown/podman-system-connection-rename.1.md)
-* [`podman system migrate`](./docs/source/markdown/podman-system-connection-migrate.1.md)
-* [`podman system renumber`](./docs/source/markdown/podman-system-connection-renumber.1.md)
-* [`podman system reset`](./docs/source/markdown/podman-system-connection-reset.1.md)
-* [`podman system service`](./docs/source/markdown/podman-system-connection-service.1.md)
+* [`podman system migrate`](./docs/source/markdown/podman-system-migrate.1.md)
+* [`podman system renumber`](./docs/source/markdown/podman-system-renumber.1.md)
+* [`podman system reset`](./docs/source/markdown/podman-system-reset.1.md)
+* [`podman system service`](./docs/source/markdown/podman-system-service.1.md)
 * [`podman unmount`](./docs/source/markdown/podman-unmount.1.md)
 * [`podman unshare`](./docs/source/markdown/podman-unshare.1.md)
 * [`podman untag`](./docs/source/markdown/podman-untag.1.md)
