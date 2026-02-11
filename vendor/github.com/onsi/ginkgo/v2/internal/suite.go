@@ -42,6 +42,8 @@ type Suite struct {
 	config            types.SuiteConfig
 	deadline          time.Time
 
+	currentConstructionNodeReport *types.ConstructionNodeReport
+
 	skipAll              bool
 	report               types.Report
 	currentSpecReport    types.SpecReport
@@ -106,13 +108,13 @@ func (suite *Suite) BuildTree() error {
 	return nil
 }
 
-func (suite *Suite) Run(description string, suiteLabels Labels, suiteSemVerConstraints SemVerConstraints, suiteAroundNodes types.AroundNodes, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, progressSignalRegistrar ProgressSignalRegistrar, suiteConfig types.SuiteConfig) (bool, bool) {
+func (suite *Suite) Run(description string, suiteLabels Labels, suiteSemVerConstraints SemVerConstraints, suiteComponentSemVerConstraints ComponentSemVerConstraints, suiteAroundNodes types.AroundNodes, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, progressSignalRegistrar ProgressSignalRegistrar, suiteConfig types.SuiteConfig) (bool, bool) {
 	if suite.phase != PhaseBuildTree {
 		panic("cannot run before building the tree = call suite.BuildTree() first")
 	}
 	ApplyNestedFocusPolicyToTree(suite.tree)
 	specs := GenerateSpecsFromTreeRoot(suite.tree)
-	specs, hasProgrammaticFocus := ApplyFocusToSpecs(specs, description, suiteLabels, suiteSemVerConstraints, suiteConfig)
+	specs, hasProgrammaticFocus := ApplyFocusToSpecs(specs, description, suiteLabels, suiteSemVerConstraints, suiteComponentSemVerConstraints, suiteConfig)
 	specs = ComputeAroundNodes(specs)
 
 	suite.phase = PhaseRun
@@ -131,7 +133,7 @@ func (suite *Suite) Run(description string, suiteLabels Labels, suiteSemVerConst
 
 	cancelProgressHandler := progressSignalRegistrar(suite.handleProgressSignal)
 
-	success := suite.runSpecs(description, suiteLabels, suiteSemVerConstraints, suitePath, hasProgrammaticFocus, specs)
+	success := suite.runSpecs(description, suiteLabels, suiteSemVerConstraints, suiteComponentSemVerConstraints, suitePath, hasProgrammaticFocus, specs)
 
 	cancelProgressHandler()
 
@@ -203,6 +205,17 @@ func (suite *Suite) PushNode(node Node) error {
 						err = types.GinkgoErrors.CaughtPanicDuringABuildPhase(e, node.CodeLocation)
 					}
 				}()
+
+				// Ensure that code running in the body of the container node
+				// has access to information about the current container node(s).
+				// The current one (nil in top-level container nodes, non-nil in an
+				// embedded container node) gets restored when the node is done.
+				oldConstructionNodeReport := suite.currentConstructionNodeReport
+				suite.currentConstructionNodeReport = constructionNodeReportForTreeNode(suite.tree)
+				defer func() {
+					suite.currentConstructionNodeReport = oldConstructionNodeReport
+				}()
+
 				node.Body(nil)
 				return err
 			}()
@@ -332,6 +345,16 @@ func (suite *Suite) By(text string, callback ...func()) error {
 	return nil
 }
 
+func (suite *Suite) CurrentConstructionNodeReport() types.ConstructionNodeReport {
+	suite.selectiveLock.Lock()
+	defer suite.selectiveLock.Unlock()
+	report := suite.currentConstructionNodeReport
+	if report == nil {
+		panic("CurrentConstructionNodeReport may only be called during construction of the spec tree")
+	}
+	return *report
+}
+
 /*
 Spec Running methods - used during PhaseRun
 */
@@ -433,16 +456,17 @@ func (suite *Suite) processCurrentSpecReport() {
 	}
 }
 
-func (suite *Suite) runSpecs(description string, suiteLabels Labels, suiteSemVerConstraints SemVerConstraints, suitePath string, hasProgrammaticFocus bool, specs Specs) bool {
+func (suite *Suite) runSpecs(description string, suiteLabels Labels, suiteSemVerConstraints SemVerConstraints, suiteComponentSemVerConstraints ComponentSemVerConstraints, suitePath string, hasProgrammaticFocus bool, specs Specs) bool {
 	numSpecsThatWillBeRun := specs.CountWithoutSkip()
 
 	suite.report = types.Report{
-		SuitePath:                 suitePath,
-		SuiteDescription:          description,
-		SuiteLabels:               suiteLabels,
-		SuiteSemVerConstraints:    suiteSemVerConstraints,
-		SuiteConfig:               suite.config,
-		SuiteHasProgrammaticFocus: hasProgrammaticFocus,
+		SuitePath:                       suitePath,
+		SuiteDescription:                description,
+		SuiteLabels:                     suiteLabels,
+		SuiteSemVerConstraints:          suiteSemVerConstraints,
+		SuiteComponentSemVerConstraints: suiteComponentSemVerConstraints,
+		SuiteConfig:                     suite.config,
+		SuiteHasProgrammaticFocus:       hasProgrammaticFocus,
 		PreRunStats: types.PreRunStats{
 			TotalSpecs:       len(specs),
 			SpecsThatWillRun: numSpecsThatWillBeRun,

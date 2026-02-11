@@ -7,52 +7,52 @@ import (
 
 type Configuration struct {
 	// Print packets on stderr
-	Debug bool
+	Debug bool `yaml:"debug,omitempty"`
 
 	// Record all packets coming in and out in a file that can be read by Wireshark (pcap)
-	CaptureFile string
+	CaptureFile string `yaml:"capture-file,omitempty"`
 
 	// Length of packet
 	// Larger packets means less packets to exchange for the same amount of data (and less protocol overhead)
-	MTU int
+	MTU int `yaml:"mtu,omitempty"`
 
 	// Network reserved for the virtual network
-	Subnet string
+	Subnet string `yaml:"subnet,omitempty"`
 
 	// IP address of the virtual gateway
-	GatewayIP string
+	GatewayIP string `yaml:"gatewayIP,omitempty"`
 
 	// MAC address of the virtual gateway
-	GatewayMacAddress string
+	GatewayMacAddress string `yaml:"gatewayMacAddress,omitempty"`
 
 	// Built-in DNS records that will be served by the DNS server embedded in the gateway
-	DNS []Zone
+	DNS []Zone `yaml:"dns,omitempty"`
 
 	// List of search domains that will be added in all DHCP replies
-	DNSSearchDomains []string
+	DNSSearchDomains []string `yaml:"dnsSearchDomains,omitempty"`
 
 	// Port forwarding between the machine running the gateway and the virtual network.
-	Forwards map[string]string
+	Forwards map[string]string `yaml:"forwards,omitempty"`
 
 	// Address translation of incoming traffic.
 	// Useful for reaching the host itself (localhost) from the virtual network.
-	NAT map[string]string
+	NAT map[string]string `yaml:"nat,omitempty"`
 
 	// IPs assigned to the gateway that can answer to ARP requests
-	GatewayVirtualIPs []string
+	GatewayVirtualIPs []string `yaml:"gatewayVirtualIPs,omitempty"`
 
 	// DHCP static leases. Allow to assign pre-defined IP to virtual machine based on the MAC address
-	DHCPStaticLeases map[string]string
+	DHCPStaticLeases map[string]string `yaml:"dhcpStaticLeases,omitempty"`
 
 	// Only for Hyperkit
 	// Allow to assign a pre-defined MAC address to an Hyperkit VM
-	VpnKitUUIDMacAddresses map[string]string
+	VpnKitUUIDMacAddresses map[string]string `yaml:"vpnKitUUIDMacAddresses,omitempty"`
 
 	// Protocol to be used. Only for /connect mux
-	Protocol Protocol
+	Protocol Protocol `yaml:"-"`
 
 	// EC2 Metadata Service Access
-	Ec2MetadataAccess bool
+	Ec2MetadataAccess bool `yaml:"ec2MetadataAccess,omitempty"`
 }
 
 type Protocol string
@@ -71,13 +71,13 @@ const (
 )
 
 type Zone struct {
-	Name      string
-	Records   []Record
-	DefaultIP net.IP
+	Name      string   `yaml:"name,omitempty"`
+	Records   []Record `yaml:"records,omitempty"`
+	DefaultIP net.IP   `yaml:"defaultIP,omitempty"`
 }
 
 type Record struct {
-	Name   string
-	IP     net.IP
-	Regexp *regexp.Regexp
+	Name   string         `yaml:"name,omitempty"`
+	IP     net.IP         `yaml:"ip,omitempty"`
+	Regexp *regexp.Regexp `json:",omitempty" yaml:"regexp,omitempty"`
 }
