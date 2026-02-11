@@ -2226,7 +2226,7 @@ func (c *Container) addResolvConf() error {
 			// add the nameservers from the networks status
 			nameservers = networkNameServers
 		} else {
-			// pasta and slirp4netns have a built in DNS forwarder.
+			// pasta has a built in DNS forwarder.
 			nameservers = c.addSpecialDNS(nameservers)
 		}
 	}

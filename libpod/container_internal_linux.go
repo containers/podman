@@ -566,7 +566,7 @@ func (c *Container) setCgroupsPath(g *generate.Generator) error {
 	return nil
 }
 
-// addSpecialDNS adds special dns servers for slirp4netns and pasta
+// addSpecialDNS adds special dns servers for pasta
 func (c *Container) addSpecialDNS(nameservers []string) []string {
 	switch {
 	case c.config.NetMode.IsBridge():

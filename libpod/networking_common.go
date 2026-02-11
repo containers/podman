@@ -131,8 +131,7 @@ func isBridgeNetMode(n namespaces.NetworkMode) error {
 // This is mainly used when a reload of firewall rules wipes out existing
 // firewall configuration.
 // Efforts will be made to preserve MAC and IP addresses.
-// Only works on containers with bridge networking at present, though in the future we could
-// extend this to stop + restart slirp4netns
+// Only works on containers with bridge networking.
 func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
 	if ctr.state.NetNS == "" {
 		return nil, fmt.Errorf("container %s network is not configured, refusing to reload: %w", ctr.ID(), define.ErrCtrStateInvalid)
@@ -256,7 +255,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	settings.SandboxKey = c.state.NetNS
 
 	netStatus := c.getNetworkStatus()
-	// If this is empty, we're probably slirp4netns
+	// If this is empty, we're probably using pasta
 	if len(netStatus) == 0 {
 		return settings, nil
 	}
