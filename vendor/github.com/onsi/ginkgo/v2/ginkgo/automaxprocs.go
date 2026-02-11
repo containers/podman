@@ -4,5 +4,5 @@
 package main
 
 import (
-	_ "go.uber.org/automaxprocs"
+	_ "github.com/onsi/ginkgo/v2/ginkgo/automaxprocs"
 )

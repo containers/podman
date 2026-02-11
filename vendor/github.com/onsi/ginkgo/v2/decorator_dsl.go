@@ -118,6 +118,27 @@ You can learn more here: https://onsi.github.io/ginkgo/#spec-semantic-version-fi
 type SemVerConstraints = internal.SemVerConstraints
 
 /*
+ComponentSemVerConstraint decorates specs with ComponentSemVerConstraints. Multiple components semantic version constraints can be passed to ComponentSemVerConstraint and the component can't be empy, also the version strings must follow the semantic version constraint rules.
+ComponentSemVerConstraints can be applied to container and subject nodes, but not setup nodes. You can provide multiple ComponentSemVerConstraints to a given node and a spec's component semantic version constraints is the union of all component semantic version constraints in its node hierarchy.
+
+You can learn more here: https://onsi.github.io/ginkgo/#spec-semantic-version-filtering
+You can learn more about decorators here: https://onsi.github.io/ginkgo/#decorator-reference
+*/
+func ComponentSemVerConstraint(component string, semVerConstraints ...string) ComponentSemVerConstraints {
+	componentSemVerConstraints := ComponentSemVerConstraints{
+		component: semVerConstraints,
+	}
+
+	return componentSemVerConstraints
+}
+
+/*
+ComponentSemVerConstraints are the type for spec ComponentSemVerConstraint decorators. Use ComponentSemVerConstraint(...) to construct ComponentSemVerConstraints.
+You can learn more here: https://onsi.github.io/ginkgo/#spec-semantic-version-filtering
+*/
+type ComponentSemVerConstraints = internal.ComponentSemVerConstraints
+
+/*
 PollProgressAfter allows you to override the configured value for --poll-progress-after for a particular node.
 
 Ginkgo will start emitting node progress if the node is still running after a duration of PollProgressAfter.  This allows you to get quicker feedback about the state of a long-running spec.
@@ -153,6 +174,13 @@ GracePeriod denotes the period of time Ginkgo will wait for an interruptible nod
 Nodes that do not finish within a GracePeriod will be leaked and Ginkgo will proceed to run subsequent nodes.  In the event of a timeout, such leaks will be reported to the user.
 */
 type GracePeriod = internal.GracePeriod
+
+/*
+SpecPriority allows you to assign a priority to a spec or container.
+
+Specs with higher priority will be scheduled to run before specs with lower priority.  The default priority is 0 and negative priorities are allowed.
+*/
+type SpecPriority = internal.SpecPriority
 
 /*
 SuppressProgressReporting is a decorator that allows you to disable progress reporting of a particular node.  This is useful if `ginkgo -v -progress` is generating too much noise; particularly
