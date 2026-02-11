@@ -58,7 +58,7 @@ type HostInfo struct {
 	// ServiceIsRemote is true when the podman/libpod service is remote to the client
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
-	Slirp4NetNS     SlirpInfo    `json:"slirp4netns"`
+	Slirp4NetNS     SlirpInfo    `json:"slirp4netns,omitempty"` // Deprecated: slirp4netns support removed in Podman 6
 	Pasta           PastaInfo    `json:"pasta"`
 
 	SwapFree  int64  `json:"swapFree"`

@@ -45,7 +45,6 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		SECCOMPProfilePath:  seccompProfilePath,
 		SELinuxEnabled:      selinux.GetEnabled(),
 	}
-	info.Slirp4NetNS = define.SlirpInfo{}
 
 	info.CgroupsVersion = "v2"
 
