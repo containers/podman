@@ -95,6 +95,7 @@ const (
 	KeyFile                  = "File"
 	KeyForceRM               = "ForceRM"
 	KeyGateway               = "Gateway"
+	KeyGID                   = "GID"
 	KeyGIDMap                = "GIDMap"
 	KeyGlobalArgs            = "GlobalArgs"
 	KeyGroup                 = "Group"
@@ -182,6 +183,7 @@ const (
 	KeyTLSVerify             = "TLSVerify"
 	KeyTmpfs                 = "Tmpfs"
 	KeyType                  = "Type"
+	KeyUID                   = "UID"
 	KeyUIDMap                = "UIDMap"
 	KeyUlimit                = "Ulimit"
 	KeyUnmask                = "Unmask"
@@ -359,6 +361,8 @@ var (
 				KeyType:                 true,
 				KeyUser:                 true,
 				KeyVolumeName:           true,
+				KeyUID:                  true,
+				KeyGID:                  true,
 			},
 		},
 		NetworkGroup: {
@@ -1101,6 +1105,16 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 	podman := createBasePodmanCommand(volume, VolumeGroup)
 
 	podman.add("volume", "create", "--ignore")
+
+	uid, ok := volume.Lookup(VolumeGroup, KeyUID)
+	if ok {
+		podman.add("--uid", uid)
+	}
+
+	gid, ok := volume.Lookup(VolumeGroup, KeyGID)
+	if ok {
+		podman.add("--gid", gid)
+	}
 
 	driver, ok := volume.Lookup(VolumeGroup, KeyDriver)
 	if ok {

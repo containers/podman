@@ -1601,6 +1601,7 @@ Valid options for `[Volume]` are listed below:
 | Copy=true                           | --opt copy                                |
 | Device=tmpfs                        | --opt device=tmpfs                        |
 | Driver=image                        | --driver=image                            |
+| GID=5678                            | --gid 5678                                |
 | GlobalArgs=--log-level=debug        | --log-level=debug                         |
 | Group=192                           | --opt "o=group=192"                       |
 | Image=quay.io/centos/centos\:latest | --opt image=quay.io/centos/centos\:latest |
@@ -1608,6 +1609,7 @@ Valid options for `[Volume]` are listed below:
 | Options=XYZ                         | --opt "o=XYZ"                             |
 | PodmanArgs=--driver=image           | --driver=image                            |
 | Type=type                           | Filesystem type of Device                 |
+| UID=1234                            | --uid 1234                                |
 | User=123                            | --opt "o=uid=123"                         |
 | VolumeName=foo                      | podman volume create foo                  |
 
@@ -1634,6 +1636,10 @@ Specify the volume driver name. When set to `image`, the `Image` key must also b
 
 This is equivalent to the Podman `--driver` option.
 
+### `GID=`
+
+The GID that the volume will be created as. Differently than `Group=`, the specified value is not passed to the mount operation. The specified GID will own the volume's mount point directory and affects the volume chown operation.
+
 ### `GlobalArgs=`
 
 This key contains a list of arguments passed directly between `podman` and `volume`
@@ -1648,7 +1654,7 @@ This key can be listed multiple times.
 
 ### `Group=`
 
-The host (numeric) GID, or group name to use as the group for the volume
+The host (numeric) GID, or group name to use as the group for the volume. Differently than `GID`, the specified value is passed to the mount operation.
 
 ### `Image=`
 
@@ -1692,9 +1698,13 @@ This key can be listed multiple times.
 
 The filesystem type of `Device` as used by the **mount(8)** commands `-t` option.
 
+### `UID=`
+
+The UID that the volume will be created as. Differently than `User`, the specified value is not passed to the mount operation. The specified UID will own the volume's mount point directory and affects the volume chown operation.
+
 ### `User=`
 
-The host (numeric) UID, or user name to use as the owner for the volume
+The host (numeric) UID, or user name to use as the owner for the volume. Differently than `UID`, the specified value is passed to the mount operation.
 
 ### `VolumeName=`
 

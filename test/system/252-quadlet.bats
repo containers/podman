@@ -405,6 +405,32 @@ EOF
     run_podman volume rm $volume_name
 }
 
+@test "quadlet - volume - uid - gid" {
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).volume
+    cat > $quadlet_file <<EOF
+[Volume]
+UID=1234
+GID=5678
+EOF
+
+    run_quadlet "$quadlet_file"
+
+    service_setup $QUADLET_SERVICE_NAME
+
+    local volume_name=systemd-$(basename $quadlet_file .volume)
+    run_podman volume ls
+    is "$output" ".*local.*${volume_name}.*"
+
+    run_podman volume inspect  --format "{{.UID}}" $volume_name
+    is "$output" "1234"
+
+    run_podman volume inspect  --format "{{.GID}}" $volume_name
+    is "$output" "5678"
+
+    service_cleanup $QUADLET_SERVICE_NAME inactive
+    run_podman volume rm $volume_name
+}
+
 # A quadlet container depends on a quadlet volume
 @test "quadlet - volume dependency" {
     # Save the unit name to use as the volume for the container
