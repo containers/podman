@@ -10,6 +10,9 @@ import (
 
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/sirupsen/logrus"
+	// Note: The slirp4netns package is imported here for RootlessKit port mapping
+	// functionality (SetupRootlessPortMappingViaRLK and GetRootlessPortChildIP),
+	// NOT for the deprecated slirp4netns network backend which was removed in Podman 6.
 	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/libnetwork/types"
 )
