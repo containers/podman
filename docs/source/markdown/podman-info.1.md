@@ -144,7 +144,6 @@ registries:
   - docker.io
   - quay.io
 store:
-  configFile: /home/dwalsh/.config/containers/storage.conf
   containerStore:
     number: 9
     paused: 0

@@ -22,7 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/version"
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
-	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/system"
 )
 
@@ -213,10 +212,6 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 // top-level "store" info
 func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	// let's say storage driver in use, number of images, number of containers
-	configFile, err := storage.DefaultConfigFile()
-	if err != nil {
-		return nil, err
-	}
 	images, err := r.store.Images()
 	if err != nil {
 		return nil, fmt.Errorf("getting number of images: %w", err)
@@ -244,7 +239,6 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 		GraphDriverName:    r.store.GraphDriverName(),
 		GraphOptions:       nil,
 		VolumePath:         r.config.Engine.VolumePath,
-		ConfigFile:         configFile,
 		TransientStore:     r.store.TransientStore(),
 	}
 

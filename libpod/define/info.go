@@ -123,7 +123,6 @@ type OCIRuntimeInfo struct {
 // StoreInfo describes the container storage and its
 // attributes
 type StoreInfo struct {
-	ConfigFile      string         `json:"configFile"`
 	ContainerStore  ContainerStore `json:"containerStore"`
 	GraphDriverName string         `json:"graphDriverName"`
 	GraphOptions    map[string]any `json:"graphOptions"`
