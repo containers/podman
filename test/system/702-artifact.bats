@@ -151,5 +151,14 @@ function teardown() {
     run_podman artifact rm "$artifact_name"
 }
 
+@test "podman artifact volume validation at creation" {
+    # Issue #27747: Artifact volume validation should fail at creation, not start
+    local artifact_name="localhost/test/nonexistent-artifact"
+
+    # Creation should fail if the artifact does not exist
+    run_podman 125 create --name test-artifact-fail --mount type=artifact,source=$artifact_name,target=/tmp $IMAGE
+    assert "$output" = "Error: $artifact_name:latest: artifact does not exist" "creation should fail for nonexistent artifact"
+}
+
 
 # vim: filetype=sh
