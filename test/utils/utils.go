@@ -220,8 +220,7 @@ func (p *PodmanTest) NumberOfPods() int {
 // GetContainerStatus returns the containers state.
 // This function assumes only one container is active.
 func (p *PodmanTest) GetContainerStatus() string {
-	podmanArgs := []string{"ps"}
-	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
+	podmanArgs := []string{"ps", "--all", "--format={{.Status}}"}
 	session := p.PodmanExecBaseWithOptions(podmanArgs, PodmanExecOptions{
 		NoCache: true,
 	})

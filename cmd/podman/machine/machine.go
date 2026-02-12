@@ -103,8 +103,9 @@ func AutocompleteMachine(cmd *cobra.Command, args []string, toComplete string) (
 }
 
 func autocompleteMachineProvider(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	suggestions := make([]string, 0)
-	for _, p := range provider2.GetAll() {
+	providers := provider2.GetAll()
+	suggestions := make([]string, 0, len(providers))
+	for _, p := range providers {
 		suggestions = append(suggestions, p.VMType().String())
 	}
 	return suggestions, cobra.ShellCompDirectiveNoFileComp

@@ -106,9 +106,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	}
 
 	// Build the container.
-	names := []string{containerName}
-
-	container, err := r.store.CreateContainer(containerID, names, imageID, "", string(mdata), &options)
+	container, err := r.store.CreateContainer(containerID, []string{containerName}, imageID, "", string(mdata), &options)
 	if err != nil {
 		logrus.Debugf("Failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 
@@ -132,7 +130,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	// Add a name to the container's layer so that it's easier to follow
 	// what's going on if we're just looking at the storage-eye view of things.
 	layerName := metadata.ContainerName + "-layer"
-	names, err = r.store.Names(container.LayerID)
+	names, err := r.store.Names(container.LayerID)
 	if err != nil {
 		return ContainerInfo{}, err
 	}

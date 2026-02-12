@@ -127,7 +127,10 @@ func localhostNativeSSH(username, identityPath, name string, sshPort int, inputA
 	port := strconv.Itoa(sshPort)
 	interactive := true
 
-	args := append([]string{"-i", identityPath, "-p", port, sshDestination}, LocalhostSSHArgs()...) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
+	args := append(LocalhostSSHArgs(), // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
+		"-i", identityPath,
+		"-p", port,
+		sshDestination)
 	if len(inputArgs) > 0 {
 		// on the other condition, the term is forced
 		// anyway

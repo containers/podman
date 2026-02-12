@@ -209,7 +209,6 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		return nil, err
 	}
 
-	var containers []*libpod.Container
 	if container == nil {
 		return nil, nil
 	}
@@ -228,6 +227,5 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		}
 	}
 
-	containers = append(containers, container)
-	return containers, nil
+	return []*libpod.Container{container}, nil
 }

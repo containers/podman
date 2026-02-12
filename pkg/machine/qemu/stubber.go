@@ -357,17 +357,20 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		if err != nil {
 			return err
 		}
-		// NOTE: The mount type q.Type was previously serialized as 9p for older Linux versions,
-		// but we ignore it now because we want the mount type to be dynamic, not static.  Or
-		// in other words we don't want to make people unnecessarily reprovision their machines
-		// to upgrade from 9p to virtiofs.
-		mountOptions := []string{"-t", "virtiofs"}
-		mountOptions = append(mountOptions, []string{mount.Tag, strconv.Quote(mount.Target)}...)
+
 		mountFlags := fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext)
 		if mount.ReadOnly {
 			mountFlags += ",ro"
 		}
-		mountOptions = append(mountOptions, "-o", mountFlags)
+		// NOTE: The mount type q.Type was previously serialized as 9p for older Linux versions,
+		// but we ignore it now because we want the mount type to be dynamic, not static.  Or
+		// in other words we don't want to make people unnecessarily reprovision their machines
+		// to upgrade from 9p to virtiofs.
+		mountOptions := []string{
+			"-t", "virtiofs",
+			mount.Tag, strconv.Quote(mount.Target),
+			"-o", mountFlags,
+		}
 		err = machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
 		if err != nil {
 			return err
