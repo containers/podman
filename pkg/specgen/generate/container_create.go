@@ -246,10 +246,9 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
 	}
-	if len(s.Devices) > 0 {
-		opts = ExtractCDIDevices(s)
-		options = append(options, opts...)
-	}
+
+	options = append(options, ExtractCDIDevices(s, rtc.Containers.Devices.Get(), compatibleOptions.HostDeviceList)...)
+
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command, compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
@@ -325,21 +324,52 @@ func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *specs.S
 // ExtractCDIDevices process the list of Devices in the spec and determines if any of these are CDI devices.
 // The CDI devices are added to the list of CtrCreateOptions.
 // Note that this may modify the device list associated with the spec, which should then only contain non-CDI devices.
-func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
-	devs := make([]specs.LinuxDevice, 0, len(s.Devices))
-	var cdiDevs []string
+// TODO: The handling of contaienrConfDevices and defaultHostDevices is platform
+// dependent. It is only supported on linux and freebsd (with the !remote build
+// tag) and in the case of freebsd only for privileged containers.
+func ExtractCDIDevices(s *specgen.SpecGenerator, containerConfDevices []string, defaultHostDevices []specs.LinuxDevice) []libpod.CtrCreateOption {
 	var options []libpod.CtrCreateOption
 
+	// We track the devices requested as part of the --gpus flag separately.
+	if len(s.GPUs) > 0 {
+		options = append(options, libpod.WithGPUs(s.GPUs))
+	}
+
+	var cdiDevs []string
+	nonCDIDevices := make([]specs.LinuxDevice, 0, len(s.Devices))
 	for _, device := range s.Devices {
 		if isCDIDevice(device.Path) {
-			logrus.Debugf("Identified CDI device %v", device.Path)
+			logrus.Debugf("Identified CDI device from device flag %v", device.Path)
 			cdiDevs = append(cdiDevs, device.Path)
 			continue
 		}
 		logrus.Debugf("Non-CDI device %v; assuming standard device", device.Path)
-		devs = append(devs, device)
+		nonCDIDevices = append(nonCDIDevices, device)
 	}
-	s.Devices = devs
+
+	// TODO: There is no need to do this here if we simply skip the CDI devices
+	// when processing s.Devices.
+	s.Devices = nonCDIDevices
+
+	if allowAdditionalCDIDevices(s) {
+		// CDI devices can also be specified in the containers.conf file:
+		for _, containerConfDevice := range containerConfDevices {
+			if isCDIDevice(containerConfDevice) {
+				logrus.Debugf("Identified CDI device from container.conf %v", containerConfDevice)
+				cdiDevs = append(cdiDevs, containerConfDevice)
+				continue
+			}
+		}
+
+		if len(s.Devices) == 0 {
+			for _, device := range defaultHostDevices {
+				if isCDIDevice(device.Path) {
+					logrus.Debugf("Identified CDI device from host_device_list flag %v", device.Path)
+					cdiDevs = append(cdiDevs, device.Path)
+				}
+			}
+		}
+	}
 	if len(cdiDevs) > 0 {
 		options = append(options, libpod.WithCDI(cdiDevs))
 	}

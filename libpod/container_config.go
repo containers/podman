@@ -442,6 +442,8 @@ type ContainerMiscConfig struct {
 	PidFile string `json:"pid_file,omitempty"`
 	// CDIDevices contains devices that use the CDI
 	CDIDevices []string `json:"cdiDevices,omitempty"`
+	// GPUs contains gpus which eventually get resolved to CDI devices
+	GPUs []string `json:"gpus,omitempty"`
 	// DeviceHostSrc contains the original source on the host
 	DeviceHostSrc []spec.LinuxDevice `json:"device_host_src,omitempty"`
 	// EnvSecrets are secrets that are set as environment variables

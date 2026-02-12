@@ -292,3 +292,56 @@ func isDirectory(path string) bool {
 	}
 	return info.IsDir()
 }
+
+// vendorLister is an interface for listing GPU vendors from CDI.
+type vendorLister interface {
+	ListVendors() []string
+}
+
+// discoverGPUVendorFromCDI discovers vendor from CDI cache.
+// It returns the vendor domain (e.g., "nvidia.com", "amd.com") that should
+// be used to construct fully qualified CDI device names.
+// Returns an error if no known GPU vendor is found.
+func discoverGPUVendorFromCDI(lister vendorLister) (string, error) {
+	if lister == nil {
+		return "", fmt.Errorf("vendor lister cannot be nil")
+	}
+
+	knownGPUVendors := []string{
+		"nvidia.com",
+		"amd.com",
+	}
+	vendors := lister.ListVendors()
+	// Check if any known GPU vendor is present
+	for _, knownVendor := range knownGPUVendors {
+		for _, vendor := range vendors {
+			if vendor == knownVendor {
+				logrus.Debugf("Discovered GPU vendor from CDI specs: %s", vendor)
+				return vendor, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no known GPU vendor found in CDI specs")
+}
+
+// gpusToCDIDevices converts GPU identifiers to full CDI device names
+// by discovering the vendor from the provided vendor lister.
+func gpusToCDIDevices(gpus []string, lister vendorLister) ([]string, error) {
+	if len(gpus) == 0 {
+		return nil, nil
+	}
+
+	vendor, err := discoverGPUVendorFromCDI(lister)
+	if err != nil {
+		return nil, fmt.Errorf("could not discover GPU vendor: %w", err)
+	}
+
+	cdiDevices := make([]string, 0, len(gpus))
+	for _, gpu := range gpus {
+		device := fmt.Sprintf("%s/gpu=%s", vendor, gpu)
+		cdiDevices = append(cdiDevices, device)
+		logrus.Debugf("Added GPU device: %s", device)
+	}
+	return cdiDevices, nil
+}
