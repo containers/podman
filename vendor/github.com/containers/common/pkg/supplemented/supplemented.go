@@ -280,7 +280,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 	return iss, nil
 }
 
-func (s *supplementedImageReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
+func (s *supplementedImageReference) DeleteImage(_ context.Context, _ *types.SystemContext) error {
 	return fmt.Errorf("deletion of images not implemented")
 }
 

@@ -1,4 +1,4 @@
-package filexfer
+package sshfx
 
 // LStatPacket defines the SSH_FXP_LSTAT packet.
 type LStatPacket struct {
@@ -27,11 +27,11 @@ func (p *LStatPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []b
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *LStatPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = LStatPacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // SetstatPacket defines the SSH_FXP_SETSTAT packet.
@@ -64,8 +64,8 @@ func (p *SetstatPacket) MarshalPacket(reqid uint32, b []byte) (header, payload [
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *SetstatPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = SetstatPacket{
+		Path: buf.ConsumeString(),
 	}
 
 	return p.Attrs.UnmarshalFrom(buf)
@@ -98,11 +98,11 @@ func (p *RemovePacket) MarshalPacket(reqid uint32, b []byte) (header, payload []
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *RemovePacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = RemovePacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // MkdirPacket defines the SSH_FXP_MKDIR packet.
@@ -135,8 +135,8 @@ func (p *MkdirPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []b
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *MkdirPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = MkdirPacket{
+		Path: buf.ConsumeString(),
 	}
 
 	return p.Attrs.UnmarshalFrom(buf)
@@ -169,11 +169,11 @@ func (p *RmdirPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []b
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *RmdirPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = RmdirPacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // RealPathPacket defines the SSH_FXP_REALPATH packet.
@@ -203,11 +203,11 @@ func (p *RealPathPacket) MarshalPacket(reqid uint32, b []byte) (header, payload 
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *RealPathPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = RealPathPacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // StatPacket defines the SSH_FXP_STAT packet.
@@ -237,11 +237,11 @@ func (p *StatPacket) MarshalPacket(reqid uint32, b []byte) (header, payload []by
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *StatPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = StatPacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // RenamePacket defines the SSH_FXP_RENAME packet.
@@ -274,15 +274,12 @@ func (p *RenamePacket) MarshalPacket(reqid uint32, b []byte) (header, payload []
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *RenamePacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.OldPath, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = RenamePacket{
+		OldPath: buf.ConsumeString(),
+		NewPath: buf.ConsumeString(),
 	}
 
-	if p.NewPath, err = buf.ConsumeString(); err != nil {
-		return err
-	}
-
-	return nil
+	return buf.Err
 }
 
 // ReadLinkPacket defines the SSH_FXP_READLINK packet.
@@ -312,18 +309,18 @@ func (p *ReadLinkPacket) MarshalPacket(reqid uint32, b []byte) (header, payload 
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *ReadLinkPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	if p.Path, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = ReadLinkPacket{
+		Path: buf.ConsumeString(),
 	}
 
-	return nil
+	return buf.Err
 }
 
 // SymlinkPacket defines the SSH_FXP_SYMLINK packet.
 //
 // The order of the arguments to the SSH_FXP_SYMLINK method was inadvertently reversed.
 // Unfortunately, the reversal was not noticed until the server was widely deployed.
-// Covered in Section 3.1 of https://github.com/openssh/openssh-portable/blob/master/PROTOCOL
+// Covered in Section 4.1 of https://github.com/openssh/openssh-portable/blob/master/PROTOCOL
 type SymlinkPacket struct {
 	LinkPath   string
 	TargetPath string
@@ -355,14 +352,11 @@ func (p *SymlinkPacket) MarshalPacket(reqid uint32, b []byte) (header, payload [
 // UnmarshalPacketBody unmarshals the packet body from the given Buffer.
 // It is assumed that the uint32(request-id) has already been consumed.
 func (p *SymlinkPacket) UnmarshalPacketBody(buf *Buffer) (err error) {
-	// Arguments were inadvertently reversed.
-	if p.TargetPath, err = buf.ConsumeString(); err != nil {
-		return err
+	*p = SymlinkPacket{
+		// Arguments were inadvertently reversed.
+		TargetPath: buf.ConsumeString(),
+		LinkPath:   buf.ConsumeString(),
 	}
 
-	if p.LinkPath, err = buf.ConsumeString(); err != nil {
-		return err
-	}
-
-	return nil
+	return buf.Err
 }

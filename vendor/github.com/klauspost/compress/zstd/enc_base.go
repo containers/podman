@@ -144,12 +144,13 @@ func (e *fastBase) resetBase(d *dict, singleBlock bool) {
 	} else {
 		e.crc.Reset()
 	}
+	e.blk.dictLitEnc = nil
 	if d != nil {
 		low := e.lowMem
 		if singleBlock {
 			e.lowMem = true
 		}
-		e.ensureHist(d.DictContentSize() + maxCompressedBlockSize)
+		e.ensureHist(d.ContentSize() + maxCompressedBlockSize)
 		e.lowMem = low
 	}
 

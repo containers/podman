@@ -3,11 +3,12 @@ package openshift
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"path"
@@ -16,11 +17,11 @@ import (
 	"strings"
 	"time"
 
+	"dario.cat/mergo"
 	"github.com/containers/storage/pkg/homedir"
-	"github.com/ghodss/yaml"
-	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/http2"
+	"golang.org/x/exp/slices"
+	"gopkg.in/yaml.v3"
 )
 
 // restTLSClientConfig is a modified copy of k8s.io/kubernetes/pkg/client/restclient.TLSClientConfig.
@@ -205,15 +206,12 @@ func (config *directClientConfig) ClientConfig() (*restConfig, error) {
 	if isConfigTransportTLS(*clientConfig) {
 		var err error
 		// REMOVED: Support for interactive fallback.
-		userAuthPartialConfig, err := getUserIdentificationPartialConfig(configAuthInfo)
-		if err != nil {
-			return nil, err
-		}
+		userAuthPartialConfig := getUserIdentificationPartialConfig(configAuthInfo)
 		if err = mergo.MergeWithOverwrite(clientConfig, userAuthPartialConfig); err != nil {
 			return nil, err
 		}
 
-		serverAuthPartialConfig, err := getServerIdentificationPartialConfig(configAuthInfo, configClusterInfo)
+		serverAuthPartialConfig, err := getServerIdentificationPartialConfig(configClusterInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +230,7 @@ func (config *directClientConfig) ClientConfig() (*restConfig, error) {
 // 1.  configClusterInfo (the final result of command line flags and merged .kubeconfig files)
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
 // 3.  load the ~/.kubernetes_auth file as a default
-func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, configClusterInfo clientcmdCluster) (*restConfig, error) {
+func getServerIdentificationPartialConfig(configClusterInfo clientcmdCluster) (*restConfig, error) {
 	mergedConfig := &restConfig{}
 
 	// configClusterInfo holds the information identify the server provided by .kubeconfig
@@ -255,7 +253,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, conf
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
 // 3.  if there is not enough information to identify the user, load try the ~/.kubernetes_auth file
 // 4.  if there is not enough information to identify the user, prompt if possible
-func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) (*restConfig, error) {
+func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) *restConfig {
 	mergedConfig := &restConfig{}
 
 	// blindly overwrite existing values based on precedence
@@ -274,7 +272,7 @@ func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) (*rest
 	}
 
 	// REMOVED: prompting for missing information.
-	return mergedConfig, nil
+	return mergedConfig
 }
 
 // ConfirmUsable is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd.DirectClientConfig.ConfirmUsable.
@@ -672,11 +670,7 @@ func load(data []byte) (*clientcmdConfig, error) {
 		return config, nil
 	}
 	// Note: This does absolutely no kind/version checking or conversions.
-	data, err := yaml.YAMLToJSON(data)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(data, config); err != nil {
+	if err := yaml.Unmarshal(data, config); err != nil {
 		return nil, err
 	}
 	return config, nil
@@ -877,11 +871,11 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 	noProxyEnv := os.Getenv("NO_PROXY")
 	noProxyRules := strings.Split(noProxyEnv, ",")
 
-	cidrs := []*net.IPNet{}
+	cidrs := []netip.Prefix{}
 	for _, noProxyRule := range noProxyRules {
-		_, cidr, _ := net.ParseCIDR(noProxyRule)
-		if cidr != nil {
-			cidrs = append(cidrs, cidr)
+		prefix, err := netip.ParsePrefix(noProxyRule)
+		if err == nil {
+			cidrs = append(cidrs, prefix)
 		}
 	}
 
@@ -892,7 +886,7 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 	return func(req *http.Request) (*url.URL, error) {
 		host := req.URL.Host
 		// for some urls, the Host is already the host, not the host:port
-		if net.ParseIP(host) == nil {
+		if _, err := netip.ParseAddr(host); err != nil {
 			var err error
 			host, _, err = net.SplitHostPort(req.URL.Host)
 			if err != nil {
@@ -900,15 +894,15 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 			}
 		}
 
-		ip := net.ParseIP(host)
-		if ip == nil {
+		ip, err := netip.ParseAddr(host)
+		if err != nil {
 			return delegate(req)
 		}
 
-		for _, cidr := range cidrs {
-			if cidr.Contains(ip) {
-				return nil, nil
-			}
+		if slices.ContainsFunc(cidrs, func(cidr netip.Prefix) bool {
+			return cidr.Contains(ip)
+		}) {
+			return nil, nil
 		}
 
 		return delegate(req)
@@ -936,14 +930,14 @@ func tlsCacheGet(config *restConfig) (http.RoundTripper, error) {
 		Proxy:               newProxierWithNoProxyCIDR(http.ProxyFromEnvironment),
 		TLSHandshakeTimeout: 10 * time.Second,
 		TLSClientConfig:     tlsConfig,
-		Dial: (&net.Dialer{
+		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
-		}).Dial,
+		}).DialContext,
 	}
 	// Allow clients to disable http2 if needed.
 	if s := os.Getenv("DISABLE_HTTP2"); len(s) == 0 {
-		_ = http2.ConfigureTransport(t)
+		t.ForceAttemptHTTP2 = true
 	}
 	return t, nil
 }
@@ -963,8 +957,6 @@ func tlsConfigFor(c *restConfig) (*tls.Config, error) {
 	}
 
 	tlsConfig := &tls.Config{
-		// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-		MinVersion:         tls.VersionTLS10,
 		InsecureSkipVerify: c.Insecure,
 	}
 
@@ -1057,20 +1049,20 @@ func (c *restConfig) HasCertAuth() bool {
 // IMPORTANT if you add fields to this struct, please update IsConfigEmpty()
 type clientcmdConfig struct {
 	// Clusters is a map of referenceable names to cluster configs
-	Clusters clustersMap `json:"clusters"`
+	Clusters clustersMap `yaml:"clusters"`
 	// AuthInfos is a map of referenceable names to user configs
-	AuthInfos authInfosMap `json:"users"`
+	AuthInfos authInfosMap `yaml:"users"`
 	// Contexts is a map of referenceable names to context configs
-	Contexts contextsMap `json:"contexts"`
+	Contexts contextsMap `yaml:"contexts"`
 	// CurrentContext is the name of the context that you would like to use by default
-	CurrentContext string `json:"current-context"`
+	CurrentContext string `yaml:"current-context"`
 }
 
 type clustersMap map[string]*clientcmdCluster
 
-func (m *clustersMap) UnmarshalJSON(data []byte) error {
+func (m *clustersMap) UnmarshalYAML(value *yaml.Node) error {
 	var a []v1NamedCluster
-	if err := json.Unmarshal(data, &a); err != nil {
+	if err := value.Decode(&a); err != nil {
 		return err
 	}
 	for _, e := range a {
@@ -1082,9 +1074,9 @@ func (m *clustersMap) UnmarshalJSON(data []byte) error {
 
 type authInfosMap map[string]*clientcmdAuthInfo
 
-func (m *authInfosMap) UnmarshalJSON(data []byte) error {
+func (m *authInfosMap) UnmarshalYAML(value *yaml.Node) error {
 	var a []v1NamedAuthInfo
-	if err := json.Unmarshal(data, &a); err != nil {
+	if err := value.Decode(&a); err != nil {
 		return err
 	}
 	for _, e := range a {
@@ -1096,9 +1088,9 @@ func (m *authInfosMap) UnmarshalJSON(data []byte) error {
 
 type contextsMap map[string]*clientcmdContext
 
-func (m *contextsMap) UnmarshalJSON(data []byte) error {
+func (m *contextsMap) UnmarshalYAML(value *yaml.Node) error {
 	var a []v1NamedContext
-	if err := json.Unmarshal(data, &a); err != nil {
+	if err := value.Decode(&a); err != nil {
 		return err
 	}
 	for _, e := range a {
@@ -1118,19 +1110,32 @@ func clientcmdNewConfig() *clientcmdConfig {
 	}
 }
 
+// yamlBinaryAsBase64String is a []byte that can be stored in yaml as a !!str, not a !!binary
+type yamlBinaryAsBase64String []byte
+
+func (bin *yamlBinaryAsBase64String) UnmarshalText(text []byte) error {
+	res := make([]byte, base64.StdEncoding.DecodedLen(len(text)))
+	n, err := base64.StdEncoding.Decode(res, text)
+	if err != nil {
+		return err
+	}
+	*bin = res[:n]
+	return nil
+}
+
 // clientcmdCluster is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api.Cluster.
 // Cluster contains information about how to communicate with a kubernetes cluster
 type clientcmdCluster struct {
 	// LocationOfOrigin indicates where this object came from.  It is used for round tripping config post-merge, but never serialized.
 	LocationOfOrigin string
 	// Server is the address of the kubernetes cluster (https://hostname:port).
-	Server string `json:"server"`
+	Server string `yaml:"server"`
 	// InsecureSkipTLSVerify skips the validity check for the server's certificate. This will make your HTTPS connections insecure.
-	InsecureSkipTLSVerify bool `json:"insecure-skip-tls-verify,omitempty"`
+	InsecureSkipTLSVerify bool `yaml:"insecure-skip-tls-verify,omitempty"`
 	// CertificateAuthority is the path to a cert file for the certificate authority.
-	CertificateAuthority string `json:"certificate-authority,omitempty"`
+	CertificateAuthority string `yaml:"certificate-authority,omitempty"`
 	// CertificateAuthorityData contains PEM-encoded certificate authority certificates. Overrides CertificateAuthority
-	CertificateAuthorityData []byte `json:"certificate-authority-data,omitempty"`
+	CertificateAuthorityData yamlBinaryAsBase64String `yaml:"certificate-authority-data,omitempty"`
 }
 
 // clientcmdAuthInfo is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api.AuthInfo.
@@ -1139,19 +1144,19 @@ type clientcmdAuthInfo struct {
 	// LocationOfOrigin indicates where this object came from.  It is used for round tripping config post-merge, but never serialized.
 	LocationOfOrigin string
 	// ClientCertificate is the path to a client cert file for TLS.
-	ClientCertificate string `json:"client-certificate,omitempty"`
+	ClientCertificate string `yaml:"client-certificate,omitempty"`
 	// ClientCertificateData contains PEM-encoded data from a client cert file for TLS. Overrides ClientCertificate
-	ClientCertificateData []byte `json:"client-certificate-data,omitempty"`
+	ClientCertificateData yamlBinaryAsBase64String `yaml:"client-certificate-data,omitempty"`
 	// ClientKey is the path to a client key file for TLS.
-	ClientKey string `json:"client-key,omitempty"`
+	ClientKey string `yaml:"client-key,omitempty"`
 	// ClientKeyData contains PEM-encoded data from a client key file for TLS. Overrides ClientKey
-	ClientKeyData []byte `json:"client-key-data,omitempty"`
+	ClientKeyData yamlBinaryAsBase64String `yaml:"client-key-data,omitempty"`
 	// Token is the bearer token for authentication to the kubernetes cluster.
-	Token string `json:"token,omitempty"`
+	Token string `yaml:"token,omitempty"`
 	// Username is the username for basic authentication to the kubernetes cluster.
-	Username string `json:"username,omitempty"`
+	Username string `yaml:"username,omitempty"`
 	// Password is the password for basic authentication to the kubernetes cluster.
-	Password string `json:"password,omitempty"`
+	Password string `yaml:"password,omitempty"`
 }
 
 // clientcmdContext is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api.Context.
@@ -1160,36 +1165,36 @@ type clientcmdContext struct {
 	// LocationOfOrigin indicates where this object came from.  It is used for round tripping config post-merge, but never serialized.
 	LocationOfOrigin string
 	// Cluster is the name of the cluster for this context
-	Cluster string `json:"cluster"`
+	Cluster string `yaml:"cluster"`
 	// AuthInfo is the name of the authInfo for this context
-	AuthInfo string `json:"user"`
+	AuthInfo string `yaml:"user"`
 	// Namespace is the default namespace to use on unspecified requests
-	Namespace string `json:"namespace,omitempty"`
+	Namespace string `yaml:"namespace,omitempty"`
 }
 
 // v1NamedCluster is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api.v1.NamedCluster.
 // NamedCluster relates nicknames to cluster information
 type v1NamedCluster struct {
 	// Name is the nickname for this Cluster
-	Name string `json:"name"`
+	Name string `yaml:"name"`
 	// Cluster holds the cluster information
-	Cluster clientcmdCluster `json:"cluster"`
+	Cluster clientcmdCluster `yaml:"cluster"`
 }
 
 // v1NamedContext is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api.v1.NamedContext.
 // NamedContext relates nicknames to context information
 type v1NamedContext struct {
 	// Name is the nickname for this Context
-	Name string `json:"name"`
+	Name string `yaml:"name"`
 	// Context holds the context information
-	Context clientcmdContext `json:"context"`
+	Context clientcmdContext `yaml:"context"`
 }
 
 // v1NamedAuthInfo is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api.v1.NamedAuthInfo.
 // NamedAuthInfo relates nicknames to auth information
 type v1NamedAuthInfo struct {
 	// Name is the nickname for this AuthInfo
-	Name string `json:"name"`
+	Name string `yaml:"name"`
 	// AuthInfo holds the auth information
-	AuthInfo clientcmdAuthInfo `json:"user"`
+	AuthInfo clientcmdAuthInfo `yaml:"user"`
 }

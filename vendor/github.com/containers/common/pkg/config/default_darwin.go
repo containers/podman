@@ -20,3 +20,14 @@ func getDefaultMachineVolumes() []string {
 		"/var/folders:/var/folders",
 	}
 }
+
+func getDefaultComposeProviders() []string {
+	return []string{
+		"docker-compose",
+		"$HOME/.docker/cli-plugins/docker-compose",
+		"/opt/homebrew/bin/docker-compose",
+		"/usr/local/bin/docker-compose",
+		"/Applications/Docker.app/Contents/Resources/cli-plugins/docker-compose",
+		"podman-compose",
+	}
+}

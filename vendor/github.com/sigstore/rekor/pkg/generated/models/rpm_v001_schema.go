@@ -126,6 +126,7 @@ func (m *RpmV001Schema) ContextValidate(ctx context.Context, formats strfmt.Regi
 func (m *RpmV001Schema) contextValidatePackage(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Package != nil {
+
 		if err := m.Package.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package")
@@ -142,6 +143,7 @@ func (m *RpmV001Schema) contextValidatePackage(ctx context.Context, formats strf
 func (m *RpmV001Schema) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.PublicKey != nil {
+
 		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("publicKey")
@@ -244,6 +246,11 @@ func (m *RpmV001SchemaPackage) ContextValidate(ctx context.Context, formats strf
 func (m *RpmV001SchemaPackage) contextValidateHash(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Hash != nil {
+
+		if swag.IsZero(m.Hash) { // not required
+			return nil
+		}
+
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("package" + "." + "hash")

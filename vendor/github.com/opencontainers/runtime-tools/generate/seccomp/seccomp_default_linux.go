@@ -3,14 +3,15 @@
 
 package seccomp
 
-import "syscall"
+import "golang.org/x/sys/unix"
 
 // System values passed through on linux
 const (
-	CloneNewIPC  = syscall.CLONE_NEWIPC
-	CloneNewNet  = syscall.CLONE_NEWNET
-	CloneNewNS   = syscall.CLONE_NEWNS
-	CloneNewPID  = syscall.CLONE_NEWPID
-	CloneNewUser = syscall.CLONE_NEWUSER
-	CloneNewUTS  = syscall.CLONE_NEWUTS
+	CloneNewIPC    = unix.CLONE_NEWIPC
+	CloneNewNet    = unix.CLONE_NEWNET
+	CloneNewNS     = unix.CLONE_NEWNS
+	CloneNewPID    = unix.CLONE_NEWPID
+	CloneNewUser   = unix.CLONE_NEWUSER
+	CloneNewUTS    = unix.CLONE_NEWUTS
+	CloneNewCgroup = unix.CLONE_NEWCGROUP
 )

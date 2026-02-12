@@ -22,12 +22,20 @@ import (
 // PrefixSHA sets the prefix of a sha hash to match how it is stored based on the length.
 func PrefixSHA(sha string) string {
 	var prefix string
-	if !strings.HasPrefix(sha, "sha256:") && !strings.HasPrefix(sha, "sha1:") {
-		if len(sha) == 40 {
-			prefix = "sha1:"
-		} else {
-			prefix = "sha256:"
-		}
+	var components = strings.Split(sha, ":")
+
+	if len(components) == 2 {
+		return sha
 	}
+
+	switch len(sha) {
+	case 40:
+		prefix = "sha1:"
+	case 64:
+		prefix = "sha256:"
+	case 128:
+		prefix = "sha512:"
+	}
+
 	return fmt.Sprintf("%v%v", prefix, sha)
 }

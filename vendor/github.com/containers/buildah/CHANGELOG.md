@@ -2,6 +2,42 @@
 
 # Changelog
 
+## v1.29.6 (2025-12-11)
+
+    Temporarily hard-skip bud-multiple-platform-values test
+    runUsingRuntime: use named constants for runtime states
+    Add a dummy "runtime" that just dumps its config file
+    Makefile: run unit and conformance tests without -cover
+    .cirrus: run -race only on non-PR branch
+    Update the selinux spc test
+    Update a push test
+    Update tests to compensate for changed error messages
+    Backport test fix from pull/5016
+    Builder.SetWorkDir(): trim off a path separator suffix, if there is one
+    commit: set "parent" for docker format only when requested
+    Stop setting "parent" in docker format
+    container.conf: support attributed string slices
+    Add support for --compat-auth-file in login/logout
+    Update github.com/containers/image/v5 to get updated docker-daemon:
+    Ignore errors if label.Relabel returns ENOSUP
+    run: handle relabeling bind mounts ourselves
+    CI: run integration tests on Fedora with both crun and runc
+    CI: switch to debian for testing there
+    test start_git_server(): chown the sample repo we'll serve
+    Partially work around containers/common
+    Don't set ambient capabilities
+    Silence new linter warnings
+    tests/tools: bump golangci-lint and golang.org/x/tools
+    finish switching to moby/sys/capability
+    Bump x/tools to v0.26.0
+    Bump to Go 1.22
+    switch to moby/sys/capability
+    Proxy module access
+    Bump CI environment to match release-1.39
+    Bump runc to v1.2.9 for CVE-2025-31133,52565,52881
+    [release-1.29] Add conditional release-checking system test
+    [release-1.29] tests/conformance/testdata/Dockerfile.add:...
+
 ## v1.29.5 (2025-02-06)
 
     Backport testing of CVE-2024-9407 fix

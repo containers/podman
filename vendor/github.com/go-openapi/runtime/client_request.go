@@ -16,7 +16,6 @@ package runtime
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -79,7 +78,7 @@ type NamedReadCloser interface {
 func NamedReader(name string, rdr io.Reader) NamedReadCloser {
 	rc, ok := rdr.(io.ReadCloser)
 	if !ok {
-		rc = ioutil.NopCloser(rdr)
+		rc = io.NopCloser(rdr)
 	}
 	return &namedReadCloser{
 		name: name,

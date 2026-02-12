@@ -1,5 +1,5 @@
-//go:build linux && !cgo
-// +build linux,!cgo
+//go:build linux && !cgo && !remote
+// +build linux,!cgo,!remote
 
 package generate
 

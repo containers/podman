@@ -174,6 +174,9 @@ function run_podman() {
         [0-9])           expected_rc=$1; shift;;
         [1-9][0-9])      expected_rc=$1; shift;;
         [12][0-9][0-9])  expected_rc=$1; shift;;
+        [0-9]+w)         expected_rc=${1%+w}; shift;;  # exit code with warnings allowed
+        [1-9][0-9]+w)    expected_rc=${1%+w}; shift;;  # exit code with warnings allowed
+        [12][0-9][0-9]+w) expected_rc=${1%+w}; shift;; # exit code with warnings allowed
         '?')             expected_rc=  ; shift;;  # ignore exit code
     esac
 
@@ -366,19 +369,33 @@ function journald_unavailable() {
         return 1
     fi
 
-    run journalctl -n 1
-    if [[ $status -eq 0 ]]; then
-        return 1
-    fi
+    # Test what quadlet/auto-update actually need: reading user systemd unit logs
+    # Create a dummy user unit to test if we can read its logs
+    local test_unit="podman-journald-test-$RANDOM.service"
+    systemctl --user start "$test_unit" 2>/dev/null || true
 
-    if [[ $output =~ permission ]]; then
+    run journalctl --user -n 1 --unit="$test_unit"
+    local journal_status=$status
+    local journal_output="$output"
+
+    systemctl --user stop "$test_unit" 2>/dev/null || true
+
+    # Check output for known error messages
+    if [[ $journal_output =~ permission ]]; then
         return 0
     fi
 
-    # This should never happen; if it does, it's likely that a subsequent
-    # test will fail. This output may help track that down.
-    echo "WEIRD: 'journalctl -n 1' failed with a non-permission error:"
-    echo "$output"
+    # Also treat "No journal files" as unavailable (rhel systems)
+    if [[ $journal_output =~ "No journal files" ]]; then
+        return 0
+    fi
+
+    # If we got a non-zero exit and output indicates failure, unavailable
+    if [[ $journal_status -ne 0 ]] && [[ $journal_output =~ (Failed|Cannot|Error) ]]; then
+        return 0
+    fi
+
+    # If we can read user unit logs (or the unit just doesn't exist, which is fine), available
     return 1
 }
 
@@ -758,6 +775,28 @@ function random_string() {
     local length=${1:-10}
 
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
+}
+
+##############
+#  safename  #  Returns a pseudorandom string suitable for container/image/etc names
+##############
+#
+# Name will include the bats test number and a pseudorandom element,
+# eg "t123-xyz123". safename() will return the same string across
+# multiple invocations within a given test; this makes it easier for
+# a maintainer to see common name patterns.
+#
+# String is lower-case so it can be used as an image name
+#
+function safename() {
+    # FIXME: I don't think these can ever fail. Remove checks once I'm sure.
+    test -n "$BATS_SUITE_TMPDIR"
+    test -n "$BATS_SUITE_TEST_NUMBER"
+    safenamepath=$BATS_SUITE_TMPDIR/.safename.$BATS_SUITE_TEST_NUMBER
+    if [[ ! -e $safenamepath ]]; then
+        echo -n "t${BATS_SUITE_TEST_NUMBER}-$(random_string 8 | tr A-Z a-z)" >$safenamepath
+    fi
+    cat $safenamepath
 }
 
 #########################

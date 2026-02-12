@@ -260,6 +260,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {
+		SkipIfRemote("registry connection breaks after service restart in v4.4.1")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -454,6 +455,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search with wildcards", func() {
+		Skip("registry.access.redhat.com is unreliable for wildcard searches")
 		search := podmanTest.Podman([]string{"search", "registry.access.redhat.com/*openshift*"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))

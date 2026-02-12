@@ -1,7 +1,7 @@
 package sftp
 
 // ssh_FXP_ATTRS support
-// see http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02#section-5
+// see https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt#section-5
 
 import (
 	"os"
@@ -69,6 +69,20 @@ func fileInfoFromStat(stat *FileStat, name string) os.FileInfo {
 	}
 }
 
+// FileInfoUidGid extends os.FileInfo and adds callbacks for Uid and Gid retrieval,
+// as an alternative to *syscall.Stat_t objects on unix systems.
+type FileInfoUidGid interface {
+	os.FileInfo
+	Uid() uint32
+	Gid() uint32
+}
+
+// FileInfoUidGid extends os.FileInfo and adds a callbacks for extended data retrieval.
+type FileInfoExtendedData interface {
+	os.FileInfo
+	Extended() []StatExtended
+}
+
 func fileStatFromInfo(fi os.FileInfo) (uint32, *FileStat) {
 	mtime := fi.ModTime().Unix()
 	atime := mtime
@@ -85,6 +99,23 @@ func fileStatFromInfo(fi os.FileInfo) (uint32, *FileStat) {
 
 	// os specific file stat decoding
 	fileStatFromInfoOs(fi, &flags, fileStat)
+
+	// The call above will include the sshFileXferAttrUIDGID in case
+	// the os.FileInfo can be casted to *syscall.Stat_t on unix.
+	// If fi implements FileInfoUidGid, retrieve Uid, Gid from it instead.
+	if fiExt, ok := fi.(FileInfoUidGid); ok {
+		flags |= sshFileXferAttrUIDGID
+		fileStat.UID = fiExt.Uid()
+		fileStat.GID = fiExt.Gid()
+	}
+
+	// if fi implements FileInfoExtendedData, retrieve extended data from it
+	if fiExt, ok := fi.(FileInfoExtendedData); ok {
+		fileStat.Extended = fiExt.Extended()
+		if len(fileStat.Extended) > 0 {
+			flags |= sshFileXferAttrExtended
+		}
+	}
 
 	return flags, fileStat
 }

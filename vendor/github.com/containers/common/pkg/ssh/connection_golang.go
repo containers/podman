@@ -28,7 +28,7 @@ import (
 func golangConnectionCreate(options ConnectionCreateOptions) error {
 	var match bool
 	var err error
-	if match, err = regexp.Match("^[A-Za-z][A-Za-z0-9+.-]*://", []byte(options.Path)); err != nil {
+	if match, err = regexp.MatchString("^[A-Za-z][A-Za-z0-9+.-]*://", options.Path); err != nil {
 		return fmt.Errorf("invalid destination: %w", err)
 	}
 
@@ -64,6 +64,19 @@ func golangConnectionCreate(options ConnectionCreateOptions) error {
 	} else {
 		cfg.Engine.ServiceDestinations[options.Name] = *dst
 	}
+
+	// Create or update an existing farm with the connection being added
+	if options.Farm != "" {
+		if len(cfg.Farms.List) == 0 {
+			cfg.Farms.Default = options.Farm
+		}
+		if val, ok := cfg.Farms.List[options.Farm]; ok {
+			cfg.Farms.List[options.Farm] = append(val, options.Name)
+		} else {
+			cfg.Farms.List[options.Farm] = []string{options.Name}
+		}
+	}
+
 	return cfg.Write()
 }
 
@@ -216,7 +229,7 @@ func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {
 }
 
 // ValidateAndConfigure will take a ssh url and an identity key (rsa and the like) and ensure the information given is valid
-// iden iden can be blank to mean no identity key
+// iden can be blank to mean no identity key
 // once the function validates the information it creates and returns an ssh.ClientConfig.
 func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection bool) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer

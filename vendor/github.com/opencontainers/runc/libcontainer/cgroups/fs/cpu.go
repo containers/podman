@@ -35,14 +35,30 @@ func (s *CpuGroup) Apply(path string, r *configs.Resources, pid int) error {
 }
 
 func (s *CpuGroup) SetRtSched(path string, r *configs.Resources) error {
+	var period string
 	if r.CpuRtPeriod != 0 {
-		if err := cgroups.WriteFile(path, "cpu.rt_period_us", strconv.FormatUint(r.CpuRtPeriod, 10)); err != nil {
-			return err
+		period = strconv.FormatUint(r.CpuRtPeriod, 10)
+		if err := cgroups.WriteFile(path, "cpu.rt_period_us", period); err != nil {
+			// The values of cpu.rt_period_us and cpu.rt_runtime_us
+			// are inter-dependent and need to be set in a proper order.
+			// If the kernel rejects the new period value with EINVAL
+			// and the new runtime value is also being set, let's
+			// ignore the error for now and retry later.
+			if !errors.Is(err, unix.EINVAL) || r.CpuRtRuntime == 0 {
+				return err
+			}
+		} else {
+			period = ""
 		}
 	}
 	if r.CpuRtRuntime != 0 {
 		if err := cgroups.WriteFile(path, "cpu.rt_runtime_us", strconv.FormatInt(r.CpuRtRuntime, 10)); err != nil {
 			return err
+		}
+		if period != "" {
+			if err := cgroups.WriteFile(path, "cpu.rt_period_us", period); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -84,6 +100,30 @@ func (s *CpuGroup) Set(path string, r *configs.Resources) error {
 			period = ""
 		}
 	}
+
+	var burst string
+	if r.CpuBurst != nil {
+		burst = strconv.FormatUint(*r.CpuBurst, 10)
+		if err := cgroups.WriteFile(path, "cpu.cfs_burst_us", burst); err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				// If CPU burst knob is not available (e.g.
+				// older kernel), ignore it.
+				burst = ""
+			} else {
+				// Sometimes when the burst to be set is larger
+				// than the current one, it is rejected by the kernel
+				// (EINVAL) as old_quota/new_burst exceeds the parent
+				// cgroup quota limit. If this happens and the quota is
+				// going to be set, ignore the error for now and retry
+				// after setting the quota.
+				if !errors.Is(err, unix.EINVAL) || r.CpuQuota == 0 {
+					return err
+				}
+			}
+		} else {
+			burst = ""
+		}
+	}
 	if r.CpuQuota != 0 {
 		if err := cgroups.WriteFile(path, "cpu.cfs_quota_us", strconv.FormatInt(r.CpuQuota, 10)); err != nil {
 			return err
@@ -93,7 +133,20 @@ func (s *CpuGroup) Set(path string, r *configs.Resources) error {
 				return err
 			}
 		}
+		if burst != "" {
+			if err := cgroups.WriteFile(path, "cpu.cfs_burst_us", burst); err != nil {
+				return err
+			}
+		}
 	}
+
+	if r.CPUIdle != nil {
+		idle := strconv.FormatInt(*r.CPUIdle, 10)
+		if err := cgroups.WriteFile(path, "cpu.idle", idle); err != nil {
+			return err
+		}
+	}
+
 	return s.SetRtSched(path, r)
 }
 

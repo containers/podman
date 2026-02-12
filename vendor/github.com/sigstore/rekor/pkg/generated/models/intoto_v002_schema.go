@@ -95,6 +95,7 @@ func (m *IntotoV002Schema) ContextValidate(ctx context.Context, formats strfmt.R
 func (m *IntotoV002Schema) contextValidateContent(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Content != nil {
+
 		if err := m.Content.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content")
@@ -132,7 +133,8 @@ func (m *IntotoV002Schema) UnmarshalBinary(b []byte) error {
 type IntotoV002SchemaContent struct {
 
 	// envelope
-	Envelope *IntotoV002SchemaContentEnvelope `json:"envelope,omitempty"`
+	// Required: true
+	Envelope *IntotoV002SchemaContentEnvelope `json:"envelope"`
 
 	// hash
 	Hash *IntotoV002SchemaContentHash `json:"hash,omitempty"`
@@ -164,8 +166,9 @@ func (m *IntotoV002SchemaContent) Validate(formats strfmt.Registry) error {
 }
 
 func (m *IntotoV002SchemaContent) validateEnvelope(formats strfmt.Registry) error {
-	if swag.IsZero(m.Envelope) { // not required
-		return nil
+
+	if err := validate.Required("content"+"."+"envelope", "body", m.Envelope); err != nil {
+		return err
 	}
 
 	if m.Envelope != nil {
@@ -245,6 +248,7 @@ func (m *IntotoV002SchemaContent) ContextValidate(ctx context.Context, formats s
 func (m *IntotoV002SchemaContent) contextValidateEnvelope(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Envelope != nil {
+
 		if err := m.Envelope.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content" + "." + "envelope")
@@ -261,6 +265,11 @@ func (m *IntotoV002SchemaContent) contextValidateEnvelope(ctx context.Context, f
 func (m *IntotoV002SchemaContent) contextValidateHash(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Hash != nil {
+
+		if swag.IsZero(m.Hash) { // not required
+			return nil
+		}
+
 		if err := m.Hash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content" + "." + "hash")
@@ -277,6 +286,11 @@ func (m *IntotoV002SchemaContent) contextValidateHash(ctx context.Context, forma
 func (m *IntotoV002SchemaContent) contextValidatePayloadHash(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.PayloadHash != nil {
+
+		if swag.IsZero(m.PayloadHash) { // not required
+			return nil
+		}
+
 		if err := m.PayloadHash.ContextValidate(ctx, formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("content" + "." + "payloadHash")
@@ -406,6 +420,11 @@ func (m *IntotoV002SchemaContentEnvelope) contextValidateSignatures(ctx context.
 	for i := 0; i < len(m.Signatures); i++ {
 
 		if m.Signatures[i] != nil {
+
+			if swag.IsZero(m.Signatures[i]) { // not required
+				return nil
+			}
+
 			if err := m.Signatures[i].ContextValidate(ctx, formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("content" + "." + "envelope" + "." + "signatures" + "." + strconv.Itoa(i))
@@ -448,25 +467,25 @@ type IntotoV002SchemaContentEnvelopeSignaturesItems0 struct {
 	Keyid string `json:"keyid,omitempty"`
 
 	// public key that corresponds to this signature
-	// Read Only: true
+	// Required: true
 	// Format: byte
-	PublicKey strfmt.Base64 `json:"publicKey,omitempty"`
+	PublicKey *strfmt.Base64 `json:"publicKey"`
 
 	// signature of the payload
+	// Required: true
 	// Format: byte
-	Sig strfmt.Base64 `json:"sig,omitempty"`
+	Sig *strfmt.Base64 `json:"sig"`
 }
 
 // Validate validates this intoto v002 schema content envelope signatures items0
 func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) Validate(formats strfmt.Registry) error {
-	return nil
-}
-
-// ContextValidate validate this intoto v002 schema content envelope signatures items0 based on the context it is used
-func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.contextValidatePublicKey(ctx, formats); err != nil {
+	if err := m.validatePublicKey(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -476,12 +495,26 @@ func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) ContextValidate(ctx co
 	return nil
 }
 
-func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
+func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) validatePublicKey(formats strfmt.Registry) error {
 
-	if err := validate.ReadOnly(ctx, "publicKey", "body", strfmt.Base64(m.PublicKey)); err != nil {
+	if err := validate.Required("publicKey", "body", m.PublicKey); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) validateSig(formats strfmt.Registry) error {
+
+	if err := validate.Required("sig", "body", m.Sig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this intoto v002 schema content envelope signatures items0 based on context it is used
+func (m *IntotoV002SchemaContentEnvelopeSignaturesItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

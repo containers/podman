@@ -71,6 +71,15 @@ func marshalFileInfo(b []byte, fi os.FileInfo) []byte {
 		b = marshalUint32(b, fileStat.Mtime)
 	}
 
+	if flags&sshFileXferAttrExtended != 0 {
+		b = marshalUint32(b, uint32(len(fileStat.Extended)))
+
+		for _, attr := range fileStat.Extended {
+			b = marshalString(b, attr.ExtType)
+			b = marshalString(b, attr.ExtData)
+		}
+	}
+
 	return b
 }
 
@@ -281,6 +290,11 @@ func recvPacket(r io.Reader, alloc *allocator, orderID uint32) (uint8, []byte, e
 		b = make([]byte, length)
 	}
 	if _, err := io.ReadFull(r, b[:length]); err != nil {
+		// ReadFull only returns EOF if it has read no bytes.
+		// In this case, that means a partial packet, and thus unexpected.
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
 		debug("recv packet %d bytes: err %v", length, err)
 		return 0, nil, err
 	}
@@ -522,7 +536,12 @@ func (p *sshFxpRmdirPacket) UnmarshalBinary(b []byte) error {
 }
 
 type sshFxpSymlinkPacket struct {
-	ID         uint32
+	ID uint32
+
+	// The order of the arguments to the SSH_FXP_SYMLINK method was inadvertently reversed.
+	// Unfortunately, the reversal was not noticed until the server was widely deployed.
+	// Covered in Section 4.1 of https://github.com/openssh/openssh-portable/blob/master/PROTOCOL
+
 	Targetpath string
 	Linkpath   string
 }
@@ -1242,7 +1261,7 @@ func (p *sshFxpExtendedPacketPosixRename) UnmarshalBinary(b []byte) error {
 }
 
 func (p *sshFxpExtendedPacketPosixRename) respond(s *Server) responsePacket {
-	err := os.Rename(toLocalPath(p.Oldpath), toLocalPath(p.Newpath))
+	err := os.Rename(s.toLocalPath(p.Oldpath), s.toLocalPath(p.Newpath))
 	return statusFromError(p.ID, err)
 }
 
@@ -1271,6 +1290,6 @@ func (p *sshFxpExtendedPacketHardlink) UnmarshalBinary(b []byte) error {
 }
 
 func (p *sshFxpExtendedPacketHardlink) respond(s *Server) responsePacket {
-	err := os.Link(toLocalPath(p.Oldpath), toLocalPath(p.Newpath))
+	err := os.Link(s.toLocalPath(p.Oldpath), s.toLocalPath(p.Newpath))
 	return statusFromError(p.ID, err)
 }

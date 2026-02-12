@@ -379,7 +379,7 @@ _EOF
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
 
-    cd $PODMAN_TMPDIR
+    pushd $PODMAN_TMPDIR
     run_podman play kube --replace --build --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
     is "$output" bin "expect container within pod to run as the bin user"
@@ -387,6 +387,7 @@ _EOF
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
     run_podman rmi -f userimage:latest
+    popd
 }
 
 @test "podman kube --annotation" {
@@ -440,6 +441,8 @@ _EOF
 }
 
 @test "podman kube play - URL" {
+    skip "fails with 'no route to host' on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
+
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml

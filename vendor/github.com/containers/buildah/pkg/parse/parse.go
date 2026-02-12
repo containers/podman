@@ -16,7 +16,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/config"
@@ -26,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
 	storageTypes "github.com/containers/storage/types"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
@@ -552,7 +552,9 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 	username, password := parseCreds(creds)
 	if username == "" {
 		fmt.Print("Username: ")
-		fmt.Scanln(&username)
+		if _, err := fmt.Scanln(&username); err != nil {
+			return nil, fmt.Errorf("could not read user name from terminal: %w", err)
+		}
 	}
 	if password == "" {
 		fmt.Print("Password: ")

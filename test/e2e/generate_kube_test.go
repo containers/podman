@@ -268,7 +268,7 @@ var _ = Describe("Podman kube generate", func() {
 	It("podman generate kube on pod with user namespace", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}

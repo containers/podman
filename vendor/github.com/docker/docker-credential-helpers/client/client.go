@@ -26,7 +26,7 @@ func isValidCredsMessage(msg string) error {
 
 // Store uses an external program to save credentials.
 func Store(program ProgramFunc, creds *credentials.Credentials) error {
-	cmd := program("store")
+	cmd := program(credentials.ActionStore)
 
 	buffer := new(bytes.Buffer)
 	if err := json.NewEncoder(buffer).Encode(creds); err != nil {
@@ -50,7 +50,7 @@ func Store(program ProgramFunc, creds *credentials.Credentials) error {
 
 // Get executes an external program to get the credentials from a native store.
 func Get(program ProgramFunc, serverURL string) (*credentials.Credentials, error) {
-	cmd := program("get")
+	cmd := program(credentials.ActionGet)
 	cmd.Input(strings.NewReader(serverURL))
 
 	out, err := cmd.Output()
@@ -81,7 +81,7 @@ func Get(program ProgramFunc, serverURL string) (*credentials.Credentials, error
 
 // Erase executes a program to remove the server credentials from the native store.
 func Erase(program ProgramFunc, serverURL string) error {
-	cmd := program("erase")
+	cmd := program(credentials.ActionErase)
 	cmd.Input(strings.NewReader(serverURL))
 	out, err := cmd.Output()
 	if err != nil {
@@ -99,7 +99,7 @@ func Erase(program ProgramFunc, serverURL string) error {
 
 // List executes a program to list server credentials in the native store.
 func List(program ProgramFunc) (map[string]string, error) {
-	cmd := program("list")
+	cmd := program(credentials.ActionList)
 	cmd.Input(strings.NewReader("unused"))
 	out, err := cmd.Output()
 	if err != nil {

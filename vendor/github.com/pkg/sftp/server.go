@@ -24,7 +24,7 @@ const (
 // Server is an SSH File Transfer Protocol (sftp) server.
 // This is intended to provide the sftp subsystem to an ssh server daemon.
 // This implementation currently supports most of sftp server protocol version 3,
-// as specified at http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
+// as specified at https://filezilla-project.org/specs/draft-ietf-secsh-filexfer-02.txt
 type Server struct {
 	*serverConn
 	debugStream   io.Writer
@@ -33,6 +33,7 @@ type Server struct {
 	openFiles     map[string]*os.File
 	openFilesLock sync.RWMutex
 	handleCount   int
+	workDir       string
 }
 
 func (svr *Server) nextHandle(f *os.File) string {
@@ -128,6 +129,16 @@ func WithAllocator() ServerOption {
 	}
 }
 
+// WithServerWorkingDirectory sets a working directory to use as base
+// for relative paths.
+// If unset the default is current working directory (os.Getwd).
+func WithServerWorkingDirectory(workDir string) ServerOption {
+	return func(s *Server) error {
+		s.workDir = cleanPath(workDir)
+		return nil
+	}
+}
+
 type rxPacket struct {
 	pktType  fxp
 	pktBytes []byte
@@ -174,7 +185,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpStatPacket:
 		// stat the requested file
-		info, err := os.Stat(toLocalPath(p.Path))
+		info, err := os.Stat(s.toLocalPath(p.Path))
 		rpkt = &sshFxpStatResponse{
 			ID:   p.ID,
 			info: info,
@@ -184,7 +195,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpLstatPacket:
 		// stat the requested file
-		info, err := os.Lstat(toLocalPath(p.Path))
+		info, err := os.Lstat(s.toLocalPath(p.Path))
 		rpkt = &sshFxpStatResponse{
 			ID:   p.ID,
 			info: info,
@@ -208,24 +219,24 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpMkdirPacket:
 		// TODO FIXME: ignore flags field
-		err := os.Mkdir(toLocalPath(p.Path), 0755)
+		err := os.Mkdir(s.toLocalPath(p.Path), 0o755)
 		rpkt = statusFromError(p.ID, err)
 	case *sshFxpRmdirPacket:
-		err := os.Remove(toLocalPath(p.Path))
+		err := os.Remove(s.toLocalPath(p.Path))
 		rpkt = statusFromError(p.ID, err)
 	case *sshFxpRemovePacket:
-		err := os.Remove(toLocalPath(p.Filename))
+		err := os.Remove(s.toLocalPath(p.Filename))
 		rpkt = statusFromError(p.ID, err)
 	case *sshFxpRenamePacket:
-		err := os.Rename(toLocalPath(p.Oldpath), toLocalPath(p.Newpath))
+		err := os.Rename(s.toLocalPath(p.Oldpath), s.toLocalPath(p.Newpath))
 		rpkt = statusFromError(p.ID, err)
 	case *sshFxpSymlinkPacket:
-		err := os.Symlink(toLocalPath(p.Targetpath), toLocalPath(p.Linkpath))
+		err := os.Symlink(s.toLocalPath(p.Targetpath), s.toLocalPath(p.Linkpath))
 		rpkt = statusFromError(p.ID, err)
 	case *sshFxpClosePacket:
 		rpkt = statusFromError(p.ID, s.closeHandle(p.Handle))
 	case *sshFxpReadlinkPacket:
-		f, err := os.Readlink(toLocalPath(p.Path))
+		f, err := os.Readlink(s.toLocalPath(p.Path))
 		rpkt = &sshFxpNamePacket{
 			ID: p.ID,
 			NameAttrs: []*sshFxpNameAttr{
@@ -240,7 +251,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 			rpkt = statusFromError(p.ID, err)
 		}
 	case *sshFxpRealpathPacket:
-		f, err := filepath.Abs(toLocalPath(p.Path))
+		f, err := filepath.Abs(s.toLocalPath(p.Path))
 		f = cleanPath(f)
 		rpkt = &sshFxpNamePacket{
 			ID: p.ID,
@@ -256,13 +267,14 @@ func handlePacket(s *Server, p orderedRequest) error {
 			rpkt = statusFromError(p.ID, err)
 		}
 	case *sshFxpOpendirPacket:
-		p.Path = toLocalPath(p.Path)
+		lp := s.toLocalPath(p.Path)
 
-		if stat, err := os.Stat(p.Path); err != nil {
+		if stat, err := os.Stat(lp); err != nil {
 			rpkt = statusFromError(p.ID, err)
 		} else if !stat.IsDir() {
 			rpkt = statusFromError(p.ID, &os.PathError{
-				Path: p.Path, Err: syscall.ENOTDIR})
+				Path: lp, Err: syscall.ENOTDIR,
+			})
 		} else {
 			rpkt = (&sshFxpOpenPacket{
 				ID:     p.ID,
@@ -315,7 +327,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 }
 
 // Serve serves SFTP connections until the streams stop or the SFTP subsystem
-// is stopped.
+// is stopped. It returns nil if the server exits cleanly.
 func (svr *Server) Serve() error {
 	defer func() {
 		if svr.pktMgr.alloc != nil {
@@ -341,6 +353,10 @@ func (svr *Server) Serve() error {
 	for {
 		pktType, pktBytes, err = svr.serverConn.recvPacket(svr.pktMgr.getNextOrderID())
 		if err != nil {
+			// Check whether the connection terminated cleanly in-between packets.
+			if err == io.EOF {
+				err = nil
+			}
 			// we don't care about releasing allocated pages here, the server will quit and the allocator freed
 			break
 		}
@@ -446,7 +462,7 @@ func (p *sshFxpOpenPacket) respond(svr *Server) responsePacket {
 		osFlags |= os.O_EXCL
 	}
 
-	f, err := os.OpenFile(toLocalPath(p.Path), osFlags, 0644)
+	f, err := os.OpenFile(svr.toLocalPath(p.Path), osFlags, 0o644)
 	if err != nil {
 		return statusFromError(p.ID, err)
 	}
@@ -484,7 +500,7 @@ func (p *sshFxpSetstatPacket) respond(svr *Server) responsePacket {
 	b := p.Attrs.([]byte)
 	var err error
 
-	p.Path = toLocalPath(p.Path)
+	p.Path = svr.toLocalPath(p.Path)
 
 	debug("setstat name \"%s\"", p.Path)
 	if (p.Flags & sshFileXferAttrSize) != 0 {
@@ -603,13 +619,15 @@ func statusFromError(id uint32, err error) *sshFxpStatusPacket {
 		return ret
 	}
 
-	switch e := err.(type) {
-	case fxerr:
+	if errors.Is(err, io.EOF) {
+		ret.StatusError.Code = sshFxEOF
+		return ret
+	}
+
+	var e fxerr
+	if errors.As(err, &e) {
 		ret.StatusError.Code = uint32(e)
-	default:
-		if e == io.EOF {
-			ret.StatusError.Code = sshFxEOF
-		}
+		return ret
 	}
 
 	return ret

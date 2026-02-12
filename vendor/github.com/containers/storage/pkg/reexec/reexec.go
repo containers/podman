@@ -49,7 +49,7 @@ func panicIfNotInitialized() {
 	}
 }
 
-func naiveSelf() string {
+func naiveSelf() string { //nolint: unused
 	name := os.Args[0]
 	if filepath.Base(name) == name {
 		if lp, err := exec.LookPath(name); err == nil {

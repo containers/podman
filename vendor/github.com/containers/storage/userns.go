@@ -175,7 +175,7 @@ outer:
 
 	// We need to create a temporary layer so we can mount it and lookup the
 	// maximum IDs used.
-	clayer, err := rlstore.Create("", topLayer, nil, "", nil, layerOptions, false)
+	clayer, _, err := rlstore.create("", topLayer, nil, "", nil, layerOptions, false, nil)
 	if err != nil {
 		return 0, err
 	}

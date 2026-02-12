@@ -1,3 +1,5 @@
+//go:build !remote_testing
+
 package integration
 
 import (

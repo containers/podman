@@ -10,6 +10,20 @@ import (
 	"strings"
 )
 
+// Action defines the name of an action (sub-command) supported by a
+// credential-helper binary. It is an alias for "string", and mostly
+// for convenience.
+type Action = string
+
+// List of actions (sub-commands) supported by credential-helper binaries.
+const (
+	ActionStore   Action = "store"
+	ActionGet     Action = "get"
+	ActionErase   Action = "erase"
+	ActionList    Action = "list"
+	ActionVersion Action = "version"
+)
+
 // Credentials holds the information shared between docker and the credentials store.
 type Credentials struct {
 	ServerURL string
@@ -43,42 +57,52 @@ func SetCredsLabel(label string) {
 	CredsLabel = label
 }
 
-// Serve initializes the credentials helper and parses the action argument.
+// Serve initializes the credentials-helper and parses the action argument.
 // This function is designed to be called from a command line interface.
 // It uses os.Args[1] as the key for the action.
 // It uses os.Stdin as input and os.Stdout as output.
 // This function terminates the program with os.Exit(1) if there is an error.
 func Serve(helper Helper) {
-	var err error
 	if len(os.Args) != 2 {
-		err = fmt.Errorf("Usage: %s <store|get|erase|list|version>", os.Args[0])
+		_, _ = fmt.Fprintln(os.Stdout, usage())
+		os.Exit(1)
 	}
 
-	if err == nil {
-		err = HandleCommand(helper, os.Args[1], os.Stdin, os.Stdout)
+	switch os.Args[1] {
+	case "--version", "-v":
+		_ = PrintVersion(os.Stdout)
+		os.Exit(0)
+	case "--help", "-h":
+		_, _ = fmt.Fprintln(os.Stdout, usage())
+		os.Exit(0)
 	}
 
-	if err != nil {
-		fmt.Fprintf(os.Stdout, "%v\n", err)
+	if err := HandleCommand(helper, os.Args[1], os.Stdin, os.Stdout); err != nil {
+		_, _ = fmt.Fprintln(os.Stdout, err)
 		os.Exit(1)
 	}
 }
 
-// HandleCommand uses a helper and a key to run a credential action.
-func HandleCommand(helper Helper, key string, in io.Reader, out io.Writer) error {
-	switch key {
-	case "store":
+func usage() string {
+	return fmt.Sprintf("Usage: %s <store|get|erase|list|version>", Name)
+}
+
+// HandleCommand runs a helper to execute a credential action.
+func HandleCommand(helper Helper, action Action, in io.Reader, out io.Writer) error {
+	switch action {
+	case ActionStore:
 		return Store(helper, in)
-	case "get":
+	case ActionGet:
 		return Get(helper, in, out)
-	case "erase":
+	case ActionErase:
 		return Erase(helper, in)
-	case "list":
+	case ActionList:
 		return List(helper, out)
-	case "version":
+	case ActionVersion:
 		return PrintVersion(out)
+	default:
+		return fmt.Errorf("%s: unknown action: %s", Name, action)
 	}
-	return fmt.Errorf("Unknown credential action `%s`", key)
 }
 
 // Store uses a helper and an input reader to save credentials.
@@ -132,18 +156,17 @@ func Get(helper Helper, reader io.Reader, writer io.Writer) error {
 		return err
 	}
 
-	resp := Credentials{
+	buffer.Reset()
+	err = json.NewEncoder(buffer).Encode(Credentials{
 		ServerURL: serverURL,
 		Username:  username,
 		Secret:    secret,
-	}
-
-	buffer.Reset()
-	if err := json.NewEncoder(buffer).Encode(resp); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
-	fmt.Fprint(writer, buffer.String())
+	_, _ = fmt.Fprint(writer, buffer.String())
 	return nil
 }
 
@@ -181,6 +204,6 @@ func List(helper Helper, writer io.Writer) error {
 
 // PrintVersion outputs the current version.
 func PrintVersion(writer io.Writer) error {
-	fmt.Fprintf(writer, "%s (%s) %s\n", Name, Package, Version)
+	_, _ = fmt.Fprintf(writer, "%s (%s) %s\n", Name, Package, Version)
 	return nil
 }

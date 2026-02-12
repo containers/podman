@@ -3,6 +3,7 @@ package libpod
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // Runtime API constants
@@ -364,6 +366,10 @@ func writeStringToPath(path, contents, mountLabel string, uid, gid int) error {
 	}
 	// Relabel runDirResolv for the container
 	if err := label.Relabel(path, mountLabel, false); err != nil {
+		if errors.Is(err, unix.ENOTSUP) {
+			logrus.Debugf("Labeling not supported on %q", path)
+			return nil
+		}
 		return err
 	}
 

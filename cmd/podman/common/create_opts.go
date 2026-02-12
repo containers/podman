@@ -34,13 +34,6 @@ func Env() []string {
 	return nil
 }
 
-func initPath() string {
-	if !registry.IsRemote() {
-		return podmanConfig.ContainersConfDefaultsRO.InitPath()
-	}
-	return ""
-}
-
 func pidsLimit() int64 {
 	if !registry.IsRemote() {
 		return podmanConfig.ContainersConfDefaultsRO.PidsLimit()

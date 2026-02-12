@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	cdetach "github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
-	cutil "github.com/containers/common/pkg/util"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/logs"
@@ -79,16 +79,16 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	}
 
 	// Make lookup tables for runtime support
-	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON))
-	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups))
-	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM))
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON {
+	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON.Get()))
+	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get()))
+	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM.Get()))
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON.Get() {
 		supportsJSON[r] = true
 	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups {
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get() {
 		supportsNoCgroups[r] = true
 	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM {
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM.Get() {
 		supportsKVM[r] = true
 	}
 
@@ -97,7 +97,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.conmonPath = conmonPath
 	runtime.runtimeFlags = runtimeFlags
 
-	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars
+	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars.Get()
 	runtime.tmpDir = runtimeCfg.Engine.TmpDir
 	runtime.logSizeMax = runtimeCfg.Containers.LogSizeMax
 	runtime.noPivot = runtimeCfg.Engine.NoPivotRoot
@@ -691,7 +691,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 	// Next, STDIN. Avoid entirely if attachStdin unset.
 	if attachStdin {
 		go func() {
-			_, err := cutil.CopyDetachable(conn, httpBuf, detach)
+			_, err := cdetach.Copy(conn, httpBuf, detach)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()
@@ -1161,17 +1161,22 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.Env = append(cmd.Env, conmonEnv...)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 
-	if r.reservePorts && !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
-		ports, err := bindPorts(ctr.convertPortMappings())
+	if ctr.config.PostConfigureNetNS {
+		// netns was not setup yet but we have to bind ports now so we can leak the fd to conmon
+		ports, err := ctr.bindPorts()
 		if err != nil {
 			return 0, err
 		}
 		filesToClose = append(filesToClose, ports...)
-
 		// Leak the port we bound in the conmon process.  These fd's won't be used
 		// by the container and conmon will keep the ports busy so that another
 		// process cannot use them.
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+	} else {
+		// ports were bound in ctr.prepare() as we must do it before the netns setup
+		filesToClose = append(filesToClose, ctr.reservedPorts...)
+		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.reservedPorts...)
+		ctr.reservedPorts = nil
 	}
 
 	if ctr.config.NetMode.IsSlirp4netns() || rootless.IsRootless() {

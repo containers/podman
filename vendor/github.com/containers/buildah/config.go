@@ -362,6 +362,9 @@ func (b *Builder) WorkDir() string {
 // commands in the container, or in a container built using an image built from
 // this container.
 func (b *Builder) SetWorkDir(there string) {
+	if there != string(os.PathSeparator) {
+		there = strings.TrimSuffix(there, string(os.PathSeparator))
+	}
 	b.OCIv1.Config.WorkingDir = there
 	b.Docker.Config.WorkingDir = there
 }

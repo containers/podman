@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/mount"
@@ -37,22 +38,22 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 	}()
 
 	// Make directories l1/d, l1/d1, l2/d, l3, work, merged
-	if err := os.MkdirAll(filepath.Join(td, "l1", "d"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "l1", "d"), 0o755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(td, "l1", "d1"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "l1", "d1"), 0o755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(td, "l2", "d"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "l2", "d"), 0o755); err != nil {
 		return err
 	}
-	if err := os.Mkdir(filepath.Join(td, "l3"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "l3"), 0o755); err != nil {
 		return err
 	}
-	if err := os.Mkdir(filepath.Join(td, "work"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "work"), 0o755); err != nil {
 		return err
 	}
-	if err := os.Mkdir(filepath.Join(td, "merged"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "merged"), 0o755); err != nil {
 		return err
 	}
 
@@ -81,7 +82,7 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 	}()
 
 	// Touch file in d to force copy up of opaque directory "d" from "l2" to "l3"
-	if err := os.WriteFile(filepath.Join(td, "merged", "d", "f"), []byte{}, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(td, "merged", "d", "f"), []byte{}, 0o644); err != nil {
 		return fmt.Errorf("failed to write to merged directory: %w", err)
 	}
 
@@ -131,19 +132,19 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 	}()
 
 	// Make directories l1, l2, work, merged
-	if err := os.MkdirAll(filepath.Join(td, "l1"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "l1"), 0o755); err != nil {
 		return false, err
 	}
-	if err := ioutils.AtomicWriteFile(filepath.Join(td, "l1", "f"), []byte{0xff}, 0700); err != nil {
+	if err := ioutils.AtomicWriteFile(filepath.Join(td, "l1", "f"), []byte{0xff}, 0o700); err != nil {
 		return false, err
 	}
-	if err := os.MkdirAll(filepath.Join(td, "l2"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "l2"), 0o755); err != nil {
 		return false, err
 	}
-	if err := os.Mkdir(filepath.Join(td, "work"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "work"), 0o755); err != nil {
 		return false, err
 	}
-	if err := os.Mkdir(filepath.Join(td, "merged"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "merged"), 0o755); err != nil {
 		return false, err
 	}
 	// Mount using the mandatory options and configured options
@@ -169,7 +170,7 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 	}()
 	// Make a change that only impacts the inode, and check if the pulled-up copy is marked
 	// as a metadata-only copy
-	if err := os.Chmod(filepath.Join(td, "merged", "f"), 0600); err != nil {
+	if err := os.Chmod(filepath.Join(td, "merged", "f"), 0o600); err != nil {
 		return false, fmt.Errorf("changing permissions on file for metacopy check: %w", err)
 	}
 	metacopy, err := system.Lgetxattr(filepath.Join(td, "l2", "f"), archive.GetOverlayXattrName("metacopy"))
@@ -195,20 +196,23 @@ func doesVolatile(d string) (bool, error) {
 		}
 	}()
 
-	if err := os.MkdirAll(filepath.Join(td, "lower"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "lower"), 0o755); err != nil {
 		return false, err
 	}
-	if err := os.MkdirAll(filepath.Join(td, "upper"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(td, "upper"), 0o755); err != nil {
 		return false, err
 	}
-	if err := os.Mkdir(filepath.Join(td, "work"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "work"), 0o755); err != nil {
 		return false, err
 	}
-	if err := os.Mkdir(filepath.Join(td, "merged"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(td, "merged"), 0o755); err != nil {
 		return false, err
 	}
 	// Mount using the mandatory options and configured options
 	opts := fmt.Sprintf("volatile,lowerdir=%s,upperdir=%s,workdir=%s", path.Join(td, "lower"), path.Join(td, "upper"), path.Join(td, "work"))
+	if unshare.IsRootless() {
+		opts = fmt.Sprintf("%s,userxattr", opts)
+	}
 	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", 0, opts); err != nil {
 		return false, fmt.Errorf("failed to mount overlay for volatile check: %w", err)
 	}
@@ -237,26 +241,26 @@ func supportsIdmappedLowerLayers(home string) (bool, error) {
 	upperDir := filepath.Join(layerDir, "upper")
 	workDir := filepath.Join(layerDir, "work")
 
-	_ = idtools.MkdirAs(mergedDir, 0700, 0, 0)
-	_ = idtools.MkdirAs(lowerDir, 0700, 0, 0)
-	_ = idtools.MkdirAs(lowerMappedDir, 0700, 0, 0)
-	_ = idtools.MkdirAs(upperDir, 0700, 0, 0)
-	_ = idtools.MkdirAs(workDir, 0700, 0, 0)
+	_ = idtools.MkdirAs(mergedDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(lowerDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(lowerMappedDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(upperDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(workDir, 0o700, 0, 0)
 
-	idmap := []idtools.IDMap{
+	mapping := []idtools.IDMap{
 		{
 			ContainerID: 0,
 			HostID:      0,
 			Size:        1,
 		},
 	}
-	pid, cleanupFunc, err := createUsernsProcess(idmap, idmap)
+	pid, cleanupFunc, err := idmap.CreateUsernsProcess(mapping, mapping)
 	if err != nil {
 		return false, err
 	}
 	defer cleanupFunc()
 
-	if err := createIDMappedMount(lowerDir, lowerMappedDir, int(pid)); err != nil {
+	if err := idmap.CreateIDMappedMount(lowerDir, lowerMappedDir, int(pid)); err != nil {
 		return false, fmt.Errorf("create mapped mount: %w", err)
 	}
 	defer unix.Unmount(lowerMappedDir, unix.MNT_DETACH)
@@ -269,5 +273,38 @@ func supportsIdmappedLowerLayers(home string) (bool, error) {
 	defer func() {
 		_ = unix.Unmount(mergedDir, unix.MNT_DETACH)
 	}()
+	return true, nil
+}
+
+// supportsDataOnlyLayers checks if the kernel supports mounting a overlay file system
+// that uses data-only layers.
+func supportsDataOnlyLayers(home string) (bool, error) {
+	layerDir, err := os.MkdirTemp(home, "compat")
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = os.RemoveAll(layerDir)
+	}()
+
+	mergedDir := filepath.Join(layerDir, "merged")
+	lowerDir := filepath.Join(layerDir, "lower")
+	lowerDirDataOnly := filepath.Join(layerDir, "lower-data")
+	upperDir := filepath.Join(layerDir, "upper")
+	workDir := filepath.Join(layerDir, "work")
+
+	_ = idtools.MkdirAs(mergedDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(lowerDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(lowerDirDataOnly, 0o700, 0, 0)
+	_ = idtools.MkdirAs(upperDir, 0o700, 0, 0)
+	_ = idtools.MkdirAs(workDir, 0o700, 0, 0)
+
+	opts := fmt.Sprintf("lowerdir=%s::%s,upperdir=%s,workdir=%s,metacopy=on", lowerDir, lowerDirDataOnly, upperDir, workDir)
+	flags := uintptr(0)
+	if err := unix.Mount("overlay", mergedDir, "overlay", flags, opts); err != nil {
+		return false, err
+	}
+	_ = unix.Unmount(mergedDir, unix.MNT_DETACH)
+
 	return true, nil
 }

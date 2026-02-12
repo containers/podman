@@ -73,10 +73,12 @@ var _ = Describe("Podman cp", func() {
 
 		destFile, err := os.CreateTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
-		defer destFile.Close()
-		defer os.Remove(destFile.Name())
+		destFileName := destFile.Name()
+		destFile.Close()
+		os.Remove(destFileName)
+		defer os.Remove(destFileName)
 
-		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
+		session = podmanTest.Podman([]string{"cp", name + ":foo", destFileName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -85,13 +87,14 @@ var _ = Describe("Podman cp", func() {
 		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
-		roundtripContent, err := os.ReadFile(destFile.Name())
+		roundtripContent, err := os.ReadFile(destFileName)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
 
 	// Copy a file to the container, then back to the host in --pid=host
 	It("podman cp --pid=host file", func() {
+		SkipIfRemote("podman-remote cp fails when copying file to existing file path")
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		srcFile, err := os.CreateTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
@@ -121,15 +124,17 @@ var _ = Describe("Podman cp", func() {
 
 		destFile, err := os.CreateTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
-		defer destFile.Close()
-		defer os.Remove(destFile.Name())
+		destFileName := destFile.Name()
+		destFile.Close()
+		os.Remove(destFileName)
+		defer os.Remove(destFileName)
 
-		session = podmanTest.Podman([]string{"cp", name + ":foo", destFile.Name()})
+		session = podmanTest.Podman([]string{"cp", name + ":foo", destFileName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
-		roundtripContent, err := os.ReadFile(destFile.Name())
+		roundtripContent, err := os.ReadFile(destFileName)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
@@ -213,6 +218,7 @@ var _ = Describe("Podman cp", func() {
 	// it to the host and back to the container and make sure that we can
 	// access it, and (roughly) the right users own it.
 	It("podman cp from ctr chown ", func() {
+		SkipIfRemote("podman-remote cp fails when copying file to existing file path")
 		srcFile, err := os.CreateTemp("", "")
 		Expect(err).ToNot(HaveOccurred())
 		defer srcFile.Close()

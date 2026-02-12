@@ -30,8 +30,8 @@ type walker struct {
 	dir2   string
 	root1  *FileInfo
 	root2  *FileInfo
-	idmap1 *idtools.IDMappings
-	idmap2 *idtools.IDMappings
+	idmap1 *idtools.IDMappings //nolint:unused
+	idmap2 *idtools.IDMappings //nolint:unused
 }
 
 // collectFileInfoForChanges returns a complete representation of the trees
@@ -397,5 +397,4 @@ func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (str
 
 	// We didn't find the same path in any older layers, so it was new in this one.
 	return "", nil
-
 }

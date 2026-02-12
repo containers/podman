@@ -549,7 +549,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		port := GetPort()
 
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
-			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", fmt.Sprintf("%d", port)})
+			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", fmt.Sprintf("%d", port)})
 			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
 			session.WaitWithDefaultTimeout()
 			ncListener.WaitWithDefaultTimeout()
@@ -575,7 +575,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		networkConfiguration := fmt.Sprintf("slirp4netns:outbound_addr=%s,allow_host_loopback=true", ip.String())
 
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "outbound-addr") {
-			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", "-p", fmt.Sprintf("%d", port)})
+			ncListener := StartSystemExec("nc", []string{"-v", "-n", "-l", fmt.Sprintf("%d", port)})
 			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", fmt.Sprintf("%d", port)})
 			session.Wait(30)
 			ncListener.Wait(30)

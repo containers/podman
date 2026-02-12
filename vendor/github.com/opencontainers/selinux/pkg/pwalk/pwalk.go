@@ -1,6 +1,7 @@
 package pwalk
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -67,6 +68,13 @@ func WalkN(root string, walkFn WalkFunc, num int) error {
 	go func() {
 		err = filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
 			if err != nil {
+				// Walking a file tree can race with removal,
+				// so ignore ENOENT, except for root.
+				// https://github.com/opencontainers/selinux/issues/199.
+				if errors.Is(err, os.ErrNotExist) && len(p) != rootLen {
+					return nil
+				}
+
 				close(files)
 				return err
 			}

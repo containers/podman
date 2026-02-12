@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -20,8 +19,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	osFilepath "github.com/opencontainers/runtime-tools/filepath"
+	capsCheck "github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
 
 	"github.com/opencontainers/runtime-tools/specerror"
 	"github.com/xeipuuv/gojsonschema"
@@ -88,7 +87,7 @@ func NewValidatorFromPath(bundlePath string, hostSpecific bool, platform string)
 	}
 
 	configPath := filepath.Join(bundlePath, specConfig)
-	content, err := ioutil.ReadFile(configPath)
+	content, err := os.ReadFile(configPath)
 	if err != nil {
 		return Validator{}, specerror.NewError(specerror.ConfigInRootBundleDir, err, rspec.Version)
 	}
@@ -299,7 +298,7 @@ func (v *Validator) checkEventHooks(hookType string, hooks []rspec.Hook, hostSpe
 			if err != nil {
 				errs = multierror.Append(errs, fmt.Errorf("cannot find %s hook: %v", hookType, hook.Path))
 			}
-			if fi.Mode()&0111 == 0 {
+			if fi.Mode()&0o111 == 0 {
 				errs = multierror.Append(errs, fmt.Errorf("the %s hook %v: is not executable", hookType, hook.Path))
 			}
 		}
@@ -359,7 +358,7 @@ func (v *Validator) CheckProcess() (errs error) {
 				errs = multierror.Append(errs, err)
 			} else {
 				m := fileinfo.Mode()
-				if m.IsDir() || m&0111 == 0 {
+				if m.IsDir() || m&0o111 == 0 {
 					errs = multierror.Append(errs, fmt.Errorf("arg %q is not executable", process.Args[0]))
 				}
 			}
@@ -687,26 +686,10 @@ func (v *Validator) CheckAnnotations() (errs error) {
 }
 
 // CapValid checks whether a capability is valid
+//
+// Deprecated: use github.com/opencontainers/runtime-tools/validate/capabilities.CapValid directly.
 func CapValid(c string, hostSpecific bool) error {
-	isValid := false
-
-	if !strings.HasPrefix(c, "CAP_") {
-		return fmt.Errorf("capability %s must start with CAP_", c)
-	}
-	for _, cap := range capability.List() {
-		if c == fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String())) {
-			if hostSpecific && cap > LastCap() {
-				return fmt.Errorf("%s is not supported on the current host", c)
-			}
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		return fmt.Errorf("invalid capability: %s", c)
-	}
-	return nil
+	return capsCheck.CapValid(c, hostSpecific)
 }
 
 func envValid(env string) bool {

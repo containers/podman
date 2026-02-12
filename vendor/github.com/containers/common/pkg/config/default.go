@@ -6,8 +6,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
+	"github.com/containers/common/internal/attributedstring"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
@@ -28,12 +30,37 @@ const (
 	_defaultTransport = "docker://"
 
 	// _defaultImageVolumeMode is a mode to handle built-in image volumes.
-	_defaultImageVolumeMode = "bind"
+	_defaultImageVolumeMode = _typeBind
+
+	// defaultInitName is the default name of the init binary
+	defaultInitName = "catatonit"
 )
 
 var (
-	// DefaultInitPath is the default path to the container-init binary.
-	DefaultInitPath = "/usr/libexec/podman/catatonit"
+	DefaultMaskedPaths = []string{
+		"/proc/acpi",
+		"/proc/kcore",
+		"/proc/keys",
+		"/proc/latency_stats",
+		"/proc/sched_debug",
+		"/proc/scsi",
+		"/proc/timer_list",
+		"/proc/timer_stats",
+		"/sys/dev/block",
+		"/sys/devices/virtual/powercap",
+		"/sys/firmware",
+		"/sys/fs/selinux",
+	}
+
+	DefaultReadOnlyPaths = []string{
+		"/proc/asound",
+		"/proc/bus",
+		"/proc/fs",
+		"/proc/irq",
+		"/proc/sys",
+		"/proc/sysrq-trigger",
+	}
+
 	// DefaultInfraImage is the default image to run as infrastructure containers in pods.
 	DefaultInfraImage = ""
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks.
@@ -71,6 +98,12 @@ var (
 		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
+	DefaultNetavarkPluginDirs = []string{
+		"/usr/local/libexec/netavark",
+		"/usr/libexec/netavark",
+		"/usr/local/lib/netavark",
+		"/usr/lib/netavark",
+	}
 	DefaultSubnetPools = []SubnetPool{
 		// 10.89.0.0/24-10.255.255.0/24
 		parseSubnetPool("10.89.0.0/16", 24),
@@ -83,6 +116,18 @@ var (
 	// should be set during link-time, if different packagers put their
 	// helper binary in a different location.
 	additionalHelperBinariesDir string
+
+	defaultUnixComposeProviders = []string{
+		"docker-compose",
+		"$HOME/.docker/cli-plugins/docker-compose",
+		"/usr/local/lib/docker/cli-plugins/docker-compose",
+		"/usr/local/libexec/docker/cli-plugins/docker-compose",
+		"/usr/lib/docker/cli-plugins/docker-compose",
+		"/usr/libexec/docker/cli-plugins/docker-compose",
+		"podman-compose",
+	}
+
+	defaultContainerEnv = []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
 )
 
 // nolint:unparam
@@ -141,9 +186,11 @@ const (
 	DefaultVolumePluginTimeout = 5
 )
 
-// DefaultConfig defines the default values from containers.conf.
-func DefaultConfig() (*Config, error) {
-	defaultEngineConfig, err := defaultConfigFromMemory()
+// defaultConfig returns Config with builtin defaults and minimal adjustments
+// to the current host only. It does not read any config files from the host or
+// the environment.
+func defaultConfig() (*Config, error) {
+	defaultEngineConfig, err := defaultEngineConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -170,52 +217,53 @@ func DefaultConfig() (*Config, error) {
 
 	return &Config{
 		Containers: ContainersConfig{
-			Devices:             []string{},
-			Volumes:             []string{},
-			Annotations:         []string{},
+			Annotations:         attributedstring.Slice{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
 			CgroupNS:            cgroupNS,
 			Cgroups:             getDefaultCgroupsMode(),
-			DefaultCapabilities: DefaultCapabilities,
-			DefaultSysctls:      []string{},
-			DefaultUlimits:      getDefaultProcessLimits(),
-			DNSServers:          []string{},
-			DNSOptions:          []string{},
-			DNSSearches:         []string{},
+			DNSOptions:          attributedstring.Slice{},
+			DNSSearches:         attributedstring.Slice{},
+			DNSServers:          attributedstring.Slice{},
+			DefaultCapabilities: attributedstring.NewSlice(DefaultCapabilities),
+			DefaultSysctls:      attributedstring.Slice{},
+			DefaultUlimits:      attributedstring.NewSlice(getDefaultProcessLimits()),
+			Devices:             attributedstring.Slice{},
 			EnableKeyring:       true,
 			EnableLabeling:      selinuxEnabled(),
-			Env: []string{
-				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-				"TERM=xterm",
-			},
-			EnvHost:    false,
-			HTTPProxy:  true,
-			Init:       false,
-			InitPath:   "",
-			IPCNS:      "shareable",
-			LogDriver:  defaultLogDriver(),
-			LogSizeMax: DefaultLogSizeMax,
-			NetNS:      "private",
-			NoHosts:    false,
-			PidsLimit:  DefaultPidsLimit,
-			PidNS:      "private",
-			ShmSize:    DefaultShmSize,
-			TZ:         "",
-			Umask:      "0022",
-			UTSNS:      "private",
-			UserNSSize: DefaultUserNSSize, // Deprecated
+			Env:                 attributedstring.NewSlice(defaultContainerEnv),
+			EnvHost:             false,
+			HTTPProxy:           true,
+			IPCNS:               "shareable",
+			Init:                false,
+			InitPath:            "",
+			LogDriver:           defaultLogDriver(),
+			LogSizeMax:          DefaultLogSizeMax,
+			Mounts:              attributedstring.Slice{},
+			NetNS:               "private",
+			NoHosts:             false,
+			PidNS:               "private",
+			PidsLimit:           DefaultPidsLimit,
+			ShmSize:             DefaultShmSize,
+			TZ:                  "",
+			UTSNS:               "private",
+			Umask:               "0022",
+			UserNSSize:          DefaultUserNSSize, // Deprecated
+			Volumes:             attributedstring.Slice{},
 		},
 		Network: NetworkConfig{
-			DefaultNetwork:     "podman",
-			DefaultSubnet:      DefaultSubnet,
-			DefaultSubnetPools: DefaultSubnetPools,
-			DNSBindPort:        0,
-			CNIPluginDirs:      DefaultCNIPluginDirs,
+			DefaultNetwork:            "podman",
+			DefaultSubnet:             DefaultSubnet,
+			DefaultSubnetPools:        DefaultSubnetPools,
+			DefaultRootlessNetworkCmd: "slirp4netns",
+			DNSBindPort:               0,
+			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
+			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
 		Machine: defaultMachineConfig(),
+		Farms:   defaultFarmConfig(),
 	}, nil
 }
 
@@ -229,19 +277,31 @@ func defaultSecretConfig() SecretConfig {
 
 // defaultMachineConfig returns the default machine configuration.
 func defaultMachineConfig() MachineConfig {
+	cpus := runtime.NumCPU() / 2
+	if cpus == 0 {
+		cpus = 1
+	}
 	return MachineConfig{
-		CPUs:     1,
+		CPUs:     uint64(cpus),
 		DiskSize: 100,
 		Image:    getDefaultMachineImage(),
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  getDefaultMachineVolumes(),
+		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
 	}
 }
 
-// defaultConfigFromMemory returns a default engine configuration. Note that the
+// defaultFarmConfig returns the default farms configuration.
+func defaultFarmConfig() FarmConfig {
+	emptyList := make(map[string][]string)
+	return FarmConfig{
+		List: emptyList,
+	}
+}
+
+// defaultEngineConfig returns a default engine configuration. Note that the
 // config is different for root and rootless. It also parses the storage.conf.
-func defaultConfigFromMemory() (*EngineConfig, error) {
+func defaultEngineConfig() (*EngineConfig, error) {
 	c := new(EngineConfig)
 	tmp, err := defaultTmpDir()
 	if err != nil {
@@ -252,6 +312,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
 
 	c.CompatAPIEnforceDockerHub = true
+	c.ComposeProviders.Set(getDefaultComposeProviders()) // may vary across supported platforms
+	c.ComposeWarningLogs = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
 		if err := types.SetDefaultConfigFilePath(path); err != nil {
@@ -270,25 +332,25 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.graphRoot = storeOpts.GraphRoot
 	c.ImageCopyTmpDir = getDefaultTmpDir()
-	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
-	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
 
 	c.VolumePluginTimeout = DefaultVolumePluginTimeout
+	c.CompressionFormat = "gzip"
 
-	c.HelperBinariesDir = defaultHelperBinariesDir
+	c.HelperBinariesDir.Set(defaultHelperBinariesDir)
 	if additionalHelperBinariesDir != "" {
-		c.HelperBinariesDir = append(c.HelperBinariesDir, additionalHelperBinariesDir)
+		// Prioritize addtionalHelperBinariesDir over defaults.
+		c.HelperBinariesDir.Set(append([]string{additionalHelperBinariesDir}, c.HelperBinariesDir.Get()...))
 	}
-	c.HooksDir = DefaultHooksDirs
+	c.HooksDir.Set(DefaultHooksDirs)
 	c.ImageDefaultTransport = _defaultTransport
 	c.ImageVolumeMode = _defaultImageVolumeMode
-	c.StateType = BoltDBStateStore
 
 	c.ImageBuildFormat = "oci"
 
 	c.CgroupManager = defaultCgroupManager()
 	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
+	c.PodmanshTimeout = uint(30)
 	c.ExitCommandDelay = uint(5 * 60)
 	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
@@ -300,6 +362,14 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/crun",
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
+		},
+		"crun-vm": {
+			"/usr/bin/crun-vm",
+			"/usr/local/bin/crun-vm",
+			"/usr/local/sbin/crun-vm",
+			"/sbin/crun-vm",
+			"/bin/crun-vm",
+			"/run/current-system/sw/bin/crun-vm",
 		},
 		"crun-wasm": {
 			"/usr/bin/crun-wasm",
@@ -364,10 +434,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	// Needs to be called after populating c.OCIRuntimes.
 	c.OCIRuntime = c.findRuntime()
 
-	c.ConmonEnvVars = []string{
-		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-	}
-	c.ConmonPath = []string{
+	c.ConmonEnvVars.Set([]string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
+	c.ConmonPath.Set([]string{
 		"/usr/libexec/podman/conmon",
 		"/usr/local/libexec/podman/conmon",
 		"/usr/local/lib/podman/conmon",
@@ -376,8 +444,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"/usr/local/bin/conmon",
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
-	}
-	c.ConmonRsPath = []string{
+	})
+	c.ConmonRsPath.Set([]string{
 		"/usr/libexec/podman/conmonrs",
 		"/usr/local/libexec/podman/conmonrs",
 		"/usr/local/lib/podman/conmonrs",
@@ -386,19 +454,19 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"/usr/local/bin/conmonrs",
 		"/usr/local/sbin/conmonrs",
 		"/run/current-system/sw/bin/conmonrs",
-	}
+	})
 	c.PullPolicy = DefaultPullPolicy
-	c.RuntimeSupportsJSON = []string{
+	c.RuntimeSupportsJSON.Set([]string{
 		"crun",
 		"runc",
 		"kata",
 		"runsc",
 		"youki",
 		"krun",
-	}
-	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
-	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}
-	c.InitPath = DefaultInitPath
+		"ocijail",
+	})
+	c.RuntimeSupportsNoCgroups.Set([]string{"crun", "krun"})
+	c.RuntimeSupportsKVM.Set([]string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"})
 	c.NoPivotRoot = false
 
 	c.InfraImage = DefaultInfraImage
@@ -415,6 +483,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.PodExitPolicy = defaultPodExitPolicy
 	c.SSHConfig = getDefaultSSHConfig()
+	c.KubeGenerateType = "pod"
 
 	return c, nil
 }
@@ -467,42 +536,42 @@ func (c *Config) SecurityOptions() []string {
 
 // Sysctls returns the default sysctls to set in containers.
 func (c *Config) Sysctls() []string {
-	return c.Containers.DefaultSysctls
+	return c.Containers.DefaultSysctls.Get()
 }
 
 // Volumes returns the default set of volumes that should be mounted in containers.
 func (c *Config) Volumes() []string {
-	return c.Containers.Volumes
+	return c.Containers.Volumes.Get()
+}
+
+// Mounts returns the default set of mounts that should be mounted in containers.
+func (c *Config) Mounts() []string {
+	return c.Containers.Mounts.Get()
 }
 
 // Devices returns the default additional devices for containers.
 func (c *Config) Devices() []string {
-	return c.Containers.Devices
+	return c.Containers.Devices.Get()
 }
 
 // DNSServers returns the default DNS servers to add to resolv.conf in containers.
 func (c *Config) DNSServers() []string {
-	return c.Containers.DNSServers
+	return c.Containers.DNSServers.Get()
 }
 
 // DNSSerches returns the default DNS searches to add to resolv.conf in containers.
 func (c *Config) DNSSearches() []string {
-	return c.Containers.DNSSearches
+	return c.Containers.DNSSearches.Get()
 }
 
 // DNSOptions returns the default DNS options to add to resolv.conf in containers.
 func (c *Config) DNSOptions() []string {
-	return c.Containers.DNSOptions
+	return c.Containers.DNSOptions.Get()
 }
 
 // Env returns the default additional environment variables to add to containers.
 func (c *Config) Env() []string {
-	return c.Containers.Env
-}
-
-// InitPath returns location where init program added to containers when users specify the --init flag.
-func (c *Config) InitPath() string {
-	return c.Containers.InitPath
+	return c.Containers.Env.Get()
 }
 
 // IPCNS returns the default IPC Namespace configuration to run containers with.
@@ -537,7 +606,7 @@ func (c *Config) ShmSize() string {
 
 // Ulimits returns the default ulimits to use in containers.
 func (c *Config) Ulimits() []string {
-	return c.Containers.DefaultUlimits
+	return c.Containers.DefaultUlimits.Get()
 }
 
 // PidsLimit returns the default maximum number of pids to use in containers.
@@ -582,7 +651,7 @@ func (c *Config) MachineEnabled() bool {
 
 // MachineVolumes returns volumes to mount into the VM.
 func (c *Config) MachineVolumes() ([]string, error) {
-	return machineVolumes(c.Machine.Volumes)
+	return machineVolumes(c.Machine.Volumes.Get())
 }
 
 func machineVolumes(volumes []string) ([]string, error) {
@@ -613,4 +682,17 @@ func useUserConfigLocations() bool {
 	// NOTE: For now we want Windows to use system locations.
 	// GetRootlessUID == -1 on Windows, so exclude negative range
 	return unshare.GetRootlessUID() > 0
+}
+
+// getDefaultImage returns the default machine image stream
+// On Windows this refers to the Fedora major release number
+func getDefaultMachineImage() string {
+	return "testing"
+}
+
+// getDefaultMachineUser returns the user to use for rootless podman
+// This is only for the apple, hyperv, and qemu implementations.
+// WSL's user will be hardcoded in podman to "user"
+func getDefaultMachineUser() string {
+	return "core"
 }

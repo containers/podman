@@ -1,3 +1,5 @@
+//go:build !remote
+
 package generate
 
 import (
@@ -5,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -76,7 +77,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
 }
 
 // Produce the final command for the container.
-func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *config.Config) ([]string, error) {
+func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]string, error) {
 	finalCommand := []string{}
 
 	entrypoint := s.Entrypoint
@@ -103,13 +104,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *c
 	}
 
 	if s.Init {
-		initPath := s.InitPath
-		if initPath == "" && rtc != nil {
-			initPath = rtc.Engine.InitPath
-		}
-		if initPath == "" {
-			return nil, fmt.Errorf("no path to init binary found but container requested an init")
-		}
+		// bind mount for this binary is added in addContainerInitBinary()
 		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}
 
