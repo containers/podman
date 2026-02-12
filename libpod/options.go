@@ -270,6 +270,17 @@ func WithCDI(devices []string) CtrCreateOption {
 	}
 }
 
+// WithGPUs sets the devices to check for CDI configuration.
+func WithGPUs(gpus []string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.GPUs = gpus
+		return nil
+	}
+}
+
 func WithCDISpecDirs(cdiSpecDirs []string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {

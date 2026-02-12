@@ -246,6 +246,9 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		logrus.Debugf("setting container name %s", s.Name)
 		options = append(options, libpod.WithName(s.Name))
 	}
+	if len(s.GPUs) > 0 {
+		options = append(options, libpod.WithGPUs(s.GPUs))
+	}
 	if len(s.Devices) > 0 {
 		opts = ExtractCDIDevices(s)
 		options = append(options, opts...)

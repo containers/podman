@@ -318,6 +318,10 @@ type ContainerStorageConfig struct {
 	DevicesFrom []string `json:"devices_from,omitempty"`
 	// HostDeviceList is used to recreate the mounted device on inherited containers
 	HostDeviceList []spec.LinuxDevice `json:"host_device_list,omitempty"`
+	// GPUs contains GPU device identifiers for CDI resolution.
+	// These will be resolved to full CDI device paths on the server side.
+	// Optional.
+	GPUs []string `json:"gpus,omitempty"`
 	// IpcNS is the container's IPC namespace.
 	// Default is private.
 	// Conflicts with ShmSize if not set to private.
