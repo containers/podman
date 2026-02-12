@@ -234,8 +234,9 @@ func parseBuildQuery(r *http.Request, conf *config.Config, queryValues url.Value
 func processBuildContext(query url.Values, r *http.Request, buildContext *BuildContext, anchorDir string) (*BuildContext, error) {
 	dockerFileSet := false
 	remote := query.Get("remote")
+	isLibpodRequest := utils.IsLibpodRequest(r)
 
-	if utils.IsLibpodRequest(r) && remote != "" {
+	if isLibpodRequest && remote != "" {
 		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", remote)
 		if err != nil {
 			return nil, utils.GetInternalServerError(genSpaceErr(err))
@@ -262,19 +263,27 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 				// Add path to containerfile if it is not URL
 				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
 					cleaned := filepath.Clean(filepath.FromSlash(containerfile))
-					if filepath.VolumeName(cleaned) != "" {
+					if !isLibpodRequest && filepath.VolumeName(cleaned) != "" {
 						return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("invalid path"))
 					}
 
-					resolved := cleaned
-					if !filepath.IsAbs(cleaned) {
-						resolved = filepath.Join(buildContext.ContextDirectory, cleaned)
+					if isLibpodRequest {
+						if filepath.IsAbs(cleaned) {
+							containerfile = cleaned
+						} else {
+							containerfile = filepath.Join(buildContext.ContextDirectory, cleaned)
+						}
+					} else {
+						resolved := cleaned
+						if !filepath.IsAbs(cleaned) {
+							resolved = filepath.Join(buildContext.ContextDirectory, cleaned)
+						}
+						rel, relErr := filepath.Rel(buildContext.ContextDirectory, resolved)
+						if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+							return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("path escapes build context"))
+						}
+						containerfile = resolved
 					}
-					rel, relErr := filepath.Rel(buildContext.ContextDirectory, resolved)
-					if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-						return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("path escapes build context"))
-					}
-					containerfile = resolved
 				}
 				buildContext.ContainerFiles = append(buildContext.ContainerFiles, containerfile)
 			}

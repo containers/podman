@@ -78,4 +78,23 @@ func TestProcessBuildContext_DockerfileConfinement(t *testing.T) {
 			t.Fatalf("expected error, got nil")
 		}
 	})
+
+	t.Run("libpod local build allows absolute dockerfile outside context", func(t *testing.T) {
+		t.Parallel()
+
+		query := url.Values{}
+		query.Set("dockerfile", "/etc/passwd")
+
+		libpodReq := httptest.NewRequest(http.MethodPost, "http://example.com/v1.41/libpod/local/build", nil)
+		buildContext, err := processBuildContext(query, libpodReq, &BuildContext{ContextDirectory: contextDir}, anchorDir)
+		if err != nil {
+			t.Fatalf("expected nil error, got %v", err)
+		}
+		if len(buildContext.ContainerFiles) != 1 {
+			t.Fatalf("expected 1 dockerfile, got %d", len(buildContext.ContainerFiles))
+		}
+		if buildContext.ContainerFiles[0] != "/etc/passwd" {
+			t.Fatalf("expected %q, got %q", "/etc/passwd", buildContext.ContainerFiles[0])
+		}
+	})
 }

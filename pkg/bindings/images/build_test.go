@@ -1,9 +1,12 @@
 package images
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/podman/v6/internal/remote_build_helpers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,4 +60,33 @@ func TestConvertAdditionalBuildContexts(t *testing.T) {
 	for key, value := range additionalBuildContexts {
 		assert.Equal(t, expectedGuestValues[key], value.Value)
 	}
+}
+
+func TestPrepareContainerFiles_ConfinedDockerfileOutsideContext(t *testing.T) {
+	t.Parallel()
+
+	contextDir := t.TempDir()
+	outsideDir := t.TempDir()
+
+	outsideDockerfile := filepath.Join(outsideDir, "Containerfile")
+	err := os.WriteFile(outsideDockerfile, []byte("FROM scratch\n"), 0o644)
+	assert.NoError(t, err)
+
+	tempManager := remote_build_helpers.NewTempFileManager()
+	defer tempManager.Cleanup()
+
+	buildFilePaths, err := prepareContainerFiles([]string{outsideDockerfile}, contextDir, contextDir, tempManager, true)
+	assert.NoError(t, err)
+	assert.Len(t, buildFilePaths.tarContent, 1)
+	assert.Equal(t, contextDir, buildFilePaths.tarContent[0])
+	assert.Len(t, buildFilePaths.newContainerFiles, 1)
+
+	dockerfileParam := filepath.FromSlash(buildFilePaths.newContainerFiles[0])
+	assert.False(t, filepath.IsAbs(dockerfileParam))
+	assert.NotContains(t, dockerfileParam, "..")
+
+	onDiskPath := filepath.Join(contextDir, dockerfileParam)
+	data, err := os.ReadFile(onDiskPath)
+	assert.NoError(t, err)
+	assert.Equal(t, "FROM scratch\n", string(data))
 }
