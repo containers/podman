@@ -2,6 +2,7 @@ package ocipull
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -21,6 +22,8 @@ import (
 type pullOptions struct {
 	// Skip TLS verification when accessing the registry.
 	skipTLSVerify types.OptionalBool
+	// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+	baseTLSConfig *tls.Config
 	// [username[:password] to use when connecting to the registry.
 	credentials string
 	// Quiet the progress bars when pushing.
@@ -31,6 +34,7 @@ type pullOptions struct {
 func (opts *pullOptions) systemContext() (*types.SystemContext, error) {
 	sys := types.SystemContext{
 		DockerInsecureSkipTLSVerify: opts.skipTLSVerify,
+		BaseTLSConfig:               opts.baseTLSConfig,
 	}
 	if opts.credentials != "" {
 		authConf, err := parse.AuthConfig(opts.credentials)

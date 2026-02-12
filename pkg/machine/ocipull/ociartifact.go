@@ -2,6 +2,7 @@ package ocipull
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -68,7 +69,7 @@ type DiskArtifactOpts struct {
 
 */
 
-func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile, skipTlsVerify types.OptionalBool) (*OCIArtifactDisk, error) {
+func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile, skipTlsVerify types.OptionalBool, baseTLSConfig *tls.Config) (*OCIArtifactDisk, error) {
 	var arch string
 
 	artifactVersion := getVersion()
@@ -121,6 +122,7 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 		name:             vmName,
 		pullOptions: &pullOptions{
 			skipTLSVerify: skipTlsVerify,
+			baseTLSConfig: baseTLSConfig,
 		},
 		vmType: vmType,
 	}

@@ -1,6 +1,7 @@
 package define
 
 import (
+	"crypto/tls"
 	"net/url"
 
 	"go.podman.io/image/v5/types"
@@ -26,4 +27,5 @@ type InitOptions struct {
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
 	USBs               []string
 	SkipTlsVerify      types.OptionalBool
+	BaseTLSConfig      *tls.Config
 }
