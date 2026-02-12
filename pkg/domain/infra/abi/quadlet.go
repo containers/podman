@@ -161,6 +161,24 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		}
 	}
 
+	// nil means http.DefaultTransport.
+	// This variable must have type http.RoundTripper, not *http.Transport, to avoid https://go.dev/doc/faq#nil_error .
+	var transport http.RoundTripper
+	systemContext := ic.Libpod.SystemContext()
+	if systemContext != nil && systemContext.BaseTLSConfig != nil {
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return nil, errors.New("internal error: http.DefaultTransport is not a *http.Transport")
+		}
+		t := defaultTransport.Clone()
+		t.TLSClientConfig = systemContext.BaseTLSConfig
+		defer t.CloseIdleConnections()
+		transport = t
+	}
+	httpClient := &http.Client{
+		Transport: transport,
+	}
+
 	// Loop over all given URLs
 	for _, toInstall := range paths {
 		validateQuadletFile := false
@@ -178,7 +196,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		}
 		switch {
 		case strings.HasPrefix(toInstall, "http://") || strings.HasPrefix(toInstall, "https://"):
-			r, err := http.Get(toInstall)
+			r, err := httpClient.Get(toInstall)
 			if err != nil {
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to download URL %s: %w", toInstall, err)
 				continue
