@@ -386,37 +386,10 @@ and
 [PRs](https://github.com/containers/podman/pulls)
 tracking system.
 
-### Bot Interactions
+### PR Approval and Merging
 
-The primary human-interface is through comments in pull-requests.
-Some of these are outlined below, along with their meaning and intended usage.
-Some of them require the comment author hold special privileges on the github repository.
-Others can be used by anyone.
+The Podman project uses GitHub's native review system for PR approval and merging.
 
-* ``/close``: Closes an issue or PR.
+* **Approving PRs**: Reviewers and maintainers use GitHub's review feature to approve PRs. Select "Approve" when submitting your review to indicate the PR is ready to merge.
 
-* ``/approve``: Mark a PR as appropriate to the project, and as close to meeting
-  met all the contribution criteria above.  Adds the *approved* label, marking
-  it as ready for review and possible future merging.
-
-* ``/lgtm``: A literal "Stamp of approval", signaling okay-to-merge.  This causes
-  the bot to ad the *lgtm* label, then attempt a merge.  In other words - Never,
-  ever, ever comment ``/lgtm``, unless a PR has actually, really, been fully
-  reviewed.  The bot isn't too smart about these things, and could merge
-  unintentionally.  Instead, just write ``LGTM``, or
-  spell it out.
-
-* ``/hold`` and ``/unhold``: Override the automatic handling of a request.  Either
-  put it on hold (no handling) or remove the hold (normal handling).
-
-* ``[ci skip]``: [Adding `[ci skip]` within the HEAD commit](https://cirrus-ci.org/guide/writing-tasks/#conditional-task-execution)
-  will cause Cirrus CI to ***NOT*** execute tests for the PR or after merge.  This
-  is useful in only one instance:  Your changes are absolutely not exercised by
-  any test.  For example, documentation changes.  ***IMPORTANT NOTE*** **Other
-  automation may interpret the lack of test results as "PASSED" and unintentional
-  merge a PR.  Consider also using `/hold` in a comment, to add additional
-  protection.**
-
-[The complete list may be found on the command-help page.](https://prow.k8s.io/command-help)
-However, not all commands are implemented for this repository.
-If in doubt, ask a maintainer.
+* **Merging**: Once a PR has received the required approvals (at least two reviews, with at least one from a maintainer) and CI has passed, a maintainer will merge the PR using GitHub's merge button.
