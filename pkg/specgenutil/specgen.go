@@ -812,12 +812,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.ArtifactVolumes = containerMounts.artifactVolumes
 	}
 
-	devices := c.Devices
-	for _, gpu := range c.GPUs {
-		devices = append(devices, "nvidia.com/gpu="+gpu)
-	}
+	s.GPUs = c.GPUs
 
-	for _, dev := range devices {
+	for _, dev := range c.Devices {
 		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
 	}
 

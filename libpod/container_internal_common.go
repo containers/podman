@@ -712,7 +712,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	// Warning: CDI may alter g.Config in place.
-	if len(c.config.CDIDevices) > 0 {
+	// GPUs are also handled via CDI.
+	if len(c.config.CDIDevices) > 0 || len(c.config.GPUs) > 0 {
 		registry, err := cdi.NewCache(
 			cdi.WithSpecDirs(c.runtime.config.Engine.CdiSpecDirs.Get()...),
 			cdi.WithAutoRefresh(false),
@@ -723,7 +724,12 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		if err := registry.Refresh(); err != nil {
 			logrus.Debugf("The following error was triggered when refreshing the CDI registry: %v", err)
 		}
-		if _, err := registry.InjectDevices(g.Config, c.config.CDIDevices...); err != nil {
+
+		cdiDevices, err := getAllCDIDeviceNames(registry, c.config)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting CDI device names: %w", err)
+		}
+		if _, err := registry.InjectDevices(g.Config, cdiDevices...); err != nil {
 			return nil, nil, fmt.Errorf("setting up CDI devices: %w", err)
 		}
 	}
@@ -3165,4 +3171,15 @@ func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
 		return currentValue, nil
 	}
 	return oomScoreValue, nil
+}
+
+func getAllCDIDeviceNames(registry *cdi.Cache, c *ContainerConfig) ([]string, error) {
+	if len(c.GPUs) == 0 {
+		return c.CDIDevices, nil
+	}
+	gpuCDIDevices, err := gpusToCDIDevices(c.GPUs, registry)
+	if err != nil {
+		return nil, fmt.Errorf("converting GPU identifiers to CDI devices: %w", err)
+	}
+	return slices.Concat(c.CDIDevices, gpuCDIDevices), nil
 }
