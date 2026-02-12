@@ -97,4 +97,17 @@ func TestProcessBuildContext_DockerfileConfinement(t *testing.T) {
 			t.Fatalf("expected %q, got %q", "/etc/passwd", buildContext.ContainerFiles[0])
 		}
 	})
+
+	t.Run("libpod build dockerfile is confined to context", func(t *testing.T) {
+		t.Parallel()
+
+		query := url.Values{}
+		query.Set("dockerfile", "/etc/passwd")
+
+		libpodReq := httptest.NewRequest(http.MethodPost, "http://example.com/v1.41/libpod/build", nil)
+		_, err := processBuildContext(query, libpodReq, &BuildContext{ContextDirectory: contextDir}, anchorDir)
+		if err == nil {
+			t.Fatalf("expected error, got nil")
+		}
+	})
 }

@@ -235,6 +235,7 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 	dockerFileSet := false
 	remote := query.Get("remote")
 	isLibpodRequest := utils.IsLibpodRequest(r)
+	allowHostDockerfilePath := isLibpodRequest && strings.Contains(r.URL.Path, "/libpod/local/build")
 
 	if isLibpodRequest && remote != "" {
 		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", remote)
@@ -263,11 +264,11 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 				// Add path to containerfile if it is not URL
 				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
 					cleaned := filepath.Clean(filepath.FromSlash(containerfile))
-					if !isLibpodRequest && filepath.VolumeName(cleaned) != "" {
+					if !allowHostDockerfilePath && filepath.VolumeName(cleaned) != "" {
 						return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("invalid path"))
 					}
 
-					if isLibpodRequest {
+					if allowHostDockerfilePath {
 						if filepath.IsAbs(cleaned) {
 							containerfile = cleaned
 						} else {
