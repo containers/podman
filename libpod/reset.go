@@ -16,9 +16,7 @@ import (
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	blobinfocache "go.podman.io/image/v5/pkg/blobinfocache"
-	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/lockfile"
-	stypes "go.podman.io/storage/types"
 )
 
 // removeAllDirs removes all Podman storage directories. It is intended to be
@@ -260,23 +258,6 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	}
 
 	if err := blobinfocache.CleanupDefaultCache(nil); err != nil {
-		if prevError != nil {
-			logrus.Error(prevError)
-		}
-		prevError = err
-	}
-
-	if storageConfPath, err := storage.DefaultConfigFile(); err == nil {
-		switch storageConfPath {
-		case stypes.SystemConfigFile:
-			break
-		default:
-			if _, err = os.Stat(storageConfPath); err == nil {
-				fmt.Printf(" A %q config file exists.\n", storageConfPath)
-				fmt.Println("Remove this file if you did not modify the configuration.")
-			}
-		}
-	} else {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
