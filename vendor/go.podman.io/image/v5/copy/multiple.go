@@ -60,9 +60,8 @@ func platformV1ToPlatformComparable(platform *imgspecv1.Platform) platformCompar
 	}
 	osFeatures := slices.Clone(platform.OSFeatures)
 	sort.Strings(osFeatures)
-	return platformComparable{
-		architecture: platform.Architecture,
-		os:           platform.OS,
+	return platformComparable{architecture: platform.Architecture,
+		os: platform.OS,
 		// This is strictly speaking ambiguous, fields of OSFeatures can contain a ','. Probably good enough for now.
 		osFeatures: strings.Join(osFeatures, ","),
 		osVersion:  platform.OSVersion,
@@ -216,7 +215,6 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	case imgspecv1.MediaTypeImageManifest:
 		forceListMIMEType = imgspecv1.MediaTypeImageIndex
 	}
-	// FIXME: This does not take into account cannotModifyManifestListReason.
 	selectedListType, otherManifestMIMETypeCandidates, err := c.determineListConversion(manifestType, c.dest.SupportedManifestMIMETypes(), forceListMIMEType)
 	if err != nil {
 		return nil, fmt.Errorf("determining manifest list type to write to destination: %w", err)
@@ -254,8 +252,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 				UpdateDigest:                updated.manifestDigest,
 				UpdateSize:                  int64(len(updated.manifest)),
 				UpdateCompressionAlgorithms: updated.compressionAlgorithms,
-				UpdateMediaType:             updated.manifestMIMEType,
-			})
+				UpdateMediaType:             updated.manifestMIMEType})
 		case instanceCopyClone:
 			logrus.Debugf("Replicating instance %s (%d/%d)", instance.sourceDigest, i+1, len(instanceCopyList))
 			c.Printf("Replicating image %s (%d/%d)\n", instance.sourceDigest, i+1, len(instanceCopyList))
@@ -263,8 +260,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 			updated, err := c.copySingleImage(ctx, unparsedInstance, &instanceCopyList[i].sourceDigest, copySingleImageOptions{
 				requireCompressionFormatMatch: true,
 				compressionFormat:             &instance.cloneCompressionVariant.Algorithm,
-				compressionLevel:              instance.cloneCompressionVariant.Level,
-			})
+				compressionLevel:              instance.cloneCompressionVariant.Level})
 			if err != nil {
 				return nil, fmt.Errorf("replicating image %d/%d from manifest list: %w", i+1, len(instanceCopyList), err)
 			}
@@ -285,7 +281,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 	}
 
 	// Now reset the digest/size/types of the manifests in the list to account for any conversions that we made.
-	if err = updatedList.EditInstances(instanceEdits, cannotModifyManifestListReason != ""); err != nil {
+	if err = updatedList.EditInstances(instanceEdits); err != nil {
 		return nil, fmt.Errorf("updating manifest list: %w", err)
 	}
 
@@ -319,7 +315,7 @@ func (c *copier) copyMultipleImages(ctx context.Context) (copiedManifest []byte,
 		// If we can't just use the original value, but we have to change it, flag an error.
 		if !bytes.Equal(attemptedManifestList, originalManifestList) {
 			if cannotModifyManifestListReason != "" {
-				return nil, fmt.Errorf("Manifest list was edited, but we cannot modify it: %q", cannotModifyManifestListReason)
+				return nil, fmt.Errorf("Manifest list must be converted to type %q to be written to destination, but we cannot modify it: %q", thisListType, cannotModifyManifestListReason)
 			}
 			logrus.Debugf("Manifest list has been updated")
 		} else {

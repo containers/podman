@@ -21,6 +21,8 @@ import (
 )
 
 const (
+	// userOverrideContainersConfig holds the containers config path overridden by the rootless user.
+	userOverrideContainersConfig = ".config/" + _configPath
 	// Token prefix for looking for helper binary under $BINDIR.
 	bindirPrefix = "$BINDIR"
 )
@@ -246,7 +248,6 @@ type ContainersConfig struct {
 	UserNS string `toml:"userns,omitempty"`
 
 	// UserNSSize how many UIDs to allocate for automatically created UserNS
-	//
 	// Deprecated: no user of this field is known.
 	UserNSSize int `toml:"userns_size,omitempty,omitzero"`
 }
@@ -402,6 +403,9 @@ type EngineConfig struct {
 	// containers and pods will be visible. The default namespace is "".
 	Namespace string `toml:"namespace,omitempty"`
 
+	// NetworkCmdPath is the path to the slirp4netns binary.
+	NetworkCmdPath string `toml:"network_cmd_path,omitempty"`
+
 	// NetworkCmdOptions is the default options to pass to the slirp4netns binary.
 	// For example "allow_host_loopback=true"
 	NetworkCmdOptions attributedstring.Slice `toml:"network_cmd_options,omitempty"`
@@ -554,7 +558,6 @@ type EngineConfig struct {
 	// PodmanshTimeout is the number of seconds to wait for podmansh logins.
 	// In other words, the timeout for the `podmansh` container to be in running
 	// state.
-	//
 	// Deprecated: Use podmansh.Timeout instead. podmansh.Timeout has precedence.
 	PodmanshTimeout uint `toml:"podmansh_timeout,omitempty,omitzero"`
 }

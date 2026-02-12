@@ -146,7 +146,7 @@ func (ref dirReference) NewImage(ctx context.Context, sys *types.SystemContext) 
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref dirReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ref)
+	return newImageSource(ref), nil
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.
@@ -166,31 +166,18 @@ func (ref dirReference) manifestPath(instanceDigest *digest.Digest) (string, err
 		if err := instanceDigest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in a path with ../, so validate explicitly.
 			return "", err
 		}
-		var filename string
-		if instanceDigest.Algorithm() == digest.Canonical {
-			filename = instanceDigest.Encoded() + ".manifest.json"
-		} else {
-			filename = instanceDigest.Algorithm().String() + "-" + instanceDigest.Encoded() + ".manifest.json"
-		}
-		return filepath.Join(ref.path, filename), nil
+		return filepath.Join(ref.path, instanceDigest.Encoded()+".manifest.json"), nil
 	}
 	return filepath.Join(ref.path, "manifest.json"), nil
 }
 
 // layerPath returns a path for a layer tarball within a directory using our conventions.
-func (ref dirReference) layerPath(d digest.Digest) (string, error) {
-	if err := d.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in a path with ../, so validate explicitly.
+func (ref dirReference) layerPath(digest digest.Digest) (string, error) {
+	if err := digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in a path with ../, so validate explicitly.
 		return "", err
 	}
-
-	var filename string
-	if d.Algorithm() == digest.Canonical {
-		filename = d.Encoded()
-	} else {
-		filename = d.Algorithm().String() + "-" + d.Encoded()
-	}
-
-	return filepath.Join(ref.path, filename), nil
+	// FIXME: Should we keep the digest identification?
+	return filepath.Join(ref.path, digest.Encoded()), nil
 }
 
 // signaturePath returns a path for a signature within a directory using our conventions.
@@ -199,13 +186,7 @@ func (ref dirReference) signaturePath(index int, instanceDigest *digest.Digest) 
 		if err := instanceDigest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in a path with ../, so validate explicitly.
 			return "", err
 		}
-		var prefix string
-		if instanceDigest.Algorithm() == digest.Canonical {
-			prefix = instanceDigest.Encoded()
-		} else {
-			prefix = instanceDigest.Algorithm().String() + "-" + instanceDigest.Encoded()
-		}
-		return filepath.Join(ref.path, fmt.Sprintf(prefix+".signature-%d", index+1)), nil
+		return filepath.Join(ref.path, fmt.Sprintf(instanceDigest.Encoded()+".signature-%d", index+1)), nil
 	}
 	return filepath.Join(ref.path, fmt.Sprintf("signature-%d", index+1)), nil
 }

@@ -323,7 +323,6 @@ type PortMapping struct {
 }
 
 // OCICNIPortMapping maps to the standard CNI portmapping Capability.
-//
 // Deprecated: Do not use this struct for new fields. This only exists
 // for backwards compatibility.
 type OCICNIPortMapping struct {

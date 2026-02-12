@@ -215,8 +215,7 @@ func (s *blobCacheSource) SupportsGetBlobAt() bool {
 
 // streamChunksFromFile generates the channels returned by GetBlobAt for chunks of seekable file
 func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.ReadSeekCloser,
-	chunks []private.ImageSourceChunk,
-) {
+	chunks []private.ImageSourceChunk) {
 	defer close(streams)
 	defer close(errs)
 	defer file.Close()

@@ -20,6 +20,8 @@ import (
 	"go.podman.io/storage/pkg/fileutils"
 )
 
+const version = "Directory Transport Version: 1.1\n"
+
 // ErrNotContainerImageDir indicates that the directory doesn't match the expected contents of a directory created
 // using the 'dir' transport
 var ErrNotContainerImageDir = errors.New("not a containers image directory, don't want to overwrite important data")
@@ -31,8 +33,7 @@ type dirImageDestination struct {
 	stubs.NoPutBlobPartialInitialize
 	stubs.AlwaysSupportsSignatures
 
-	ref                 dirReference
-	usesNonSHA256Digest bool
+	ref dirReference
 }
 
 // newImageDestination returns an ImageDestination for writing to a directory.
@@ -75,13 +76,8 @@ func newImageDestination(sys *types.SystemContext, ref dirReference) (private.Im
 					return nil, err
 				}
 				// check if contents of version file is what we expect it to be
-				versionStr := string(contents)
-				parsedVersion, err := parseVersion(versionStr)
-				if err != nil {
+				if string(contents) != version {
 					return nil, ErrNotContainerImageDir
-				}
-				if parsedVersion.isGreaterThan(maxSupportedVersion) {
-					return nil, UnsupportedVersionError{Version: versionStr, Path: ref.resolvedPath}
 				}
 			} else {
 				return nil, ErrNotContainerImageDir
@@ -94,9 +90,14 @@ func newImageDestination(sys *types.SystemContext, ref dirReference) (private.Im
 		}
 	} else {
 		// create directory if it doesn't exist
-		if err := os.MkdirAll(ref.resolvedPath, 0o755); err != nil {
+		if err := os.MkdirAll(ref.resolvedPath, 0755); err != nil {
 			return nil, fmt.Errorf("unable to create directory %q: %w", ref.resolvedPath, err)
 		}
+	}
+	// create version file
+	err = os.WriteFile(ref.versionPath(), []byte(version), 0644)
+	if err != nil {
+		return nil, fmt.Errorf("creating version file %q: %w", ref.versionPath(), err)
 	}
 
 	d := &dirImageDestination{
@@ -150,17 +151,13 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 		}
 	}()
 
-	digester, stream := putblobdigest.DigestIfUnknown(stream, inputInfo)
-
+	digester, stream := putblobdigest.DigestIfCanonicalUnknown(stream, inputInfo)
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	size, err := io.Copy(blobFile, stream)
 	if err != nil {
 		return private.UploadedBlob{}, err
 	}
 	blobDigest := digester.Digest()
-	if blobDigest.Algorithm() != digest.Canonical { // compare the special case in layerPath
-		d.usesNonSHA256Digest = true
-	}
 	if inputInfo.Size != -1 && size != inputInfo.Size {
 		return private.UploadedBlob{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
 	}
@@ -173,7 +170,7 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	// ignored and the file is already readable; besides, blobFile.Chmod, i.e. syscall.Fchmod,
 	// always fails on Windows.
 	if runtime.GOOS != "windows" {
-		if err := blobFile.Chmod(0o644); err != nil {
+		if err := blobFile.Chmod(0644); err != nil {
 			return private.UploadedBlob{}, err
 		}
 	}
@@ -227,14 +224,11 @@ func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, inf
 // If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
 func (d *dirImageDestination) PutManifest(ctx context.Context, manifest []byte, instanceDigest *digest.Digest) error {
-	if instanceDigest != nil && instanceDigest.Algorithm() != digest.Canonical { // compare the special case in manifestPath
-		d.usesNonSHA256Digest = true
-	}
 	path, err := d.ref.manifestPath(instanceDigest)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, manifest, 0o644)
+	return os.WriteFile(path, manifest, 0644)
 }
 
 // PutSignaturesWithFormat writes a set of signatures to the destination.
@@ -242,9 +236,6 @@ func (d *dirImageDestination) PutManifest(ctx context.Context, manifest []byte, 
 // (when the primary manifest is a manifest list); this should always be nil if the primary manifest is not a manifest list.
 // MUST be called after PutManifest (signatures may reference manifest contents).
 func (d *dirImageDestination) PutSignaturesWithFormat(ctx context.Context, signatures []signature.Signature, instanceDigest *digest.Digest) error {
-	if instanceDigest != nil && instanceDigest.Algorithm() != digest.Canonical { // compare the special case in signaturePath
-		d.usesNonSHA256Digest = true
-	}
 	for i, sig := range signatures {
 		blob, err := signature.Blob(sig)
 		if err != nil {
@@ -254,7 +245,7 @@ func (d *dirImageDestination) PutSignaturesWithFormat(ctx context.Context, signa
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, blob, 0o644); err != nil {
+		if err := os.WriteFile(path, blob, 0644); err != nil {
 			return err
 		}
 	}
@@ -266,14 +257,6 @@ func (d *dirImageDestination) PutSignaturesWithFormat(ctx context.Context, signa
 // - Uploaded data MAY be visible to others before CommitWithOptions() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
 func (d *dirImageDestination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
-	versionToWrite := version1_1
-	if d.usesNonSHA256Digest {
-		versionToWrite = version1_2
-	}
-	err := os.WriteFile(d.ref.versionPath(), []byte(versionToWrite.String()), 0o644)
-	if err != nil {
-		return fmt.Errorf("writing version file %q: %w", d.ref.versionPath(), err)
-	}
 	return nil
 }
 

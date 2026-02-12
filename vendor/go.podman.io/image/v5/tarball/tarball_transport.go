@@ -16,12 +16,15 @@ const (
 	separator     = ":"
 )
 
-// Transport implements the types.ImageTransport interface for "tarball:" images,
-// which are makeshift images constructed using one or more possibly-compressed tar
-// archives.
-var Transport = &tarballTransport{}
+var (
+	// Transport implements the types.ImageTransport interface for "tarball:" images,
+	// which are makeshift images constructed using one or more possibly-compressed tar
+	// archives.
+	Transport = &tarballTransport{}
+)
 
-type tarballTransport struct{}
+type tarballTransport struct {
+}
 
 func (t *tarballTransport) Name() string {
 	return transportName

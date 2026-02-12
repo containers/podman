@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	ociencspec "github.com/containers/ocicrypt/spec"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/internal/iolimits"
@@ -73,8 +74,9 @@ func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := validateBlobAgainstDigest(blob, m.m.Config.Digest); err != nil {
-			return nil, fmt.Errorf("config validation failed: %w", err)
+		computedDigest := digest.FromBytes(blob)
+		if computedDigest != m.m.Config.Digest {
+			return nil, fmt.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.m.Config.Digest)
 		}
 		m.configBlob = blob
 	}

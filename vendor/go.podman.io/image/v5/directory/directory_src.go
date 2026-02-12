@@ -26,24 +26,7 @@ type dirImageSource struct {
 
 // newImageSource returns an ImageSource reading from an existing directory.
 // The caller must call .Close() on the returned ImageSource.
-func newImageSource(ref dirReference) (private.ImageSource, error) {
-	versionPath := ref.versionPath()
-	contents, err := os.ReadFile(versionPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("reading version file %q: %w", versionPath, err)
-		}
-	} else {
-		versionStr := string(contents)
-		parsedVersion, err := parseVersion(versionStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid version file content: %q", versionStr)
-		}
-		if parsedVersion.isGreaterThan(maxSupportedVersion) {
-			return nil, UnsupportedVersionError{Version: versionStr, Path: ref.resolvedPath}
-		}
-	}
-
+func newImageSource(ref dirReference) private.ImageSource {
 	s := &dirImageSource{
 		PropertyMethodsInitialize: impl.PropertyMethods(impl.Properties{
 			HasThreadSafeGetBlob: false,
@@ -53,7 +36,7 @@ func newImageSource(ref dirReference) (private.ImageSource, error) {
 		ref: ref,
 	}
 	s.Compat = impl.AddCompat(s)
-	return s, nil
+	return s
 }
 
 // Reference returns the reference used to set up this source, _as specified by the user_

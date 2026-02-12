@@ -28,16 +28,22 @@ func systemdCreate(resources *cgroups.Resources, path string, c *systemdDbus.Con
 
 	var lastError error
 	for i := range 2 {
-		//nolint:prealloc // calculating the size here is too complicated
 		properties := []systemdDbus.Property{
 			systemdDbus.PropDescription("cgroup " + name),
 			systemdDbus.PropWants(slice),
+		}
+		var ioString string
+		v2, _ := IsCgroup2UnifiedMode()
+		if v2 {
+			ioString = "IOAccounting"
+		} else {
+			ioString = "BlockIOAccounting"
 		}
 		pMap := map[string]bool{
 			"DefaultDependencies": false,
 			"MemoryAccounting":    true,
 			"CPUAccounting":       true,
-			"IOAccounting":        true,
+			ioString:              true,
 		}
 		if i == 0 {
 			pMap["Delegate"] = true
@@ -51,7 +57,7 @@ func systemdCreate(resources *cgroups.Resources, path string, c *systemdDbus.Con
 			properties = append(properties, p)
 		}
 
-		uMap, sMap, bMap, iMap, structMap, err := resourcesToProps(resources)
+		uMap, sMap, bMap, iMap, structMap, err := resourcesToProps(resources, v2)
 		if err != nil {
 			lastError = err
 			continue
@@ -144,7 +150,7 @@ func systemdDestroyConn(path string, c *systemdDbus.Conn) error {
 	return nil
 }
 
-func resourcesToProps(res *cgroups.Resources) (map[string]uint64, map[string]string, map[string][]byte, map[string]int64, map[string][]BlkioDev, error) {
+func resourcesToProps(res *cgroups.Resources, v2 bool) (map[string]uint64, map[string]string, map[string][]byte, map[string]int64, map[string][]BlkioDev, error) {
 	bMap := make(map[string][]byte)
 	// this array is not used but will be once more resource limits are added
 	sMap := make(map[string]string)
@@ -170,8 +176,13 @@ func resourcesToProps(res *cgroups.Resources) (map[string]uint64, map[string]str
 
 	if res.CpuShares != 0 {
 		// convert from shares to weight. weight only supports 1-10000
-		wt := (1 + ((res.CpuShares-2)*9999)/262142)
-		uMap["CPUWeight"] = wt
+		v2, _ := IsCgroup2UnifiedMode()
+		if v2 {
+			wt := (1 + ((res.CpuShares-2)*9999)/262142)
+			uMap["CPUWeight"] = wt
+		} else {
+			uMap["CPUShares"] = res.CpuShares
+		}
 	}
 
 	// CPUSet
@@ -201,15 +212,21 @@ func resourcesToProps(res *cgroups.Resources) (map[string]uint64, map[string]str
 		case res.Memory == -1 || res.MemorySwap == -1:
 			swap := -1
 			uMap["MemorySwapMax"] = uint64(swap)
-		default:
+		case v2:
 			// swap max = swap (limit + swap limit) - limit
 			uMap["MemorySwapMax"] = uint64(res.MemorySwap - res.Memory)
+		default:
+			uMap["MemorySwapMax"] = uint64(res.MemorySwap)
 		}
 	}
 
 	// Blkio
 	if res.BlkioWeight > 0 {
-		uMap["IOWeight"] = uint64(res.BlkioWeight)
+		if v2 {
+			uMap["IOWeight"] = uint64(res.BlkioWeight)
+		} else {
+			uMap["BlockIOWeight"] = uint64(res.BlkioWeight)
+		}
 	}
 
 	// systemd requires the paths to be in the form /dev/{block, char}/major:minor
@@ -221,7 +238,11 @@ func resourcesToProps(res *cgroups.Resources) (map[string]uint64, map[string]str
 				Device: fmt.Sprintf("/dev/block/%d:%d", entry.Major, entry.Minor),
 				Bytes:  entry.Rate,
 			}
-			structMap["IOReadBandwidthMax"] = append(structMap["IOReadBandwidthMax"], newThrottle)
+			if v2 {
+				structMap["IOReadBandwidthMax"] = append(structMap["IOReadBandwidthMax"], newThrottle)
+			} else {
+				structMap["BlockIOReadBandwidth"] = append(structMap["BlockIOReadBandwidth"], newThrottle)
+			}
 		}
 	}
 
@@ -231,7 +252,11 @@ func resourcesToProps(res *cgroups.Resources) (map[string]uint64, map[string]str
 				Device: fmt.Sprintf("/dev/block/%d:%d", entry.Major, entry.Minor),
 				Bytes:  entry.Rate,
 			}
-			structMap["IOWriteBandwidthMax"] = append(structMap["IOWriteBandwidthMax"], newThrottle)
+			if v2 {
+				structMap["IOWriteBandwidthMax"] = append(structMap["IOWriteBandwidthMax"], newThrottle)
+			} else {
+				structMap["BlockIOWriteBandwidth"] = append(structMap["BlockIOWriteBandwidth"], newThrottle)
+			}
 		}
 	}
 
@@ -241,7 +266,11 @@ func resourcesToProps(res *cgroups.Resources) (map[string]uint64, map[string]str
 				Device: fmt.Sprintf("/dev/block/%d:%d", entry.Major, entry.Minor),
 				Bytes:  uint64(entry.Weight),
 			}
-			structMap["IODeviceWeight"] = append(structMap["IODeviceWeight"], newWeight)
+			if v2 {
+				structMap["IODeviceWeight"] = append(structMap["IODeviceWeight"], newWeight)
+			} else {
+				structMap["BlockIODeviceWeight"] = append(structMap["BlockIODeviceWeight"], newWeight)
+			}
 		}
 	}
 

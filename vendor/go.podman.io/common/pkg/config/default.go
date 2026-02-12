@@ -15,6 +15,7 @@ import (
 	"go.podman.io/common/internal/attributedstring"
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/apparmor"
+	"go.podman.io/common/pkg/cgroupv2"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/unshare"
@@ -191,7 +192,6 @@ const (
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
-	//
 	// Deprecated: no user of this field is known.
 	DefaultUserNSSize = 65536
 	// OCIBufSize limits maximum LogSizeMax.
@@ -230,12 +230,17 @@ func defaultConfig() (*Config, error) {
 		}
 	}
 
+	cgroupNS := "host"
+	if cgroup2, _ := cgroupv2.Enabled(); cgroup2 {
+		cgroupNS = "private"
+	}
+
 	return &Config{
 		Containers: ContainersConfig{
 			Annotations:         attributedstring.Slice{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
-			CgroupNS:            "private",
+			CgroupNS:            cgroupNS,
 			Cgroups:             getDefaultCgroupsMode(),
 			DNSOptions:          attributedstring.Slice{},
 			DNSSearches:         attributedstring.Slice{},
@@ -300,11 +305,14 @@ func defaultMachineConfig() MachineConfig {
 	return MachineConfig{
 		CPUs:     uint64(cpus),
 		DiskSize: 100,
-		Image:    "docker://quay.io/podman/machine-os",
-		Memory:   2048,
-		User:     getDefaultMachineUser(),
-		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
-		Rosetta:  true,
+		// TODO: Set machine image default here
+		// Currently the default is set in Podman as we need time to stabilize
+		// VM images and locations between different providers.
+		Image:   "",
+		Memory:  2048,
+		User:    getDefaultMachineUser(),
+		Volumes: attributedstring.NewSlice(getDefaultMachineVolumes()),
+		Rosetta: true,
 	}
 }
 
@@ -644,7 +652,12 @@ func (c *Config) PidsLimit() int64 {
 		if c.Engine.CgroupManager != SystemdCgroupsManager {
 			return 0
 		}
+		cgroup2, _ := cgroupv2.Enabled()
+		if !cgroup2 {
+			return 0
+		}
 	}
+
 	return c.Containers.PidsLimit
 }
 

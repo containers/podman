@@ -193,9 +193,7 @@ func (p *Pattern) match(path string) (bool, error) {
 }
 
 func (p *Pattern) compile() error {
-	var regStrBuilder strings.Builder
-	regStrBuilder.WriteString("^")
-
+	regStr := "^"
 	pattern := p.cleanedPattern
 	// Go through the pattern and convert it to a regexp.
 	// We use a scanner so we can support utf-8 chars.
@@ -224,56 +222,46 @@ func (p *Pattern) compile() error {
 
 				if scan.Peek() == scanner.EOF {
 					// is "**EOF" - to align with .gitignore just accept all
-					regStrBuilder.WriteString(".*")
+					regStr += ".*"
 				} else {
 					// is "**"
 					// Note that this allows for any # of /'s (even 0) because
 					// the .* will eat everything, even /'s
-					regStrBuilder.WriteString("(.*")
-					regStrBuilder.WriteString(escSL)
-					regStrBuilder.WriteString(")?")
+					regStr += "(.*" + escSL + ")?"
 				}
 			} else {
 				// is "*" so map it to anything but "/"
-				regStrBuilder.WriteString("[^")
-				regStrBuilder.WriteString(escSL)
-				regStrBuilder.WriteString("]*")
+				regStr += "[^" + escSL + "]*"
 			}
 		} else if ch == '?' {
 			// "?" is any char except "/"
-			regStrBuilder.WriteString("[^")
-			regStrBuilder.WriteString(escSL)
-			regStrBuilder.WriteString("]")
+			regStr += "[^" + escSL + "]"
 		} else if ch == '.' || ch == '$' {
 			// Escape some regexp special chars that have no meaning
 			// in golang's filepath.Match
-			regStrBuilder.WriteString(bs)
-			regStrBuilder.WriteRune(ch)
+			regStr += bs + string(ch)
 		} else if ch == '\\' {
 			// escape next char.
 			if sl == bs {
 				// On windows map "\" to "\\", meaning an escaped backslash,
 				// and then just continue because filepath.Match on
 				// Windows doesn't allow escaping at all
-				regStrBuilder.WriteString(escSL)
+				regStr += escSL
 				continue
 			}
 			if scan.Peek() != scanner.EOF {
-				regStrBuilder.WriteString(bs)
-				regStrBuilder.WriteRune(scan.Next())
+				regStr += bs + string(scan.Next())
 			} else {
 				return filepath.ErrBadPattern
 			}
 		} else {
-			regStrBuilder.WriteRune(ch)
+			regStr += string(ch)
 		}
 	}
 
-	regStrBuilder.WriteString("(")
-	regStrBuilder.WriteString(escSL)
-	regStrBuilder.WriteString(".*)?$")
+	regStr += "(" + escSL + ".*)?$"
 
-	re, err := regexp.Compile(regStrBuilder.String())
+	re, err := regexp.Compile(regStr)
 	if err != nil {
 		return err
 	}

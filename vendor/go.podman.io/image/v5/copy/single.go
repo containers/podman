@@ -379,6 +379,11 @@ func (ic *imageCopier) noPendingManifestUpdates() bool {
 // compareImageDestinationManifestEqual compares the source and destination image manifests (reading the manifest from the
 // (possibly remote) destination). If they are equal, it returns a full copySingleImageResult, nil otherwise.
 func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context, targetInstance *digest.Digest) (*copySingleImageResult, error) {
+	srcManifestDigest, err := manifest.Digest(ic.src.ManifestBlob)
+	if err != nil {
+		return nil, fmt.Errorf("calculating manifest digest: %w", err)
+	}
+
 	destImageSource, err := ic.c.dest.Reference().NewImageSource(ctx, ic.c.options.DestinationCtx)
 	if err != nil {
 		logrus.Debugf("Unable to create destination image %s source: %v", transports.ImageName(ic.c.dest.Reference()), err)
@@ -392,15 +397,14 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 		return nil, nil
 	}
 
-	if !bytes.Equal(ic.src.ManifestBlob, destManifest) {
-		logrus.Debugf("Source and destination manifests differ")
-		return nil, nil
-	}
-	logrus.Debugf("Destination already matches the source manifest")
-
-	srcManifestDigest, err := manifest.Digest(ic.src.ManifestBlob)
+	destManifestDigest, err := manifest.Digest(destManifest)
 	if err != nil {
 		return nil, fmt.Errorf("calculating manifest digest: %w", err)
+	}
+
+	logrus.Debugf("Comparing source and destination manifest digests: %v vs. %v", srcManifestDigest, destManifestDigest)
+	if srcManifestDigest != destManifestDigest {
+		return nil, nil
 	}
 
 	compressionAlgos := set.New[string]()
@@ -930,8 +934,7 @@ func updatedBlobInfoFromReuse(inputInfo types.BlobInfo, reusedBlob private.Reuse
 // perhaps (de/re/)compressing the stream,
 // and returns a complete blobInfo of the copied blob and perhaps a <-chan diffIDResult if diffIDIsNeeded, to be read by the caller.
 func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
-	diffIDIsNeeded bool, toEncrypt bool, bar *progressBar, layerIndex int, emptyLayer bool,
-) (types.BlobInfo, <-chan diffIDResult, error) {
+	diffIDIsNeeded bool, toEncrypt bool, bar *progressBar, layerIndex int, emptyLayer bool) (types.BlobInfo, <-chan diffIDResult, error) {
 	var getDiffIDRecorder func(compressiontypes.DecompressorFunc) io.Writer // = nil
 	var diffIDChan chan diffIDResult
 

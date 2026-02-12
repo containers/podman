@@ -88,18 +88,21 @@ func MovePauseProcessToScope(pausePidPath string) {
 	}
 
 	if err != nil {
-		_, err2 := cgroups.IsCgroup2UnifiedMode()
+		unified, err2 := cgroups.IsCgroup2UnifiedMode()
 		if err2 != nil {
 			logrus.Warnf("Failed to detect if running with cgroup unified: %v", err)
 		}
-		if RunsOnSystemd() {
+		if RunsOnSystemd() && unified {
 			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		} else {
+			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
 		}
 	}
 }
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope.
 func RunUnderSystemdScope(pid int, slice string, unitName string) error {
+	var properties []systemdDbus.Property
 	var conn *systemdDbus.Conn
 	var err error
 
@@ -115,12 +118,10 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 		}
 	}
 	defer conn.Close()
-	properties := []systemdDbus.Property{
-		systemdDbus.PropSlice(slice),
-		newProp("PIDs", []uint32{uint32(pid)}),
-		newProp("Delegate", true),
-		newProp("DefaultDependencies", false),
-	}
+	properties = append(properties, systemdDbus.PropSlice(slice))
+	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
+	properties = append(properties, newProp("Delegate", true))
+	properties = append(properties, newProp("DefaultDependencies", false))
 	ch := make(chan string)
 	_, err = conn.StartTransientUnitContext(context.Background(), unitName, "replace", properties, ch)
 	if err != nil {

@@ -112,6 +112,7 @@ func (b *BlobCache) findBlob(info types.BlobInfo) (string, int64, bool, error) {
 	}
 
 	return "", -1, false, nil
+
 }
 
 func (b *BlobCache) HasBlob(blobinfo types.BlobInfo) (bool, int64, error) {

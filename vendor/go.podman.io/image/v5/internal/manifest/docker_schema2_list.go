@@ -82,16 +82,12 @@ func (list *Schema2ListPublic) UpdateInstances(updates []ListUpdate) error {
 			UpdateDigest:    instance.Digest,
 			UpdateSize:      instance.Size,
 			UpdateMediaType: instance.MediaType,
-			ListOperation:   ListOpUpdate,
-		})
+			ListOperation:   ListOpUpdate})
 	}
-	return list.editInstances(editInstances, false)
+	return list.editInstances(editInstances)
 }
 
-// editInstances edits information about the list's instances, based on instructions in editInstances.
-// If cannotModifyManifest, avoidable updates should be skipped.
-func (list *Schema2ListPublic) editInstances(editInstances []ListEdit, cannotModifyManifest bool) error {
-	_ = cannotModifyManifest // None of the edits we make are avoidable.
+func (list *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 	addedEntries := []Schema2ManifestDescriptor{}
 	for i, editInstance := range editInstances {
 		switch editInstance.ListOperation {
@@ -144,10 +140,8 @@ func (list *Schema2ListPublic) editInstances(editInstances []ListEdit, cannotMod
 	return nil
 }
 
-// EditInstances edits information about the list's instances, based on instructions in editInstances.
-// If cannotModifyManifest, avoidable updates should be skipped.
-func (list *Schema2List) EditInstances(editInstances []ListEdit, cannotModifyManifest bool) error {
-	return list.editInstances(editInstances, cannotModifyManifest)
+func (list *Schema2List) EditInstances(editInstances []ListEdit) error {
+	return list.editInstances(editInstances)
 }
 
 func (list *Schema2ListPublic) ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {

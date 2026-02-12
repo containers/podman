@@ -193,6 +193,8 @@ github.com/coreos/go-systemd/v22/sdjournal
 github.com/crc-org/vfkit/pkg/config
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
+# github.com/creack/pty v1.1.24
+## explicit; go 1.18
 # github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
@@ -438,9 +440,9 @@ github.com/mdlayher/vsock
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs/v4 v4.0.0
+# github.com/mistifyio/go-zfs/v3 v3.1.0
 ## explicit; go 1.14
-github.com/mistifyio/go-zfs/v4
+github.com/mistifyio/go-zfs/v3
 # github.com/moby/buildkit v0.26.3
 ## explicit; go 1.24.3
 github.com/moby/buildkit/frontend/dockerfile/command
@@ -455,31 +457,6 @@ github.com/moby/docker-image-spec/specs-go/v1
 github.com/moby/go-archive
 github.com/moby/go-archive/compression
 github.com/moby/go-archive/tarheader
-# github.com/moby/moby/api v1.53.0
-## explicit; go 1.24.0
-github.com/moby/moby/api/types
-github.com/moby/moby/api/types/blkiodev
-github.com/moby/moby/api/types/build
-github.com/moby/moby/api/types/checkpoint
-github.com/moby/moby/api/types/common
-github.com/moby/moby/api/types/container
-github.com/moby/moby/api/types/events
-github.com/moby/moby/api/types/image
-github.com/moby/moby/api/types/jsonstream
-github.com/moby/moby/api/types/mount
-github.com/moby/moby/api/types/network
-github.com/moby/moby/api/types/plugin
-github.com/moby/moby/api/types/registry
-github.com/moby/moby/api/types/storage
-github.com/moby/moby/api/types/swarm
-github.com/moby/moby/api/types/system
-github.com/moby/moby/api/types/volume
-# github.com/moby/moby/client v0.2.2
-## explicit; go 1.24.0
-github.com/moby/moby/client
-github.com/moby/moby/client/internal
-github.com/moby/moby/client/internal/timestamp
-github.com/moby/moby/client/pkg/versions
 # github.com/moby/patternmatcher v0.6.0
 ## explicit; go 1.19
 github.com/moby/patternmatcher
@@ -563,6 +540,7 @@ github.com/onsi/gomega/types
 ## explicit; go 1.23.0
 github.com/opencontainers/cgroups
 github.com/opencontainers/cgroups/devices/config
+github.com/opencontainers/cgroups/fs
 github.com/opencontainers/cgroups/fs2
 github.com/opencontainers/cgroups/fscommon
 github.com/opencontainers/cgroups/internal/path
@@ -771,8 +749,8 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.2-0.20260204175822-4e7127fdc31f
-## explicit; go 1.24.6
+# go.podman.io/common v0.67.0
+## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
@@ -796,6 +774,7 @@ go.podman.io/common/pkg/apparmor/internal/supported
 go.podman.io/common/pkg/auth
 go.podman.io/common/pkg/capabilities
 go.podman.io/common/pkg/cgroups
+go.podman.io/common/pkg/cgroupv2
 go.podman.io/common/pkg/chown
 go.podman.io/common/pkg/completion
 go.podman.io/common/pkg/config
@@ -808,6 +787,7 @@ go.podman.io/common/pkg/hooks/0.1.0
 go.podman.io/common/pkg/hooks/1.0.0
 go.podman.io/common/pkg/hooks/exec
 go.podman.io/common/pkg/libartifact
+go.podman.io/common/pkg/libartifact/store
 go.podman.io/common/pkg/libartifact/types
 go.podman.io/common/pkg/machine
 go.podman.io/common/pkg/manifests
@@ -839,8 +819,8 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.1-0.20260204175822-4e7127fdc31f
-## explicit; go 1.24.6
+# go.podman.io/image/v5 v5.39.1
+## explicit; go 1.24.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
 go.podman.io/image/v5/directory/explicitfilepath
@@ -852,7 +832,6 @@ go.podman.io/image/v5/docker/policyconfiguration
 go.podman.io/image/v5/docker/reference
 go.podman.io/image/v5/image
 go.podman.io/image/v5/internal/blobinfocache
-go.podman.io/image/v5/internal/digests
 go.podman.io/image/v5/internal/image
 go.podman.io/image/v5/internal/imagedestination
 go.podman.io/image/v5/internal/imagedestination/impl
@@ -914,7 +893,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20260204175822-4e7127fdc31f
+# go.podman.io/storage v1.62.0
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -939,7 +918,6 @@ go.podman.io/storage/pkg/chunked/internal/minimal
 go.podman.io/storage/pkg/chunked/internal/path
 go.podman.io/storage/pkg/chunked/toc
 go.podman.io/storage/pkg/config
-go.podman.io/storage/pkg/configfile
 go.podman.io/storage/pkg/directory
 go.podman.io/storage/pkg/fileutils
 go.podman.io/storage/pkg/fsutils

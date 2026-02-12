@@ -56,7 +56,6 @@ func matchRepoDigestOrExactReferenceValues(intended, signature reference.Named) 
 		return false
 	}
 }
-
 func (prm *prmMatchRepoDigestOrExact) matchesDockerReference(image private.UnparsedImage, signatureDockerReference string) bool {
 	intended, signature, err := parseImageAndDockerReference(image, signatureDockerReference)
 	if err != nil {

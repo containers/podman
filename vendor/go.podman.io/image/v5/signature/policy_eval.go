@@ -65,10 +65,6 @@ type PolicyRequirement interface {
 	// WARNING: This validates signatures and the manifest, but does not download or validate the
 	// layers. Users must validate that the layers match their expected digests.
 	isRunningImageAllowed(ctx context.Context, image private.UnparsedImage) (bool, error)
-
-	// verifiesSignatures returns true if and only if the requirement performs cryptographic
-	// signature verification on the entire contents of the image before allowing it.
-	verifiesSignatures() bool
 }
 
 // PolicyReferenceMatch specifies a set of image identities accepted in PolicyRequirement.
@@ -83,9 +79,8 @@ type PolicyReferenceMatch interface {
 // PolicyContext encapsulates a policy and possible cached state
 // for speeding up its evaluation.
 type PolicyContext struct {
-	Policy        *Policy
-	state         policyContextState // Internal consistency checking
-	requireSigned bool
+	Policy *Policy
+	state  policyContextState // Internal consistency checking
 }
 
 // policyContextState is used internally to verify the users are not misusing a PolicyContext.
@@ -135,13 +130,6 @@ func (pc *PolicyContext) Destroy() error {
 // ONLY use this for log messages, not for any decisions!
 func policyIdentityLogName(ref types.ImageReference) string {
 	return ref.Transport().Name() + ":" + ref.PolicyConfigurationIdentity()
-}
-
-// RequireSignatureVerification modifies policy requirement handling. If passed
-// `true`, at least one policy requirement which performs signature verification
-// on the entire image contents must be present.
-func (pc *PolicyContext) RequireSignatureVerification(val bool) {
-	pc.requireSigned = val
 }
 
 // requirementsForImageRef selects the appropriate requirements for ref.
@@ -290,7 +278,6 @@ func (pc *PolicyContext) IsRunningImageAllowed(ctx context.Context, publicImage 
 		return false, PolicyRequirementError("List of verification policy requirements must not be empty")
 	}
 
-	wasSignatureVerified := false
 	for reqNumber, req := range reqs {
 		// FIXME: supply state
 		allowed, err := req.isRunningImageAllowed(ctx, image)
@@ -299,15 +286,7 @@ func (pc *PolicyContext) IsRunningImageAllowed(ctx context.Context, publicImage 
 			return false, err
 		}
 		logrus.Debugf(" Requirement %d: allowed", reqNumber)
-		if req.verifiesSignatures() {
-			wasSignatureVerified = true
-		}
 	}
-
-	if pc.requireSigned && !wasSignatureVerified {
-		return false, PolicyRequirementError(fmt.Sprintf("No signature verification policy found for image %s", policyIdentityLogName(image.Reference())))
-	}
-
 	// We have tested that len(reqs) != 0, so at least one req must have explicitly allowed this image.
 	logrus.Debugf("Overall: allowed")
 	return true, nil

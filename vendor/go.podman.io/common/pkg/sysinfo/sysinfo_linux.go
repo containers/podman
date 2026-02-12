@@ -9,7 +9,7 @@ import (
 
 	"github.com/opencontainers/cgroups"
 	"github.com/sirupsen/logrus"
-	cgroupv2 "go.podman.io/common/pkg/cgroups"
+	"go.podman.io/common/pkg/cgroupv2"
 	"go.podman.io/storage/pkg/fileutils"
 	"golang.org/x/sys/unix"
 )
@@ -41,7 +41,7 @@ func New(quiet bool) *SysInfo {
 		sysInfo.cgroupCPUInfo = checkCgroupCPU(cgMounts, quiet)
 		sysInfo.cgroupBlkioInfo = checkCgroupBlkioInfo(cgMounts, quiet)
 		sysInfo.cgroupCpusetInfo = checkCgroupCpusetInfo(cgMounts, quiet)
-		sysInfo.cgroupPids = checkCgroupPids()
+		sysInfo.cgroupPids = checkCgroupPids(cgMounts, quiet)
 	}
 
 	_, ok := cgMounts["devices"]
@@ -228,12 +228,22 @@ func checkCgroupCpusetInfo(cgMounts map[string]string, quiet bool) cgroupCpusetI
 }
 
 // checkCgroupPids reads the pids information from the pids cgroup mount point.
-func checkCgroupPids() cgroupPids {
-	_, err := cgroupv2.IsCgroup2UnifiedMode()
+func checkCgroupPids(cgMounts map[string]string, quiet bool) cgroupPids {
+	cgroup2, err := cgroupv2.Enabled()
 	if err != nil {
 		logrus.Errorf("Failed to check cgroups version: %v", err)
 		return cgroupPids{}
 	}
+	if !cgroup2 {
+		_, ok := cgMounts["pids"]
+		if !ok {
+			if !quiet {
+				logrus.Warn("Unable to find pids cgroup in mounts")
+			}
+			return cgroupPids{}
+		}
+	}
+
 	return cgroupPids{
 		PidsLimit: true,
 	}
