@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -269,6 +270,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		initOpts.SkipTlsVerify = types.NewOptionalBool(!initOptionalFlags.tlsVerify)
 	}
+
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return err
+	}
+	initOpts.BaseTLSConfig = baseTLSConfig.TLSConfig()
 
 	// TODO need to work this back in
 	// if finished, err := vm.Init(initOpts); err != nil || !finished {
