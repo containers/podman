@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -383,10 +384,32 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 		return bytes.NewReader(data), nil
 	}
 
+	basetls, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return nil, err
+	}
+	baseTLSConfig := basetls.TLSConfig()
+	// nil means http.DefaultTransport.
+	// This variable must have type http.RoundTripper, not *http.Transport, to avoid https://go.dev/doc/faq#nil_error .
+	var transport http.RoundTripper
+	if baseTLSConfig != nil {
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return nil, errors.New("internal error: http.DefaultTransport is not a *http.Transport")
+		}
+		t := defaultTransport.Clone()
+		t.TLSClientConfig = baseTLSConfig
+		defer t.CloseIdleConnections()
+		transport = t
+	}
+	httpClient := &http.Client{
+		Transport: transport,
+	}
+
 	var combined bytes.Buffer
 
 	for i, arg := range args {
-		reader, err := readerFromArg(arg)
+		reader, err := readerFromArg(arg, httpClient)
 		if err != nil {
 			return nil, err
 		}
@@ -406,10 +429,10 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 	return bytes.NewReader(combined.Bytes()), nil
 }
 
-func readerFromArg(fileOrURL string) (io.ReadCloser, error) {
+func readerFromArg(fileOrURL string, httpClient *http.Client) (io.ReadCloser, error) {
 	switch {
 	case parse.ValidWebURL(fileOrURL) == nil:
-		response, err := http.Get(fileOrURL)
+		response, err := httpClient.Get(fileOrURL)
 		if err != nil {
 			return nil, err
 		}
