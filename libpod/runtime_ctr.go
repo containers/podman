@@ -306,6 +306,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.Networks = normalizeNetworks
 	}
 
+	ctr.runtime = r
+
 	// Validate the container
 	if err := ctr.validate(); err != nil {
 		return nil, err
@@ -337,8 +339,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	ctr.valid = true
 	ctr.state.State = define.ContainerStateConfigured
-	ctr.runtime = r
-
 	if ctr.config.OCIRuntime == "" {
 		ctr.ociRuntime = r.defaultOCIRuntime
 	} else {

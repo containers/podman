@@ -3,11 +3,13 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/libartifact/store"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/pkg/shortnames"
 	"go.podman.io/image/v5/transports/alltransports"
@@ -175,6 +177,23 @@ func (c *Container) validate() error {
 
 	if c.config.IsDefaultInfra && !c.config.IsInfra {
 		return fmt.Errorf("default rootfs-based infra container is set for non-infra container")
+	}
+
+	if len(c.config.ArtifactVolumes) > 0 {
+		artStore, err := c.runtime.ArtifactStore()
+		if err != nil {
+			return err
+		}
+		for _, artifactMount := range c.config.ArtifactVolumes {
+			asr, err := store.NewArtifactStorageReference(artifactMount.Source)
+			if err != nil {
+				return err
+			}
+			_, err = artStore.Inspect(context.Background(), asr)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
