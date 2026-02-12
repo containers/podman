@@ -9,6 +9,7 @@
 - The `podman exec` command now features a new option, `--no-session`, which disables tracking of the exec session to improve performance and startup time ([#26588](https://github.com/containers/podman/issues/26588)).
 
 ### Changes
+- Podman will now automatically attempt to migrate legacy BoltDB databases to SQLite when the system reboots. This is necessary as support for BoltDB will be removed in Podman 6.0 in May. If automatic migration is not possible, a new option, `podman system migrate --migrate-db`, will manually force a migration.
 - The `podman secret create -` command no longer requires that the secret be provided through a pipe, and instead allows typing the secret through the terminal ([#27879](https://github.com/containers/podman/issues/27879)).
 
 ### Bugfixes
@@ -32,6 +33,12 @@
 - Fixed a bug where the Compat and Libpod Logs endpoints for Containers did not use nanosecond-level precision for reported timestamps ([#27961](https://github.com/containers/podman/issues/27691)).
 - Fixed a bug where the Compat Create endpoint for Containers incorrectly handled healthcheck commands with arguments containing spaces ([#26519](https://github.com/containers/podman/issues/26519)).
 - Fixed a bug where the Compat Remove endpoint for Secrets was misnamed as `DELETE /secret/{name}` instead of `DELETE /secrets/{name}` ([#27548](https://github.com/containers/podman/issues/27548)).
+
+### Misc
+- Updated Buildah to v1.43.0
+- Updated the containers/storage library v1.62.0
+- Updated the containers/image library to v5.39.1
+- Updated the containers/common library to v0.67.0
 
 ## 5.7.1
 ### Bugfixes
