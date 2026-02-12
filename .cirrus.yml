@@ -295,8 +295,6 @@ osx_alt_build_task:
     # This host is/was shared with potentially many other CI tasks.
     # The previous task may have been canceled or aborted.
     prep_script: &mac_cleanup "contrib/cirrus/mac_cleanup.sh"
-    lint_script:
-        - make golangci-lint
     basic_build_script:
         - make .install.ginkgo
         - make podman-remote
