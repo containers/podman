@@ -31,6 +31,7 @@ import (
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -193,7 +194,11 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 	)
 	if len(args) > 0 {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := download.TempDirForURL("", "buildah", args[0], nil)
+		baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+		if err != nil {
+			return nil, err
+		}
+		tempDir, subDir, err := download.TempDirForURL("", "buildah", args[0], baseTLSConfig.TLSConfig())
 		if err != nil {
 			return nil, fmt.Errorf("prepping temporary context directory: %w", err)
 		}
