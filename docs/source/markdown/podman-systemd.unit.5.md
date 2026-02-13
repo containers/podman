@@ -1120,7 +1120,6 @@ Set the pod’s hostname inside all containers.
 The given hostname is also added to the /etc/hosts file using the container’s primary IP address (also see the `--add-host` option).
 
 Equivalent to the Podman `--hostname` option.
-This key can be listed multiple times.
 
 ### `IP=`
 
