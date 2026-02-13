@@ -1097,7 +1097,9 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 	}
 
 	// Copy checkpoint from temporary tar file in the image
-	addAndCopyOptions := buildah.AddAndCopyOptions{}
+	addAndCopyOptions := buildah.AddAndCopyOptions{
+		BaseTLSConfig: c.runtime.imageContext.BaseTLSConfig,
+	}
 	if err := importBuilder.Add("", true, addAndCopyOptions, options.TargetFile); err != nil {
 		return err
 	}
