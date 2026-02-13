@@ -161,4 +161,14 @@ function teardown() {
 }
 
 
+
+
+@test "podman artifact pull rejects non-artifact images" {
+    # Pulling a non-artifact image should fail with a clear error
+    run_podman ? artifact pull quay.io/libpod/alpine:latest
+    assert "$status" -ne 0 "Should fail to pull non-artifact"
+    assert "$output" =~ "not a valid OCI artifact" "Should reject non-artifact images"
+    assert "$output" =~ "Use 'podman pull' for container images" "Should suggest using podman pull"
+}
+
 # vim: filetype=sh

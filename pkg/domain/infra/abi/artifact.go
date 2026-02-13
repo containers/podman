@@ -12,10 +12,12 @@ import (
 
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/common/pkg/libartifact/types"
+	"go.podman.io/image/v5/manifest"
 )
 
 func (ir *ImageEngine) ArtifactInspect(ctx context.Context, name string, _ entities.ArtifactInspectOptions) (*entities.ArtifactInspectReport, error) {
@@ -93,6 +95,31 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 		return nil, err
 	}
 
+	// Validation: Ensure the pulled object is a valid OCI artifact
+	asr, err := libartifact.NewArtifactStorageReference(name)
+	if err != nil {
+		return nil, err
+	}
+	pulledArtifact, err := artStore.Inspect(ctx, asr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inspect pulled artifact: %w", err)
+	}
+	configMediaType := ""
+	if pulledArtifact.Manifest != nil {
+		configMediaType = pulledArtifact.Manifest.Config.MediaType
+	}
+	looksLikeContainerImage := pulledArtifact.Manifest != nil && pulledArtifact.Manifest.ArtifactType == "" &&
+		(configMediaType == v1.MediaTypeImageConfig || configMediaType == manifest.DockerV2Schema2ConfigMediaType)
+
+	// Verify it has a name and is not a standard container image
+	if _, err := pulledArtifact.GetName(); err != nil || looksLikeContainerImage {
+		// Cleanup invalid artifact
+		if _, removeErr := artStore.Remove(ctx, asr); removeErr != nil {
+			logrus.Warnf("Failed to remove invalid artifact after validation: %v", removeErr)
+		}
+		return nil, fmt.Errorf("the pulled image %q is not a valid OCI artifact (missing required annotations). Use 'podman pull' for container images instead", name)
+	}
+
 	return &entities.ArtifactPullReport{
 		ArtifactDigest: &artifactDigest,
 	}, nil
@@ -111,9 +138,12 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 			return nil, err
 		}
 		for _, art := range allArtifacts {
-			// Using the digest here instead of name to protect against
-			// an artifact that lacks a name
-			namesOrDigests = append(namesOrDigests, art.Digest.Encoded())
+			// All artifacts have valid names after validation in ArtifactPull
+			name, err := art.GetName()
+			if err != nil {
+				return nil, fmt.Errorf("artifact missing required name: %w", err)
+			}
+			namesOrDigests = append(namesOrDigests, name)
 		}
 	}
 
