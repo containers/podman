@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/podman/v6/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"go.podman.io/common/pkg/libartifact/store"
+	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/pkg/shortnames"
 	"go.podman.io/image/v5/transports/alltransports"
@@ -185,7 +185,7 @@ func (c *Container) validate() error {
 			return err
 		}
 		for _, artifactMount := range c.config.ArtifactVolumes {
-			asr, err := store.NewArtifactStorageReference(artifactMount.Source)
+			asr, err := libartifact.NewArtifactStorageReference(artifactMount.Source)
 			if err != nil {
 				return err
 			}
