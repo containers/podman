@@ -4,6 +4,7 @@ package compat
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -234,12 +235,16 @@ func parseBuildQuery(r *http.Request, conf *config.Config, queryValues url.Value
 }
 
 // processBuildContext processes build context directory and container files based on request parameters.
-func processBuildContext(query url.Values, r *http.Request, buildContext *BuildContext, anchorDir string) (*BuildContext, error) {
+func processBuildContext(runtime *libpod.Runtime, query url.Values, r *http.Request, buildContext *BuildContext, anchorDir string) (*BuildContext, error) {
 	dockerFileSet := false
 	remote := query.Get("remote")
 
 	if utils.IsLibpodRequest(r) && remote != "" {
-		tempDir, subDir, err := download.TempDirForURL(anchorDir, "buildah", remote, nil)
+		var baseTLSConfig *tls.Config
+		if sys := runtime.SystemContext(); sys != nil {
+			baseTLSConfig = sys.BaseTLSConfig
+		}
+		tempDir, subDir, err := download.TempDirForURL(anchorDir, "buildah", remote, baseTLSConfig)
 		if err != nil {
 			return nil, utils.GetInternalServerError(genSpaceErr(err))
 		}
@@ -910,7 +915,7 @@ func executeBuild(runtime *libpod.Runtime, w http.ResponseWriter, r *http.Reques
 //
 // Returns a BuildContext struct with the main context directory and a map of additional build contexts,
 // or an error if validation fails or required parameters are missing.
-func handleLocalBuildContexts(query url.Values, anchorDir string) (*BuildContext, error) {
+func handleLocalBuildContexts(runtime *libpod.Runtime, query url.Values, anchorDir string) (*BuildContext, error) {
 	localContextDir := query.Get("localcontextdir")
 	if localContextDir == "" {
 		return nil, utils.GetBadRequestError("localcontextdir", localContextDir, fmt.Errorf("localcontextdir cannot be empty"))
@@ -939,7 +944,11 @@ func handleLocalBuildContexts(query url.Values, anchorDir string) (*BuildContext
 		switch {
 		case strings.HasPrefix(value, "url:"):
 			value = strings.TrimPrefix(value, "url:")
-			tempDir, subdir, err := download.TempDirForURL(anchorDir, "buildah", value, nil)
+			var baseTLSConfig *tls.Config
+			if sys := runtime.SystemContext(); sys != nil {
+				baseTLSConfig = sys.BaseTLSConfig
+			}
+			tempDir, subdir, err := download.TempDirForURL(anchorDir, "buildah", value, baseTLSConfig)
 			if err != nil {
 				return nil, utils.GetInternalServerError(genSpaceErr(err))
 			}
@@ -971,15 +980,15 @@ func handleLocalBuildContexts(query url.Values, anchorDir string) (*BuildContext
 }
 
 // getLocalBuildContext processes build contexts from Local API HTTP request to a BuildContext struct.
-func getLocalBuildContext(r *http.Request, query url.Values, anchorDir string, _ bool) (*BuildContext, error) {
+func getLocalBuildContext(runtime *libpod.Runtime, r *http.Request, query url.Values, anchorDir string, _ bool) (*BuildContext, error) {
 	// Handle build contexts
-	buildContext, err := handleLocalBuildContexts(query, anchorDir)
+	buildContext, err := handleLocalBuildContexts(runtime, query, anchorDir)
 	if err != nil {
 		return nil, err
 	}
 
 	// Process build context and container files
-	buildContext, err = processBuildContext(query, r, buildContext, anchorDir)
+	buildContext, err = processBuildContext(runtime, query, r, buildContext, anchorDir)
 	if err != nil {
 		return nil, err
 	}
@@ -1018,7 +1027,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	buildImage(w, r, getBuildContext)
 }
 
-type getBuildContextFunc func(r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error)
+type getBuildContextFunc func(runtime *libpod.Runtime, r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error)
 
 func buildImage(w http.ResponseWriter, r *http.Request, getBuildContextFunc getBuildContextFunc) {
 	// Create temporary directory for build context
@@ -1051,13 +1060,14 @@ func buildImage(w http.ResponseWriter, r *http.Request, getBuildContextFunc getB
 	}
 	queryValues := r.URL.Query()
 
-	buildContext, err := getBuildContextFunc(r, queryValues, anchorDir, multipart)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+
+	buildContext, err := getBuildContextFunc(runtime, r, queryValues, anchorDir, multipart)
 	if err != nil {
 		utils.ProcessBuildError(w, err)
 		return
 	}
 
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	conf, err := runtime.GetConfigNoCopy()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -1085,15 +1095,15 @@ func buildImage(w http.ResponseWriter, r *http.Request, getBuildContextFunc getB
 }
 
 // getBuildContext processes build contexts from HTTP request to a BuildContext struct.
-func getBuildContext(r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error) {
+func getBuildContext(runtime *libpod.Runtime, r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error) {
 	// Handle build contexts (extract from tar/multipart)
-	buildContext, err := handleBuildContexts(r, query, anchorDir, multipart)
+	buildContext, err := handleBuildContexts(runtime, r, query, anchorDir, multipart)
 	if err != nil {
 		return nil, utils.GetInternalServerError(genSpaceErr(err))
 	}
 
 	// Process build context and container files
-	buildContext, err = processBuildContext(query, r, buildContext, anchorDir)
+	buildContext, err = processBuildContext(runtime, query, r, buildContext, anchorDir)
 	if err != nil {
 		return nil, err
 	}
@@ -1110,7 +1120,7 @@ func getBuildContext(r *http.Request, query url.Values, anchorDir string, multip
 
 // handleBuildContexts extracts and processes build contexts from the HTTP request body.
 // Supports both single-context builds and multi-context builds with named references.
-func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error) {
+func handleBuildContexts(runtime *libpod.Runtime, r *http.Request, query url.Values, anchorDir string, multipart bool) (*BuildContext, error) {
 	var err error
 	out := &BuildContext{
 		AdditionalBuildContexts: make(map[string]*buildahDefine.AdditionalBuildContext),
@@ -1125,7 +1135,11 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 		logrus.Debugf("name: %q, context: %q", name, value)
 
 		if urlValue, ok := strings.CutPrefix(value, "url:"); ok {
-			tempDir, subdir, err := download.TempDirForURL(anchorDir, "buildah", urlValue, nil)
+			var baseTLSConfig *tls.Config
+			if sys := runtime.SystemContext(); sys != nil {
+				baseTLSConfig = sys.BaseTLSConfig
+			}
+			tempDir, subdir, err := download.TempDirForURL(anchorDir, "buildah", urlValue, baseTLSConfig)
 			if err != nil {
 				return nil, fmt.Errorf("downloading URL %q: %w", name, err)
 			}
