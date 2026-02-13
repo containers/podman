@@ -15,7 +15,7 @@ func TestProcessBuildContext_DockerfileConfinement(t *testing.T) {
 
 	contextDir := t.TempDir()
 	anchorDir := t.TempDir()
-	req := httptest.NewRequest(http.MethodPost, "http://example.com/v1.41/build", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1.41/build", nil)
 
 	t.Run("relative dockerfile stays in context", func(t *testing.T) {
 		t.Parallel()
@@ -85,7 +85,7 @@ func TestProcessBuildContext_DockerfileConfinement(t *testing.T) {
 		query := url.Values{}
 		query.Set("dockerfile", "/etc/passwd")
 
-		libpodReq := httptest.NewRequest(http.MethodPost, "http://example.com/v1.41/libpod/local/build", nil)
+		libpodReq := httptest.NewRequest(http.MethodPost, "/v1.41/libpod/local/build", nil)
 		buildContext, err := processBuildContext(query, libpodReq, &BuildContext{ContextDirectory: contextDir}, anchorDir)
 		if err != nil {
 			t.Fatalf("expected nil error, got %v", err)
@@ -104,7 +104,7 @@ func TestProcessBuildContext_DockerfileConfinement(t *testing.T) {
 		query := url.Values{}
 		query.Set("dockerfile", "/etc/passwd")
 
-		libpodReq := httptest.NewRequest(http.MethodPost, "http://example.com/v1.41/libpod/build", nil)
+		libpodReq := httptest.NewRequest(http.MethodPost, "/v1.41/libpod/build", nil)
 		_, err := processBuildContext(query, libpodReq, &BuildContext{ContextDirectory: contextDir}, anchorDir)
 		if err == nil {
 			t.Fatalf("expected error, got nil")
