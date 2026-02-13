@@ -762,18 +762,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
 		return nil, nil, fmt.Errorf("setting up OCI Hooks: %w", err)
 	}
-	if len(c.config.EnvSecrets) > 0 {
-		manager, err := c.runtime.SecretsManager()
-		if err != nil {
-			return nil, nil, err
-		}
-		for name, secr := range c.config.EnvSecrets {
-			_, data, err := manager.LookupSecretData(secr.Name)
-			if err != nil {
-				return nil, nil, err
-			}
-			g.AddProcessEnv(name, string(data))
-		}
+	if err := c.injectEnvSecrets(&g); err != nil {
+		return nil, nil, err
 	}
 
 	// Pass down the LISTEN_* environment (see #10443).
@@ -3172,6 +3162,24 @@ func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
 		return currentValue, nil
 	}
 	return oomScoreValue, nil
+}
+
+func (c *Container) injectEnvSecrets(g *generate.Generator) error {
+	if len(c.config.EnvSecrets) > 0 {
+		manager, err := c.runtime.SecretsManager()
+		if err != nil {
+			return err
+		}
+		for name, secr := range c.config.EnvSecrets {
+			logrus.Debugf("DEBUG: generateSpec: Injecting secret %s as env %s", secr.Name, name)
+			_, data, err := manager.LookupSecretData(secr.Name)
+			if err != nil {
+				return err
+			}
+			g.AddProcessEnv(name, string(data))
+		}
+	}
+	return nil
 }
 
 func getAllCDIDeviceNames(registry *cdi.Cache, c *ContainerConfig) ([]string, error) {
