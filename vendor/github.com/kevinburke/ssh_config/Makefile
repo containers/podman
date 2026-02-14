@@ -12,6 +12,10 @@ test:
 race-test:
 	go test -timeout=500ms -race ./...
 
+coverage:
+	go test -trimpath -timeout=250ms -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -func=coverage.out
+
 $(BUMP_VERSION):
 	go get -u github.com/kevinburke/bump_version
 
