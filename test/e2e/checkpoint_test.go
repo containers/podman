@@ -75,6 +75,31 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(ExitWithError(125, "no such container or image"))
 	})
 
+	It("podman restore --publish without --import should fail", func() {
+		localRunString := getRunString([]string{ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"container", "checkpoint", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+
+		result = podmanTest.Podman([]string{"container", "restore", "-p", "8080:8080", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitWithError(125, "--publish can only be used with image or --import"))
+
+		// Clean up
+		result = podmanTest.Podman([]string{"container", "restore", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+
+		result = podmanTest.Podman([]string{"rm", "-t", "0", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+	})
+
 	It("podman checkpoint a running container by id", func() {
 		localRunString := getRunString([]string{ALPINE, "top"})
 		session := podmanTest.Podman(localRunString)
