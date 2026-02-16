@@ -1699,9 +1699,12 @@ func ConvertPod(podUnit *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service.Setv(ServiceGroup,
 		"Type", "forking",
-		"Restart", "on-failure",
 		"PIDFile", "%t/%N.pid",
 	)
+
+	if !podUnit.HasKey(ServiceGroup, "Restart") {
+		service.Set(ServiceGroup, "Restart", "on-failure")
+	}
 
 	return service, warnings, nil
 }

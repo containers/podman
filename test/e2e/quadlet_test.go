@@ -1141,6 +1141,7 @@ BOGUS=foo
 		Entry("Pod - Shm Size", "shmsize.pod"),
 		Entry("Pod - StopTimeout", "stoptimeout.pod"),
 		Entry("Pod - Service Environment", "service-environment.pod"),
+		Entry("Pod - Restart policy override", "restart.pod"),
 	)
 
 	DescribeTable("Running expected warning quadlet test case",
