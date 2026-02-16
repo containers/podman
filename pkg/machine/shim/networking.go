@@ -110,7 +110,9 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 
 func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider) (string, machine.APIForwardingState, error) {
 	// Check if SSH port is in use, and reassign if necessary
-	if provider.UserModeNetworkEnabled(mc) && !ports.IsLocalPortAvailable(mc.SSH.Port) {
+	// The specific WSL check covers a known issue with mirrored mode
+	// because the VM shares the same host network stack. (https://github.com/crc-org/macadam/issues/289)
+	if (provider.VMType() == define.WSLVirt || provider.UserModeNetworkEnabled(mc)) && !ports.IsLocalPortAvailable(mc.SSH.Port) {
 		logrus.Warnf("detected port conflict on machine ssh port [%d], reassigning", mc.SSH.Port)
 		if err := reassignSSHPort(mc, provider); err != nil {
 			return "", 0, err
