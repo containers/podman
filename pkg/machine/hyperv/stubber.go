@@ -604,6 +604,15 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	}
 	callbackFuncs.Add(startCallback)
 
+	// If we are not using user mode networking, we need to retrieve the VM IP address
+	if !mc.HyperVHypervisor.UserModeNetworking {
+		ip, err := getVMIPAddress(mc.Name)
+		if err != nil {
+			return nil, nil, fmt.Errorf("retrieving VM's IP: %w", err)
+		}
+		mc.IPAddress = ip
+	}
+
 	return nil, waitReady, err
 }
 
@@ -780,16 +789,6 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
-
-	// If we are not using user mode networking, we need to retrieve the VM IP address
-	if !mc.HyperVHypervisor.UserModeNetworking {
-		ip, err := getVMIPAddress(mc.Name)
-		if err != nil {
-			return fmt.Errorf("retrieving VM's IP: %w", err)
-		}
-		mc.IPAddress = ip
-		return nil
-	}
 
 	if len(mc.Mounts) == 0 {
 		return nil
