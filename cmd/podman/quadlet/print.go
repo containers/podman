@@ -20,8 +20,8 @@ var (
 		Aliases:           []string{"cat"},
 		Args:              cobra.ExactArgs(1),
 		Example: `podman quadlet print myquadlet.container
-podman quadlet print mypod.pod
-podman quadlet print myimage.build`,
+  podman quadlet print mypod.pod
+  podman quadlet print myimage.build`,
 	}
 )
 
