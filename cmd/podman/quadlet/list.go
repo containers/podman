@@ -24,8 +24,8 @@ var (
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman quadlet list
-podman quadlet list --format '{{ .UnitName }}'
-podman quadlet list --filter 'name=test*'`,
+  podman quadlet list --format '{{ .UnitName }}'
+  podman quadlet list --filter 'name=test*'`,
 	}
 
 	listOptions entities.QuadletListOptions

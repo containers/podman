@@ -27,7 +27,7 @@ var (
 		},
 		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman quadlet install /path/to/myquadlet.container
-podman quadlet install https://github.com/containers/podman/blob/main/test/e2e/quadlet/basic.container`,
+  podman quadlet install https://github.com/containers/podman/blob/main/test/e2e/quadlet/basic.container`,
 	}
 
 	installOptions entities.QuadletInstallOptions

@@ -21,8 +21,8 @@ var (
 		RunE:              rm,
 		ValidArgsFunction: common.AutocompleteQuadlets,
 		Example: `podman quadlet rm test.container
-podman quadlet rm --force mysql.container
-podman quadlet rm --all --reload-systemd=false`,
+  podman quadlet rm --force mysql.container
+  podman quadlet rm --all --reload-systemd=false`,
 	}
 
 	removeOptions entities.QuadletRemoveOptions
