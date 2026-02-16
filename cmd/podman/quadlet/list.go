@@ -18,6 +18,7 @@ var (
 
 	quadletListCmd = &cobra.Command{
 		Use:               "list [options]",
+		Aliases:           []string{"ls"},
 		Short:             "List Quadlets",
 		Long:              quadletListDescription,
 		RunE:              list,
