@@ -319,16 +319,51 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 
 type MultiProvider []vmconfigs.VMProvider
 
-// VMExists looks across given providers for a machine's existence.  returns the actual config and found bool
+// VMExists checks if a VM exists by looking at both disk configuration and hypervisor state.
+// It returns the machine config (if found), the provider that the VM exists on, and any error.
+//
+// The function first checks for a local configuration file on disk. If found, it then verifies
+// the VM's existence on the hypervisor. The function treats a missing VM on the hypervisor as
+// non-existent, even if a configuration file exists (e.g., when a VM was deleted externally through hyperv manager).
+//
+// Use cases:
+//  1. Normal case: VM exists with config -> returns (config, provider, nil)
+//  2. Orphaned config: Config exists but VM deleted externally -> returns (nil, nil, ErrVMDoesNotExist)
+//  3. External VM: VM already exists on hypervisor but no config, so it was not created by podman -> returns (nil, provider, error)
+//  4. Hypervisor error with config: Config exists but hypervisor check fails -> returns (config, provider, nil)
+//     (config is trusted, warning is logged)
 func VMExists(name string) (*vmconfigs.MachineConfig, vmconfigs.VMProvider, error) {
+	vmstubbers := provider.GetAll()
 	// Look on disk first
-	mcs, err := getMCsOverProviders(provider.GetAll())
+	mcs, err := getMCsOverProviders(vmstubbers)
 	if err != nil {
 		return nil, nil, err
 	}
-	if mc, found := mcs[name]; found {
-		vmType := mc.Provider
-		return mc.MachineConfig, vmType, nil
+	mc, hasConfig := mcs[name]
+
+	// Check with the provider hypervisor
+	for _, vmstubber := range vmstubbers {
+		// If we have a config and the provider is different, skip it
+		if hasConfig && mc.Provider != nil && vmstubber.VMType() != mc.Provider.VMType() {
+			continue
+		}
+
+		exists, err := vmstubber.Exists(name)
+		if err != nil {
+			if hasConfig {
+				// If we have a config but hypervisor failed at responding, warn and trust the config
+				logrus.Warnf("unable to verify VM %q on hypervisor: %v", name, err)
+				return mc.MachineConfig, vmstubber, nil
+			}
+			return nil, nil, err
+		}
+		if exists {
+			if hasConfig {
+				return mc.MachineConfig, vmstubber, nil
+			}
+			// VM exists in hypervisor but no local config - it was created by something else
+			return nil, vmstubber, fmt.Errorf("vm %q already exists on hypervisor", name)
+		}
 	}
 
 	return nil, nil, &machineDefine.ErrVMDoesNotExist{Name: name}
