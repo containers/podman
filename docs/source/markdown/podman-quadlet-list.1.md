@@ -1,7 +1,7 @@
 % podman-quadlet-list 1
 
 ## NAME
-podman\-quadlet\-list - List installed quadlets
+podman\-quadlet\-list - List installed quadlets (alias ls)
 
 ## SYNOPSIS
 **podman quadlet list** [*options*]

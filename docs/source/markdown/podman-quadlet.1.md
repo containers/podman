@@ -16,7 +16,7 @@ Podman Quadlets allow users to manage containers, pods, volumes, networks, and i
 | Command | Man Page                                                   | Description                                                  |
 |---------|------------------------------------------------------------|--------------------------------------------------------------|
 | install | [podman-quadlet-install(1)](podman-quadlet-install.1.md)   | Install a quadlet file or quadlet application                |
-| list    | [podman-quadlet-list(1)](podman-quadlet-list.1.md)         | List installed quadlets                                      |
+| list    | [podman-quadlet-list(1)](podman-quadlet-list.1.md)         | List installed quadlets (alias ls)                           |
 | print   | [podman-quadlet-print(1)](podman-quadlet-print.1.md)       | Display the contents of a quadlet                            |
 | rm      | [podman-quadlet-rm(1)](podman-quadlet-rm.1.md)             | Removes an installed quadlet                                 |
 

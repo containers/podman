@@ -62,6 +62,11 @@ EOF
 
     assert "$output" =~ "$install_dir/alpine-quadlet.container" "PATH ON DISK must be set and must belong to"
 
+    # Test quadlet ls (alias for list)
+    run_podman quadlet ls
+    assert "$output" =~ "alpine-quadlet.container" "ls should contain alpine-quadlet.container"
+    assert "$output" =~ "alpine-quadlet.service" "ls should show alpine-quadlet.service"
+
     # Test quadlet list with filter
     run_podman quadlet list --filter name=something*
     assert "$output" !~ "alpine-quadlet.container" "filtered list should not contain alpine-quadlet.container"
