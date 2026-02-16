@@ -38,7 +38,6 @@ import (
 	artStore "go.podman.io/common/pkg/libartifact"
 	"go.podman.io/common/pkg/secrets"
 	systemdCommon "go.podman.io/common/pkg/systemd"
-	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	is "go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
@@ -1047,42 +1046,6 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 
 func (r *Runtime) EnableLabeling() bool {
 	return r.config.Containers.EnableLabeling
-}
-
-// Reload reloads the configurations files
-func (r *Runtime) Reload() error {
-	if err := r.reloadContainersConf(); err != nil {
-		return err
-	}
-	if err := r.reloadStorageConf(); err != nil {
-		return err
-	}
-	// Invalidate the registries.conf cache. The next invocation will
-	// reload all data.
-	sysregistriesv2.InvalidateCache()
-	return nil
-}
-
-// reloadContainersConf reloads the containers.conf
-func (r *Runtime) reloadContainersConf() error {
-	config, err := config.Reload()
-	if err != nil {
-		return err
-	}
-	r.config = config
-	logrus.Infof("Applied new containers configuration: %v", config)
-	return nil
-}
-
-// reloadStorageConf reloads the storage.conf
-func (r *Runtime) reloadStorageConf() error {
-	configFile, err := storage.DefaultConfigFile()
-	if err != nil {
-		return err
-	}
-	storage.ReloadConfigurationFile(configFile, &r.storageConfig)
-	logrus.Infof("Applied new storage configuration: %v", r.storageConfig)
-	return nil
 }
 
 // getVolumePlugin gets a specific volume plugin.

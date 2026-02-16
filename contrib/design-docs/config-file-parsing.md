@@ -214,6 +214,14 @@ in the parser.
 
 String arrays in the config will need to get switched to the attributedstring type, as described under Appending arrays.
 
+Callers should only use `DefaultStoreOptions()` which will parse all files as described and returns the
+final StoreOptions struct and cache it.
+
+And remove many public APIs there such as `ReloadConfigurationFile()`, `UpdateStoreOptions()`, `Save()` and more.
+I do not see a need for these in our tools podman/buildah/skopeo or even cri-o so let's just get rid of them to be
+able to simplify the code over there. If external users really do need that we can consider re-adding them at a later
+point.
+
 ##### registries.conf
 
 Remove V1 config layout to simplify the parsing logic. If we do major config changes we might as well take the
@@ -271,6 +279,49 @@ It is also missing the XDG_CONFIG_HOME support[3] so fix that as well.
 We got an issue for drop-in support [5]. However I explicitly consider this out of scope for now
 due the increased complexity and short time line for podman 6. Drop-in support could still be
 added later as I don't consider that a breaking change, it only adds new functionality.
+
+## Podman
+
+`podman info` currently prints the storage.conf location in the output, given that with the new loading
+this is no longer a single file it makes no sense to keep displaying a single file path. We never
+printed the containers.conf path there either so just remove it.
+
+Also get rid of the config reload functionality of the podman system service. There are various
+problems with that:
+It never actually worked with storage.conf, the store object is not recreated and cannot be made
+safely so. The comments from Matt on the PR which added this remain unsolved:
+https://github.com/containers/podman/pull/7311
+Instead it directly writes into the storageConfig which is not race free (see below) but also means
+the actual store object and storage config settings are out of sync which means we could run into all
+sorts of unknown bugs because of that.
+
+Then the code as it is not race free according to the go memory model. Reassigning the config struct
+to the runtime is unsafe as there are concurrent reads. Running the service with the go race detector
+shows this.
+```
+WARNING: DATA RACE
+Write at 0x00c0003c2f00 by goroutine 38:
+  github.com/containers/podman/v6/libpod.(*Runtime).reloadContainersConf()
+      /home/pholzing/go/src/github.com/containers/podman/libpod/runtime.go:1072 +0x9c
+  github.com/containers/podman/v6/libpod.(*Runtime).Reload()
+      /home/pholzing/go/src/github.com/containers/podman/libpod/runtime.go:1054 +0x2e
+  github.com/containers/podman/v6/pkg/domain/infra.StartWatcher.func1()
+      /home/pholzing/go/src/github.com/containers/podman/pkg/domain/infra/runtime_libpod.go:302 +0x7a
+
+Previous read at 0x00c0003c2f00 by goroutine 11323:
+  github.com/containers/podman/v6/libpod.(*Runtime).GetConfigNoCopy()
+      /home/pholzing/go/src/github.com/containers/podman/libpod/runtime.go:642 +0x304
+```
+The way to fix this would be to put this config access behind a mutex but this would mean a big code
+change for IMO no real gain.
+
+Lastly this feature has been proposed by another dev in https://github.com/containers/podman/issues/6255.
+It is unclear to me if there is a single end user using this considering it does not work properly and we
+never had any reports about this AFAIK. The podman system service is not a daemon so any user who want the
+config files to be reloaded can just stop the service and start it again without causing downtime for
+the running containers.
+
+Overall not doing this greatly simplifies the code complexity.
 
 ## **Use cases**
 

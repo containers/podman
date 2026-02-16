@@ -48,7 +48,6 @@ host.networkBackendInfo   | .*dns.*package.*
 host.ociRuntime.path      | $expr_path
 host.pasta                | .*executable.*package.*
 host.rootlessNetworkCmd   | pasta
-store.configFile          | $expr_path
 store.graphDriverName     | [a-z0-9]\\\+\\\$
 store.graphRoot           | $expr_path
 store.imageStore.number   | 1
