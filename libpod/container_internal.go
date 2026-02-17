@@ -1607,12 +1607,12 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 		return fmt.Errorf("unable to restart a container in a paused or unknown state: %w", define.ErrCtrStateInvalid)
 	}
 	if len(c.config.EnvSecrets) > 0 {
-		logrus.Infof("DEBUG: restartWithTimeout: EnvSecrets for %s:", c.ID())
+		logrus.Debugf("restartWithTimeout: EnvSecrets for %s:", c.ID())
 		for name, secr := range c.config.EnvSecrets {
-			logrus.Infof("  Target: %s, Source: %s", name, secr.Name)
+			logrus.Debugf("  Target: %s, Source: %s", name, secr.Name)
 		}
 	} else {
-		logrus.Infof("DEBUG: restartWithTimeout: No EnvSecrets for %s", c.ID())
+		logrus.Debugf("restartWithTimeout: No EnvSecrets for %s", c.ID())
 	}
 
 	c.newContainerEvent(events.Restart)

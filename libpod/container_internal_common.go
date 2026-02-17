@@ -3171,7 +3171,7 @@ func (c *Container) injectEnvSecrets(g *generate.Generator) error {
 			return err
 		}
 		for name, secr := range c.config.EnvSecrets {
-			logrus.Debugf("DEBUG: generateSpec: Injecting secret %s as env %s", secr.Name, name)
+			logrus.Debugf("generateSpec: Injecting secret %s as env %s", secr.Name, name)
 			_, data, err := manager.LookupSecretData(secr.Name)
 			if err != nil {
 				return err
