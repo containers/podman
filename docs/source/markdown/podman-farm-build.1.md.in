@@ -153,6 +153,20 @@ Build image on local machine as well as on farm nodes.
 
 @@option memory-swap
 
+#### **--mount**=*mount-specification*
+
+Adds this mount to each `RUN` command in a Containerfile before executing.  For example:
+
+`podman build --mount=type=secret,id=mysecret …`
+
+and a Containerfile entry of:
+
+`RUN cat /run/secrets/mysecret`
+
+Has the same effect as:
+
+`RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`
+
 @@option network.image
 
 @@option no-cache
@@ -216,6 +230,8 @@ Build only on farm nodes that match the given platforms.
 @@option skip-unused-stages
 
 @@option source-date-epoch
+
+@@option source-policy-file
 
 @@option squash
 
