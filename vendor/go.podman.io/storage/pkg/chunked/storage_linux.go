@@ -9,9 +9,11 @@ import (
 	"hash"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -606,11 +608,7 @@ func maybeDoIDRemap(manifest []fileMetadata, options *archive.TarOptions) error 
 }
 
 func mapToSlice(inputMap map[uint32]struct{}) []uint32 {
-	var out []uint32
-	for value := range inputMap {
-		out = append(out, value)
-	}
-	return out
+	return slices.Collect(maps.Keys(inputMap))
 }
 
 func collectIDs(entries []fileMetadata) ([]uint32, []uint32) {

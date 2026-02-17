@@ -108,9 +108,9 @@ func main() {
 
 ![dynTotal](_svg/godEMrCZmJkHYH1X9dN4Nm0U7.svg)
 
-#### [complex example](_examples/complex/main.go)
+#### [queueBar example](_examples/queueBar/main.go)
 
-![complex](_svg/wHzf1M7sd7B3zVa2scBMnjqRf.svg)
+![queueBar](_svg/wHzf1M7sd7B3zVa2scBMnjqRf.svg)
 
 #### [io example](_examples/io/main.go)
 

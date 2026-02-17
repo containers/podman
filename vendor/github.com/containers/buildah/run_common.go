@@ -1421,7 +1421,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 	mountArtifacts.RunOverlayDirs = append(mountArtifacts.RunOverlayDirs, overlayDirs...)
 
-	allMounts := util.SortMounts(append(append(append(append(append(volumes, builtins...), runMounts...), subscriptionMounts...), bindFileMounts...), specMounts...))
+	allMounts := util.SortMounts(slices.Concat(volumes, builtins, runMounts, subscriptionMounts, bindFileMounts, specMounts))
 
 	// Add them all, in the preferred order, except where they conflict with something that was previously added.
 	for _, mount := range allMounts {

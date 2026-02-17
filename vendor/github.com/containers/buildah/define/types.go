@@ -110,6 +110,7 @@ type Secret struct {
 }
 
 // BuildOutputOptions contains the the outcome of parsing the value of a build --output flag
+// Deprecated: This structure is now internal
 type BuildOutputOption struct {
 	Path     string // Only valid if !IsStdout
 	IsDir    bool

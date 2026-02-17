@@ -49,13 +49,9 @@ github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
-# github.com/clipperhouse/stringish v0.1.1
-## explicit; go 1.18
-github.com/clipperhouse/stringish
-# github.com/clipperhouse/uax29/v2 v2.3.0
+# github.com/clipperhouse/uax29/v2 v2.7.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
-github.com/clipperhouse/uax29/v2/internal/iterators
 # github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -91,7 +87,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.9.0
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.42.1-0.20260126144005-964d45f717ce
+# github.com/containers/buildah v1.42.1-0.20260216192603-e473f9d26ec6
 ## explicit; go 1.24.6
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -106,7 +102,8 @@ github.com/containers/buildah/internal/metadata
 github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
 github.com/containers/buildah/internal/open
-github.com/containers/buildah/internal/parse
+github.com/containers/buildah/internal/output
+github.com/containers/buildah/internal/parsevolume
 github.com/containers/buildah/internal/pty
 github.com/containers/buildah/internal/sanitize
 github.com/containers/buildah/internal/sbom
@@ -122,6 +119,7 @@ github.com/containers/buildah/pkg/jail
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
+github.com/containers/buildah/pkg/sourcepolicy
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
@@ -392,7 +390,7 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.5.0
 ## explicit; go 1.18
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.18.3
+# github.com/klauspost/compress v1.18.4
 ## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -420,7 +418,7 @@ github.com/lufia/plan9stats
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
-# github.com/mattn/go-runewidth v0.0.19
+# github.com/mattn/go-runewidth v0.0.20
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
@@ -717,7 +715,7 @@ github.com/ulikunitz/xz/lzma
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v8 v8.11.3
+# github.com/vbauerster/mpb/v8 v8.12.0
 ## explicit; go 1.24.0
 github.com/vbauerster/mpb/v8
 github.com/vbauerster/mpb/v8/cwriter
@@ -771,7 +769,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.66.2-0.20260204175822-4e7127fdc31f
+# go.podman.io/common v0.67.1-0.20260217150212-026c3538f3d1
 ## explicit; go 1.24.6
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -839,7 +837,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.38.1-0.20260204175822-4e7127fdc31f
+# go.podman.io/image/v5 v5.39.2-0.20260217150212-026c3538f3d1
 ## explicit; go 1.24.6
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -914,7 +912,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.61.1-0.20260204175822-4e7127fdc31f
+# go.podman.io/storage v1.62.1-0.20260217150212-026c3538f3d1
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1019,7 +1017,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.34.0
+# golang.org/x/oauth2 v0.35.0
 ## explicit; go 1.24.0
 golang.org/x/oauth2
 golang.org/x/oauth2/internal

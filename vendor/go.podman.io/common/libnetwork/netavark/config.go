@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strconv"
 	"time"
@@ -81,7 +80,7 @@ func (n *netavarkNetwork) NetworkUpdate(name string, options types.NetworkUpdate
 	networkDNSServersAfter = append(networkDNSServersAfter, options.AddDNSServers...)
 	networkDNSServersAfter = sliceRemoveDuplicates(networkDNSServersAfter)
 	network.NetworkDNSServers = networkDNSServersAfter
-	if reflect.DeepEqual(networkDNSServersBefore, networkDNSServersAfter) {
+	if slices.Equal(networkDNSServersBefore, networkDNSServersAfter) {
 		return nil
 	}
 	err = n.commitNetwork(network)
