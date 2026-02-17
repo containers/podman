@@ -1024,6 +1024,11 @@ By default, the Podman pod has the same name as the unit, but with a `systemd-` 
 a `$name.pod` file creates a `$name-pod.service` unit and a `systemd-$name` Podman pod. The
 `PodName` option allows for overriding this default name with a user-provided one.
 
+The generated service defaults to `Restart=on-failure`. Note that with `ExitPolicy=stop` (the
+default for Quadlet pods), the pod exits cleanly (exit code 0) when all its containers stop, so
+`on-failure` will **not** trigger a restart in that case. To have the pod automatically restart
+when containers exit, set `Restart=always` in the `[Service]` section of the `.pod` file.
+
 Valid options for `[Pod]` are listed below:
 
 | **[Pod] options**                   | **podman pod create equivalent**       |
