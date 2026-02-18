@@ -150,6 +150,10 @@ func restore(cmd *cobra.Command, args []string) error {
 	}
 	restoreOptions.PublishPorts = inputPorts
 
+	if notImport && len(restoreOptions.PublishPorts) > 0 {
+		return fmt.Errorf("--publish can only be used with image or --import")
+	}
+
 	argLen := len(args)
 	if restoreOptions.Import != "" {
 		if restoreOptions.All || restoreOptions.Latest {
