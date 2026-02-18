@@ -1,4 +1,4 @@
-package parse
+package parsevolume
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ func ValidateVolumeMountHostDir(hostDir string) error {
 	return nil
 }
 
-// RevertEscapedColon converts "\:" to ":"
-func RevertEscapedColon(source string) string {
+// revertEscapedColon converts "\:" to ":"
+func revertEscapedColon(source string) string {
 	return strings.ReplaceAll(source, "\\:", ":")
 }
 
@@ -37,7 +37,7 @@ func SplitStringWithColonEscape(str string) []string {
 				sb.WriteRune(r)
 			} else {
 				// os.Stat will fail if path contains escaped colon
-				result = append(result, RevertEscapedColon(sb.String()))
+				result = append(result, revertEscapedColon(sb.String()))
 				sb.Reset()
 			}
 		} else {
@@ -45,7 +45,7 @@ func SplitStringWithColonEscape(str string) []string {
 		}
 	}
 	if sb.Len() > 0 {
-		result = append(result, RevertEscapedColon(sb.String()))
+		result = append(result, revertEscapedColon(sb.String()))
 	}
 	return result
 }

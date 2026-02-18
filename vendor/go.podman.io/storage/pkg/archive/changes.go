@@ -8,7 +8,6 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"syscall"
@@ -337,7 +336,7 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 			if statDifferent(oldStat, oldInfo, newStat, info) ||
 				!bytes.Equal(oldChild.capability, newChild.capability) ||
 				oldChild.target != newChild.target ||
-				!reflect.DeepEqual(oldChild.xattrs, newChild.xattrs) {
+				!maps.Equal(oldChild.xattrs, newChild.xattrs) {
 				change := Change{
 					Path: newChild.path(),
 					Kind: ChangeModify,

@@ -116,11 +116,13 @@ type BuildQuery struct {
 	ShmSize                 int                `schema:"shmsize"`
 	SkipUnusedStages        bool               `schema:"skipunusedstages"`
 	SourceDateEpoch         int64              `schema:"sourcedateepoch"`
+	SourcePolicy            string             `schema:"sourcePolicy"`
 	Squash                  bool               `schema:"squash"`
 	TLSVerify               bool               `schema:"tlsVerify"`
 	Tags                    []string           `schema:"t"`
 	Target                  string             `schema:"target"`
 	Timestamp               int64              `schema:"timestamp"`
+	TransientRunMounts      []string           `schema:"transientRunMounts"`
 	Ulimits                 string             `schema:"ulimits"`
 	UnsetEnvs               []string           `schema:"unsetenv"`
 	UnsetLabels             []string           `schema:"unsetlabel"`
@@ -587,8 +589,29 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		return nil, nil, utils.GetGenericBadRequestError(err)
 	}
 
+	var temporaryFiles []string
 	cleanup := func() {
 		auth.RemoveAuthfile(authfile)
+		for _, temporaryFile := range temporaryFiles {
+			os.Remove(temporaryFile)
+		}
+	}
+	makeTemporaryFileWithContent := func(data []byte, pattern string) (string, error) {
+		if pattern == "" {
+			pattern = "podman-build-"
+		}
+		f, err := os.CreateTemp(parse.GetTempDir(), pattern)
+		if err != nil {
+			return "", err
+		}
+		filename := f.Name()
+		temporaryFiles = append(temporaryFiles, filename)
+		_, err = f.Write(data)
+		err = errors.Join(err, f.Close())
+		if err != nil {
+			return "", err
+		}
+		return filename, nil
 	}
 
 	// Process from image
@@ -744,6 +767,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		Squash:                         query.Squash,
 		SystemContext:                  systemContext,
 		Target:                         query.Target,
+		TransientRunMounts:             query.TransientRunMounts,
 		UnsetEnvs:                      query.UnsetEnvs,
 		UnsetLabels:                    query.UnsetLabels,
 		UnsetAnnotations:               query.UnsetAnnotations,
@@ -766,6 +790,15 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 			Arch:    arch,
 			Variant: variant,
 		})
+	}
+
+	// Process source policy
+	if _, found := queryValues["sourcePolicy"]; found {
+		filename, err := makeTemporaryFileWithContent([]byte(query.SourcePolicy), "podman-source-policy-")
+		if err != nil {
+			return nil, cleanup, utils.GetBadRequestError("sourcePolicy", query.SourcePolicy, err)
+		}
+		buildOptions.SourcePolicyFile = filename
 	}
 
 	// Process timestamps

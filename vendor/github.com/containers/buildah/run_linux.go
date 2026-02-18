@@ -285,7 +285,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 		devices = append(devices, device...)
 	}
-	devices = append(append(devices, options.Devices...), b.Devices...)
+	devices = slices.Concat(devices, options.Devices, b.Devices)
 
 	// Mount devices, if any, and if we're rootless attempt to work around not
 	// being able to create device nodes by bind-mounting them from the host, like podman does.

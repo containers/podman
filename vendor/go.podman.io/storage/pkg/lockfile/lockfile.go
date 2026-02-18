@@ -399,9 +399,9 @@ func (l *LockFile) lock(lType rawfilelock.LockType) {
 		if err := rawfilelock.LockFile(l.fd, lType); err != nil {
 			panic(err)
 		}
+		l.lockType = lType
+		l.locked = true
 	}
-	l.lockType = lType
-	l.locked = true
 	l.counter++
 }
 
@@ -442,9 +442,9 @@ func (l *LockFile) tryLock(lType rawfilelock.LockType) error {
 			rwMutexUnlocker()
 			return err
 		}
+		l.lockType = lType
+		l.locked = true
 	}
-	l.lockType = lType
-	l.locked = true
 	l.counter++
 	return nil
 }

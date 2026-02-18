@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/internal/output"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -48,7 +49,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	var removeAll []string
 
-	output := ""
+	outputSpec := ""
 	cleanTmpFile := false
 	tags := []string{}
 	if iopts.Network == "none" {
@@ -65,7 +66,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	if c.Flag("tag").Changed {
 		tags = iopts.Tag
 		if len(tags) > 0 {
-			output = tags[0]
+			outputSpec = tags[0]
 			tags = tags[1:]
 		}
 		if c.Flag("manifest").Changed {
@@ -278,11 +279,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		for _, buildOutput := range iopts.BuildOutputs {
 			// if any of these go to stdout, we need to avoid
 			// interspersing our random output in with it
-			buildOption, err := parse.GetBuildOutput(buildOutput)
+			buildOption, err := output.GetBuildOutput(buildOutput)
 			if err != nil {
 				return options, nil, nil, err
 			}
-			if buildOption.IsStdout {
+			if buildOption.Type == output.BuildOutputStdout {
 				iopts.Quiet = true
 			}
 		}
@@ -431,7 +432,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		OSVersion:               iopts.OSVersion,
 		OciDecryptConfig:        decryptConfig,
 		Out:                     stdout,
-		Output:                  output,
+		Output:                  outputSpec,
 		OutputFormat:            format,
 		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
@@ -445,6 +446,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
+		SourcePolicyFile:        iopts.SourcePolicyFile,
 		SkipUnusedStages:        skipUnusedStages,
 		SourceDateEpoch:         sourceDateEpoch,
 		Squash:                  iopts.Squash,
@@ -452,6 +454,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Target:                  iopts.Target,
 		Timestamp:               timestamp,
 		TransientMounts:         iopts.Volumes,
+		TransientRunMounts:      iopts.TransientRunMounts,
 		UnsetEnvs:               iopts.UnsetEnvs,
 		UnsetLabels:             iopts.UnsetLabels,
 		UnsetAnnotations:        iopts.UnsetAnnotations,
