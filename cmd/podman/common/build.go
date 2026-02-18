@@ -84,6 +84,11 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 		logrus.Errorf("Unable to set --pull to 'missing': %v", err)
 	}
 	flag.Usage = `Pull image policy ("always"|"missing"|"never"|"newer")`
+
+	// --tls-details flag: Podman defines it on the root command instead.
+	// Compare the special handling in ParseBuildOpts.
+	_ = budFlags.MarkHidden("tls-details")
+
 	flags.AddFlagSet(&budFlags)
 
 	// Add the completion functions
@@ -170,6 +175,26 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 	if cmd.Flag("network").Changed {
 		if buildOpts.Network != "host" && buildOpts.Isolation == buildahDefine.IsolationChroot.String() {
 			return nil, fmt.Errorf("cannot set --network other than host with --isolation %s", buildOpts.Isolation)
+		}
+	}
+
+	localTLSDetails := cmd.LocalFlags().Lookup("tls-details")
+	if localTLSDetails == nil { // buildahCLI.GetBudFlags should have declared it
+		return nil, errors.New("internal error: missing flag for --tls-details")
+	}
+	// Ensure that whether the user uses --tls-details at the root level or after "build", we
+	// handle them the same.
+	rootTLSDetails := registry.PodmanConfig().TLSDetailsFile
+	switch {
+	case localTLSDetails.Changed && rootTLSDetails != "":
+		// Don't even bother with accepting duplicates with the same value. Why would (the few users that ever use this)
+		// do that?
+		return nil, errors.New("--tls-details set twice")
+	case localTLSDetails.Changed:
+		registry.PodmanConfig().TLSDetailsFile = localTLSDetails.Value.String()
+	case rootTLSDetails != "":
+		if err := localTLSDetails.Value.Set(rootTLSDetails); err != nil {
+			return nil, fmt.Errorf("internal error: syncing --tls-details: %w", err)
 		}
 	}
 
