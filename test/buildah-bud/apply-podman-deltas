@@ -337,7 +337,8 @@ skip_if_remote "FIXME: 2025-04-01 git related errors returning wrong exit code" 
 # FIXME: Don't use process substitution for Containerfile in buildah tests
 skip "process substitution with overlay context not supported" \
      "build-with-timestamp-applies-to-oci-archive" \
-     "build-with-timestamp-applies-to-oci-archive-with-base"
+     "build-with-timestamp-applies-to-oci-archive-with-base" \
+     "build-with-run-mount"
 
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################
