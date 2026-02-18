@@ -20,7 +20,6 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/sourcepolicy"
 	"github.com/containers/podman/v6/internal/remote_build_helpers"
 	ldefine "github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/auth"
@@ -490,9 +489,6 @@ func prepareParams(options types.BuildOptions) (url.Values, error) {
 	if options.SourcePolicyFile != "" {
 		rawSourcePolicy, err := os.ReadFile(options.SourcePolicyFile)
 		if err != nil {
-			return nil, fmt.Errorf("loading source policy: %w", err)
-		}
-		if _, err = sourcepolicy.Parse(rawSourcePolicy); err != nil {
 			return nil, fmt.Errorf("loading source policy: %w", err)
 		}
 		params.Set("sourcePolicy", string(bytes.TrimSpace(rawSourcePolicy)))
