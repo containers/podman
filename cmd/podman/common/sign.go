@@ -121,7 +121,7 @@ func PrepareSigning(pushOpts *entities.ImagePushOptions, cliOpts *SigningCLIOnly
 			opts = append(opts, simplesequoia.WithPassphrase(passphrase))
 		}
 		signer, err := simplesequoia.NewSigner(opts...)
-		if err != nil {
+		if err != nil { //nolint:SA4023 // NewSigner stub always errors without containers_image_sequoia build tag
 			return nil, fmt.Errorf("error using --sign-by-sq-fingerprint: %w", err)
 		}
 		pushOpts.Signers = append(pushOpts.Signers, signer)
