@@ -77,37 +77,30 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 	containerEndpoints := make(map[string]dockerNetwork.EndpointResource, len(statuses))
 	for _, st := range statuses {
 		if netData, ok := st.Status[network.Name]; ok {
-			ipv4Address := ""
-			ipv6Address := ""
+			var err error
+			var ipv4_pfx netip.Prefix
+			var ipv6_pfx netip.Prefix
 			macAddr := nettypes.HardwareAddr{}
 			for _, dev := range netData.Interfaces {
 				for _, subnet := range dev.Subnets {
 					// Note the docker API really wants the full CIDR subnet not just a single ip.
 					// https://github.com/containers/podman/pull/12328
 					if netutil.IsIPv4(subnet.IPNet.IP) {
-						ipv4Address = subnet.IPNet.String()
+						ipv4_pfx, err = netip.ParsePrefix(subnet.IPNet.String())
+						if err != nil {
+							return nil, fmt.Errorf("invalid IPv4Address %q: %w", subnet.IPNet.String(), err)
+						}
 					} else {
-						ipv6Address = subnet.IPNet.String()
+						ipv6_pfx, err = netip.ParsePrefix(subnet.IPNet.String())
+						if err != nil {
+							return nil, fmt.Errorf("invalid IPv6Address %q: %w", subnet.IPNet.String(), err)
+						}
 					}
 				}
 				macAddr = dev.MacAddress
 				break
 			}
-			var err error
-			var ipv4_pfx netip.Prefix
-			if ipv4Address != "" {
-				ipv4_pfx, err = netip.ParsePrefix(ipv4Address)
-				if err != nil {
-					return nil, fmt.Errorf("invalid IPv4Address %q: %w", ipv4Address, err)
-				}
-			}
-			var ipv6_pfx netip.Prefix
-			if ipv6Address != "" {
-				ipv6_pfx, err = netip.ParsePrefix(ipv6Address)
-				if err != nil {
-					return nil, fmt.Errorf("invalid IPv6Address %q: %w", ipv6Address, err)
-				}
-			}
+
 			containerEndpoint := dockerNetwork.EndpointResource{
 				Name:        st.Name,
 				MacAddress:  dockerNetwork.HardwareAddr(net.HardwareAddr(macAddr)),
