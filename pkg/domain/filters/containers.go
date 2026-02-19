@@ -73,10 +73,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				return false
 			}
 			state := status.String()
-			switch status {
-			case define.ContainerStateConfigured:
-				state = "created"
-			case define.ContainerStateStopped:
+			if status == define.ContainerStateStopped {
 				state = "exited"
 			}
 			for _, filterValue := range filterValues {
@@ -446,17 +443,15 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 			}
 		}
 		return func(listContainer *types.ListContainer) bool {
-			status := listContainer.State
-			if status == define.ContainerStateConfigured.String() {
-				status = "created"
-			} else if status == define.ContainerStateStopped.String() {
-				status = "exited"
+			state := listContainer.State
+			if state == define.ContainerStateStopped.String() {
+				state = "exited"
 			}
 			for _, filterValue := range filterValues {
 				if filterValue == "stopped" {
 					filterValue = "exited"
 				}
-				if status == filterValue {
+				if state == filterValue {
 					return true
 				}
 			}
