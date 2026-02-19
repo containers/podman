@@ -17,12 +17,11 @@
 package pkcs11
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -45,7 +44,7 @@ func setEnvVars(env map[string]string) ([]string, error) {
 		err := os.Setenv(k, v)
 		if err != nil {
 			restoreEnv(oldenv)
-			return nil, errors.Wrapf(err, "Could not set environment variable '%s' to '%s'", k, v)
+			return nil, fmt.Errorf("Could not set environment variable '%s' to '%s': %w", k, v, err)
 		}
 	}
 
@@ -106,6 +105,8 @@ func getHostAndOsType() (string, string, string) {
 			ht = "x86_64"
 		case "ppc64le":
 			ht = "powerpc64le"
+		case "riscv64":
+			ht = "riscv64"
 		case "s390x":
 			ht = "s390x"
 		}

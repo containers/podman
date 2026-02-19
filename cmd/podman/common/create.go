@@ -250,7 +250,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		createFlags.BoolVar(
 			&cf.HTTPProxy,
-			"http-proxy", containerConfig.Containers.HTTPProxy,
+			"http-proxy", containerConfig.ContainersConfDefaultsRO.Containers.HTTPProxy,
 			"Set proxy environment variables in the container based on the host proxy vars",
 		)
 
@@ -278,7 +278,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		initPathFlagName := "init-path"
 		createFlags.StringVar(
 			&cf.InitPath,
-			initPathFlagName, initPath(),
+			initPathFlagName, "",
 			// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
 			"Path to the container-init binary",
 		)

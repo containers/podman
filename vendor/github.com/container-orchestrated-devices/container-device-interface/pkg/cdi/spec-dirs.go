@@ -17,10 +17,10 @@
 package cdi
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -45,10 +45,11 @@ var (
 // WithSpecDirs returns an option to override the CDI Spec directories.
 func WithSpecDirs(dirs ...string) Option {
 	return func(c *Cache) error {
-		c.specDirs = make([]string, len(dirs))
+		specDirs := make([]string, len(dirs))
 		for i, dir := range dirs {
-			c.specDirs[i] = filepath.Clean(dir)
+			specDirs[i] = filepath.Clean(dir)
 		}
+		c.specDirs = specDirs
 		return nil
 	}
 }
@@ -78,6 +79,9 @@ func scanSpecDirs(dirs []string, scanFn scanSpecFunc) error {
 		err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			// for initial stat failure Walk calls us with nil info
 			if info == nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					return nil
+				}
 				return err
 			}
 			// first call from Walk is for dir itself, others we skip

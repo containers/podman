@@ -5,6 +5,10 @@
 // Package sha3 implements the SHA-3 fixed-output-length hash functions and
 // the SHAKE variable-output-length hash functions defined by FIPS-202.
 //
+// All types in this package also implement [encoding.BinaryMarshaler],
+// [encoding.BinaryAppender] and [encoding.BinaryUnmarshaler] to marshal and
+// unmarshal the internal state of the hash.
+//
 // Both types of hash function use the "sponge" construction and the Keccak
 // permutation. For a detailed specification see http://keccak.noekeon.org/
 //
@@ -59,4 +63,4 @@
 // They produce output of the same length, with the same security strengths
 // against all attacks. This means, in particular, that SHA3-256 only has
 // 128-bit collision resistance, because its output length is 32 bytes.
-package sha3 // import "golang.org/x/crypto/sha3"
+package sha3

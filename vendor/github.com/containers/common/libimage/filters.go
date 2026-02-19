@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -73,14 +76,15 @@ func (r *Runtime) filterImages(ctx context.Context, images []*Image, options *Li
 
 // compileImageFilters creates `filterFunc`s for the specified filters.  The
 // required format is `key=value` with the following supported keys:
-//           after, since, before, containers, dangling, id, label, readonly, reference, intermediate
+//
+//	after, since, before, containers, dangling, id, label, readonly, reference, intermediate
 func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) (map[string][]filterFunc, error) {
 	logrus.Tracef("Parsing image filters %s", options.Filters)
 
 	var tree *layerTree
 	getTree := func() (*layerTree, error) {
 		if tree == nil {
-			t, err := r.layerTree()
+			t, err := r.layerTree(nil)
 			if err != nil {
 				return nil, err
 			}
@@ -108,7 +112,6 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		key = split[0]
 		value = split[1]
 		switch key {
-
 		case "after", "since":
 			img, err := r.time(key, value)
 			if err != nil {
@@ -145,6 +148,13 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		case "id":
 			filter = filterID(value)
 
+		case "digest":
+			f, err := filterDigest(value)
+			if err != nil {
+				return nil, err
+			}
+			filter = f
+
 		case "intermediate":
 			intermediate, err := r.bool(duplicate, key, value)
 			if err != nil {
@@ -174,7 +184,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 			filter = filterManifest(ctx, manifest)
 
 		case "reference":
-			filter = filterReferences(value)
+			filter = filterReferences(r, value)
 
 		case "until":
 			until, err := r.until(value)
@@ -235,7 +245,7 @@ func (r *Runtime) until(value string) (time.Time, error) {
 func (r *Runtime) time(key, value string) (*Image, error) {
 	img, _, err := r.LookupImage(value, nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not find local image for filter filter %q=%q: %w", key, value, err)
+		return nil, fmt.Errorf("could not find local image for filter %q=%q: %w", key, value, err)
 	}
 	return img, nil
 }
@@ -264,8 +274,15 @@ func filterManifest(ctx context.Context, value bool) filterFunc {
 }
 
 // filterReferences creates a reference filter for matching the specified value.
-func filterReferences(value string) filterFunc {
+func filterReferences(r *Runtime, value string) filterFunc {
+	lookedUp, _, _ := r.LookupImage(value, nil)
 	return func(img *Image) (bool, error) {
+		if lookedUp != nil {
+			if lookedUp.ID() == img.ID() {
+				return true, nil
+			}
+		}
+
 		refs, err := img.NamesReferences()
 		if err != nil {
 			return false, err
@@ -275,7 +292,7 @@ func filterReferences(value string) filterFunc {
 			refString := ref.String() // FQN with tag/digest
 			candidates := []string{refString}
 
-			// Split the reference into 3 components (twice if diggested/tagged):
+			// Split the reference into 3 components (twice if digested/tagged):
 			// 1) Fully-qualified reference
 			// 2) Without domain
 			// 3) Without domain and path
@@ -302,6 +319,7 @@ func filterReferences(value string) filterFunc {
 				}
 			}
 		}
+
 		return false, nil
 	}
 }
@@ -378,8 +396,18 @@ func filterDangling(ctx context.Context, value bool, tree *layerTree) filterFunc
 // filterID creates an image-ID filter for matching the specified value.
 func filterID(value string) filterFunc {
 	return func(img *Image) (bool, error) {
-		return img.ID() == value, nil
+		return strings.HasPrefix(img.ID(), value), nil
 	}
+}
+
+// filterDigest creates a digest filter for matching the specified value.
+func filterDigest(value string) (filterFunc, error) {
+	if !strings.HasPrefix(value, "sha256:") {
+		return nil, fmt.Errorf("invalid value %q for digest filter", value)
+	}
+	return func(img *Image) (bool, error) {
+		return img.containsDigestPrefix(value), nil
+	}, nil
 }
 
 // filterIntermediate creates an intermediate filter for images.  An image is

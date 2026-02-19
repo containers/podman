@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"syscall"
@@ -12,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -76,7 +78,7 @@ func deleteSystemdCgroup(path string, resources *spec.LinuxResources) error {
 		return err
 	}
 	if rootless.IsRootless() {
-		conn, err := cgroups.GetUserConnection(rootless.GetRootlessUID())
+		conn, err := cgroups.UserConnection(rootless.GetRootlessUID())
 		if err != nil {
 			return err
 		}
@@ -105,7 +107,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 
 var lvpRelabel = label.Relabel
 var lvpInitLabels = label.InitLabels
-var lvpReleaseLabel = label.ReleaseLabel
+var lvpReleaseLabel = selinux.ReleaseLabel
 
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not
@@ -114,12 +116,10 @@ func LabelVolumePath(path string) error {
 	if err != nil {
 		return fmt.Errorf("error getting default mountlabels: %w", err)
 	}
-	if err := lvpReleaseLabel(mountLabel); err != nil {
-		return fmt.Errorf("error releasing label %q: %w", mountLabel, err)
-	}
+	lvpReleaseLabel(mountLabel)
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
-		if err == syscall.ENOTSUP {
+		if errors.Is(err, unix.ENOTSUP) {
 			logrus.Debugf("Labeling not supported on %q", path)
 		} else {
 			return fmt.Errorf("error setting selinux label for %s to %q as shared: %w", path, mountLabel, err)

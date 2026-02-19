@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helpers
+load helpers.network
 
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {
@@ -169,6 +170,8 @@ function random_ip() {
 }
 
 @test "podman pod create - hashtag AllTheOptions" {
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
+
     mac=$(random_mac)
     add_host_ip=$(random_ip)
     add_host_n=$(random_string | tr A-Z a-z).$(random_string | tr A-Z a-z).xyz
@@ -477,27 +480,68 @@ spec:
     skip_if_rootless "resource limits only work with root"
     skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
 
-    local name1="resources1"
-    run_podman --cgroup-manager=systemd pod create --name=$name1 --cpus=5 --memory=10m
-    run_podman --cgroup-manager=systemd pod start $name1
-    run_podman pod inspect --format '{{.CgroupPath}}' $name1
-    local path1="$output"
-    local actual1=$(< /sys/fs/cgroup/$path1/cpu.max)
-    is "$actual1" "500000 100000" "resource limits set properly"
-    local actual2=$(< /sys/fs/cgroup/$path1/memory.max)
-    is "$actual2" "10485760" "resource limits set properly"
-    run_podman pod --cgroup-manager=systemd rm -f $name1
+    # Pod memory limit must account for infrastructure overhead (conmon + runc + pause container)
+    # crun can work with 5MB for simple workloads
+    # runc requires ~20MB minimum due to infrastructure overhead during pod startup:
+    #   - conmon: ~2MB RSS
+    #   - runc: ~13MB RSS during container creation
+    #   - pause container: ~2.5MB RSS
+    local memory_limit="5m"
+    local memory_max_bytes="5242880"
+    if [[ $(podman_runtime) == "runc" ]]; then
+        memory_limit="20m"
+        memory_max_bytes="20971520"
+    fi
 
-    local name2="resources2"
-    run_podman --cgroup-manager=cgroupfs pod create --cpus=5 --memory=10m --name=$name2
-    run_podman --cgroup-manager=cgroupfs pod start $name2
-    run_podman pod inspect --format '{{.CgroupPath}}' $name2
-    local path2="$output"
-    local actual2=$(< /sys/fs/cgroup/$path2/cpu.max)
-    is "$actual2" "500000 100000" "resource limits set properly"
-    local actual2=$(< /sys/fs/cgroup/$path2/memory.max)
-    is "$actual2" "10485760" "resource limits set properly"
-    run_podman --cgroup-manager=cgroupfs pod rm $name2
+    # create loopback device
+    lofile=${PODMAN_TMPDIR}/disk.img
+    fallocate -l 1k  ${lofile}
+    LOOPDEVICE=$(losetup --show -f $lofile)
+
+    # tr needed because losetup seems to use %2d
+    lomajmin=$(losetup -l --noheadings --output MAJ:MIN $LOOPDEVICE | tr -d ' ')
+    run grep -w bfq /sys/block/$(basename ${LOOPDEVICE})/queue/scheduler
+    if [ $status -ne 0 ]; then
+        losetup -d $LOOPDEVICE
+        LOOPDEVICE=
+        skip "BFQ scheduler is not supported on the system"
+    fi
+    echo bfq > /sys/block/$(basename ${LOOPDEVICE})/queue/scheduler
+
+    # FIXME: #15464: blkio-weight-device not working
+    # memory.swap.max = total_swap - memory_limit
+    # For runc (20MB memory): 1GB - 20MB = 1073741824 - 20971520 = 1052770304
+    # For crun (5MB memory): 1GB - 5MB = 1073741824 - 5242880 = 1068498944
+    local swap_max_bytes="1068498944"
+    if [[ $(podman_runtime) == "runc" ]]; then
+        swap_max_bytes="1052770304"
+    fi
+
+    expected_limits="
+cpu.max         | 500000 100000
+memory.max      | $memory_max_bytes
+memory.swap.max | $swap_max_bytes
+io.bfq.weight   | default 50
+io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
+"
+
+    for cgm in systemd cgroupfs; do
+        local name=resources-$cgm
+        run_podman --cgroup-manager=$cgm pod create --name=$name --cpus=5 --memory=$memory_limit --memory-swap=1g --cpu-shares=1000 --cpuset-cpus=0 --cpuset-mems=0 --device-read-bps=${LOOPDEVICE}:1mb --device-write-bps=${LOOPDEVICE}:1mb --blkio-weight=50
+        run_podman --cgroup-manager=$cgm pod start $name
+        run_podman pod inspect --format '{{.CgroupPath}}' $name
+        local cgroup_path="$output"
+
+        while read unit expect; do
+            local actual=$(< /sys/fs/cgroup/$cgroup_path/$unit)
+            is "$actual" "$expect" "resource limit under $cgm: $unit"
+        done < <(parse_table "$expected_limits")
+        run_podman --cgroup-manager=$cgm pod rm -f $name
+    done
+
+    # Clean up, and prevent duplicate cleanup in teardown
+    losetup -d $LOOPDEVICE
+    LOOPDEVICE=
 }
 
 @test "podman pod ps doesn't race with pod rm" {

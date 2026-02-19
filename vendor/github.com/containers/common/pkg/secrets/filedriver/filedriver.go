@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -26,7 +26,7 @@ type Driver struct {
 	// secretsDataFilePath is the path to the secretsfile
 	secretsDataFilePath string
 	// lockfile is the filedriver lockfile
-	lockfile lockfile.Locker
+	lockfile *lockfile.LockFile
 }
 
 // NewDriver creates a new file driver.
@@ -39,7 +39,7 @@ func NewDriver(rootPath string) (*Driver, error) {
 		return nil, err
 	}
 
-	lock, err := lockfile.GetLockfile(filepath.Join(rootPath, "secretsdata.lock"))
+	lock, err := lockfile.GetLockFile(filepath.Join(rootPath, "secretsdata.lock"))
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (d *Driver) Store(id string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
+	err = os.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (d *Driver) Delete(id string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
+	err = os.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -145,12 +145,12 @@ func (d *Driver) getAllData() (map[string][]byte, error) {
 	}
 	defer file.Close()
 
-	byteValue, err := ioutil.ReadAll(file)
+	byteValue, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
 	secretData := new(map[string][]byte)
-	err = json.Unmarshal([]byte(byteValue), secretData)
+	err = json.Unmarshal(byteValue, secretData)
 	if err != nil {
 		return nil, err
 	}

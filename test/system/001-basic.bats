@@ -54,10 +54,10 @@ function setup() {
     run_podman --context=default version
 
     # This one must fail
-    run_podman 125 --context=swarm version
+    PODMAN=${PODMAN%%--url*} run_podman 125 --context=swarm version
     is "$output" \
-       "Error: podman does not support swarm, the only --context value allowed is \"default\"" \
-       "--context=default or fail"
+       "Error: read cli flags: connection \"swarm\" not found" \
+       "--context=swarm should fail"
 }
 
 @test "podman can pull an image" {

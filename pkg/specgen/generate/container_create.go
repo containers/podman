@@ -1,3 +1,5 @@
+//go:build !remote
+
 package generate
 
 import (
@@ -14,9 +16,10 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,6 +31,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	rlimits, err := specgenutil.GenRlimits(rtc.Ulimits())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	s.Rlimits = append(rlimits, s.Rlimits...)
 
 	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
@@ -153,7 +162,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithHostUsers(s.HostUsers))
 	}
 
-	command, err := makeCommand(s, imageData, rtc)
+	command, err := makeCommand(s, imageData)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -466,7 +475,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			return nil, err
 		}
 		if processLabel != "" {
-			selinuxOpts, err := label.DupSecOpt(processLabel)
+			selinuxOpts, err := selinux.DupSecOpt(processLabel)
 			if err != nil {
 				return nil, err
 			}

@@ -182,6 +182,11 @@ var (
 			procFn: processUSER,
 		},
 		{
+			normal: "uid",
+			header: "UID",
+			procFn: processUID,
+		},
+		{
 			code:   "%a",
 			normal: "args",
 			header: "COMMAND",
@@ -293,6 +298,12 @@ var (
 			header: "HUSER",
 			onHost: true,
 			procFn: processHUSER,
+		},
+		{
+			normal: "huid",
+			header: "HUID",
+			onHost: true,
+			procFn: processHUID,
 		},
 		{
 			normal: "hgroup",
@@ -648,6 +659,11 @@ func processUSER(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupUID(p.Status.Uids[1])
 }
 
+// processUID returns the effective UID of the process as the decimal representation.
+func processUID(p *process.Process, ctx *psContext) (string, error) {
+	return p.Status.Uids[1], nil
+}
+
 // processRUSER returns the effective user name of the process.  This will be
 // the textual user ID, if it can be obtained, or a decimal representation
 // otherwise.
@@ -853,6 +869,23 @@ func processHUSER(p *process.Process, ctx *psContext) (string, error) {
 			return findID(hp.Status.Uids[1], ctx.opts.UIDMap, process.LookupUID, "/proc/sys/fs/overflowuid")
 		}
 		return hp.Huser, nil
+	}
+	return "?", nil
+}
+
+// processHUID returns the effective UID of the corresponding host process
+// of the (container) as the decimal representation or "?" if no corresponding
+// process could be found.
+func processHUID(p *process.Process, ctx *psContext) (string, error) {
+	if hp := findHostProcess(p, ctx); hp != nil {
+		if ctx.opts != nil && len(ctx.opts.UIDMap) > 0 {
+			// Return uid without searching its textual representation.
+			lookupFunc := func(uid string) (string, error) {
+				return uid, nil
+			}
+			return findID(hp.Status.Uids[1], ctx.opts.UIDMap, lookupFunc, "/proc/sys/fs/overflowuid")
+		}
+		return hp.Status.Uids[1], nil
 	}
 	return "?", nil
 }

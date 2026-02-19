@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/detach"
 )
 
 var (
@@ -93,7 +93,7 @@ var (
 
 	// ErrDetach indicates that an attach session was manually detached by
 	// the user.
-	ErrDetach = util.ErrDetach
+	ErrDetach = detach.ErrDetach
 
 	// ErrWillDeadlock indicates that the requested operation will cause a
 	// deadlock. This is usually caused by upgrade issues, and is resolved
@@ -188,6 +188,9 @@ var (
 
 	// ErrNetworkModeInvalid indicates that a container has the wrong network mode for an operation
 	ErrNetworkModeInvalid = errors.New("invalid network mode")
+
+	// ErrNetworkConnected indicates that a container is already connected to a network
+	ErrNetworkConnected = errors.New("container is already connected to network")
 
 	// ErrSetSecurityAttribute indicates that a request to set a container's security attribute
 	// was not possible.

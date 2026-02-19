@@ -10,8 +10,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 )
 
-type platformChowner struct {
-}
+type platformChowner struct{}
 
 func newLChowner() *platformChowner {
 	return &platformChowner{}

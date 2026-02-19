@@ -31,6 +31,16 @@ var (
   podman events --format {{.Image}}
   podman events --since 1h30s`,
 	}
+
+	systemEventsCommand = &cobra.Command{
+		Args:              eventsCommand.Args,
+		Use:               eventsCommand.Use,
+		Short:             eventsCommand.Short,
+		Long:              eventsCommand.Long,
+		RunE:              eventsCommand.RunE,
+		ValidArgsFunction: eventsCommand.ValidArgsFunction,
+		Example:           `podman system events`,
+	}
 )
 
 var (
@@ -41,29 +51,38 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: systemEventsCommand,
+		Parent:  systemCmd,
+	})
+	eventsFlags(systemEventsCommand)
+	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: eventsCommand,
 	})
-	flags := eventsCommand.Flags()
+	eventsFlags(eventsCommand)
+}
+
+func eventsFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
 
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&eventOptions.Filter, filterFlagName, "f", []string{}, "filter output")
-	_ = eventsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteEventFilter)
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteEventFilter)
 
 	formatFlagName := "format"
 	flags.StringVar(&eventFormat, formatFlagName, "", "format the output using a Go template")
-	_ = eventsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&events.Event{}))
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&events.Event{}))
 
 	flags.BoolVar(&eventOptions.Stream, "stream", true, "stream new events; for testing only")
 
 	sinceFlagName := "since"
 	flags.StringVar(&eventOptions.Since, sinceFlagName, "", "show all events created since timestamp")
-	_ = eventsCommand.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
 
 	flags.BoolVar(&noTrunc, "no-trunc", true, "do not truncate the output")
 
 	untilFlagName := "until"
 	flags.StringVar(&eventOptions.Until, untilFlagName, "", "show all events until timestamp")
-	_ = eventsCommand.RegisterFlagCompletionFunc(untilFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(untilFlagName, completion.AutocompleteNone)
 
 	_ = flags.MarkHidden("stream")
 }
@@ -85,7 +104,9 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		doJSON = report.IsJSON(eventFormat)
 		if !doJSON {
 			var err error
-			rpt, err = report.New(os.Stdout, cmd.Name()).Parse(report.OriginUser, eventFormat)
+			// Use OriginUnknown so it does not add an extra range since it
+			// will only be called for each single element and not a slice.
+			rpt, err = report.New(os.Stdout, cmd.Name()).Parse(report.OriginUnknown, eventFormat)
 			if err != nil {
 				return err
 			}
@@ -97,25 +118,33 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		errChannel <- err
 	}()
 
-	for event := range eventChannel {
-		switch {
-		case event == nil:
-			// no-op
-		case doJSON:
-			jsonStr, err := event.ToJSONString()
+	for {
+		select {
+		case event, ok := <-eventChannel:
+			if !ok {
+				// channel was closed we can exit
+				return nil
+			}
+			switch {
+			case doJSON:
+				jsonStr, err := event.ToJSONString()
+				if err != nil {
+					return err
+				}
+				fmt.Println(jsonStr)
+			case cmd.Flags().Changed("format"):
+				if err := rpt.Execute(event); err != nil {
+					return err
+				}
+			default:
+				fmt.Println(event.ToHumanReadable(!noTrunc))
+			}
+		case err := <-errChannel:
+			// only exit in case of an error,
+			// otherwise keep reading events until the event channel is closed
 			if err != nil {
 				return err
 			}
-			fmt.Println(jsonStr)
-		case cmd.Flags().Changed("format"):
-			if err := rpt.Execute(event); err != nil {
-				return err
-			}
-			os.Stdout.WriteString("\n")
-		default:
-			fmt.Println(event.ToHumanReadable(!noTrunc))
 		}
 	}
-
-	return <-errChannel
 }

@@ -63,11 +63,14 @@ var (
 		35: "WAKE_ALARM",
 		36: "BLOCK_SUSPEND",
 		37: "AUDIT_READ",
+		38: "PERFMON",
+		39: "BPF",
+		40: "CHECKPOINT_RESTORE",
 	}
 
 	// FullCAPs represents the value of a bitmask with a full capability
 	// set.
-	FullCAPs = uint64(0x3FFFFFFFFF)
+	FullCAPs = uint64(0x1FFFFFFFFFF)
 )
 
 // TranslateMask iterates over mask and returns a slice of corresponding

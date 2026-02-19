@@ -4,6 +4,7 @@
 
 load helpers
 load helpers.systemd
+load helpers.network
 
 SERVICE_NAME="podman-service-$(random_string)"
 

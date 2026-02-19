@@ -1,3 +1,4 @@
+//go:build solaris && cgo
 // +build solaris,cgo
 
 package graphdriver
@@ -15,6 +16,7 @@ static inline struct statvfs *getstatfs(char *s) {
 }
 */
 import "C"
+
 import (
 	"path/filepath"
 	"unsafe"
@@ -30,7 +32,7 @@ const (
 
 var (
 	// Slice of drivers that should be used in an order
-	priority = []string{
+	Priority = []string{
 		"zfs",
 	}
 
@@ -68,8 +70,7 @@ func NewDefaultChecker() Checker {
 	return &defaultChecker{}
 }
 
-type defaultChecker struct {
-}
+type defaultChecker struct{}
 
 func (c *defaultChecker) IsMounted(path string) bool {
 	m, _ := mount.Mounted(path)
@@ -77,9 +78,8 @@ func (c *defaultChecker) IsMounted(path string) bool {
 }
 
 // Mounted checks if the given path is mounted as the fs type
-//Solaris supports only ZFS for now
+// Solaris supports only ZFS for now
 func Mounted(fsType FsMagic, mountPath string) (bool, error) {
-
 	cs := C.CString(filepath.Dir(mountPath))
 	defer C.free(unsafe.Pointer(cs))
 	buf := C.getstatfs(cs)

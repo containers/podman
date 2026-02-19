@@ -21,19 +21,44 @@ var spewConfig = spew.ConfigState{
 	SortKeys:                true,
 }
 
+type RuntimeConfigFilterOptions struct {
+	// The hooks to run
+	Hooks []spec.Hook
+	// The workdir to change when invoking the hook
+	Dir string
+	// The container config spec to pass into the hook processes and potentially get modified by them
+	Config *spec.Spec
+	// Timeout for waiting process killed
+	PostKillTimeout time.Duration
+}
+
 // RuntimeConfigFilter calls a series of hooks.  But instead of
 // passing container state on their standard input,
 // RuntimeConfigFilter passes the proposed runtime configuration (and
 // reads back a possibly-altered form from their standard output).
+//
+// Deprecated: Too many arguments, has been refactored and replaced by RuntimeConfigFilterWithOptions instead
 func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Spec, postKillTimeout time.Duration) (hookErr, err error) {
-	data, err := json.Marshal(config)
+	return RuntimeConfigFilterWithOptions(ctx, RuntimeConfigFilterOptions{
+		Hooks:           hooks,
+		Config:          config,
+		PostKillTimeout: postKillTimeout,
+	})
+}
+
+// RuntimeConfigFilterWithOptions calls a series of hooks.  But instead of
+// passing container state on their standard input,
+// RuntimeConfigFilterWithOptions passes the proposed runtime configuration (and
+// reads back a possibly-altered form from their standard output).
+func RuntimeConfigFilterWithOptions(ctx context.Context, options RuntimeConfigFilterOptions) (hookErr, err error) {
+	data, err := json.Marshal(options.Config)
 	if err != nil {
 		return nil, err
 	}
-	for i, hook := range hooks {
+	for i, hook := range options.Hooks {
 		hook := hook
 		var stdout bytes.Buffer
-		hookErr, err = Run(ctx, &hook, data, &stdout, nil, postKillTimeout)
+		hookErr, err = RunWithOptions(ctx, RunOptions{Hook: &hook, Dir: options.Dir, State: data, Stdout: &stdout, PostKillTimeout: options.PostKillTimeout})
 		if err != nil {
 			return hookErr, err
 		}
@@ -46,8 +71,8 @@ func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Sp
 			return nil, fmt.Errorf("unmarshal output from config-filter hook %d: %w", i, err)
 		}
 
-		if !reflect.DeepEqual(config, &newConfig) {
-			oldConfig := spewConfig.Sdump(config)
+		if !reflect.DeepEqual(options.Config, &newConfig) {
+			oldConfig := spewConfig.Sdump(options.Config)
 			newConfig := spewConfig.Sdump(&newConfig)
 			diff, err := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
 				A:        difflib.SplitLines(oldConfig),
@@ -65,7 +90,7 @@ func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Sp
 			}
 		}
 
-		*config = newConfig
+		*options.Config = newConfig
 	}
 
 	return nil, nil

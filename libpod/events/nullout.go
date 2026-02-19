@@ -2,10 +2,11 @@ package events
 
 import (
 	"context"
+	"errors"
 )
 
-// EventToNull is an eventer type that only performs write operations
-// and only writes to /dev/null. It is meant for unittests only
+// EventToNull is an eventer type that does nothing.
+// It is meant for unittests only
 type EventToNull struct{}
 
 // Write eats the event and always returns nil
@@ -13,9 +14,10 @@ func (e EventToNull) Write(ee Event) error {
 	return nil
 }
 
-// Read does nothing. Do not use it.
+// Read does nothing and returns an error.
 func (e EventToNull) Read(ctx context.Context, options ReadOptions) error {
-	return nil
+	defer close(options.EventChannel)
+	return errors.New("cannot read events with the \"none\" backend")
 }
 
 // NewNullEventer returns a new null eventer.  You should only do this for

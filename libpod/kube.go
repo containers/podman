@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 )
 
@@ -965,21 +964,7 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	}
 }
 
-func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
-	g, err := generate.New("linux")
-	if err != nil {
-		return nil, err
-	}
-
-	defCaps := g.Config.Process.Capabilities
-	// Combine all the default capabilities into a slice
-	defaultCaps := make([]string, 0, len(defCaps.Ambient)+len(defCaps.Bounding)+len(defCaps.Effective)+len(defCaps.Inheritable)+len(defCaps.Permitted))
-	defaultCaps = append(defaultCaps, defCaps.Ambient...)
-	defaultCaps = append(defaultCaps, defCaps.Bounding...)
-	defaultCaps = append(defaultCaps, defCaps.Effective...)
-	defaultCaps = append(defaultCaps, defCaps.Inheritable...)
-	defaultCaps = append(defaultCaps, defCaps.Permitted...)
-
+func capAddDrop(caps *specs.LinuxCapabilities, defaultCaps []string) (*v1.Capabilities, error) {
 	// Combine all the container's capabilities into a slice
 	containerCaps := make([]string, 0, len(caps.Ambient)+len(caps.Bounding)+len(caps.Effective)+len(caps.Inheritable)+len(caps.Permitted))
 	containerCaps = append(containerCaps, caps.Ambient...)
@@ -1001,7 +986,8 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	var capabilities *v1.Capabilities
 	if !privileged {
 		// Running privileged adds all caps.
-		newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities)
+		defaultCaps := c.runtime.config.Containers.DefaultCapabilities.Get()
+		newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities, defaultCaps)
 		if err != nil {
 			return nil, err
 		}

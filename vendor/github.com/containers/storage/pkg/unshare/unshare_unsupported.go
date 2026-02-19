@@ -25,6 +25,11 @@ func GetRootlessUID() int {
 	return os.Getuid()
 }
 
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	return os.Getgid()
+}
+
 // RootlessEnv returns the environment settings for the rootless containers
 func RootlessEnv() []string {
 	return append(os.Environ(), UsernsEnvName+"=")

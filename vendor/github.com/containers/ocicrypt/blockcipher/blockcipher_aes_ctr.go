@@ -22,12 +22,12 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
 
 	"github.com/containers/ocicrypt/utils"
-	"github.com/pkg/errors"
 )
 
 // AESCTRLayerBlockCipher implements the AES CTR stream cipher
@@ -74,7 +74,7 @@ func (r *aesctrcryptor) Read(p []byte) (int, error) {
 
 	if !r.bc.encrypt {
 		if _, err := r.bc.hmac.Write(p[:o]); err != nil {
-			r.bc.err = errors.Wrapf(err, "could not write to hmac")
+			r.bc.err = fmt.Errorf("could not write to hmac: %w", err)
 			return 0, r.bc.err
 		}
 
@@ -92,7 +92,7 @@ func (r *aesctrcryptor) Read(p []byte) (int, error) {
 
 	if r.bc.encrypt {
 		if _, err := r.bc.hmac.Write(p[:o]); err != nil {
-			r.bc.err = errors.Wrapf(err, "could not write to hmac")
+			r.bc.err = fmt.Errorf("could not write to hmac: %w", err)
 			return 0, r.bc.err
 		}
 
@@ -120,13 +120,13 @@ func (bc *AESCTRLayerBlockCipher) init(encrypt bool, reader io.Reader, opts Laye
 	if !ok {
 		nonce = make([]byte, aes.BlockSize)
 		if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-			return LayerBlockCipherOptions{}, errors.Wrap(err, "unable to generate random nonce")
+			return LayerBlockCipherOptions{}, fmt.Errorf("unable to generate random nonce: %w", err)
 		}
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return LayerBlockCipherOptions{}, errors.Wrap(err, "aes.NewCipher failed")
+		return LayerBlockCipherOptions{}, fmt.Errorf("aes.NewCipher failed: %w", err)
 	}
 
 	bc.reader = reader

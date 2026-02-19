@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2018-2023, Sylabs Inc. All rights reserved.
 // Copyright (c) 2017, SingularityWare, LLC. All rights reserved.
 // Copyright (c) 2017, Yannick Cote <yhcote@gmail.com> All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
@@ -10,69 +10,68 @@
 //
 // Layout of a SIF file (example):
 //
-//     .================================================.
-//     | GLOBAL HEADER: Sifheader                       |
-//     | - launch: "#!/usr/bin/env..."                  |
-//     | - magic: "SIF_MAGIC"                           |
-//     | - version: "1"                                 |
-//     | - arch: "4"                                    |
-//     | - uuid: b2659d4e-bd50-4ea5-bd17-eec5e54f918e   |
-//     | - ctime: 1504657553                            |
-//     | - mtime: 1504657653                            |
-//     | - ndescr: 3                                    |
-//     | - descroff: 120                                | --.
-//     | - descrlen: 432                                |   |
-//     | - dataoff: 4096                                |   |
-//     | - datalen: 619362                              |   |
-//     |------------------------------------------------| <-'
-//     | DESCR[0]: Sifdeffile                           |
-//     | - Sifcommon                                    |
-//     |   - datatype: DATA_DEFFILE                     |
-//     |   - id: 1                                      |
-//     |   - groupid: 1                                 |
-//     |   - link: NONE                                 |
-//     |   - fileoff: 4096                              | --.
-//     |   - filelen: 222                               |   |
-//     |------------------------------------------------| <-----.
-//     | DESCR[1]: Sifpartition                         |   |   |
-//     | - Sifcommon                                    |   |   |
-//     |   - datatype: DATA_PARTITION                   |   |   |
-//     |   - id: 2                                      |   |   |
-//     |   - groupid: 1                                 |   |   |
-//     |   - link: NONE                                 |   |   |
-//     |   - fileoff: 4318                              | ----. |
-//     |   - filelen: 618496                            |   | | |
-//     | - fstype: Squashfs                             |   | | |
-//     | - parttype: System                             |   | | |
-//     | - content: Linux                               |   | | |
-//     |------------------------------------------------|   | | |
-//     | DESCR[2]: Sifsignature                         |   | | |
-//     | - Sifcommon                                    |   | | |
-//     |   - datatype: DATA_SIGNATURE                   |   | | |
-//     |   - id: 3                                      |   | | |
-//     |   - groupid: NONE                              |   | | |
-//     |   - link: 2                                    | ------'
-//     |   - fileoff: 622814                            | ------.
-//     |   - filelen: 644                               |   | | |
-//     | - hashtype: SHA384                             |   | | |
-//     | - entity: @                                    |   | | |
-//     |------------------------------------------------| <-' | |
-//     | Definition file data                           |     | |
-//     | .                                              |     | |
-//     | .                                              |     | |
-//     | .                                              |     | |
-//     |------------------------------------------------| <---' |
-//     | File system partition image                    |       |
-//     | .                                              |       |
-//     | .                                              |       |
-//     | .                                              |       |
-//     |------------------------------------------------| <-----'
-//     | Signed verification data                       |
-//     | .                                              |
-//     | .                                              |
-//     | .                                              |
-//     `================================================'
-//
+//	.================================================.
+//	| GLOBAL HEADER: Sifheader                       |
+//	| - launch: "#!/usr/bin/env..."                  |
+//	| - magic: "SIF_MAGIC"                           |
+//	| - version: "1"                                 |
+//	| - arch: "4"                                    |
+//	| - uuid: b2659d4e-bd50-4ea5-bd17-eec5e54f918e   |
+//	| - ctime: 1504657553                            |
+//	| - mtime: 1504657653                            |
+//	| - ndescr: 3                                    |
+//	| - descroff: 120                                | --.
+//	| - descrlen: 432                                |   |
+//	| - dataoff: 4096                                |   |
+//	| - datalen: 619362                              |   |
+//	|------------------------------------------------| <-'
+//	| DESCR[0]: Sifdeffile                           |
+//	| - Sifcommon                                    |
+//	|   - datatype: DATA_DEFFILE                     |
+//	|   - id: 1                                      |
+//	|   - groupid: 1                                 |
+//	|   - link: NONE                                 |
+//	|   - fileoff: 4096                              | --.
+//	|   - filelen: 222                               |   |
+//	|------------------------------------------------| <-----.
+//	| DESCR[1]: Sifpartition                         |   |   |
+//	| - Sifcommon                                    |   |   |
+//	|   - datatype: DATA_PARTITION                   |   |   |
+//	|   - id: 2                                      |   |   |
+//	|   - groupid: 1                                 |   |   |
+//	|   - link: NONE                                 |   |   |
+//	|   - fileoff: 4318                              | ----. |
+//	|   - filelen: 618496                            |   | | |
+//	| - fstype: Squashfs                             |   | | |
+//	| - parttype: System                             |   | | |
+//	| - content: Linux                               |   | | |
+//	|------------------------------------------------|   | | |
+//	| DESCR[2]: Sifsignature                         |   | | |
+//	| - Sifcommon                                    |   | | |
+//	|   - datatype: DATA_SIGNATURE                   |   | | |
+//	|   - id: 3                                      |   | | |
+//	|   - groupid: NONE                              |   | | |
+//	|   - link: 2                                    | ------'
+//	|   - fileoff: 622814                            | ------.
+//	|   - filelen: 644                               |   | | |
+//	| - hashtype: SHA384                             |   | | |
+//	| - entity: @                                    |   | | |
+//	|------------------------------------------------| <-' | |
+//	| Definition file data                           |     | |
+//	| .                                              |     | |
+//	| .                                              |     | |
+//	| .                                              |     | |
+//	|------------------------------------------------| <---' |
+//	| File system partition image                    |       |
+//	| .                                              |       |
+//	| .                                              |       |
+//	| .                                              |       |
+//	|------------------------------------------------| <-----'
+//	| Signed verification data                       |
+//	| .                                              |
+//	| .                                              |
+//	| .                                              |
+//	`================================================'
 package sif
 
 import (
@@ -133,6 +132,9 @@ const (
 	DataGenericJSON                            // generic JSON meta-data
 	DataGeneric                                // generic / raw data
 	DataCryptoMessage                          // cryptographic message data object
+	DataSBOM                                   // software bill of materials
+	DataOCIRootIndex                           // root OCI index
+	DataOCIBlob                                // oci blob data object
 )
 
 // String returns a human-readable representation of t.
@@ -154,6 +156,12 @@ func (t DataType) String() string {
 		return "Generic/Raw"
 	case DataCryptoMessage:
 		return "Cryptographic Message"
+	case DataSBOM:
+		return "SBOM"
+	case DataOCIRootIndex:
+		return "OCI.RootIndex"
+	case DataOCIBlob:
+		return "OCI.Blob"
 	}
 	return "Unknown"
 }
@@ -268,6 +276,44 @@ func (t MessageType) String() string {
 	return "Unknown"
 }
 
+// SBOMFormat represents the format used to store an SBOM object.
+type SBOMFormat int32
+
+// List of supported SBOM formats.
+const (
+	SBOMFormatCycloneDXJSON SBOMFormat = iota + 1 // CycloneDX (JSON)
+	SBOMFormatCycloneDXXML                        // CycloneDX (XML)
+	SBOMFormatGitHubJSON                          // GitHub dependency snapshot (JSON)
+	SBOMFormatSPDXJSON                            // SPDX (JSON)
+	SBOMFormatSPDXRDF                             // SPDX (RDF/xml)
+	SBOMFormatSPDXTagValue                        // SPDX (tag/value)
+	SBOMFormatSPDXYAML                            // SPDX (YAML)
+	SBOMFormatSyftJSON                            // Syft (JSON)
+)
+
+// String returns a human-readable representation of f.
+func (f SBOMFormat) String() string {
+	switch f {
+	case SBOMFormatCycloneDXJSON:
+		return "cyclonedx-json"
+	case SBOMFormatCycloneDXXML:
+		return "cyclonedx-xml"
+	case SBOMFormatGitHubJSON:
+		return "github-json"
+	case SBOMFormatSPDXJSON:
+		return "spdx-json"
+	case SBOMFormatSPDXRDF:
+		return "spdx-rdf"
+	case SBOMFormatSPDXTagValue:
+		return "spdx-tag-value"
+	case SBOMFormatSPDXYAML:
+		return "spdx-yaml"
+	case SBOMFormatSyftJSON:
+		return "syft-json"
+	}
+	return "unknown"
+}
+
 // header describes a loaded SIF file.
 type header struct {
 	LaunchScript [hdrLaunchLen]byte
@@ -361,4 +407,10 @@ func (f *FileImage) DataSize() int64 { return f.h.DataSize }
 // header of the image.
 func (f *FileImage) GetHeaderIntegrityReader() io.Reader {
 	return f.h.GetIntegrityReader()
+}
+
+// isDeterministic returns true if the UUID and timestamps in the header of f are set to
+// deterministic values.
+func (f *FileImage) isDeterministic() bool {
+	return f.h.ID == uuid.Nil && f.CreatedAt().IsZero() && f.ModifiedAt().IsZero()
 }

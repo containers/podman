@@ -167,6 +167,10 @@ func (e ECDSAVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error)
 //
 // All other options are ignored if specified.
 func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	if e.publicKey == nil {
+		return errors.New("no public key set for ECDSAVerifier")
+	}
+
 	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
@@ -179,6 +183,11 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 	sigBytes, err := io.ReadAll(signature)
 	if err != nil {
 		return fmt.Errorf("reading signature: %w", err)
+	}
+
+	// Without this check, VerifyASN1 panics on an invalid key.
+	if !e.publicKey.Curve.IsOnCurve(e.publicKey.X, e.publicKey.Y) {
+		return fmt.Errorf("invalid ECDSA public key for %s", e.publicKey.Params().Name)
 	}
 
 	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {

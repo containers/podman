@@ -17,7 +17,7 @@ import (
 var (
 	restartDescription = fmt.Sprintf(`Restarts one or more running containers. The container ID or name can be used.
 
-  A timeout before forcibly stopping can be set, but defaults to %d seconds.`, containerConfig.Engine.StopTimeout)
+  A timeout before forcibly stopping can be set, but defaults to %d seconds.`, registry.PodmanConfig().ContainersConfDefaultsRO.Engine.StopTimeout)
 
 	restartCommand = &cobra.Command{
 		Use:   "restart [options] CONTAINER [CONTAINER...]",
@@ -58,7 +58,7 @@ func restartFlags(cmd *cobra.Command) {
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
 
 	timeFlagName := "time"
-	flags.UintVarP(&restartTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&restartTimeout, timeFlagName, "t", registry.PodmanConfig().ContainersConfDefaultsRO.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	flags.SetNormalizeFunc(utils.AliasFlags)

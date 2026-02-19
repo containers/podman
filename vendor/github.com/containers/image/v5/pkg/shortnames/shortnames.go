@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/manifoldco/promptui"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/exp/slices"
 	"golang.org/x/term"
 )
 
@@ -20,9 +21,9 @@ import (
 // short names.
 //
 // Examples:
-//  * short names: "image:tag", "library/fedora"
-//  * not short names: "quay.io/image", "localhost/image:tag",
-//                     "server.org:5000/lib/image", "image@sha256:..."
+//   - short names: "image:tag", "library/fedora"
+//   - not short names: "quay.io/image", "localhost/image:tag",
+//     "server.org:5000/lib/image", "image@sha256:..."
 func IsShortName(input string) bool {
 	isShort, _, _ := parseUnnormalizedShortName(input)
 	return isShort
@@ -59,8 +60,6 @@ func parseUnnormalizedShortName(input string) (bool, reference.Named, error) {
 // the tag or digest and stores it in the return values so that both can be
 // re-added to a possible resolved alias' or USRs at a later point.
 func splitUserInput(named reference.Named) (isTagged bool, isDigested bool, normalized reference.Named, tag string, digest digest.Digest) {
-	normalized = named
-
 	tagged, isT := named.(reference.NamedTagged)
 	if isT {
 		isTagged = true
@@ -170,8 +169,8 @@ func (r *Resolved) Description() string {
 // Note that nil is returned if len(pullErrors) == 0.  Otherwise, the amount of
 // pull errors must equal the amount of pull candidates.
 func (r *Resolved) FormatPullErrors(pullErrors []error) error {
-	if len(pullErrors) >= 0 && len(pullErrors) != len(r.PullCandidates) {
-		pullErrors = append(pullErrors,
+	if len(pullErrors) > 0 && len(pullErrors) != len(r.PullCandidates) {
+		pullErrors = append(slices.Clone(pullErrors),
 			fmt.Errorf("internal error: expected %d instead of %d errors for %d pull candidates",
 				len(r.PullCandidates), len(pullErrors), len(r.PullCandidates)))
 	}
@@ -402,9 +401,9 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 // not a short name), it is returned as is.  In case, it's a short name, the
 // returned slice of named references looks as follows:
 //
-//  1) If present, the short-name alias
-//  2) "localhost/" as used by many container engines such as Podman and Buildah
-//  3) Unqualified-search registries from the registries.conf files
+//  1. If present, the short-name alias
+//  2. "localhost/" as used by many container engines such as Podman and Buildah
+//  3. Unqualified-search registries from the registries.conf files
 //
 // Note that tags and digests are stripped from the specified name before
 // looking up an alias. Stripped off tags and digests are later on appended to

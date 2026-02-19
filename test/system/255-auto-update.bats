@@ -235,6 +235,8 @@ function _confirm_update() {
 }
 
 @test "podman auto-update - label io.containers.autoupdate=local with rollback" {
+    skip_if_rootless "systemd times out waiting for sdnotify READY=1 in rootless mode"
+
     # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
     # assume that we work only with crun, nothing else.
     # [copied from 260-sdnotify.bats]

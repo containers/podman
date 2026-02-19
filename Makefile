@@ -28,7 +28,7 @@ DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
 HEAD ?= HEAD
 PROJECT := github.com/containers/podman
-GIT_BASE_BRANCH ?= origin/v4.2
+GIT_BASE_BRANCH ?= origin/v4.2.0-rhel
 LIBPOD_INSTANCE := libpod_dev
 PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
@@ -38,9 +38,12 @@ MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${PREFIX}/etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
+USERTMPFILESDIR ?= ${PREFIX}/share/user-tmpfiles.d
 MODULESLOADDIR ?= ${PREFIX}/lib/modules-load.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
+SYSTEMDGENERATORSDIR ?= ${PREFIX}/lib/systemd/system-generators
+USERSYSTEMDGENERATORSDIR ?= ${PREFIX}/lib/systemd/user-generators
 REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
@@ -77,7 +80,12 @@ BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_gr
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
-MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md)
+# The 'sort' below is crucial: without it, 'make docs' behaves differently
+# on the first run than on subsequent ones, because the generated .md
+MANPAGES_SOURCE_DIR = docs/source/markdown
+MANPAGES_MD_IN ?= $(wildcard $(MANPAGES_SOURCE_DIR)/*.md.in)
+MANPAGES_MD_GENERATED ?= $(MANPAGES_MD_IN:%.md.in=%.md)
+MANPAGES_MD ?= $(sort $(wildcard $(MANPAGES_SOURCE_DIR)/*.md) $(MANPAGES_MD_GENERATED))
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
@@ -116,6 +124,7 @@ GINKGOTIMEOUT ?= -timeout=90m
 GINKGOWHAT ?= test/e2e/.
 # By default, run tests in parallel across 3 nodes.
 GINKGONODES ?= 3
+GINKGO ?= ./test/tools/build/ginkgo
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -141,7 +150,9 @@ CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.mips \
 	bin/podman.cross.linux.mipsle \
 	bin/podman.cross.linux.mips64 \
-	bin/podman.cross.linux.mips64le
+	bin/podman.cross.linux.mips64le \
+	bin/podman.cross.freebsd.amd64 \
+	bin/podman.cross.freebsd.arm64
 
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
@@ -184,7 +195,7 @@ endif
 # include this lightweight helper binary.
 #
 GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
-GV_SHA=e943b1806d94d387c4c38d96719432d50a84bbd0
+GV_SHA=aab0ac9367fc5142f5857c36ac2352bcb3c60ab7
 
 ###
 ### Primary entry-point targets
@@ -263,10 +274,10 @@ test/version/version: version/version.go
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether -w
+	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L te,clos,ans,pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether,specif -w
 
 .PHONY: validate
-validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
+validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit pr-removes-fixed-skips
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
@@ -275,16 +286,25 @@ build-all-new-commits:
 
 .PHONY: vendor
 vendor:
-	$(GO) mod tidy -compat=1.17
+	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
 
-.PHONY: vendor-in-container
-vendor-in-container:
-	podman run --privileged --rm --env HOME=/root \
+
+# We define *-in-container targets for the following make targets. This allow the targets to be run in a container.
+# Note that the PODMANCMD can also be overridden to allow a different container CLI to be used on systems where podman is not already available.
+IN_CONTAINER_TARGETS = vendor validate
+PODMANCMD ?= podman
+IN_CONTAINER = $(patsubst %,%-in-container,$(IN_CONTAINER_TARGETS))
+
+.PHONY: $(IN_CONTAINER)
+$(IN_CONTAINER): %-in-container:
+	$(PODMANCMD) run --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
-		docker.io/library/golang:1.17 \
-		make vendor
+		--security-opt label=disable \
+		docker.io/library/golang:1.22 \
+		make $(*)
+
 
 ###
 ### Primary binary-build targets
@@ -315,10 +335,10 @@ $(SRCBINDIR)/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
-$(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) $(SOURCES) go.mod go.sum
+$(SRCBINDIR)/podman-remote-static-linux_amd64 $(SRCBINDIR)/podman-remote-static-linux_arm64: $(SRCBINDIR)/podman-remote-static-linux_%: $(SRCBINDIR) $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 	GOOS=linux \
-	GOARCH=$(GOARCH) \
+	GOARCH=$* \
 	$(GO) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN_STATIC)' \
@@ -332,8 +352,9 @@ podman: bin/podman
 .PHONY: podman-remote
 podman-remote: $(SRCBINDIR)/podman$(BINSFX)
 
-PHONY: podman-remote-static
-podman-remote-static: $(SRCBINDIR)/podman-remote-static
+PHONY: podman-remote-static-linux_amd64 podman-remote-static-linux_arm64
+podman-remote-static-linux_amd64: $(SRCBINDIR)/podman-remote-static-linux_amd64
+podman-remote-static-linux_arm64: $(SRCBINDIR)/podman-remote-static-linux_arm64
 
 .PHONY: podman-winpath
 podman-winpath: $(SOURCES) go.mod go.sum
@@ -363,6 +384,15 @@ bin/rootlessport: $(SOURCES) go.mod go.sum
 
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
+
+.PHONY: podman-remote-experimental
+podman-remote-experimental: $(SRCBINDIR)/experimental/podman$(BINSFX)
+$(SRCBINDIR)/experimental/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
+	$(GOCMD) build \
+		$(BUILDFLAGS) \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		-tags "${REMOTETAGS} experimental" \
+		-o $@ ./cmd/podman
 
 ###
 ### Secondary binary-build targets
@@ -418,18 +448,25 @@ completions: podman podman-remote
 pkg/api/swagger.yaml:
 	make -C pkg/api
 
+$(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
+	hack/markdown-preprocess
+
 $(MANPAGES): %: %.md .install.md2man docdir
 
-### sed is used to filter http/s links as well as relative links
-### replaces "\" at the end of a line with two spaces
-### this ensures that manpages are renderd correctly
-
-	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g' \
-	 -e 's/\[\(podman[^]]*\)\]/\1/g' \
-		 -e 's/\[\([^]]*\)](http[^)]\+)/\1/g' \
-	 -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' \
-	 -e 's/\\$$/  /g' $<  | \
-	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
+# This does a bunch of filtering needed for man pages:
+#  1. Strip markdown link targets like '[podman(1)](podman.1.md)'
+#     to just '[podman(1)]', because man pages have no link mechanism;
+#  2. Then remove the brackets: '[podman(1)]' -> 'podman(1)';
+#  3. Then do the same for all other markdown links,
+#     like '[cgroups(7)](https://.....)'  -> just 'cgroups(7)';
+#  4. Remove HTML-ish stuff like '<sup>..</sup>' and '<a>..</a>'
+#  5. Replace "\" (backslash) at EOL with two spaces (no idea why)
+	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g'    \
+	       -e 's/\[\(podman[^]]*\)\]/\1/g'              \
+	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
+	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
+	       -e 's/\\$$/  /g' $<                         |\
+	$(GOMD2MAN) -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docdir
 docdir:
@@ -442,7 +479,7 @@ docs: $(MANPAGES) ## Generate documentation
 # in addition to the target-architecture binary (if different). That's
 # what the NATIVE_GOOS make does in the first line.
 podman-remote-%-docs: podman-remote
-	$(MAKE) podman-remote GOOS=$(NATIVE_GOOS)
+	$(MAKE) clean-binaries podman-remote GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH)
 	$(eval GOOS := $*)
 	$(MAKE) docs $(MANPAGES)
 	rm -rf docs/build/remote
@@ -493,7 +530,7 @@ run-docker-py-tests:
 .PHONY: localunit
 localunit: test/goecho/goecho test/version/version
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	UNIT=1 ginkgo \
+	UNIT=1 $(GINKGO) \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack,pkg/machine/e2e \
@@ -511,9 +548,9 @@ localunit: test/goecho/goecho test/version/version
 test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
 
 .PHONY: ginkgo-run
-ginkgo-run:
-	ACK_GINKGO_RC=true ginkgo version
-	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
+ginkgo-run: .install.ginkgo
+	ACK_GINKGO_RC=true $(GINKGO) version
+	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -521,7 +558,11 @@ ginkgo:
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS)" HACK=
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing" HACK=
+
+.PHONY: testbindings
+testbindings: .install.ginkgo
+	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -progress -trace -noColor -debug -timeout 30m  -v -r ./pkg/bindings/test
 
 .PHONY: localintegration
 localintegration: test-binaries ginkgo
@@ -530,12 +571,12 @@ localintegration: test-binaries ginkgo
 remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localmachine
-localmachine: test-binaries
+localmachine: test-binaries .install.ginkgo
 	$(MAKE) ginkgo-run GINKGONODES=1 GINKGOWHAT=pkg/machine/e2e/. HACK=
 
 .PHONY: localbenchmarks
-localbenchmarks: test-binaries
-	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true ginkgo \
+localbenchmarks: install.tools test-binaries
+	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GINKGO) \
 		      -focus "Podman Benchmark Suite" \
 		      -tags "$(BUILDTAGS) benchmarks" -noColor \
 		      -noisySkippings=false -noisyPendings=false \
@@ -623,6 +664,10 @@ tests-expect-exit:
 		exit 1; \
 	fi
 
+.PHONY: pr-removes-fixed-skips
+pr-removes-fixed-skips:
+	contrib/cirrus/pr-removes-fixed-skips
+
 ###
 ### Release/Packaging targets
 ###
@@ -666,7 +711,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
 	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
-	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
+	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
 		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
@@ -674,18 +719,28 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	else \
 		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
+	if [[ "$(GOOS)" == "windows" ]]; then \
+		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
+	fi
+	if [[ "$(GOOS)" == "darwin" ]]; then \
+		$(MAKE) $(GOPLAT) podman-mac-helper;\
+	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
 	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote
 	cd "$(TMPDIR)" && \
-		zip --recurse-paths "$(CURDIR)/$@" "./"
+		zip --recurse-paths "$(CURDIR)/$@" "./$(SUBDIR)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
 
-.PHONY: podman.msi
 podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
 	$(MAKE) podman-v$(call err_if_empty,RELEASE_NUMBER).msi
-podman-v%.msi: test/version/version podman-remote podman-remote-windows-docs podman-winpath win-sshproxy
+	cp podman-v$(call err_if_empty,RELEASE_NUMBER).msi podman.msi
+
+podman-v%.msi: test/version/version
+# Passing explicitly OS and ARCH, because ARM is not supported by wixl https://gitlab.gnome.org/GNOME/msitools/-/blob/master/tools/wixl/builder.vala#L3
+	$(MAKE) GOOS=windows GOARCH=amd64 podman-remote-windows-docs
+	$(MAKE) GOOS=windows GOARCH=amd64 clean-binaries podman-remote podman-winpath win-gvproxy
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
@@ -695,16 +750,17 @@ podman-v%.msi: test/version/version podman-remote podman-remote-windows-docs pod
 		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx --arch x64
 
 # Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
-.PHONY: win-sshproxy
-win-sshproxy: test/version/version
+.PHONY: win-gvproxy
+win-gvproxy: test/version/version
 	rm -rf tmp-gv; mkdir tmp-gv
 	(cd tmp-gv; \
          git init; \
          git remote add origin $(GV_GITURL); \
          git fetch --depth 1 origin $(GV_SHA); \
-         git checkout FETCH_HEAD; make win-sshproxy)
+         git checkout FETCH_HEAD; make win-gvproxy win-sshproxy)
 	mkdir -p bin/windows/
 	cp tmp-gv/bin/win-sshproxy.exe bin/windows/
+	cp tmp-gv/bin/gvproxy.exe bin/windows/
 	rm -rf tmp-gv
 
 .PHONY: package
@@ -736,6 +792,12 @@ install.remote:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/podman$(BINSFX) \
 		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
+	test "${GOOS}" != "windows" || \
+		install -m 755 $(SRCBINDIR)/win-sshproxy.exe $(DESTDIR)$(BINDIR)
+	test "${GOOS}" != "windows" || \
+		install -m 755 $(SRCBINDIR)/gvproxy.exe $(DESTDIR)$(BINDIR)
+	test "${GOOS}" != "darwin" || \
+		install -m 755 $(SRCBINDIR)/podman-mac-helper $(DESTDIR)$(BINDIR)
 	test -z "${SELINUXOPT}" || \
 		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote \
 		bin/podman-remote
@@ -748,10 +810,10 @@ install.bin:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
 ifneq ($(shell uname -s),FreeBSD)
 	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECPODMAN)/rootlessport
-endif
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
+endif
 
 .PHONY: install.modules-load
 install.modules-load: # This should only be used by distros which might use iptables-legacy, this is not needed on RHEL
@@ -781,8 +843,9 @@ install.completions:
 install.docker:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 docker $(DESTDIR)$(BINDIR)/docker
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR} ${DESTDIR}${USERTMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${USERTMPFILESDIR}
 
 .PHONY: install.docker-docs
 install.docker-docs:
@@ -827,31 +890,43 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
-	make -C test/tools
+install.tools: .install.golangci-lint ## Install needed tools
+	$(MAKE) -C test/tools
+
+.PHONY: .install.goimports
+.install.goimports:
+	$(MAKE) -C test/tools build/goimports
 
 .PHONY: .install.ginkgo
 .install.ginkgo:
-	$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo
+	$(MAKE) -C test/tools build/ginkgo
+
+.PHONY: .install.gitvalidation
+.install.gitvalidation:
+	$(MAKE) -C test/tools build/git-validation
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
-	VERSION=1.46.2 ./hack/install_golangci.sh
+	VERSION=1.50.1 ./hack/install_golangci.sh
+
+.PHONY: .install.swagger
+.install.swagger:
+	env VERSION=0.30.3 \
+		BINDIR=$(BINDIR) \
+		GOOS=$(GOOS) \
+		GOARCH=$(GOARCH) \
+		./hack/install_swagger.sh
 
 .PHONY: .install.md2man
 .install.md2man:
 	if [ ! -x "$(GOMD2MAN)" ]; then \
-		make -C test/tools build/go-md2man ; \
+		$(MAKE) -C test/tools build/go-md2man ; \
 	fi
-
-.PHONY: .install.bats
-.install.bats:
-	VERSION=v1.1.0 ./hack/install_bats.sh
 
 .PHONY: .install.pre-commit
 .install.pre-commit:
 	if [ -z "$(PRE_COMMIT)" ]; then \
-		python3 -m pip install --user pre-commit; \
+		$(PYTHON) -m pip install --user pre-commit; \
 	fi
 
 .PHONY: uninstall

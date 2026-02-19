@@ -79,7 +79,7 @@ func (env *Env) SetInt64(key string, value int64) {
 // GetJSON unmarshals the value of the provided key in the provided iface.
 //
 // iface is a value that can be provided to the json.Unmarshal function.
-func (env *Env) GetJSON(key string, iface interface{}) error {
+func (env *Env) GetJSON(key string, iface any) error {
 	sval := env.Get(key)
 	if sval == "" {
 		return nil
@@ -89,7 +89,7 @@ func (env *Env) GetJSON(key string, iface interface{}) error {
 
 // SetJSON marshals the given value to JSON format and stores it using the
 // provided key.
-func (env *Env) SetJSON(key string, value interface{}) error {
+func (env *Env) SetJSON(key string, value any) error {
 	sval, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func (env *Env) Set(key, value string) {
 //
 // If `src` cannot be decoded as a json dictionary, an error is returned.
 func (env *Env) Decode(src io.Reader) error {
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	if err := json.NewDecoder(src).Decode(&m); err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (env *Env) Decode(src io.Reader) error {
 }
 
 // SetAuto will try to define the Set* method to call based on the given value.
-func (env *Env) SetAuto(key string, value interface{}) {
+func (env *Env) SetAuto(key string, value any) {
 	if fval, ok := value.(float64); ok {
 		env.SetInt64(key, int64(fval))
 	} else if sval, ok := value.(string); ok {

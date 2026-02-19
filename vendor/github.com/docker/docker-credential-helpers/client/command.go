@@ -1,11 +1,9 @@
 package client
 
 import (
-	"fmt"
 	"io"
 	"os"
-
-	exec "golang.org/x/sys/execabs"
+	"os/exec"
 )
 
 // Program is an interface to execute external programs.
@@ -31,27 +29,26 @@ func NewShellProgramFuncWithEnv(name string, env *map[string]string) ProgramFunc
 
 func createProgramCmdRedirectErr(commandName string, args []string, env *map[string]string) *exec.Cmd {
 	programCmd := exec.Command(commandName, args...)
-	programCmd.Env = os.Environ()
 	if env != nil {
 		for k, v := range *env {
-			programCmd.Env = append(programCmd.Env, fmt.Sprintf("%s=%s", k, v))
+			programCmd.Env = append(programCmd.Environ(), k+"="+v)
 		}
 	}
 	programCmd.Stderr = os.Stderr
 	return programCmd
 }
 
-// Shell invokes shell commands to talk with a remote credentials helper.
+// Shell invokes shell commands to talk with a remote credentials-helper.
 type Shell struct {
 	cmd *exec.Cmd
 }
 
-// Output returns responses from the remote credentials helper.
+// Output returns responses from the remote credentials-helper.
 func (s *Shell) Output() ([]byte, error) {
 	return s.cmd.Output()
 }
 
-// Input sets the input to send to a remote credentials helper.
+// Input sets the input to send to a remote credentials-helper.
 func (s *Shell) Input(in io.Reader) {
 	s.cmd.Stdin = in
 }

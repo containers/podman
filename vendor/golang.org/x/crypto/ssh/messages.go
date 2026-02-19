@@ -68,7 +68,7 @@ type kexInitMsg struct {
 
 // See RFC 4253, section 8.
 
-// Diffie-Helman
+// Diffie-Hellman
 const msgKexDHInit = 30
 
 type kexDHInitMsg struct {
@@ -122,9 +122,9 @@ type kexDHGexReplyMsg struct {
 const msgKexDHGexRequest = 34
 
 type kexDHGexRequestMsg struct {
-	MinBits      uint32 `sshtype:"34"`
-	PreferedBits uint32
-	MaxBits      uint32
+	MinBits       uint32 `sshtype:"34"`
+	PreferredBits uint32
+	MaxBits       uint32
 }
 
 // See RFC 4253, section 10.
@@ -347,6 +347,20 @@ type userAuthGSSAPIError struct {
 	MinorStatus uint32
 	Message     string
 	LanguageTag string
+}
+
+// Transport layer OpenSSH extension. See [PROTOCOL], section 1.9
+const msgPing = 192
+
+type pingMsg struct {
+	Data string `sshtype:"192"`
+}
+
+// Transport layer OpenSSH extension. See [PROTOCOL], section 1.9
+const msgPong = 193
+
+type pongMsg struct {
+	Data string `sshtype:"193"`
 }
 
 // typeTags returns the possible type bytes for the given reflect.Type, which
@@ -804,6 +818,8 @@ func decode(packet []byte) (interface{}, error) {
 		return new(userAuthSuccessMsg), nil
 	case msgUserAuthFailure:
 		msg = new(userAuthFailureMsg)
+	case msgUserAuthBanner:
+		msg = new(userAuthBannerMsg)
 	case msgUserAuthPubKeyOk:
 		msg = new(userAuthPubKeyOkMsg)
 	case msgGlobalRequest:

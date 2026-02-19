@@ -1,8 +1,6 @@
 package etchosts
 
 import (
-	"net"
-
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
@@ -29,7 +27,7 @@ func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types
 	// Only use the bridge ip when root, as rootless the interfaces are created
 	// inside the special netns and not the host so we cannot use them.
 	if unshare.IsRootless() {
-		return getLocalIP()
+		return util.GetLocalIP()
 	}
 	for net, status := range netStatus {
 		network, err := networkInterface.NetworkInspect(net)
@@ -53,27 +51,7 @@ func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types
 	if ip != "" {
 		return ip
 	}
-	return getLocalIP()
-}
-
-// getLocalIP returns the non loopback local IP of the host
-func getLocalIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-	ip := ""
-	for _, address := range addrs {
-		// check the address type and if it is not a loopback the display it
-		if ipnet, ok := address.(*net.IPNet); ok && ipnet.IP.IsGlobalUnicast() {
-			if util.IsIPv4(ipnet.IP) {
-				return ipnet.IP.String()
-			}
-			// if ipv6 we keep looking for an ipv4 address
-			ip = ipnet.IP.String()
-		}
-	}
-	return ip
+	return util.GetLocalIP()
 }
 
 // GetNetworkHostEntries returns HostEntries for all ips in the network status

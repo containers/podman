@@ -18,7 +18,7 @@ import (
 var (
 	stopDescription = fmt.Sprintf(`Stops one or more running containers.  The container name or ID can be used.
 
-  A timeout to forcibly stop the container can also be set but defaults to %d seconds otherwise.`, containerConfig.Engine.StopTimeout)
+  A timeout to forcibly stop the container can also be set but defaults to %d seconds otherwise.`, registry.PodmanConfig().ContainersConfDefaultsRO.Engine.StopTimeout)
 	stopCommand = &cobra.Command{
 		Use:   "stop [options] CONTAINER [CONTAINER...]",
 		Short: "Stop one or more containers",
@@ -66,7 +66,7 @@ func stopFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	timeFlagName := "time"
-	flags.UintVarP(&stopTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&stopTimeout, timeFlagName, "t", registry.PodmanConfig().ContainersConfDefaultsRO.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 
 	filterFlagName := "filter"

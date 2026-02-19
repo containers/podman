@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 # Custom helpers for this test only. These just save us having to duplicate
 # the same thing four times (two tests, each with -i and stdin).
@@ -112,7 +113,7 @@ verify_iid_and_name() {
 
     # Copy it there.
     run_podman image scp $newname ${notme}@localhost::
-    is "$output" "Copying blob .*Copying config.*Writing manifest.*Storing signatures"
+    is "$output" "Copying blob .*Copying config.*Writing manifest"
 
     # confirm that image was copied. FIXME: also try $PODMAN image inspect?
     _sudo $PODMAN image exists $newname
@@ -210,6 +211,8 @@ verify_iid_and_name() {
 }
 
 @test "podman load - from URL" {
+    skip_if_remote "remote cannot connect to host 127.0.0.1 ports"
+
     get_iid_and_name
     run_podman save $img_name -o $archive
     run_podman rmi $iid

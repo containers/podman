@@ -51,7 +51,7 @@ func newPodmanConfig() {
 		os.Exit(1)
 	}
 
-	cfg, err := config.NewConfig("")
+	defaultConfig, err := config.Default()
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
 		os.Exit(1)
@@ -76,11 +76,11 @@ func newPodmanConfig() {
 
 	// If EngineMode==Tunnel has not been set on the command line or environment
 	// but has been set in containers.conf...
-	if mode == entities.ABIMode && cfg.Engine.Remote {
+	if mode == entities.ABIMode && defaultConfig.Engine.Remote {
 		mode = entities.TunnelMode
 	}
 
-	podmanOptions = entities.PodmanConfig{Config: cfg, EngineMode: mode}
+	podmanOptions = entities.PodmanConfig{ContainersConf: &config.Config{}, ContainersConfDefaultsRO: defaultConfig, EngineMode: mode}
 }
 
 // setXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.

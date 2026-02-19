@@ -1,3 +1,5 @@
+//go:build !remote
+
 package abi
 
 import (
@@ -17,6 +19,7 @@ import (
 	"syscall"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/filter"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -446,7 +449,7 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 
 // Search for images using term and filters
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
-	filter, err := libimage.ParseSearchFilter(opts.Filters)
+	filter, err := filter.ParseSearchFilter(opts.Filters)
 	if err != nil {
 		return nil, err
 	}

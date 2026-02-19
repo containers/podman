@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -18,7 +21,7 @@ func NormalizeName(name string) (reference.Named, error) {
 	// NOTE: this code is in symmetrie with containers/image/pkg/shortnames.
 	ref, err := reference.Parse(name)
 	if err != nil {
-		return nil, fmt.Errorf("error normalizing name %q: %w", name, err)
+		return nil, fmt.Errorf("normalizing name %q: %w", name, err)
 	}
 
 	named, ok := ref.(reference.Named)
@@ -100,22 +103,22 @@ func ToNameTagPairs(repoTags []reference.Named) ([]NameTagPair, error) {
 // normalizeTaggedDigestedString strips the tag off the specified string iff it
 // is tagged and digested. Note that the tag is entirely ignored to match
 // Docker behavior.
-func normalizeTaggedDigestedString(s string) (string, error) {
+func normalizeTaggedDigestedString(s string) (string, reference.Named, error) {
 	// Note that the input string is not expected to be parseable, so we
 	// return it verbatim in error cases.
 	ref, err := reference.Parse(s)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	named, ok := ref.(reference.Named)
 	if !ok {
-		return s, nil
+		return s, nil, nil
 	}
 	named, err = normalizeTaggedDigestedNamed(named)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return named.String(), nil
+	return named.String(), named, nil
 }
 
 // normalizeTaggedDigestedNamed strips the tag off the specified named

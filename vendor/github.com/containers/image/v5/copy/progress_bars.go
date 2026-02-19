@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/types"
-	"github.com/vbauerster/mpb/v7"
-	"github.com/vbauerster/mpb/v7/decor"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 )
 
 // newProgressPool creates a *mpb.Progress.
@@ -48,10 +48,13 @@ type progressBar struct {
 // As a convention, most users of progress bars should call mark100PercentComplete on full success;
 // by convention, we don't leave progress bars in partial state when fully done
 // (even if we copied much less data than anticipated).
-func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.BlobInfo, kind string, onComplete string) *progressBar {
+func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.BlobInfo, kind string, onComplete string) (*progressBar, error) {
 	// shortDigestLen is the length of the digest used for blobs.
 	const shortDigestLen = 12
 
+	if err := info.Digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, so validate explicitly.
+		return nil, err
+	}
 	prefix := fmt.Sprintf("Copying %s %s", kind, info.Digest.Encoded())
 	// Truncate the prefix (chopping of some part of the digest) to make all progress bars aligned in a column.
 	maxPrefixLen := len("Copying blob ") + shortDigestLen
@@ -84,6 +87,8 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 				),
 				mpb.AppendDecorators(
 					decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), ""),
+					decor.Name(" | "),
+					decor.OnComplete(decor.EwmaSpeed(decor.SizeB1024(0), "% .1f", 30), ""),
 				),
 			)
 		}
@@ -94,12 +99,15 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 			mpb.PrependDecorators(
 				decor.OnComplete(decor.Name(prefix), onComplete),
 			),
+			mpb.AppendDecorators(
+				decor.OnComplete(decor.EwmaSpeed(decor.SizeB1024(0), "% .1f", 30), ""),
+			),
 		)
 	}
 	return &progressBar{
 		Bar:          bar,
 		originalSize: info.Size,
-	}
+	}, nil
 }
 
 // printCopyInfo prints a "Copying ..." message on the copier if the output is
@@ -120,7 +128,7 @@ func (bar *progressBar) mark100PercentComplete() {
 		bar.SetCurrent(bar.originalSize) // This triggers the completion condition.
 	} else {
 		// -1 = unknown size
-		// 0 is somewhat of a a special case: Unlike c/image, where 0 is a definite known
+		// 0 is somewhat of a special case: Unlike c/image, where 0 is a definite known
 		// size (possible at least in theory), in mpb, zero-sized progress bars are treated
 		// as unknown size, in particular they are not configured to be marked as
 		// complete on bar.Current() reaching bar.total (because that would happen already

@@ -132,20 +132,17 @@ READY=1" "sdnotify sent MAINPID and READY"
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "sdnotify : container" {
-    # Sigh... we need to pull a humongous image because it has systemd-notify.
-    # (IMPORTANT: fedora:32 and above silently removed systemd-notify; this
-    # caused CI to hang. That's why we explicitly require fedora:31)
-    # FIXME: is there a smaller image we could use?
-    local _FEDORA="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/fedora:31"
-    # Pull that image. Retry in case of flakes.
-    run_podman pull $_FEDORA || \
-        run_podman pull $_FEDORA || \
-        run_podman pull $_FEDORA
+    skip_if_rootless "READY=1 notification not received via socat in rootless mode"
+
+    # Pull our systemd image. Retry in case of flakes.
+    run_podman pull $SYSTEMD_IMAGE || \
+        run_podman pull $SYSTEMD_IMAGE || \
+        run_podman pull $SYSTEMD_IMAGE
 
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/container.sock
     _start_socat
 
-    run_podman run -d --sdnotify=container $_FEDORA \
+    run_podman run -d --sdnotify=container $SYSTEMD_IMAGE \
                sh -c 'printenv NOTIFY_SOCKET;echo READY;systemd-notify --ready;while ! test -f /stop;do sleep 0.1;done'
     cid="$output"
     wait_for_ready $cid

@@ -15,7 +15,7 @@ package pkcs11
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
+
 	pkcs11uri "github.com/stefanberger/go-pkcs11uri"
 	"gopkg.in/yaml.v3"
 )
@@ -42,7 +42,7 @@ func ParsePkcs11Uri(uri string) (*pkcs11uri.Pkcs11URI, error) {
 	p11uri := pkcs11uri.New()
 	err := p11uri.Parse(uri)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not parse Pkcs11URI from file")
+		return nil, fmt.Errorf("Could not parse Pkcs11URI from file: %w", err)
 	}
 	return p11uri, err
 }
@@ -50,14 +50,14 @@ func ParsePkcs11Uri(uri string) (*pkcs11uri.Pkcs11URI, error) {
 // ParsePkcs11KeyFile parses a pkcs11 key file holding a pkcs11 URI describing a private key.
 // The file has the following yaml format:
 // pkcs11:
-//  - uri : <pkcs11 uri>
+// - uri : <pkcs11 uri>
 // An error is returned if the pkcs11 URI is malformed
 func ParsePkcs11KeyFile(yamlstr []byte) (*Pkcs11KeyFileObject, error) {
 	p11keyfile := Pkcs11KeyFile{}
 
-	err := yaml.Unmarshal([]byte(yamlstr), &p11keyfile)
+	err := yaml.Unmarshal(yamlstr, &p11keyfile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not unmarshal pkcs11 keyfile")
+		return nil, fmt.Errorf("Could not unmarshal pkcs11 keyfile: %w", err)
 	}
 
 	p11uri, err := ParsePkcs11Uri(p11keyfile.Pkcs11.Uri)
@@ -102,7 +102,7 @@ func GetDefaultModuleDirectories() []string {
 		"/usr/lib/softhsm/", // Debian,Ubuntu
 	}
 
-	// Debian directory: /usr/lib/(x86_64|aarch64|arm|powerpc64le|s390x)-linux-gnu/
+	// Debian directory: /usr/lib/(x86_64|aarch64|arm|powerpc64le|riscv64|s390x)-linux-gnu/
 	hosttype, ostype, q := getHostAndOsType()
 	if len(hosttype) > 0 {
 		dir := fmt.Sprintf("/usr/lib/%s-%s-%s/", hosttype, ostype, q)
@@ -126,9 +126,9 @@ func GetDefaultModuleDirectoriesYaml(indent string) string {
 func ParsePkcs11ConfigFile(yamlstr []byte) (*Pkcs11Config, error) {
 	p11conf := Pkcs11Config{}
 
-	err := yaml.Unmarshal([]byte(yamlstr), &p11conf)
+	err := yaml.Unmarshal(yamlstr, &p11conf)
 	if err != nil {
-		return &p11conf, errors.Wrapf(err, "Could not parse Pkcs11Config")
+		return &p11conf, fmt.Errorf("Could not parse Pkcs11Config: %w", err)
 	}
 	return &p11conf, nil
 }

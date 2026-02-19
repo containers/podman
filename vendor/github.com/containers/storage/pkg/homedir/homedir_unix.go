@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package homedir
@@ -46,7 +47,7 @@ func GetShortcutString() string {
 // See also https://standards.freedesktop.org/basedir-spec/latest/ar01s03.html
 func GetRuntimeDir() (string, error) {
 	if xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntimeDir != "" {
-		return xdgRuntimeDir, nil
+		return filepath.EvalSymlinks(xdgRuntimeDir)
 	}
 	return "", errors.New("could not get XDG_RUNTIME_DIR")
 }
@@ -62,7 +63,7 @@ func StickRuntimeDirContents(files []string) ([]string, error) {
 	runtimeDir, err := GetRuntimeDir()
 	if err != nil {
 		// ignore error if runtimeDir is empty
-		return nil, nil
+		return nil, nil //nolint: nilerr
 	}
 	runtimeDir, err = filepath.Abs(runtimeDir)
 	if err != nil {

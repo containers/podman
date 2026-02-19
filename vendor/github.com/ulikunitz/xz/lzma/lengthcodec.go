@@ -1,4 +1,4 @@
-// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2022 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -59,8 +59,7 @@ func (lc *lengthCodec) init() {
 // Encode encodes the length offset. The length offset l can be compute by
 // subtracting minMatchLen (2) from the actual length.
 //
-//   l = length - minMatchLen
-//
+//	l = length - minMatchLen
 func (lc *lengthCodec) Encode(e *rangeEncoder, l uint32, posState uint32,
 ) (err error) {
 	if l > maxMatchLen-minMatchLen {

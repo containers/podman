@@ -3,13 +3,13 @@
 //
 // Grammar
 //
-// 	reference                       := name [ ":" tag ] [ "@" digest ]
+//	reference                       := name [ ":" tag ] [ "@" digest ]
 //	name                            := [domain '/'] path-component ['/' path-component]*
 //	domain                          := domain-component ['.' domain-component]* [':' port-number]
 //	domain-component                := /([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])/
 //	port-number                     := /[0-9]+/
-//	path-component                  := alpha-numeric [separator alpha-numeric]*
-// 	alpha-numeric                   := /[a-z0-9]+/
+//	path-component                  := alphanumeric [separator alphanumeric]*
+//	alphanumeric                   := /[a-z0-9]+/
 //	separator                       := /[_.]|__|[-]*/
 //
 //	tag                             := /[\w][\w.-]{0,127}/
@@ -175,7 +175,7 @@ func splitDomain(name string) (string, string) {
 // hostname and name string. If no valid hostname is
 // found, the hostname is empty and the full value
 // is returned as name
-// DEPRECATED: Use Domain or Path
+// Deprecated: Use Domain or Path
 func SplitHostname(named Named) (string, string) {
 	if r, ok := named.(namedRepository); ok {
 		return r.Domain(), r.Path()

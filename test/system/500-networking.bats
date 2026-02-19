@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 @test "podman network - basic tests" {
     heading="NETWORK *ID *NAME *DRIVER"
@@ -31,6 +32,8 @@ load helpers
 
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827
 @test "podman networking: port on localhost" {
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
+
     random_1=$(random_string 30)
     random_2=$(random_string 30)
 
@@ -48,6 +51,15 @@ load helpers
             $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
+    # Try to bind the same port again, this must fail.
+    # regression test for https://issues.redhat.com/browse/RHEL-50746
+    # which caused this command to overwrite the firewall rules as root
+    # causing the curl commands below to fail
+    run_podman 126 run --rm -p "$HOST_PORT:80" $IMAGE true
+    # Note error messages differ between root/rootless, so only check port
+    # and the part of the error text that is common.
+    assert "$output" =~ "$HOST_PORT.*ddress already in use" "port in use"
+
     # In that container, create a second file, using exec and redirection
     run_podman exec -i myweb sh -c "cat > index2.txt" <<<"$random_2"
     # ...verify its contents as seen from container.
@@ -55,9 +67,9 @@ load helpers
     is "$output" "$random_2" "exec cat index2.txt"
 
     # Verify http contents: curl from localhost
-    run curl -s $SERVER/index.txt
+    run curl --max-time 3 -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
-    run curl -s $SERVER/index2.txt
+    run curl --max-time 3 -s -S $SERVER/index2.txt
     is "$output" "$random_2" "curl 127.0.0.1:/index2.txt"
 
     # Verify http contents: wget from a second container
@@ -84,6 +96,9 @@ load helpers
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
 @test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
+    skip_if_cgroupsv1 "FIXME: #15025: run --uidmap fails on cgroups v1"
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
+
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -263,7 +278,7 @@ load helpers
 }
 
 @test "podman network reload" {
-    skip_if_remote "podman network reload does not have remote support"
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
 
     random_1=$(random_string 30)
     HOST_PORT=$(random_free_port)
@@ -293,14 +308,16 @@ load helpers
     run curl -s $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
 
-    # rootless cannot modify iptables
+    # rootless cannot modify the host firewall
     if ! is_rootless; then
-        # flush the port forwarding iptable rule here
-        chain="CNI-HOSTPORT-DNAT"
-        if is_netavark; then
-            chain="NETAVARK-HOSTPORT-DNAT"
-        fi
-        run iptables -t nat -F "$chain"
+        # for debugging only
+        iptables -t nat -nvL || true
+        nft list ruleset     || true
+
+        # flush the firewall rule here to break port forwarding
+        # netavark can use either iptables or nftables, so try flushing both
+        iptables -t nat -F "NETAVARK-HOSTPORT-DNAT" || true
+        nft delete table inet netavark              || true
 
         # check that we cannot curl (timeout after 5 sec)
         run timeout 5 curl -s $SERVER/index.txt
@@ -675,6 +692,8 @@ EOF
 }
 
 @test "podman run port forward range" {
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
+
     for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit; do
         local range=$(random_free_port_range 3)
         # die() inside $(...) does not actually stop us.

@@ -86,11 +86,20 @@
 
 ## Log
 
+### 2022-12-12
+
+Matt Dantay (@bodgit) reported an issue with the LZMA reader. The implementation
+returned an error if the dictionary size was less than 4096 byte, but the
+recommendation stated the actual used window size should be set to 4096 byte in
+that case. It actually was the pull request
+[#52](https://github.com/ulikunitz/xz/pull/52). The new patch v0.5.11 will fix
+it.
+
 ### 2021-02-02
 
 Mituo Heijo has fuzzed xz and found a bug in the function readIndexBody. The
 function allocated a slice of records immediately after reading the value
-without further checks. Since the number has been too large the make function
+without further checks. Sincex the number has been too large the make function
 did panic. The fix is to check the number against the expected number of records
 before allocating the records.
 

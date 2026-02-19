@@ -18,9 +18,9 @@ package ocicrypt
 
 import (
 	"bytes"
-	"io/ioutil"
+	"fmt"
+	"os"
 
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 )
@@ -55,7 +55,7 @@ func (g *gpgVault) AddSecretKeyRingData(gpgSecretKeyRingData []byte) error {
 	r := bytes.NewReader(gpgSecretKeyRingData)
 	entityList, err := openpgp.ReadKeyRing(r)
 	if err != nil {
-		return errors.Wrapf(err, "could not read keyring")
+		return fmt.Errorf("could not read keyring: %w", err)
 	}
 	g.entityLists = append(g.entityLists, entityList)
 	g.keyDataList = append(g.keyDataList, gpgSecretKeyRingData)
@@ -76,7 +76,7 @@ func (g *gpgVault) AddSecretKeyRingDataArray(gpgSecretKeyRingDataArray [][]byte)
 // AddSecretKeyRingFiles adds the secret key rings given their filenames
 func (g *gpgVault) AddSecretKeyRingFiles(filenames []string) error {
 	for _, filename := range filenames {
-		gpgSecretKeyRingData, err := ioutil.ReadFile(filename)
+		gpgSecretKeyRingData, err := os.ReadFile(filename)
 		if err != nil {
 			return err
 		}

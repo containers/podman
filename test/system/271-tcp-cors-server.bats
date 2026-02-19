@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 SERVICE_NAME="podman_test_$(random_string)"
 

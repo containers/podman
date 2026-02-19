@@ -11,7 +11,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// ImageTransport is a top-level namespace for ways to to store/load an image.
+// ImageTransport is a top-level namespace for ways to store/load an image.
 // It should generally correspond to ImageSource/ImageDestination implementations.
 //
 // Note that ImageTransport is based on "ways the users refer to image storage", not necessarily on the underlying physical transport.
@@ -48,7 +48,7 @@ type ImageReference interface {
 	// StringWithinTransport returns a string representation of the reference, which MUST be such that
 	// reference.Transport().ParseReference(reference.StringWithinTransport()) returns an equivalent reference.
 	// NOTE: The returned string is not promised to be equal to the original input to ParseReference;
-	// e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
+	// e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
 	// WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix;
 	// instead, see transports.ImageName().
 	StringWithinTransport() string
@@ -125,13 +125,20 @@ type BlobInfo struct {
 	URLs        []string
 	Annotations map[string]string
 	MediaType   string
+
+	// NOTE: The following fields contain desired _edits_ to blob infos.
+	// Conceptually then don't belong in the BlobInfo object at all;
+	// the edits should be provided specifically as parameters to the edit implementation.
+	// We can’t remove the fields without breaking compatibility, but don’t
+	// add any more.
+
 	// CompressionOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer's "compressed or not" should be preserved,
 	// possibly while changing the compression algorithm from one to another,
 	// or if it should be compressed or decompressed.  The field defaults to
 	// preserve the original layer's compressedness.
 	// TODO: To remove together with CryptoOperation in re-design to remove
-	// field out out of BlobInfo.
+	// field out of BlobInfo.
 	CompressionOperation LayerCompression
 	// CompressionAlgorithm is used in Image.UpdateLayerInfos to set the correct
 	// MIME type for compressed layers (e.g., gzip or zstd). This field MUST be
@@ -142,8 +149,9 @@ type BlobInfo struct {
 	// CryptoOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer was encrypted/decrypted
 	// TODO: To remove together with CompressionOperation in re-design to
-	// remove field out out of BlobInfo.
+	// remove field out of BlobInfo.
 	CryptoOperation LayerCrypto
+	// Before adding any fields to this struct, read the NOTE above.
 }
 
 // BICTransportScope encapsulates transport-dependent representation of a “scope” where blobs are or are not present.
@@ -177,24 +185,25 @@ type BICReplacementCandidate struct {
 // BlobInfoCache records data useful for reusing blobs, or substituting equivalent ones, to avoid unnecessary blob copies.
 //
 // It records two kinds of data:
-// - Sets of corresponding digest vs. uncompressed digest ("DiffID") pairs:
-//   One of the two digests is known to be uncompressed, and a single uncompressed digest may correspond to more than one compressed digest.
-//   This allows matching compressed layer blobs to existing local uncompressed layers (to avoid unnecessary download and decompression),
-//   or uncompressed layer blobs to existing remote compressed layers (to avoid unnecessary compression and upload)/
 //
-//   It is allowed to record an (uncompressed digest, the same uncompressed digest) correspondence, to express that the digest is known
-//   to be uncompressed (i.e. that a conversion from schema1 does not have to decompress the blob to compute a DiffID value).
+//   - Sets of corresponding digest vs. uncompressed digest ("DiffID") pairs:
+//     One of the two digests is known to be uncompressed, and a single uncompressed digest may correspond to more than one compressed digest.
+//     This allows matching compressed layer blobs to existing local uncompressed layers (to avoid unnecessary download and decompression),
+//     or uncompressed layer blobs to existing remote compressed layers (to avoid unnecessary compression and upload)/
 //
-//   This mapping is primarily maintained in generic copy.Image code, but transports may want to contribute more data points if they independently
-//   compress/decompress blobs for their own purposes.
+//     It is allowed to record an (uncompressed digest, the same uncompressed digest) correspondence, to express that the digest is known
+//     to be uncompressed (i.e. that a conversion from schema1 does not have to decompress the blob to compute a DiffID value).
 //
-// - Known blob locations, managed by individual transports:
-//   The transports call RecordKnownLocation when encountering a blob that could possibly be reused (typically in GetBlob/PutBlob/TryReusingBlob),
-//   recording transport-specific information that allows the transport to reuse the blob in the future;
-//   then, TryReusingBlob implementations can call CandidateLocations to look up previously recorded blob locations that could be reused.
+//     This mapping is primarily maintained in generic copy.Image code, but transports may want to contribute more data points if they independently
+//     compress/decompress blobs for their own purposes.
 //
-//   Each transport defines its own “scopes” within which blob reuse is possible (e.g. in, the docker/distribution case, blobs
-//   can be directly reused within a registry, or mounted across registries within a registry server.)
+//   - Known blob locations, managed by individual transports:
+//     The transports call RecordKnownLocation when encountering a blob that could possibly be reused (typically in GetBlob/PutBlob/TryReusingBlob),
+//     recording transport-specific information that allows the transport to reuse the blob in the future;
+//     then, TryReusingBlob implementations can call CandidateLocations to look up previously recorded blob locations that could be reused.
+//
+//     Each transport defines its own “scopes” within which blob reuse is possible (e.g. in, the docker/distribution case, blobs
+//     can be directly reused within a registry, or mounted across registries within a registry server.)
 //
 // None of the methods return an error indication: errors when neither reading from, nor writing to, the cache, should be fatal;
 // users of the cache should just fall back to copying the blobs the usual way.
@@ -436,7 +445,7 @@ type ImageCloser interface {
 	Close() error
 }
 
-// ManifestUpdateOptions is a way to pass named optional arguments to Image.UpdatedManifest
+// ManifestUpdateOptions is a way to pass named optional arguments to Image.UpdatedImage
 type ManifestUpdateOptions struct {
 	LayerInfos              []BlobInfo // Complete BlobInfos (size+digest+urls+annotations) which should replace the originals, in order (the root layer first, and then successive layered layers). BlobInfos' MediaType fields are ignored.
 	EmbeddedDockerReference reference.Named
@@ -448,7 +457,7 @@ type ManifestUpdateOptions struct {
 // ManifestUpdateInformation is a component of ManifestUpdateOptions, named here
 // only to make writing struct literals possible.
 type ManifestUpdateInformation struct {
-	Destination  ImageDestination // and yes, UpdatedManifest may write to Destination (see the schema2 → schema1 conversion logic in image/docker_schema2.go)
+	Destination  ImageDestination // and yes, UpdatedImage may write to Destination (see the schema2 → schema1 conversion logic in image/docker_schema2.go)
 	LayerInfos   []BlobInfo       // Complete BlobInfos (size+digest) which have been uploaded, in order (the root layer first, and then successive layered layers)
 	LayerDiffIDs []digest.Digest  // Digest values for the _uncompressed_ contents of the blobs which have been uploaded, in the same order.
 }
@@ -465,7 +474,17 @@ type ImageInspectInfo struct {
 	Variant       string
 	Os            string
 	Layers        []string
+	LayersData    []ImageInspectLayer
 	Env           []string
+	Author        string
+}
+
+// ImageInspectLayer is a set of metadata describing an image layers' detail
+type ImageInspectLayer struct {
+	MIMEType    string // "" if unknown.
+	Digest      digest.Digest
+	Size        int64 // -1 if unknown.
+	Annotations map[string]string
 }
 
 // DockerAuthConfig contains authorization information for connecting to a registry.
@@ -566,15 +585,19 @@ type SystemContext struct {
 	// resolving to Docker Hub in the Docker-compatible REST API of Podman; it should never be used outside this
 	// specific context.
 	PodmanOnlyShortNamesIgnoreRegistriesConfAndForceDockerHub bool
-	// If not "", overrides the default path for the authentication file, but only new format files
+	// If not "", overrides the default path for the registry authentication file, but only new format files
 	AuthFilePath string
-	// if not "", overrides the default path for the authentication file, but with the legacy format;
+	// if not "", overrides the default path for the registry authentication file, but with the legacy format;
 	// the code currently will by default look for legacy format files like .dockercfg in the $HOME dir;
 	// but in addition to the home dir, openshift may mount .dockercfg files (via secret mount)
 	// in locations other than the home dir; openshift components should then set this field in those cases;
 	// this field is ignored if `AuthFilePath` is set (we favor the newer format);
 	// only reading of this data is supported;
 	LegacyFormatAuthFilePath string
+	// If set, a path to a Docker-compatible "config.json" file containing credentials; and no other files are processed.
+	// This must not be set if AuthFilePath is set.
+	// Only credentials and credential helpers in this file apre processed, not any other configuration in this file.
+	DockerCompatAuthFilePath string
 	// If not "", overrides the use of platform.GOARCH when choosing an image or verifying architecture match.
 	ArchitectureChoice string
 	// If not "", overrides the use of platform.GOOS when choosing an image or verifying OS match.

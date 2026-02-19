@@ -48,7 +48,7 @@ type namedHook struct {
 // those specified in the OCI Runtime Specification and to control
 // OCI-defined stages instead of delegating to the OCI runtime.  See
 // Hooks() for more information.
-func New(ctx context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
+func New(_ context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
 	manager = &Manager{
 		hooks:           map[string]*current.Hook{},
 		directories:     directories,
@@ -90,8 +90,8 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 // extensionStageHooks.  This takes precedence over their inclusion in
 // the OCI configuration.  For example:
 //
-//   manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"})
-//   extensionStageHooks, err := manager.Hooks(config, annotations, hasBindMounts)
+//	manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"})
+//	extensionStageHooks, err := manager.Hooks(config, annotations, hasBindMounts)
 //
 // will have any matching post-stop hooks in extensionStageHooks and
 // will not insert them into config.Hooks.Poststop.

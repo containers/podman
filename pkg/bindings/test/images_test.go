@@ -379,6 +379,21 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
+	It("Image Push", func() {
+		registry, err := podmanRegistry.Start()
+		Expect(err).ToNot(HaveOccurred())
+
+		var writer bytes.Buffer
+		pushOpts := new(images.PushOptions).WithUsername(registry.User).WithPassword(registry.Password).WithSkipTLSVerify(true).WithProgressWriter(&writer).WithQuiet(false)
+		err = images.Push(bt.conn, alpine.name, fmt.Sprintf("localhost:%s/test:latest", registry.Port), pushOpts)
+		Expect(err).ToNot(HaveOccurred())
+
+		output := writer.String()
+		Expect(output).To(ContainSubstring("Copying blob "))
+		Expect(output).To(ContainSubstring("Copying config "))
+		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
+	})
+
 	It("Build no options", func() {
 		results, err := images.Build(bt.conn, []string{"fixture/Containerfile"}, entities.BuildOptions{})
 		Expect(err).ToNot(HaveOccurred())

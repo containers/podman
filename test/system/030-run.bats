@@ -1,12 +1,15 @@
 #!/usr/bin/env bats
 
 load helpers
+load helpers.network
 
 @test "podman run - basic tests" {
     rand=$(random_string 30)
 
     err_no_such_cmd="Error:.*/no/such/command.*[Nn]o such file or directory"
-    err_no_exec_dir="Error:.*exec.*permission denied"
+    # runc: RHEL8 on 2023-07-17: "is a directory".
+    # Everything else (crun; runc on debian): "permission denied"
+    err_no_exec_dir="Error:.*exec.*\\\(permission denied\\\|is a directory\\\)"
 
     tests="
 true              |   0 |
@@ -867,6 +870,184 @@ $IMAGE--c_ok" \
        "podman ps -a shows running & failed containers, but not failed-with-rm"
 
     run_podman container rm -f -t 0 c_ok c_fail_no_rm
+}
+
+@test "podman run --attach stdin prints container ID" {
+    ctr_name="container-$(random_string 5)"
+    run_podman run --name $ctr_name --attach stdin $IMAGE echo hello
+    run_output=$output
+    run_podman inspect --format "{{.Id}}" $ctr_name
+    ctr_id=$output
+    is "$run_output" "$ctr_id" "Did not find container ID in the output"
+    run_podman rm $ctr_name
+}
+
+# 15895: --privileged + --systemd = hide /dev/ttyNN
+@test "podman run --privileged as root with systemd will not mount /dev/tty" {
+    skip_if_rootless "this test only makes sense as root"
+
+    # First, confirm that we _have_ /dev/ttyNN devices on the host.
+    # ('skip' would be nicer in some sense... but could hide a regression.
+    # Fedora, RHEL, Debian, Ubuntu, Gentoo, all have /dev/ttyN, so if
+    # this ever triggers, it means a real problem we should know about.)
+    vt_tty_devices_count=$(find /dev -regex '/dev/tty[0-9].*' | wc -w)
+    assert "$vt_tty_devices_count" != "0" \
+           "Expected at least one /dev/ttyN device on host"
+
+    # Ok now confirm that without --systemd, podman exposes ttyNN devices
+    run_podman run --rm -d --privileged $IMAGE ./pause
+    cid="$output"
+
+    run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
+    assert "$output" = "$vt_tty_devices_count" \
+           "ls /dev/tty* without systemd; should have lots of ttyN devices"
+    run_podman stop -t 0 $cid
+
+    # Actual test for 15895: with --systemd, no ttyN devices are passed through
+    run_podman run --rm -d --privileged --systemd=always $IMAGE ./pause
+    cid="$output"
+
+    run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
+    assert "$output" = "0" \
+           "ls /dev/tty[0-9] with --systemd=always: should have no ttyN devices"
+
+    run_podman stop -t 0 $cid
+}
+
+@test "podman run --privileged as rootless will not mount /dev/tty\d+" {
+    skip_if_not_rootless "this test as rootless"
+
+    # First, confirm that we _have_ /dev/ttyNN devices on the host.
+    # ('skip' would be nicer in some sense... but could hide a regression.
+    # Fedora, RHEL, Debian, Ubuntu, Gentoo, all have /dev/ttyN, so if
+    # this ever triggers, it means a real problem we should know about.)
+    vt_tty_devices_count=$(find /dev -regex '/dev/tty[0-9].*' | wc -w)
+    assert "$vt_tty_devices_count" != "0" \
+           "Expected at least one /dev/ttyN device on host"
+
+    run_podman run --rm -d --privileged $IMAGE ./pause
+    cid="$output"
+
+    run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
+    assert "$output" = "0" \
+           "ls /dev/tty[0-9]: should have no ttyN devices"
+
+    run_podman stop -t 0 $cid
+}
+
+# 16925: --privileged + --systemd = share non-virtual-terminal TTYs (both rootful and rootless)
+@test "podman run --privileged as root with systemd mounts non-vt /dev/tty devices" {
+    # First, confirm that we _have_ non-virtual terminal /dev/tty* devices on
+    # the host.
+    non_vt_tty_devices_count=$(find /dev -regex '/dev/tty[^0-9].*' | wc -w)
+    if [ "$non_vt_tty_devices_count" -eq 0 ]; then
+        skip "The server does not have non-vt TTY devices"
+    fi
+
+    # Verify that all the non-vt TTY devices got mounted in the container
+    run_podman run --rm -d --privileged --systemd=always $IMAGE ./pause
+    cid="$output"
+    run_podman '?' exec $cid find /dev -regex '/dev/tty[^0-9].*'
+    assert "$status" = 0 \
+           "No non-virtual-terminal TTY devices got mounted in the container"
+    assert "$(echo "$output" | wc -w)" = "$non_vt_tty_devices_count" \
+           "Some non-virtual-terminal TTY devices are missing in the container"
+    run_podman stop -t 0 $cid
+}
+
+@test "podman run read-only from containers.conf" {
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+read_only=true
+EOF
+
+    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
+    CONTAINERS_CONF="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
+    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
+    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
+}
+
+@test "podman run ulimit from containers.conf" {
+    skip_if_remote "containers.conf has to be set on remote, only tested on E2E test"
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    nofile1=$((RANDOM % 10000 + 5))
+    nofile2=$((RANDOM % 10000 + 5))
+    cat >$containersconf <<EOF
+[containers]
+default_ulimits = [
+  "nofile=${nofile1}:${nofile1}",
+]
+EOF
+
+    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE grep "Max open files" /proc/self/limits
+    assert "$output" =~ " ${nofile1}  * ${nofile1}  * files"
+    CONTAINERS_CONF="$containersconf" run_podman run --ulimit nofile=${nofile2}:${nofile2} --rm $IMAGE grep "Max open files" /proc/self/limits
+    assert "$output" =~ " ${nofile2}  * ${nofile2}  * files"
+}
+
+@test "podman run bad --name" {
+    randomname=$(random_string 30)
+    run_podman 125 create --name "$randomname/bad" $IMAGE
+    run_podman create --name "/$randomname" $IMAGE
+    run_podman ps -a --filter name="^/$randomname$" --format '{{ .Names }}'
+    is $output "$randomname" "Should be able to find container by name"
+    run_podman rm "/$randomname"
+    run_podman 125 create --name "$randomname/" $IMAGE
+}
+
+@test "podman run --net=host --cgroupns=host with read only cgroupfs" {
+    skip_if_rootless_cgroupsv1
+
+    if is_cgroupsv1; then
+        # verify that the memory controller is mounted read-only
+        run_podman run --net=host --cgroupns=host --rm $IMAGE cat /proc/self/mountinfo
+        assert "$output" =~ "/sys/fs/cgroup/memory ro.* cgroup cgroup"
+    else
+        # verify that the last /sys/fs/cgroup mount is read-only
+        run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
+        assert "$output" =~ "/sys/fs/cgroup ro"
+    fi
+}
+
+@test "podman run - stopping loop" {
+    skip_if_remote "this doesn't work with with the REST service"
+
+    run_podman run -d --name testctr --stop-timeout 240 $IMAGE sh -c 'echo READY; sleep 999'
+    cid="$output"
+    wait_for_ready testctr
+
+    run_podman inspect --format '{{ .State.ConmonPid }}' testctr
+    conmon_pid=$output
+
+    ${PODMAN} stop testctr &
+    stop_pid=$!
+
+    timeout=20
+    while :;do
+        sleep 0.5
+        run_podman container inspect --format '{{.State.Status}}' testctr
+        if [[ "$output" = "stopping" ]]; then
+            break
+        fi
+        timeout=$((timeout - 1))
+        if [[ $timeout == 0 ]]; then
+            run_podman ps -a
+            die "Timed out waiting for testctr to acknowledge signal"
+        fi
+    done
+
+    kill -9 ${stop_pid}
+    kill -9 ${conmon_pid}
+
+    # Unclear why `-t0` is required here, works locally without.
+    # But it shouldn't hurt and does make the test pass...
+    PODMAN_TIMEOUT=5 run_podman 125 stop -t0 testctr
+    is "$output" "Error: container .* conmon exited prematurely, exit code could not be retrieved: internal libpod error" "correct error on missing conmon"
+
+    # This should be safe because stop is guaranteed to call cleanup?
+    run_podman inspect --format "{{ .State.Status }}" testctr
+    is "$output" "exited" "container has successfully transitioned to exited state after stop"
 }
 
 # vim: filetype=sh

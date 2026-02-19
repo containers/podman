@@ -22,7 +22,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	// these ensure we have the implementations loaded
@@ -77,7 +77,7 @@ func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, err
 // RSAPSSSigner is desired instead, use the LoadRSAPSSSigner() and
 // cryptoutils.UnmarshalPEMToPrivateKey() methods directly.
 func LoadSignerFromPEMFile(path string, hashFunc crypto.Hash, pf cryptoutils.PassFunc) (Signer, error) {
-	fileBytes, err := ioutil.ReadFile(filepath.Clean(path))
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

@@ -254,10 +254,11 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		dfImages = []*entities.SystemDfImageReport{}
 	)
 
-	imageStats, err := ic.Libpod.LibimageRuntime().DiskUsage(ctx)
+	imageStats, totalImageSize, err := ic.Libpod.LibimageRuntime().DiskUsage(ctx)
 	if err != nil {
 		return nil, err
 	}
+	_ = totalImageSize // TODO: use totalImageSize in report
 
 	for _, stat := range imageStats {
 		report := entities.SystemDfImageReport{

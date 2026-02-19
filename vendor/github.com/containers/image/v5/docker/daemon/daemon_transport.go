@@ -53,7 +53,7 @@ func (t daemonTransport) ValidatePolicyConfigurationScope(scope string) error {
 // For daemonImageSource, both id and ref are acceptable, ref must not be a NameOnly (interpreted as all tags in that repository by the daemon)
 // For daemonImageDestination, it must be a ref, which is NamedTagged.
 // (We could, in principle, also allow storing images without tagging them, and the user would have to refer to them using the docker image ID = config digest.
-//  Using the config digest requires the caller to parse the manifest themselves, which is very cumbersome; so, for now, we don’t bother.)
+// Using the config digest requires the caller to parse the manifest themselves, which is very cumbersome; so, for now, we don’t bother.)
 type daemonReference struct {
 	id  digest.Digest
 	ref reference.Named // !reference.IsNameOnly
@@ -118,7 +118,7 @@ func (ref daemonReference) Transport() types.ImageTransport {
 // StringWithinTransport returns a string representation of the reference, which MUST be such that
 // reference.Transport().ParseReference(reference.StringWithinTransport()) returns an equivalent reference.
 // NOTE: The returned string is not promised to be equal to the original input to ParseReference;
-// e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
+// e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
 // WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix;
 // instead, see transports.ImageName().
 func (ref daemonReference) StringWithinTransport() string {
