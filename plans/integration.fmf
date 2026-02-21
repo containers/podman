@@ -1,0 +1,55 @@
+discover:
+    how: fmf
+
+execute:
+    how: tmt
+
+prepare:
+    - name: build and test dependencies
+      how: install
+      package:
+        - aardvark-dns
+        - go-md2man
+        - golang
+        - gpgme-devel
+        - libseccomp-devel
+        - netavark
+        - podman-catatonit
+        # podman-tests used only to fetch test dependencies
+        - podman-tests
+        - slirp4netns
+        - systemd-devel
+      order: 5
+    - how: shell
+      script: modprobe null_blk nr_devices=1
+      order: 5
+
+provision:
+    how: artemis
+    hardware:
+        memory: ">= 16 GB"
+        cpu:
+            cores: ">= 4"
+            threads: ">=8"
+        disk:
+            - size: ">= 512 GB"
+
+/root-local:
+    summary: Local rootful integration tests
+    discover+:
+        test: /test/tmt/int-root-local
+
+/rootless-local:
+    summary: Local rootless integration tests
+    discover+:
+        test: /test/tmt/int-rootless-local
+
+/root-remote:
+    summary: Remote rootful integration tests
+    discover+:
+        test: /test/tmt/int-root-remote
+
+/rootless-remote:
+    summary: Remote rootless integration tests
+    discover+:
+        test: /test/tmt/int-rootless-remote

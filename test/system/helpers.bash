@@ -41,6 +41,16 @@ if [ $(id -u) -eq 0 ]; then
     _LOG_PROMPT='#'
 fi
 
+if [[ -f /etc/os-release ]]; then
+    source /etc/os-release
+    if [[ -n "$ID" ]]; then
+        export HOST_DISTRO_NAME="$ID"
+    fi
+    if [[ -n "$VERSION_ID" ]]; then
+        export HOST_DISTRO_RELEASE="$VERSION_ID"
+    fi
+fi
+
 # Invocations via su may not set this. Although all container tools make
 # an effort to determine a default if unset, there are corner cases (rootless
 # namespace preservation) that run before the default is set.
