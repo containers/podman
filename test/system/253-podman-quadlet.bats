@@ -508,4 +508,60 @@ EOF
     run_podman quadlet rm alpine-quadlet.container
 }
 
+@test "quadlet install - subdirectories and replace (#28118)" {
+    local install_dir=$(get_quadlet_install_dir)
+    local subdir="$install_dir/test-subdir"
+    mkdir -p "$subdir"
+
+    local target_name="subdir-test.container"
+    local existing_path="$subdir/$target_name"
+
+    # 1. Manually place a mock quadlet in a subdirectory
+    cat > "$existing_path" <<EOF
+[Container]
+Image=$IMAGE
+Exec=echo "I AM IN SUBDIR"
+EOF
+
+    # 2. Create the new quadlet file we want to install
+    local quadlet_file=$PODMAN_TMPDIR/$target_name
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+
+    # 3. Attempt to install without --replace
+    # Expected: Should fail with the new "refusing to overwrite" error
+    # pointing to the subdirectory path.
+    run_podman 125 quadlet install $quadlet_file
+    assert "$output" =~ "already exists at.*test-subdir/subdir-test.container"
+    assert "$output" =~ "refusing to overwrite"
+
+    # 4. Attempt to install with --replace
+    # Expected: Should pass, install to the root install dir, and REMOVE the old file from the subdir.
+    run_podman quadlet install --replace $quadlet_file
+
+    # Verify install output contains the quadlet name
+    assert "$output" =~ "subdir-test.container"
+
+    # Verify the old file in the subdirectory is successfully deleted
+    if [[ -f "$existing_path" ]]; then
+        die "Old duplicate quadlet file was not removed from subdirectory: $existing_path"
+    fi
+
+    # Verify the new file is correctly placed in the root of the install dir
+    if [[ ! -f "$install_dir/$target_name" ]]; then
+        die "New quadlet file was not installed to the correct root dir: $install_dir/$target_name"
+    fi
+
+    # Verify Podman recognizes it
+    run_podman quadlet list
+    assert "$output" =~ "subdir-test.container"
+
+    # 5. Clean up
+    run_podman quadlet rm $target_name
+    rm -rf "$subdir"
+}
+
 # vim: filetype=sh
