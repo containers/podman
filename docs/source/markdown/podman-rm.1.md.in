@@ -77,6 +77,16 @@ Forcibly remove container with a given ID:
 $ podman rm -f 860a4b23
 ```
 
+Forcibly remove a container with a specified timeout (in seconds) before sending SIGKILL:
+```
+$ podman rm --time 2 --force 860a4b23
+```
+
+Forcibly remove a container instantly without waiting:
+```
+$ podman rm --time 0 --force 860a4b23
+```
+
 Remove all containers regardless of the run state:
 ```
 $ podman rm -f -a
@@ -137,11 +147,11 @@ mycontainer2
 
 
 ## Exit Status
-  **0**   All specified containers removed
+  **0** All specified containers removed
 
-  **1**   One of the specified containers did not exist, and no other failures
+  **1** One of the specified containers did not exist, and no other failures
 
-  **2**   One of the specified containers is paused or running
+  **2** One of the specified containers is paused or running
 
   **125** The command fails for any other reason
 
