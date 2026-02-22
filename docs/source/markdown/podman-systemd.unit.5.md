@@ -30,7 +30,7 @@ Quadlet files for non-root users can be placed in the following directories:
 
  * $XDG_RUNTIME_DIR/containers/systemd/
  * $XDG_CONFIG_HOME/containers/systemd/ or ~/.config/containers/systemd/
- * /etc/containers/systemd/users/$(UID)
+ * /etc/containers/systemd/users/${UID}
  * /etc/containers/systemd/users/
 
 ### Using symbolic links
