@@ -1898,6 +1898,12 @@ func startsWithSystemdSpecifier(filePath string) bool {
 }
 
 func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string, error) {
+	ignoreMissing := false
+	if strings.HasPrefix(filePath, "-") {
+		ignoreMissing = true
+		filePath = filePath[1:]
+	}
+
 	// When the path starts with a Systemd specifier do not resolve what looks like a relative address
 	if !startsWithSystemdSpecifier(filePath) && !filepath.IsAbs(filePath) {
 		if len(quadletUnitFile.Path) > 0 {
@@ -1909,6 +1915,11 @@ func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string,
 				return "", err
 			}
 		}
+	}
+
+	// If it had the ignore prefix, add it back to the absolute path
+	if ignoreMissing {
+		return "-" + filePath, nil
 	}
 	return filePath, nil
 }

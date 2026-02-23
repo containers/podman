@@ -670,4 +670,16 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		execSession.WaitWithDefaultTimeout()
 		Expect(execSession).Should(ExitWithError(137, ""))
 	})
+
+	It("podman exec --env-file with - prefix ignores missing file", func() {
+		ctrName := "test-exec-env-file"
+		setup := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(ExitCleanly())
+
+		session := podmanTest.Podman([]string{"exec", "--env-file=-/tmp/doesnotexist.env", ctrName, "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+	})
 })

@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	envLib "github.com/containers/podman/v6/pkg/env"
 	"github.com/containers/podman/v6/pkg/rootless"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 )
@@ -141,7 +142,12 @@ func exec(cmd *cobra.Command, args []string) error {
 	// Validate given environment variables
 	execOpts.Envs = make(map[string]string)
 	for _, f := range envFile {
-		fileEnv, err := envLib.ParseFile(f)
+		parsedFile, ignore := util.CheckFileIgnorePrefix(f)
+		if ignore {
+			continue
+		}
+
+		fileEnv, err := envLib.ParseFile(parsedFile)
 		if err != nil {
 			return err
 		}

@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
@@ -122,8 +123,14 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flags().Changed("authfile") {
-		if err := auth.CheckAuthFile(cliVals.Authfile); err != nil {
-			return err
+		parsedAuthfile, ignore := util.CheckFileIgnorePrefix(cliVals.Authfile)
+		if ignore {
+			cliVals.Authfile = "" // ignore the missing file
+		} else {
+			cliVals.Authfile = parsedAuthfile
+			if err := auth.CheckAuthFile(cliVals.Authfile); err != nil {
+				return err
+			}
 		}
 	}
 
