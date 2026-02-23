@@ -14,10 +14,14 @@ capabilities='{"drop":["CAP_FOWNER","CAP_SETFCAP"]}'
 
 # filter: convert yaml to json, because bash+yaml=madness
 function yaml2json() {
-    python3 -c 'import yaml
+    if command -v yq >/dev/null; then
+        yq -p yaml -o json
+    else
+        python3 -c 'import yaml
 import json
 import sys
 json.dump(yaml.safe_load(sys.stdin), sys.stdout)'
+    fi
 }
 
 ###############################################################################
