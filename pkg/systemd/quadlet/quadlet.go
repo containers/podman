@@ -1144,7 +1144,7 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 			if opts.Len() > 2 {
 				opts.WriteString(",")
 			}
-			opts.WriteString(fmt.Sprintf("uid=%d", uid))
+			fmt.Fprintf(&opts, "uid=%d", uid)
 		}
 
 		if volume.HasKey(VolumeGroup, "Group") {
@@ -1152,7 +1152,7 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 			if opts.Len() > 2 {
 				opts.WriteString(",")
 			}
-			opts.WriteString(fmt.Sprintf("gid=%d", gid))
+			fmt.Fprintf(&opts, "gid=%d", gid)
 		}
 
 		copy, ok := volume.LookupBoolean(VolumeGroup, KeyCopy)

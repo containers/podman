@@ -163,13 +163,13 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	// Could not find a humanize-formatter for time.Duration
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("%.0fh %.0fm %.2fs",
+	fmt.Fprintf(&buffer, "%.0fh %.0fm %.2fs",
 		uptime.hours,
 		math.Mod(uptime.minutes, 60),
 		math.Mod(uptime.seconds, 60),
-	))
+	)
 	if int64(uptime.hours) > 0 {
-		buffer.WriteString(fmt.Sprintf(" (Approximately %.2f days)", uptime.hours/24))
+		fmt.Fprintf(&buffer, " (Approximately %.2f days)", uptime.hours/24)
 	}
 	info.Uptime = buffer.String()
 
