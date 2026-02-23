@@ -900,7 +900,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.RestartRetries = &retries
 	}
 
-	if len(s.Secrets) == 0 || len(c.Secrets) != 0 {
+	if (len(s.Secrets) == 0 && len(s.EnvSecrets) == 0) || len(c.Secrets) != 0 {
 		s.Secrets, s.EnvSecrets, err = parseSecrets(c.Secrets)
 		if err != nil {
 			return err
