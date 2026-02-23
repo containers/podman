@@ -343,7 +343,7 @@ func processSecrets(query *BuildQuery, contextDirectory string, queryValues url.
 
 // createBuildOptions creates a buildah BuildOptions struct from query parameters and build context.
 // WARNING: caller must call the cleanup function if not nil.
-func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues url.Values, r *http.Request) (*buildahDefine.BuildOptions, cleanUpFunc, error) {
+func createBuildOptions(runtime *libpod.Runtime, query *BuildQuery, buildCtx *BuildContext, queryValues url.Values, r *http.Request) (*buildahDefine.BuildOptions, cleanUpFunc, error) {
 	identityLabel, _ := utils.ParseOptionalBool(query.IdentityLabel, "identitylabel", queryValues)
 
 	// Process various query parameters
@@ -634,6 +634,9 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 	systemContext := &types.SystemContext{
 		AuthFilePath:     authfile,
 		DockerAuthConfig: creds,
+	}
+	if sys := runtime.SystemContext(); sys != nil {
+		systemContext.BaseTLSConfig = sys.BaseTLSConfig
 	}
 	if err := utils.PossiblyEnforceDockerHub(r, systemContext); err != nil {
 		return nil, cleanup, utils.GetInternalServerError(fmt.Errorf("checking to enforce DockerHub: %w", err))
@@ -1081,7 +1084,7 @@ func buildImage(w http.ResponseWriter, r *http.Request, getBuildContextFunc getB
 	}
 
 	// Create build options
-	buildOptions, cleanup, err := createBuildOptions(query, buildContext, queryValues, r)
+	buildOptions, cleanup, err := createBuildOptions(runtime, query, buildContext, queryValues, r)
 	if cleanup != nil {
 		defer cleanup()
 	}
