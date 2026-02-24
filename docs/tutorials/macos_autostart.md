@@ -7,7 +7,7 @@ to automatically start your Podman machine at login.
 
 ## Prerequisites
 
-- macOS with Podman installed (e.g., via `brew install podman`)
+- macOS with Podman installed (see the [installation instructions](https://podman.io/docs/installation))
 - A Podman machine already initialized (`podman machine init`)
 - The Podman machine should start successfully when running `podman machine start` manually
 
@@ -36,15 +36,20 @@ $ which podman
 ```
 
 If you installed Podman with Homebrew on an Apple Silicon Mac, the path is
-typically `/opt/homebrew/bin/podman`. On Intel Macs, it is usually
-`/usr/local/bin/podman`.
+typically `/opt/homebrew/bin/podman`. If you installed Podman using the
+installer from the [release page](https://github.com/containers/podman/releases),
+the path is `/opt/podman/bin/podman`.
 
 ## Step 2: Create the LaunchAgent plist
 
 Create the file `~/Library/LaunchAgents/com.podman.machine.default.plist`
 with the following content. Replace `/opt/homebrew/bin/podman` with the
-path from Step 1 if it differs on your system. Replace `podman-machine-default`
-with the name of your machine if you are not using the default.
+path from Step 1 if it differs on your system.
+
+**Note:** Running `podman machine start` without specifying a machine name
+will automatically start the default machine. The example below explicitly
+uses `podman-machine-default`; replace it with the name of your machine if
+you are not using the default.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
