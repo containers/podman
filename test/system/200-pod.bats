@@ -813,6 +813,8 @@ function thingy_with_unique_id() {
 
     run_podman pod inspect --format '{{ .SharedNamespaces }}' $pod_name
     assert "$output" == "[ipc net uts]"
+
+    run_podman pod rm $pod_name
 }
 
 # vim: filetype=sh
