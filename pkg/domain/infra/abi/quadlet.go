@@ -330,6 +330,46 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		finalPath = filepath.Join(installDir, destName)
 	}
 
+	// Fix for #28118: Check if quadlet already exists in subdirectories
+	if isQuadletFile {
+		targetName := filepath.Base(finalPath)
+		var existingPath string
+		err := filepath.WalkDir(installDir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					return nil
+				}
+				return err
+			}
+			// Skip the root install directory itself
+			if path == installDir {
+				return nil
+			}
+			if !d.IsDir() && d.Name() == targetName {
+				existingPath = path
+				return fs.SkipAll
+			}
+			return nil
+		})
+		if err != nil {
+			return "", fmt.Errorf("checking for existing quadlet: %w", err)
+		}
+
+		if existingPath != "" {
+			if !replace {
+				return "", fmt.Errorf("a Quadlet with name %s already exists at %q, refusing to overwrite", targetName, existingPath)
+			}
+			// If replacing and the file is in a different location (e.g. a subdirectory),
+			// remove the old one to avoid duplicates.
+			if existingPath != finalPath {
+				if err := os.Remove(existingPath); err != nil {
+					return "", fmt.Errorf("unable to remove existing quadlet %q: %w", existingPath, err)
+				}
+				logrus.Debugf("Removed existing duplicate quadlet at %q", existingPath)
+			}
+		}
+	}
+
 	// Validate extension is valid
 	if isQuadletFile && !systemdquadlet.IsExtSupported(finalPath) {
 		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
