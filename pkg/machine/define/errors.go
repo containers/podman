@@ -6,10 +6,10 @@ import (
 )
 
 var (
-	ErrWrongState          = errors.New("VM in wrong state to perform action")
-	ErrNotImplemented      = errors.New("functionality not implemented")
-	ErrInitRelaunchAttempt = errors.New("stopping execution: 'init' relaunched with --reexec flag to reinitialize the VM")
-	ErrRebootInitiated     = errors.New("system reboot initiated")
+	ErrWrongState      = errors.New("VM in wrong state to perform action")
+	ErrNotImplemented  = errors.New("functionality not implemented")
+	ErrRelaunchAttempt = errors.New("stopping execution: command relaunched with --reexec flag for elevated privileges")
+	ErrRebootInitiated = errors.New("system reboot initiated")
 )
 
 type ErrVMAlreadyExists struct {

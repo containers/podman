@@ -3,9 +3,12 @@
 package machine
 
 import (
+	"errors"
+
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/machine"
+	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/shim"
 	"github.com/spf13/cobra"
 )
@@ -38,6 +41,13 @@ func init() {
 
 	imageFlagName := "save-image"
 	flags.BoolVar(&destroyOptions.SaveImage, imageFlagName, false, "Do not delete the image file")
+
+	flags.BoolVar(
+		&destroyOptions.ReExec,
+		"reexec", false,
+		"process was rexeced",
+	)
+	_ = flags.MarkHidden("reexec")
 }
 
 func rm(_ *cobra.Command, args []string) error {
@@ -53,6 +63,13 @@ func rm(_ *cobra.Command, args []string) error {
 	}
 
 	if err := shim.Remove(mc, vmProvider, destroyOptions); err != nil {
+		// The removal is partially complete and podman should
+		// exit gracefully with no error and no success message.
+		// Examples:
+		// - reexec for limited admin operations, returning to parent
+		if errors.Is(err, define.ErrRelaunchAttempt) {
+			return nil
+		}
 		return err
 	}
 	newMachineEvent(events.Remove, events.Event{Name: vmName})

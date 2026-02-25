@@ -46,6 +46,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	var err error
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
+	callbackFuncs.Add(createErrorLogCallback(&err))
 	go callbackFuncs.CleanOnSignal()
 
 	hwConfig := hypervctl.HardwareConfig{
@@ -63,6 +64,13 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	// This is to prevent a non-admin user from creating the first machine
 	// which would require adding vsock entries into the Windows Registry.
 	if err := h.canCreate(); err != nil {
+		// If it returns ErrHypervRegistryInitRequiresElevation and we're not already re-executing,
+		// offer to elevate automatically if user is in admin group
+		if err == ErrHypervRegistryInitRequiresElevation && !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
+			message := "To initialize the first Hyper-V machine, Podman requires admin rights to set up the Windows Registry.\n\n" +
+				windows.UACConfirmationPrompt
+			return launchElevate(message)
+		}
 		return err
 	}
 
@@ -179,6 +187,13 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 	// This is to prevent a non-admin user from deleting the last machine
 	// which would require removal of vsock entries from the Windows Registry.
 	if err := h.canRemove(mc); err != nil {
+		// If we get ErrHypervRegistryRemoveRequiresElevation and we're not already re-executing,
+		// and the user has admin rights (is in admin group), offer to elevate automatically
+		if err == ErrHypervRegistryRemoveRequiresElevation && !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
+			message := "Removing this Hyper-V machine requires admin rights to clean up the Windows Registry.\n\n" +
+				windows.UACConfirmationPrompt
+			return nil, nil, launchElevate(message)
+		}
 		return nil, nil, err
 	}
 
@@ -235,6 +250,35 @@ func (h HyperVStubber) canCreate() error {
 		return nil
 	}
 	return ErrHypervUserNotInAdminGroup
+}
+
+// launchElevate attempts to automatically re-run the command as administrator
+// This is similar to how WSL handles elevation.
+func launchElevate(message string) error {
+	if windows.MessageBox(message, "Podman Machine", false) != 1 {
+		return errors.New("elevation process cancelled by user. Please rerun the command as administrator")
+	}
+	err := windows.CreateOrTruncateElevatedOutputFile()
+	if err != nil {
+		return err
+	}
+
+	err = windows.RelaunchElevatedWait()
+	if err != nil {
+		windows.DumpOutputFile()
+		return fmt.Errorf("elevated process failed with error: %w", err)
+	}
+	return define.ErrRelaunchAttempt
+}
+
+// createErrorLogCallback creates a callback function that logs errors to file when --reexec is detected
+func createErrorLogCallback(err *error) func() error {
+	return func() error {
+		if *err != nil && windows.IsReExecuting() {
+			windows.LogErrorToFile(*err)
+		}
+		return nil
+	}
 }
 
 func isLegacyMachine(mc *vmconfigs.MachineConfig) bool {
@@ -372,6 +416,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
+	callbackFuncs.Add(createErrorLogCallback(&err))
 	go callbackFuncs.CleanOnSignal()
 
 	if mc.IsFirstBoot() {
@@ -547,6 +592,11 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.
 	readySock, err := vsock.LoadHVSockRegistryEntryByPurpose(vsock.Events)
 	if err != nil {
 		if !windows.HasAdminRights() {
+			if !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
+				message := "Initializing the first Hyper-V machine requires admin rights to set up the Windows Registry.\n\n" +
+					windows.UACConfirmationPrompt
+				return nil, launchElevate(message)
+			}
 			return nil, ErrHypervRegistryInitRequiresElevation
 		}
 		readySock, err = vsock.NewHVSockRegistryEntry(vsock.Events)
