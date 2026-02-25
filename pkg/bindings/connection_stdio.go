@@ -2,6 +2,7 @@ package bindings
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"time"
@@ -36,7 +37,7 @@ func dialSSHStdio(client *ssh.Client, path string) (net.Conn, error) {
 		return nil, err
 	}
 
-	cmd := "podman system dial-stdio"
+	cmd := fmt.Sprintf("podman --url unix://%s system dial-stdio", path)
 	if err := session.Start(cmd); err != nil {
 		session.Close()
 		return nil, err
