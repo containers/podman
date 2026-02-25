@@ -50,6 +50,9 @@ func (e EventJournalD) Write(ee Event) error {
 		if ee.ContainerExitCode != nil {
 			m["PODMAN_EXIT_CODE"] = strconv.Itoa(*ee.ContainerExitCode)
 		}
+		if ee.OOMKilled != nil {
+			m["PODMAN_OOM_KILLED"] = strconv.FormatBool(*ee.OOMKilled)
+		}
 		if ee.PodID != "" {
 			m["PODMAN_POD_ID"] = ee.PodID
 		}
@@ -248,6 +251,14 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 				logrus.Errorf("Parsing event exit code %s", code)
 			} else {
 				newEvent.ContainerExitCode = &intCode
+			}
+		}
+		if val, ok := entry.Fields["PODMAN_OOM_KILLED"]; ok {
+			oomKilled, err := strconv.ParseBool(val)
+			if err != nil {
+				logrus.Errorf("Parsing event oom killed value %s", val)
+			} else {
+				newEvent.OOMKilled = &oomKilled
 			}
 		}
 		if err := getLabelsFromJournal(entry, &newEvent); err != nil {
