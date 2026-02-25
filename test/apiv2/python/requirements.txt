@@ -3,6 +3,6 @@ requests~=2.32.3
 setuptools~=82.0.0
 python-dateutil~=2.9.0
 PyYAML~=6.0.0
-openapi-schema-validator~=0.6.2
+openapi-schema-validator~=0.7.1
 pytest==9.0.1
 docker~=7.1.0
