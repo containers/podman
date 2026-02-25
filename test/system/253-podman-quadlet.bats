@@ -508,4 +508,43 @@ EOF
     run_podman quadlet rm alpine-quadlet.container
 }
 
+@test "quadlet verb - list shows Pod field" {
+    # Create a pod quadlet
+    local pod_file=$PODMAN_TMPDIR/test-pod.pod
+    cat > $pod_file <<EOF
+[Pod]
+EOF
+    # Create a container quadlet that joins the pod
+    local container_file=$PODMAN_TMPDIR/pod-member.container
+    cat > $container_file <<EOF
+[Container]
+Image=$IMAGE
+Pod=test-pod
+Exec=sh -c "echo STARTED CONTAINER IN POD; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+    # Create a standalone container (no pod)
+    local standalone_file=$PODMAN_TMPDIR/standalone.container
+    cat > $standalone_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED STANDALONE; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+    # Install all quadlets
+    run_podman quadlet install $pod_file $container_file $standalone_file
+
+    # Test that Pod field appears in custom format
+    run_podman quadlet list --format '{{.Name}} {{.Pod}}'
+    assert "$output" =~ "pod-member.container test-pod" "container in pod should show pod name"
+    assert "$output" =~ $'standalone.container[[:space:]]*($|\n)' "standalone container should have empty pod field"
+    assert "$output" =~ $'test-pod.pod[[:space:]]*($|\n)' "pod itself should have empty pod field"
+
+    # Test that Pod field works in JSON output
+    run_podman quadlet list --format json
+    assert "$output" =~ '"Name".*"pod-member.container"' "JSON should contain pod-member"
+    assert "$output" =~ '"Pod".*"test-pod"' "JSON should show Pod field with value"
+
+    # Clean up
+    run_podman quadlet rm test-pod.pod pod-member.container standalone.container
+}
+
 # vim: filetype=sh
