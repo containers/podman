@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -406,5 +407,30 @@ var _ = Describe("Podman stop", func() {
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(ExitCleanly())
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
+	})
+
+	It("podman stop sets FinishedTime correctly", func() {
+		// Regression test for https://github.com/containers/podman/issues/27282
+		beforeStop := time.Now()
+
+		session := podmanTest.RunTopContainer("test_finished_time")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"stop", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		afterStop := time.Now()
+
+		// Inspect the container to check FinishedAt time
+		data := podmanTest.InspectContainer("test_finished_time")
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].State.FinishedAt).ToNot(BeZero())
+
+		// FinishedAt should be between beforeStop and afterStop
+		Expect(data[0].State.FinishedAt.Unix()).To(BeNumerically(">=", beforeStop.Unix()-5))
+		Expect(data[0].State.FinishedAt.Unix()).To(BeNumerically("<=", afterStop.Unix()+5))
 	})
 })

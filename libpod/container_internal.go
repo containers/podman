@@ -223,7 +223,16 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	// Write an event for the container's death
 	c.newContainerExitedEvent(c.state.ExitCode)
 
-	return c.runtime.state.AddContainerExitCode(c.ID(), c.state.ExitCode)
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	// Don't fail if adding exit code fails - state is already persisted
+	if err := c.runtime.state.AddContainerExitCode(c.ID(), c.state.ExitCode); err != nil {
+		logrus.Warnf("Failed to add exit code for container %s: %v", c.ID(), err)
+	}
+
+	return nil
 }
 
 func (c *Container) shouldRestart() bool {
