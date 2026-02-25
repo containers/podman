@@ -556,8 +556,11 @@ func prepareAuthHeaders(options types.BuildOptions, requestParts *RequestParts) 
 // It handles URLs, stdin input, symlinks, and determines which files need to be included
 // in the tar archive versus which are already in the context directory.
 // The stdinDestination parameter specifies where to save stdin content when processing /dev/stdin.
+// If confineDockerfileToContext is true (e.g. remote /build), containerfiles outside the context
+// directory will be copied into the context and the dockerfile parameter will be set to a
+// context-relative path.
 // WARNING: Caller must ensure tempManager.Cleanup() is called to remove any temporary files created.
-func prepareContainerFiles(containerFiles []string, contextDir string, stdinDestination string, tempManager *remote_build_helpers.TempFileManager) (*BuildFilePaths, error) {
+func prepareContainerFiles(containerFiles []string, contextDir string, stdinDestination string, tempManager *remote_build_helpers.TempFileManager, confineDockerfileToContext bool) (*BuildFilePaths, error) {
 	out := BuildFilePaths{
 		tarContent:        []string{contextDir},
 		newContainerFiles: []string{}, // dockerfile paths, relative to context dir, ToSlash()ed
@@ -604,13 +607,33 @@ func prepareContainerFiles(containerFiles []string, contextDir string, stdinDest
 				if !os.IsNotExist(err) {
 					return nil, err
 				}
+				if confineDockerfileToContext {
+					return nil, fmt.Errorf("containerfile %q does not exist", c)
+				}
 				containerfile = c
 				out.dontexcludes = append(out.dontexcludes, "!"+containerfile)
 				out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".dockerignore")
 				out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".containerignore")
 			} else {
-				// If Containerfile does exist and not in the context directory, add it to the tarfile
-				out.tarContent = append(out.tarContent, containerfile)
+				if confineDockerfileToContext {
+					f, err := os.Open(containerfile)
+					if err != nil {
+						return nil, err
+					}
+					defer f.Close()
+
+					tmpInContext, err := tempManager.CreateTempFileFromReader(contextDir, "podman-build-containerfile-*", f)
+					if err != nil {
+						return nil, err
+					}
+					containerfile = filepath.Base(tmpInContext)
+					out.dontexcludes = append(out.dontexcludes, "!"+containerfile)
+					out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".dockerignore")
+					out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".containerignore")
+				} else {
+					// If Containerfile does exist and not in the context directory, add it to the tarfile
+					out.tarContent = append(out.tarContent, containerfile)
+				}
 			}
 		}
 		out.newContainerFiles = append(out.newContainerFiles, filepath.ToSlash(containerfile))
@@ -1023,11 +1046,13 @@ func build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
 		return nil, err
 	}
+
+	confineDockerfileToContext := endpoint == "/build"
 	stdinDestination := ""
-	if endpoint == "/local/build" {
+	if endpoint == "/local/build" || confineDockerfileToContext {
 		stdinDestination = contextDirAbs
 	}
-	buildFilePaths, err := prepareContainerFiles(containerFiles, contextDirAbs, stdinDestination, tempManager)
+	buildFilePaths, err := prepareContainerFiles(containerFiles, contextDirAbs, stdinDestination, tempManager, confineDockerfileToContext)
 	if err != nil {
 		return nil, err
 	}
