@@ -55,12 +55,9 @@ func ls(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("setting up grpc client for podman service: %w", err)
 	}
-	if err != nil {
-		return fmt.Errorf("setting up grpc client for podman service: %w", err)
-	}
 	reflectionClient := reflectionv1.NewServerReflectionClient(grpcClient)
 	if reflectionClient == nil {
-		return fmt.Errorf("setting up client for reflection grpc service: %w", err)
+		return errors.New("setting up client for reflection grpc service")
 	}
 	info, err := reflectionClient.ServerReflectionInfo(ctx)
 	if err != nil {
