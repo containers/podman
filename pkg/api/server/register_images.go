@@ -92,7 +92,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - name: filters
 	//     in: query
 	//     description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
 	//        - `dangling=true`
 	//        - `label=key` or `label="key=value"` of an image label
@@ -187,7 +187,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that have at least 'number' stars.
@@ -232,6 +232,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: noprune
 	//    type: boolean
 	//    description: do not remove dangling parent images
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    default: false
+	//    description: Ignore if a specified image does not exist and do not throw an error.
 	// produces:
 	//  - application/json
 	// responses:
@@ -900,7 +905,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - name: filters
 	//     in: query
 	//     description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
 	//        - `dangling=true`
 	//        - `label=key` or `label="key=value"` of an image label
@@ -1070,6 +1075,15 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: force
 	//    type: boolean
 	//    description: remove the image even if used by containers or has other tags
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    default: false
+	//    description: Ignore if a specified image does not exist and do not throw an error.
+	//  - in: query
+	//    name: lookupManifest
+	//    type: boolean
+	//    description: Resolve to a manifest list instead of an image.
 	// produces:
 	// - application/json
 	// responses:
@@ -1207,7 +1221,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that have at least 'number' stars.
