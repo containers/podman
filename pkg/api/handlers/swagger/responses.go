@@ -59,7 +59,7 @@ type imagesImportResponseLibpod struct {
 	Body entities.ImageImportReport
 }
 
-// Image Pull
+// Image Pull. Error may still occur, in that case its description is in the `error` field.
 // swagger:response
 type imagesPullResponseLibpod struct {
 	// in:body

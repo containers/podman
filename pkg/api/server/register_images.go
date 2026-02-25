@@ -1089,7 +1089,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images
 	// summary: Pull images
-	// description: Pull one or more images from a container registry.
+	// description: Pull one or more images from a container registry. Error status codes can come either from the API or from the registry.
 	// parameters:
 	//   - in: query
 	//     name: reference
@@ -1141,6 +1141,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/imagesPullResponseLibpod"
 	//   400:
 	//     $ref: "#/responses/badParamError"
+	//   401:
+	//     $ref: "#/responses/repositoryBadAuth"
+	//   403:
+	//     $ref: "#/responses/repositoryForbidden"
+	//   404:
+	//     $ref: "#/responses/imageNotFound"
 	//   500:
 	//     $ref: '#/responses/internalError'
 	r.Handle(VersionedPath("/libpod/images/pull"), s.APIHandler(libpod.ImagesPull)).Methods(http.MethodPost)
