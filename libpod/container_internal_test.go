@@ -5,14 +5,17 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/image/v5/manifest"
 	"go.podman.io/storage/pkg/idtools"
 	stypes "go.podman.io/storage/types"
 )
@@ -204,6 +207,93 @@ func TestPostDeleteHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, strings.TrimSuffix(string(content), "\n"), dir)
+}
+func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
+	tmpDir := t.TempDir()
+	notifySock := filepath.Join(tmpDir, "notify.sock")
+
+	addr := &net.UnixAddr{Name: notifySock, Net: "unixgram"}
+	serverConn, err := net.ListenUnixgram("unixgram", addr)
+	if err != nil {
+		t.Fatalf("failed to create fake notify socket: %v", err)
+	}
+	defer serverConn.Close()
+
+	received := make([]string, 0)
+	done := make(chan struct{})
+
+	go func() {
+		buf := make([]byte, 2048)
+		for {
+			err := serverConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+			if err != nil {
+				return
+			}
+			n, _, err := serverConn.ReadFromUnix(buf)
+			if err != nil {
+				close(done)
+				return
+			}
+			received = append(received, string(buf[:n]))
+		}
+	}()
+
+	ctr := &fakeContainer{
+		Container: &Container{
+			config: &ContainerConfig{
+				ContainerMiscConfig: ContainerMiscConfig{
+					SdNotifyMode:   "healthy",
+					SdNotifySocket: notifySock,
+					HealthCheckConfig: &manifest.Schema2HealthConfig{
+						StartPeriod: 20 * time.Minute,
+					},
+				},
+			},
+		},
+
+		waitFunc: func(waitTimeout time.Duration, cond ...string) (int32, error) {
+			time.Sleep(100 * time.Millisecond)
+			return 1, nil
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err = ctr.waitForHealthy(ctx)
+	if err != nil {
+		t.Fatalf("waitForHealthy returned unexpected error: %v", err)
+	}
+
+	<-done
+
+	sawExtend := false
+	sawReady := false
+
+	for _, m := range received {
+		if strings.HasPrefix(m, "EXTEND_TIMEOUT_USEC=") {
+			sawExtend = true
+		}
+		if m == "READY=1" {
+			sawReady = true
+		}
+	}
+
+	if !sawExtend {
+		t.Fatalf("expected EXTEND_TIMEOUT_USEC messages but none were sent")
+	}
+	if !sawReady {
+		t.Fatalf("expected READY=1 but none were sent")
+	}
+}
+
+type fakeContainer struct {
+	*Container
+	waitFunc func(waitTimeout time.Duration, conditions ...string) (int32, error)
+}
+
+func (f *fakeContainer) WaitForConditionWithInterval(_ context.Context, waitTimeout time.Duration, conditions ...string) (int32, error) {
+	return f.waitFunc(waitTimeout, conditions...)
 }
 
 func init() {
