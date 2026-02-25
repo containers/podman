@@ -31,14 +31,15 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		AllTags    bool   `schema:"allTags"`
-		CompatMode bool   `schema:"compatMode"`
-		PullPolicy string `schema:"policy"`
-		Quiet      bool   `schema:"quiet"`
-		Reference  string `schema:"reference"`
-		Retry      uint   `schema:"retry"`
-		RetryDelay string `schema:"retrydelay"`
-		TLSVerify  bool   `schema:"tlsVerify"`
+		AllTags      bool   `schema:"allTags"`
+		CompatMode   bool   `schema:"compatMode"`
+		PullProgress bool   `schema:"pullProgress"`
+		PullPolicy   string `schema:"policy"`
+		Quiet        bool   `schema:"quiet"`
+		Reference    string `schema:"reference"`
+		Retry        uint   `schema:"retry"`
+		RetryDelay   string `schema:"retrydelay"`
+		TLSVerify    bool   `schema:"tlsVerify"`
 		// Platform fields below:
 		Arch    string `schema:"Arch"`
 		OS      string `schema:"OS"`
@@ -129,6 +130,10 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if query.PullProgress {
+		utils.PullProgress(r.Context(), w, runtime, query.Reference, pullPolicy, pullOptions)
+		return
+	}
 	if query.CompatMode {
 		utils.CompatPull(r.Context(), w, runtime, query.Reference, pullPolicy, pullOptions)
 		return
