@@ -56,9 +56,11 @@ func init() {
 }
 
 {{ if not .UseGoStructFlags}}
-var ({{ if .ExcludeSpec }}
+var (
+  {{- if .ExcludeSpec }}
   specFile         string
-  {{ end }}enabledListeners []string
+  {{- end }}
+  enabledListeners []string
   cleanupTimeout   time.Duration
   gracefulTimeout  time.Duration
   maxHeaderSize    flagext.ByteSize
@@ -83,7 +85,7 @@ var ({{ if .ExcludeSpec }}
   tlsCACertificate  string
 )
 
-{{ if .UseFlags}}
+  {{ if .UseFlags}}
 // StringSliceVar support for flag
 type sliceValue []string
 
@@ -97,22 +99,22 @@ func (s *sliceValue) Set(val string) error {
 	return nil
 }
 
-func (s *sliceValue) Get() interface{} { return []string(*s) }
+func (s *sliceValue) Get() any { return []string(*s) }
 
 func (s *sliceValue) String() string { return strings.Join([]string(*s), ",") }
 // end StringSliceVar support for flag
-{{ end }}
+  {{- end }}
 
 func init() {
-  maxHeaderSize = flagext.ByteSize(1000000){{ if .ExcludeSpec }}
-  flag.StringVarP(&specFile, "spec", "", "", "the swagger specification to serve")
-  {{ end }}
-  {{ if .UseFlags }}
-	flag.Var(newSliceValue(defaultSchemes, &enabledListeners), "schema", "the listeners to enable, this can be repeated and defaults to the schemes in the swagger spec")
-	{{ end }}
-	{{ if .UsePFlags }}
+  maxHeaderSize = flagext.ByteSize(1000000)
+  {{- if .ExcludeSpec }}
+  flag.StringVar(&specFile, "spec", "", "the swagger specification to serve")
+  {{- end }}
+  {{- if .UseFlags }}
+	flag.Var(newSliceValue(defaultSchemes, &enabledListeners), "scheme", "the listeners to enable, this can be repeated and defaults to the schemes in the swagger spec")
+  {{- else if .UsePFlags }}
 	flag.StringSliceVar(&enabledListeners, "scheme", defaultSchemes, "the listeners to enable, this can be repeated and defaults to the schemes in the swagger spec")
-	{{ end }}
+	{{- end }}
 	flag.DurationVar(&cleanupTimeout, "cleanup-timeout", 10*time.Second, "grace period for which to wait before killing idle connections")
 	flag.DurationVar(&gracefulTimeout, "graceful-timeout", 15*time.Second, "grace period for which to wait before shutting down the server")
 	flag.Var(&maxHeaderSize, "max-header-size", "controls the maximum number of bytes the server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body")
@@ -165,7 +167,7 @@ func intEnvOverride(orig int, def int, keys ...string) int {
 	}
 	return orig
 }
-{{ end }}
+{{- end }}
 
 // NewServer creates a new api {{ humanize .Name }} server but does not configure it
 func NewServer(api *{{ .APIPackageAlias }}.{{ pascalize .Name }}API) *Server {
@@ -192,7 +194,7 @@ func NewServer(api *{{ .APIPackageAlias }}.{{ pascalize .Name }}API) *Server {
 	s.TLSReadTimeout = tlsReadTimeout
 	s.TLSWriteTimeout = tlsWriteTimeout
     {{- if .ExcludeSpec }}
-    s.Spec = specFile
+  s.Spec = specFile
     {{- end }}
   {{- end }}
 	s.shutdown = make(chan struct{})
@@ -255,7 +257,7 @@ type Server struct {
 }
 
 // Logf logs message either via defined user logger or via system one if no user logger is defined.
-func (s *Server) Logf(f string, args ...interface{}) {
+func (s *Server) Logf(f string, args ...any) {
 	if s.api != nil && s.api.Logger != nil {
 		s.api.Logger(f, args...)
 	} else {
@@ -265,7 +267,7 @@ func (s *Server) Logf(f string, args ...interface{}) {
 
 // Fatalf logs message either via defined user logger or via system one if no user logger is defined.
 // Exits with non-zero status after printing
-func (s *Server) Fatalf(f string, args ...interface{}) {
+func (s *Server) Fatalf(f string, args ...any) {
 	if s.api != nil && s.api.Logger != nil {
 		s.api.Logger(f, args...)
 		os.Exit(1)
@@ -332,15 +334,15 @@ func (s *Server) Serve() (err error) {
 			domainSocket.IdleTimeout = s.CleanupTimeout
 		}
 
-		configureServer(domainSocket, "unix", string(s.SocketPath))
+    configureServer(domainSocket, "unix", {{ if .UseGoStructFlags }}string({{ end }}s.SocketPath{{ if .UseGoStructFlags }}){{ end }})
 
 		servers = append(servers, domainSocket)
 		wg.Add(1)
 		s.Logf("Serving {{ humanize .Name }} at unix://%s", s.SocketPath)
 		go func(l net.Listener){
 		  defer wg.Done()
-		  if err := domainSocket.Serve(l); err != nil && err != http.ErrServerClosed {
-			s.Fatalf("%v", err)
+		  if errServe := domainSocket.Serve(l); errServe != nil && !errors.Is(errServe,http.ErrServerClosed) {
+			s.Fatalf("%v", errServe)
 		  }
 		  s.Logf("Stopped serving {{ humanize .Name }} at unix://%s", s.SocketPath)
 		}(s.domainSocketL)
@@ -369,8 +371,8 @@ func (s *Server) Serve() (err error) {
 		s.Logf("Serving {{ humanize .Name }} at http://%s", s.httpServerL.Addr())
 		go func(l net.Listener) {
 			defer wg.Done()
-			if err := httpServer.Serve(l); err != nil && err != http.ErrServerClosed {
-				s.Fatalf("%v", err)
+			if errServe := httpServer.Serve(l); errServe != nil && !errors.Is(errServe,http.ErrServerClosed) {
+				s.Fatalf("%v", errServe)
 			}
 			s.Logf("Stopped serving {{ humanize .Name }} at http://%s", l.Addr())
 		}(s.httpServerL)
@@ -433,7 +435,7 @@ func (s *Server) Serve() (err error) {
 			caCertPool := x509.NewCertPool()
 			ok := caCertPool.AppendCertsFromPEM(caCert)
 			if !ok {
-				return fmt.Errorf("cannot parse CA certificate")
+				return errors.New("cannot parse CA certificate")
 			}
 			httpsServer.TLSConfig.ClientCAs = caCertPool
 			httpsServer.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
@@ -464,8 +466,8 @@ func (s *Server) Serve() (err error) {
 		s.Logf("Serving {{ humanize .Name }} at https://%s", s.httpsServerL.Addr())
 		go func(l net.Listener) {
 			defer wg.Done()
-			if err := httpsServer.Serve(l); err != nil && err != http.ErrServerClosed {
-				s.Fatalf("%v", err)
+			if errServe := httpsServer.Serve(l); errServe != nil && !errors.Is(errServe,http.ErrServerClosed) {
+				s.Fatalf("%v", errServe)
 			}
 			s.Logf("Stopped serving {{ humanize .Name }} at https://%s", l.Addr())
 		}(tls.NewListener(s.httpsServerL, httpsServer.TLSConfig))
@@ -508,7 +510,7 @@ func (s *Server) Listen() error {
   }
 
   if s.hasScheme(schemeUnix) {
-    domSockListener, err := net.Listen("unix", string(s.SocketPath))
+    domSockListener, err := net.Listen("unix", {{ if .UseGoStructFlags }}string({{ end }}s.SocketPath{{ if .UseGoStructFlags }}){{ end }})
     if err != nil {
       return err
     }

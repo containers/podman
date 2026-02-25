@@ -239,7 +239,7 @@ func (option *Option) IsSetDefault() bool {
 // Set the value of an option to the specified value. An error will be returned
 // if the specified value could not be converted to the corresponding option
 // value type.
-func (option *Option) set(value *string) error {
+func (option *Option) Set(value *string) error {
 	kind := option.value.Type().Kind()
 
 	if (kind == reflect.Map || kind == reflect.Slice) && option.clearReferenceBeforeSet {
@@ -287,7 +287,7 @@ func (option *Option) setDefault(value *string) error {
 		return nil
 	}
 
-	if err := option.set(value); err != nil {
+	if err := option.Set(value); err != nil {
 		return err
 	}
 

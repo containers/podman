@@ -161,7 +161,7 @@ if err := validate.EnumCase(
       {{- .ValueExpression -}}{{- if .Child.IsCustomFormatter }}.String(){{ end -}}
     {{- end -}}
   {{- end -}},
-  {{- printf "%#v" .Enum -}}, {{ if .IsEnumCI }}false{{ else }}true{{ end }}); err != nil {
+  {{- printGoLiteral .Enum -}}, {{ if .IsEnumCI }}false{{ else }}true{{ end }}); err != nil {
   return err
   }
   {{- end }}
@@ -186,11 +186,15 @@ if err := validate.EnumCase(
   {{- else if and .IsComplexObject .HasValidations }}{{/* dedicated to nested body params */}}
   {{ varname .ValueExpression }} := {{ varname .ValueExpression }}V
   if err := {{ .ValueExpression }}.Validate(formats) ; err != nil {
-    if ve, ok := err.(*errors.Validation); ok {
-      return ve.ValidateName({{ .Path }})
-    } else if ce, ok := err.(*errors.CompositeError); ok {
-      return ce.ValidateName({{ .Path }})
+    ve := new(errors.Validation)
+    if stderrors.As(err, &ve) {
+      return ve.ValidateName({{ path . }})
     }
+    ce := new(errors.CompositeError)
+    if stderrors.As(err, &ce) {
+      return ce.ValidateName({{ path . }})
+    }
+
     return err
   }
   {{- else }}
@@ -298,6 +302,7 @@ package {{ .Package }}
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+  stderrors "errors"
   "fmt"
   "io"
   "net/http"
@@ -339,15 +344,15 @@ func New{{ pascalize .Name }}Params() {{ pascalize .Name }}Params {
       {{ if .HasDefault -}}
           {{ if not .IsFileParam }}{{ varname .ID}}Default =
               {{- if and .IsPrimitive .IsCustomFormatter (not (stringContains .Zero "(\"" )) }}{{ .Zero }}{{/* strfmt type initializer requires UnmarshalText(), e.g. Date, Datetime, Duration */}}
-              {{- else if and .IsPrimitive .IsCustomFormatter (stringContains .Zero "(\"" ) }}{{.GoType}}({{- printf "%#v" .Default }}){{/* strfmt type initializer takes string */}}
-              {{- else if and .IsPrimitive (not .IsCustomFormatter) -}}{{.GoType}}({{- printf "%#v" .Default }}){{/* regular go primitive type initializer */}}
+              {{- else if and .IsPrimitive .IsCustomFormatter (stringContains .Zero "(\"" ) }}{{.GoType}}({{- printGoLiteral .Default }}){{/* strfmt type initializer takes string */}}
+              {{- else if and .IsPrimitive (not .IsCustomFormatter) -}}{{.GoType}}({{- printGoLiteral .Default }}){{/* regular go primitive type initializer */}}
               {{- else if .IsArray -}}{{- /* Do not initialize from possible defaults in nested arrays */ -}}
                   {{- if and .Child.IsPrimitive .Child.IsCustomFormatter }}{{ .Zero }}{{/* initialization strategy with UnmarshalText() */}}
                   {{- else if .Child.IsArray -}}{{ .Zero }}{{/* initialization strategy with json.Unmarshal() */}}
                   {{- else if and .Child.IsPrimitive (not .Child.IsCustomFormatter) -}}{{.GoType}}{{- arrayInitializer .Default }}{{/* regular go primitive type initializer: simple slice initializer */}}
-                  {{- else }}{{ printf "%#v" .Default }}{{/* all other cases (e.g. schema) [should not occur] */}}
+                  {{- else }}{{ printGoLiteral .Default }}{{/* all other cases (e.g. schema) [should not occur] */}}
                   {{- end }}
-              {{- else }}{{ printf "%#v" .Default }}{{/* case .Schema */}}
+              {{- else }}{{ printGoLiteral .Default }}{{/* case .Schema */}}
               {{- end }}
           {{- end }}
       {{- end }}
@@ -378,11 +383,11 @@ func New{{ pascalize .Name }}Params() {{ pascalize .Name }}Params {
 //
 // swagger:parameters {{ .Name }}
 type {{ pascalize .Name }}Params struct {
-
   // HTTP Request Object
   HTTPRequest *http.Request `json:"-"`
+  {{- range .Params }}
 
-  {{ range .Params }}/*{{ if .Description }}{{ blockcomment .Description }}{{ end }}{{ if .Required }}
+  /*{{ if .Description }}{{ blockcomment .Description }}{{ end }}{{ if .Required }}
   Required: true{{ end }}{{ if .Maximum }}
   Maximum: {{ if .ExclusiveMaximum }}< {{ end }}{{ .Maximum }}{{ end }}{{ if .Minimum }}
   Minimum: {{ if .ExclusiveMinimum }}> {{ end }}{{ .Minimum }}{{ end }}{{ if .MultipleOf }}
@@ -395,10 +400,10 @@ type {{ pascalize .Name }}Params struct {
   Unique: true{{ end }}{{ if .Location }}
   In: {{ .Location }}{{ end }}{{ if .CollectionFormat }}
   Collection Format: {{ .CollectionFormat }}{{ end }}{{ if .HasDefault }}
-  Default: {{ printf "%#v" .Default }}{{ end }}
+  Default: {{ printGoLiteral .Default }}{{ end }}
   */
   {{ if not .Schema }}{{ pascalize .ID }} {{ if and (not .IsArray) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) .IsNullable }}*{{ end }}{{.GoType}}{{ else }}{{ pascalize .Name }} {{ if and (not .Schema.IsBaseType) .IsNullable (not .Schema.IsStream) }}*{{ end }}{{.GoType}}{{ end }}
-  {{ end}}
+  {{- end}}
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -409,19 +414,16 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
   var res []error
 
   {{ .ReceiverName }}.HTTPRequest = r
-
 {{- if .HasQueryParams }}
-
   qs := runtime.Values(r.URL.Query())
 {{- end }}
-
 {{- if .HasFormParams }}
 
   if err := r.ParseMultipartForm({{ pascalize .Name }}MaxParseMemory); err != nil {
-    if err != http.ErrNotMultipart {
+    if !stderrors.Is(err,http.ErrNotMultipart) {
             return errors.New(400,"%v",err)
-        } else if err := r.ParseForm(); err != nil {
-            return errors.New(400,"%v",err)
+        } else if errParse := r.ParseForm(); errParse != nil {
+            return errors.New(400,"%v",errParse)
         }
 	}
   {{- if .HasFormValueParams }}
@@ -451,19 +453,24 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
       {{- if .IsFileParam }}
 
   {{ camelize .Name }}, {{ camelize .Name }}Header, err := r.FormFile({{ .Path }})
-  if err != nil {{ if .IsNullable }}&& err != http.ErrMissingFile{{ end }}{
-    res = append(res, errors.New(400, "reading file %q failed: %v", {{ printf "%q" (camelize .Name) }}, err))
+  if err != nil {
         {{- if .IsNullable }}
-  } else if err == http.ErrMissingFile {
-    // no-op for missing but optional file parameter
+      if !stderrors.Is(err, http.ErrMissingFile) {
+        res = append(res, errors.New(400, "reading file %q failed: %v", {{ printf "%q" (camelize .Name) }}, err))
+      }
+      // no-op for missing but optional file parameter
+        {{- else }}
+      res = append(res, errors.New(400, "reading file %q failed: %v", {{ printf "%q" (camelize .Name) }}, err))
         {{- end }}
-  } else if err := {{ .ReceiverName }}.bind{{ pascalize .ID }}({{ camelize .Name }}, {{ camelize .Name }}Header); err != nil {
-        {{- if .Required }}
-    // Required: true
-        {{- end }}
-    res = append(res, err)
   } else {
-    {{ .ReceiverName }}.{{ pascalize .Name }} = &runtime.File{Data: {{ camelize .Name }}, Header: {{ camelize .Name }}Header}
+    if errBind := {{ .ReceiverName }}.bind{{ pascalize .ID }}({{ camelize .Name }}, {{ camelize .Name }}Header); errBind != nil {
+        {{- if .Required }}
+      // Required: true
+        {{- end }}
+      res = append(res, errBind)
+    } else {
+      {{ .ReceiverName }}.{{ pascalize .Name }} = &runtime.File{Data: {{ camelize .Name }}, Header: {{ camelize .Name }}Header}
+    }
   }
       {{- else }}
 
@@ -506,12 +513,14 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
     {{- if .Schema.IsStream }}
     {{ .ReceiverName }}.{{ pascalize .Name }} = r.Body
     {{- else }}
-    defer r.Body.Close()
+    defer func() {
+      _ = r.Body.Close()
+    }()
       {{- if and .Schema.IsBaseType .Schema.IsExported }}
     body, err := {{ toPackageName .ModelsPackage }}.Unmarshal{{ dropPackage .GoType }}{{ if .IsArray }}Slice{{ end }}(r.Body, route.Consumer)
     if err != nil {
         {{- if .Required }}
-      if err == io.EOF {
+      if stderrors.Is(err,io.EOF) {
         err = errors.Required({{ .Path }}, {{ printf "%q" .Location }}, "")
       }
         {{- end }}
@@ -520,7 +529,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) BindRequest(r *http.Requ
     var body {{ .GoType }}
     if err := route.Consumer.Consume(r.Body, &body); err != nil {
         {{- if .Required }}
-      if err == io.EOF {
+      if stderrors.Is(err,io.EOF) {
         res = append(res, errors.Required({{ printf "%q" (camelize .Name) }}, {{ printf "%q" .Location }}, ""))
       } else {
         {{- end }}
@@ -683,7 +692,7 @@ func ({{ .ReceiverName }} *{{ $className }}Params) bind{{ pascalize .ID }}(rawDa
 
     {{- if or (and (not .IsArray) .HasValidations) (and .IsArray .HasSliceValidations) }}
 
-// validate{{ pascalize .ID }} carries on validations for parameter {{ .ID }}
+// validate{{ pascalize .ID }} carries out validations for parameter {{ .ID }}
 func ({{ .ReceiverName }} *{{ $className }}Params) validate{{ pascalize .ID }}(formats strfmt.Registry) error {
   {{ template "propertyparamvalidator" . }}
   return nil

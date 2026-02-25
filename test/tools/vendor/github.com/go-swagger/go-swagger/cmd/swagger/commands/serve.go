@@ -10,12 +10,13 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/gorilla/handlers"
+	"github.com/toqueteos/webbrowser"
+
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
-	"github.com/gorilla/handlers"
-	"github.com/toqueteos/webbrowser"
 )
 
 // ServeCmd to serve a swagger spec with docs ui
@@ -48,7 +49,6 @@ func (s *ServeCmd) Execute(args []string) error {
 			ContinueOnError:     true,
 			AbsoluteCircularRef: true,
 		})
-
 		if err != nil {
 			return err
 		}

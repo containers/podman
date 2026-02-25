@@ -113,18 +113,18 @@ func (i *IniParser) ParseFile(filename string) error {
 //
 // The format of the ini file is as follows:
 //
-//     [Option group name]
-//     option = value
+//	[Option group name]
+//	option = value
 //
 // Each section in the ini file represents an option group or command in the
 // flags parser. The default flags parser option group (i.e. when using
 // flags.Parse) is named 'Application Options'. The ini option name is matched
 // in the following order:
 //
-//     1. Compared to the ini-name tag on the option struct field (if present)
-//     2. Compared to the struct field name
-//     3. Compared to the option long name (if present)
-//     4. Compared to the option short name (if present)
+//  1. Compared to the ini-name tag on the option struct field (if present)
+//  2. Compared to the struct field name
+//  3. Compared to the option long name (if present)
+//  4. Compared to the option short name (if present)
 //
 // Sections for nested groups and commands can be addressed using a dot `.'
 // namespacing notation (i.e [subcommand.Options]). Group section names are
@@ -584,7 +584,7 @@ func (i *IniParser) parse(ini *ini) error {
 			if i.ParseAsDefaults {
 				err = opt.setDefault(pval)
 			} else {
-				err = opt.set(pval)
+				err = opt.Set(pval)
 			}
 
 			if err != nil {

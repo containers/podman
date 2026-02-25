@@ -120,7 +120,7 @@ func retrieveOperation{{pascalize $operationGroup }}{{ pascalize $operation }}{{
 		{{/*Note anonymous body schema is not pointer*/}}
 		{{ flagValueVar .Name }} := {{if containsPkgStr .GoType}}{{ .GoType }}{{else}}{{ .Pkg }}.{{.GoType}}{{ end }}{}
 		if err := json.Unmarshal([]byte({{ flagValueVar .Name }}Str), &{{ flagValueVar .Name }}); err!= nil{
-			return fmt.Errorf("cannot unmarshal {{ $flagStr }} string in {{.GoType}}: %v", err), false
+			return fmt.Errorf("cannot unmarshal {{ $flagStr }} string in {{.GoType}}: %w", err), false
 		}
 		m.{{ .ID }} = {{- if .IsNullable }}&{{- end }}{{ flagValueVar .Name }}
 	{{- else }}
@@ -165,10 +165,12 @@ func retrieveOperation{{pascalize $operationGroup }}{{ pascalize $operation }}{{
 {{- /*TODO: handle multiple success response case*/}}
 func parseOperation{{pascalize .Package}}{{ pascalize .Name }}Result({{- if .SuccessResponse }}{{ range $i, $v := .SuccessResponses }} resp{{$i}} *{{$v.Package}}.{{pascalize $v.Name}},{{- end }}{{- end }} respErr error) (string, error){
 	if respErr != nil {
-		{{- /*error is of type default model. If we can cast, then print the resp.*/}}
-		{{ if .DefaultResponse }} {{with .DefaultResponse}}
-			{{ if .Schema }}
-		var iRespD interface{} = respErr
+{{- /*error is of type default model. If we can cast, then print the resp.*/}}
+{{- if .DefaultResponse }}
+  // default response
+  {{- with .DefaultResponse}}
+	  {{- if .Schema }}
+		var iRespD any = respErr
 		respD, ok := iRespD.(*{{ .Package }}.{{ pascalize .Name }})
 		if ok {
 			if !swag.IsZero(respD) && !swag.IsZero(respD.Payload) {
@@ -179,31 +181,39 @@ func parseOperation{{pascalize .Package}}{{ pascalize .Name }}Result({{- if .Suc
 				return string(msgStr), nil
 			}
 		}
-			{{ else }}
+		{{- else }}
 			// Non schema case: warning {{.Name}} is not supported
-			{{ end }}
-		{{ end }} {{ end }}
-		{{- range $i, $v := .Responses }}
-			{{ if .Schema }}
-		var iResp{{$i}} interface{} = respErr
-		resp{{$i}}, ok := iResp{{$i}}.(*{{ .Package }}.{{ pascalize .Name }})
+		{{- end }}
+	{{- end }}
+{{- end }}
+
+  // responses
+{{- range $i, $v := .Responses }}
+	{{- if .Schema }}
+		var iResp{{$i}} any = respErr
+		eresp{{$i}}, ok := iResp{{$i}}.(*{{ .Package }}.{{ pascalize .Name }})
 		if ok {
-			if !swag.IsZero(resp{{$i}}) && !swag.IsZero(resp{{$i}}.Payload) {
-				msgStr,err := json.Marshal(resp{{$i}}.Payload)
+      // the error response has a payload
+			if !swag.IsZero(eresp{{$i}}) && !swag.IsZero(eresp{{$i}}.Payload) {
+				msgStr,err := json.Marshal(eresp{{$i}}.Payload)
 				if err != nil{
 					return "", err
 				}
 				return string(msgStr), nil
 			}
 		}
-			{{ else }}
+
+	{{- else }}
 			// Non schema case: warning {{.Name}} is not supported
-			{{ end }}
-		{{ end }}
+
+	{{- end }}
+{{- end }}
 		return "", respErr
 	}
-	{{- range $i, $v := .SuccessResponses }}
-		{{ if .Schema }}
+
+  // success responses
+{{- range $i, $v := .SuccessResponses }}
+	{{- if .Schema }}
 		{{- with .Schema}}
 	if !swag.IsZero(resp{{$i}}) && !swag.IsZero(resp{{$i}}.Payload) {
 			{{- if or .IsComplexObject .IsArray .IsMap }}
@@ -216,11 +226,13 @@ func parseOperation{{pascalize .Package}}{{ pascalize .Name }}Result({{- if .Suc
 			{{- end }}
 		return string(msgStr), nil
 	}
+
 		{{- end }}
-		{{ else }}
+	{{- else }}
 		// warning: non schema response {{.Name}} is not supported by go-swagger cli yet.
-		{{ end }}
-	{{ end }}
+
+	{{- end }}
+{{- end }}
 	return "", nil
 }
 

@@ -251,7 +251,7 @@ func paramMappings(params map[string]spec.Parameter) (map[string]map[string]stri
 
 	// In order to avoid unstable generation, adopt same naming convention
 	// for all parameters with same name across locations.
-	seenIDs := make(map[string]interface{}, len(params))
+	seenIDs := make(map[string]any, len(params))
 	for id, p := range params {
 		debugLog("paramMappings: params: id=%s, In=%q, Name=%q", id, p.In, p.Name)
 		// guard against possible validation failures and/or skipped issues
@@ -286,7 +286,7 @@ func paramMappings(params map[string]spec.Parameter) (map[string]map[string]stri
 //
 // NOTE: this merely protects the timeout field in the client parameter struct,
 // fields "Context" and "HTTPClient" remain exposed to name conflicts.
-func renameTimeout(seenIDs map[string]interface{}, timeoutName string) string {
+func renameTimeout(seenIDs map[string]any, timeoutName string) string {
 	if seenIDs == nil {
 		return timeoutName
 	}
@@ -520,6 +520,7 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 
 		PrincipalIsNullable: b.GenOpts.PrincipalIsNullable(),
 		ExternalDocs:        trimExternalDoc(operation.ExternalDocs),
+		ReturnErrors:        b.GenOpts.ReturnErrors,
 	}, nil
 }
 
@@ -566,6 +567,7 @@ func (b *codeGenOpBuilder) MakeResponse(receiver, name string, isSuccess bool, r
 		StrictResponders: b.GenOpts.StrictResponders,
 		OperationName:    b.Name,
 		Examples:         examples,
+		ReturnErrors:     b.GenOpts.ReturnErrors,
 	}
 
 	// prepare response headers
@@ -778,7 +780,7 @@ func (b *codeGenOpBuilder) MakeParameter(receiver string, resolver *typeResolver
 			SchemaValidations: param.Validations(),
 		}
 
-		res.ZeroValue = res.resolvedType.Zero()
+		res.ZeroValue = res.Zero()
 
 		hasChildValidations := false
 		if param.Items != nil {
@@ -964,7 +966,7 @@ func (b *codeGenOpBuilder) setBodyParamValidation(p *GenParameter) {
 			// composition of primitive fields must be properly identified: hack this through
 			_, isPrimitive := primitives[s.GoType]
 			_, isFormatter := customFormatters[s.GoType]
-			isComposedPrimitive := s.IsPrimitive && !(isPrimitive || isFormatter)
+			isComposedPrimitive := s.IsPrimitive && !isPrimitive && !isFormatter
 
 			hasSimpleBodyParams = !s.IsComplexObject && !s.IsAliased && !isComposedPrimitive && !doNot
 			hasModelBodyParams = (s.IsComplexObject || s.IsAliased || isComposedPrimitive) && !doNot
@@ -972,12 +974,12 @@ func (b *codeGenOpBuilder) setBodyParamValidation(p *GenParameter) {
 			if s.IsArray && s.Items != nil {
 				it := s.Items
 				doNot = it.IsInterface || it.IsStream || it.IsBase64
-				hasSimpleBodyItems = !it.IsComplexObject && !(it.IsAliased || doNot)
+				hasSimpleBodyItems = !it.IsComplexObject && !it.IsAliased && !doNot
 				hasModelBodyItems = (it.IsComplexObject || it.IsAliased) && !doNot
 			}
 			if s.IsMap && s.AdditionalProperties != nil {
 				it := s.AdditionalProperties
-				hasSimpleBodyMap = !it.IsComplexObject && !(it.IsAliased || doNot)
+				hasSimpleBodyMap = !it.IsComplexObject && !it.IsAliased && !doNot
 				hasModelBodyMap = !hasSimpleBodyMap && !doNot
 			}
 		}

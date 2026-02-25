@@ -8,6 +8,7 @@ package bsoncore // import "go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
@@ -706,17 +707,16 @@ func ReserveLength(dst []byte) (int32, []byte) {
 
 // UpdateLength updates the length at index with length and returns the []byte.
 func UpdateLength(dst []byte, index, length int32) []byte {
-	dst[index] = byte(length)
-	dst[index+1] = byte(length >> 8)
-	dst[index+2] = byte(length >> 16)
-	dst[index+3] = byte(length >> 24)
+	binary.LittleEndian.PutUint32(dst[index:], uint32(length))
 	return dst
 }
 
 func appendLength(dst []byte, l int32) []byte { return appendi32(dst, l) }
 
 func appendi32(dst []byte, i32 int32) []byte {
-	return append(dst, byte(i32), byte(i32>>8), byte(i32>>16), byte(i32>>24))
+	b := []byte{0, 0, 0, 0}
+	binary.LittleEndian.PutUint32(b, uint32(i32))
+	return append(dst, b...)
 }
 
 // ReadLength reads an int32 length from src and returns the length and the remaining bytes. If
@@ -734,27 +734,26 @@ func readi32(src []byte) (int32, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
 	}
-	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24), src[4:], true
+	return int32(binary.LittleEndian.Uint32(src)), src[4:], true
 }
 
 func appendi64(dst []byte, i64 int64) []byte {
-	return append(dst,
-		byte(i64), byte(i64>>8), byte(i64>>16), byte(i64>>24),
-		byte(i64>>32), byte(i64>>40), byte(i64>>48), byte(i64>>56),
-	)
+	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	binary.LittleEndian.PutUint64(b, uint64(i64))
+	return append(dst, b...)
 }
 
 func readi64(src []byte) (int64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false
 	}
-	i64 := (int64(src[0]) | int64(src[1])<<8 | int64(src[2])<<16 | int64(src[3])<<24 |
-		int64(src[4])<<32 | int64(src[5])<<40 | int64(src[6])<<48 | int64(src[7])<<56)
-	return i64, src[8:], true
+	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
 }
 
 func appendu32(dst []byte, u32 uint32) []byte {
-	return append(dst, byte(u32), byte(u32>>8), byte(u32>>16), byte(u32>>24))
+	b := []byte{0, 0, 0, 0}
+	binary.LittleEndian.PutUint32(b, u32)
+	return append(dst, b...)
 }
 
 func readu32(src []byte) (uint32, []byte, bool) {
@@ -762,23 +761,20 @@ func readu32(src []byte) (uint32, []byte, bool) {
 		return 0, src, false
 	}
 
-	return (uint32(src[0]) | uint32(src[1])<<8 | uint32(src[2])<<16 | uint32(src[3])<<24), src[4:], true
+	return binary.LittleEndian.Uint32(src), src[4:], true
 }
 
 func appendu64(dst []byte, u64 uint64) []byte {
-	return append(dst,
-		byte(u64), byte(u64>>8), byte(u64>>16), byte(u64>>24),
-		byte(u64>>32), byte(u64>>40), byte(u64>>48), byte(u64>>56),
-	)
+	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	binary.LittleEndian.PutUint64(b, u64)
+	return append(dst, b...)
 }
 
 func readu64(src []byte) (uint64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false
 	}
-	u64 := (uint64(src[0]) | uint64(src[1])<<8 | uint64(src[2])<<16 | uint64(src[3])<<24 |
-		uint64(src[4])<<32 | uint64(src[5])<<40 | uint64(src[6])<<48 | uint64(src[7])<<56)
-	return u64, src[8:], true
+	return binary.LittleEndian.Uint64(src), src[8:], true
 }
 
 // keep in sync with readcstringbytes

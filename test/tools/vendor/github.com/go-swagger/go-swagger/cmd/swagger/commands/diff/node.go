@@ -30,7 +30,6 @@ func (n *Node) String() string {
 
 // AddLeafNode Adds (recursive) a Child to the first non-nil child found
 func (n *Node) AddLeafNode(toAdd *Node) *Node {
-
 	if n.ChildNode == nil {
 		n.ChildNode = toAdd
 	} else {

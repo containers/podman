@@ -51,7 +51,7 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}) UnmarshalJSON(raw []byte) error 
 
 // MarshalJSON marshals this tuple type into a JSON array
 func ({{.ReceiverName}} {{ pascalize .Name }}) MarshalJSON() ([]byte, error) {
-  data := []interface{}{
+  data := []any{
   {{ range .Properties -}}
     {{.ReceiverName}}.{{ pascalize .Name }},
   {{- end }}

@@ -197,7 +197,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}) readResponse(response runtime.
     {{- if not .Schema.IsBaseType }}
 
   // response payload
-  if err := consumer.Consume(response.Body(), {{ if not (or .Schema.IsComplexObject .Schema.IsStream) }}&{{ end}}{{ .ReceiverName }}.Payload); err != nil && err != io.EOF {
+  if err := consumer.Consume(response.Body(), {{ if not (or .Schema.IsComplexObject .Schema.IsStream) }}&{{ end}}{{ .ReceiverName }}.Payload); err != nil && !stderrors.Is(err,io.EOF) {
     return err
   }
     {{- end }}
@@ -232,6 +232,7 @@ package {{ .Package }}
 
 
 import (
+  stderrors "errors"
   "io"
   "net/http"
 
@@ -254,7 +255,7 @@ type {{ pascalize .Name }}Reader struct {
 }
 
 // ReadResponse reads a server response into the received {{ .ReceiverName }}.
-func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
   {{- if .Responses}}
   switch response.Code() {
   {{- end }}

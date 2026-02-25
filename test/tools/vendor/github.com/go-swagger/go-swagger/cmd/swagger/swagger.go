@@ -19,8 +19,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-swagger/go-swagger/cmd/swagger/commands"
 	flags "github.com/jessevdk/go-flags"
+
+	"github.com/go-swagger/go-swagger/cmd/swagger/commands"
 )
 
 var opts struct {
@@ -130,7 +131,7 @@ It aims to represent the contract of your API with a language agnostic descripti
 		log.SetOutput(io.Discard)
 	}
 	opts.LogFile = func(logfile string) {
-		f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+		f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 		if err != nil {
 			log.Fatalf("cannot write to file %s: %v", logfile, err)
 		}

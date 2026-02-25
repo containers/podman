@@ -1,3 +1,30 @@
+## Decimal v1.4.0
+#### BREAKING
+- Drop support for Go version older than 1.10 [#361](https://github.com/shopspring/decimal/pull/361)
+
+#### FEATURES
+- Add implementation of natural logarithm [#339](https://github.com/shopspring/decimal/pull/339) [#357](https://github.com/shopspring/decimal/pull/357)
+- Add improved implementation of power operation [#358](https://github.com/shopspring/decimal/pull/358)
+- Add Compare method which forwards calls to Cmp [#346](https://github.com/shopspring/decimal/pull/346)
+- Add NewFromBigRat constructor [#288](https://github.com/shopspring/decimal/pull/288)
+- Add NewFromUint64 constructor [#352](https://github.com/shopspring/decimal/pull/352)
+
+#### ENHANCEMENTS
+- Migrate to Github Actions [#245](https://github.com/shopspring/decimal/pull/245) [#340](https://github.com/shopspring/decimal/pull/340)
+- Fix examples for RoundDown, RoundFloor, RoundUp, and RoundCeil [#285](https://github.com/shopspring/decimal/pull/285) [#328](https://github.com/shopspring/decimal/pull/328) [#341](https://github.com/shopspring/decimal/pull/341)
+- Use Godoc standard to mark deprecated Equals and StringScaled methods [#342](https://github.com/shopspring/decimal/pull/342)
+- Removed unnecessary min function for RescalePair method [#265](https://github.com/shopspring/decimal/pull/265)
+- Avoid reallocation of initial slice in MarshalBinary (GobEncode) [#355](https://github.com/shopspring/decimal/pull/355)
+- Optimize NumDigits method [#301](https://github.com/shopspring/decimal/pull/301) [#356](https://github.com/shopspring/decimal/pull/356)
+- Optimize BigInt method [#359](https://github.com/shopspring/decimal/pull/359)
+- Support scanning uint64 [#131](https://github.com/shopspring/decimal/pull/131) [#364](https://github.com/shopspring/decimal/pull/364)
+- Add docs section with alternative libraries [#363](https://github.com/shopspring/decimal/pull/363)
+
+#### BUGFIXES
+- Fix incorrect calculation of decimal modulo [#258](https://github.com/shopspring/decimal/pull/258) [#317](https://github.com/shopspring/decimal/pull/317)
+- Allocate new(big.Int) in Copy method to deeply clone it [#278](https://github.com/shopspring/decimal/pull/278)
+- Fix overflow edge case in QuoRem method [#322](https://github.com/shopspring/decimal/pull/322)
+
 ## Decimal v1.3.1
 
 #### ENHANCEMENTS

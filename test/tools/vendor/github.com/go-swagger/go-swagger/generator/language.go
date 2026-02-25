@@ -13,8 +13,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-openapi/swag"
 	"golang.org/x/tools/imports"
+
+	"github.com/go-openapi/swag"
 )
 
 var (
@@ -30,15 +31,50 @@ func initLanguage() {
 	moduleRe = regexp.MustCompile(`module[ \t]+([^\s]+)`)
 }
 
+// FormatOption allows for more flexible code formatting settings
+type FormatOption func(*formatOptions)
+
+type formatOptions struct {
+	imports.Options
+	localPrefixes []string
+}
+
+// WithFormatLocalPrefixes adds local prefixes to group imports
+func WithFormatLocalPrefixes(prefixes ...string) FormatOption {
+	return func(o *formatOptions) {
+		o.localPrefixes = append(o.localPrefixes, prefixes...)
+	}
+}
+
+var defaultFormatOptions = formatOptions{
+	Options: imports.Options{
+		TabIndent: true,
+		TabWidth:  2,
+		Fragment:  true,
+		Comments:  true,
+	},
+	localPrefixes: []string{"github.com/go-openapi"},
+}
+
+func formatOptionsWithDefault(opts []FormatOption) formatOptions {
+	o := defaultFormatOptions
+
+	for _, apply := range opts {
+		apply(&o)
+	}
+
+	return o
+}
+
 // LanguageOpts to describe a language to the code generator
 type LanguageOpts struct {
 	ReservedWords        []string
-	BaseImportFunc       func(string) string               `json:"-"`
-	ImportsFunc          func(map[string]string) string    `json:"-"`
-	ArrayInitializerFunc func(interface{}) (string, error) `json:"-"`
+	BaseImportFunc       func(string) string            `json:"-"`
+	ImportsFunc          func(map[string]string) string `json:"-"`
+	ArrayInitializerFunc func(any) (string, error)      `json:"-"`
 	reservedWordsSet     map[string]struct{}
 	initialized          bool
-	formatFunc           func(string, []byte) ([]byte, error)
+	formatFunc           func(string, []byte, ...FormatOption) ([]byte, error)
 	fileNameFunc         func(string) string // language specific source file naming rules
 	dirNameFunc          func(string) string // language specific directory naming rules
 }
@@ -107,10 +143,12 @@ func (l *LanguageOpts) ManglePackagePath(name string, suffix string) string {
 }
 
 // FormatContent formats a file with a language specific formatter
-func (l *LanguageOpts) FormatContent(name string, content []byte) ([]byte, error) {
+func (l *LanguageOpts) FormatContent(name string, content []byte, opts ...FormatOption) ([]byte, error) {
 	if l.formatFunc != nil {
-		return l.formatFunc(name, content)
+		return l.formatFunc(name, content, opts...)
 	}
+
+	// unformatted content
 	return content, nil
 }
 
@@ -123,7 +161,7 @@ func (l *LanguageOpts) imports(imports map[string]string) string {
 }
 
 // arrayInitializer builds a litteral array
-func (l *LanguageOpts) arrayInitializer(data interface{}) (string, error) {
+func (l *LanguageOpts) arrayInitializer(data any) (string, error) {
 	if l.ArrayInitializerFunc != nil {
 		return l.ArrayInitializerFunc(data)
 	}
@@ -204,13 +242,10 @@ func GoLangOpts() *LanguageOpts {
 		"continue", "for", "import", "return", "var",
 	}
 
-	opts.formatFunc = func(ffn string, content []byte) ([]byte, error) {
-		opts := new(imports.Options)
-		opts.TabIndent = true
-		opts.TabWidth = 2
-		opts.Fragment = true
-		opts.Comments = true
-		return imports.Process(ffn, content, opts)
+	opts.formatFunc = func(ffn string, content []byte, opts ...FormatOption) ([]byte, error) {
+		o := formatOptionsWithDefault(opts)
+		imports.LocalPrefix = strings.Join(o.localPrefixes, ",") // regroup these packages
+		return imports.Process(ffn, content, &o.Options)
 	}
 
 	opts.fileNameFunc = func(name string) string {
@@ -253,10 +288,10 @@ func GoLangOpts() *LanguageOpts {
 		return strings.Join(result, "\n")
 	}
 
-	opts.ArrayInitializerFunc = func(data interface{}) (string, error) {
-		// ArrayInitializer constructs a Go literal initializer from interface{} literals.
-		// e.g. []interface{}{"a", "b"} is transformed in {"a","b",}
-		// e.g. map[string]interface{}{ "a": "x", "b": "y"} is transformed in {"a":"x","b":"y",}.
+	opts.ArrayInitializerFunc = func(data any) (string, error) {
+		// ArrayInitializer constructs a Go literal initializer from any literals.
+		// e.g. []any{"a", "b"} is transformed in {"a","b",}
+		// e.g. map[string]any{ "a": "x", "b": "y"} is transformed in {"a":"x","b":"y",}.
 		//
 		// NOTE: this is currently used to construct simple slice intializers for default values.
 		// This allows for nicer slice initializers for slices of primitive types and avoid systematic use for json.Unmarshal().

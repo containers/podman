@@ -3,10 +3,12 @@ package commands
 import (
 	"errors"
 
+	flags "github.com/jessevdk/go-flags"
+
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/loads"
+
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands/generate"
-	flags "github.com/jessevdk/go-flags"
 )
 
 // FlattenSpec is a command that flattens a swagger document
@@ -31,7 +33,7 @@ func (c *FlattenSpec) Execute(args []string) error {
 		return err
 	}
 
-	flattenOpts := c.FlattenCmdOptions.SetFlattenOptions(&analysis.FlattenOpts{
+	flattenOpts := c.SetFlattenOptions(&analysis.FlattenOpts{
 		// defaults
 		Minimal:      true,
 		Verbose:      true,
