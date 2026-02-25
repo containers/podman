@@ -38,6 +38,9 @@ func NewOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
 		return nil, err
 	}
 
+	if vmProvider.VMType() == define.WSLVirt {
+		return nil, errors.New("this command is not supported for WSL")
+	}
 	return &pkgOS.MachineOS{
 		VM:       mc,
 		Provider: vmProvider,
