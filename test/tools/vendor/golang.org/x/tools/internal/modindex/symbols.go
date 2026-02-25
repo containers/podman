@@ -10,11 +10,13 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"iter"
 	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -30,45 +32,69 @@ import (
 type symbol struct {
 	pkg  string // name of the symbols's package
 	name string // declared name
-	kind string // T, C, V, or F, follwed by D if deprecated
+	kind string // T, C, V, or F, followed by D if deprecated
 	sig  string // signature information, for F
 }
 
-// find the symbols for the best directories
-func getSymbols(cd Abspath, dirs map[string][]*directory) {
+// extractSymbols returns a (new, unordered) array of Entries, one for
+// each provided package directory, describing its exported symbols.
+func extractSymbols(cwd string, dirs iter.Seq[directory]) []Entry {
+	var (
+		mu      sync.Mutex
+		entries []Entry
+	)
+
 	var g errgroup.Group
 	g.SetLimit(max(2, runtime.GOMAXPROCS(0)/2))
-	for _, vv := range dirs {
-		// throttling some day?
-		d := vv[0]
+	for dir := range dirs {
 		g.Go(func() error {
-			thedir := filepath.Join(string(cd), string(d.path))
+			thedir := filepath.Join(cwd, string(dir.path))
 			mode := parser.SkipObjectResolution | parser.ParseComments
 
-			fi, err := os.ReadDir(thedir)
+			// Parse all Go files in dir and extract symbols.
+			dirents, err := os.ReadDir(thedir)
 			if err != nil {
 				return nil // log this someday?
 			}
-			for _, fx := range fi {
-				if !strings.HasSuffix(fx.Name(), ".go") || strings.HasSuffix(fx.Name(), "_test.go") {
+			var syms []symbol
+			for _, dirent := range dirents {
+				if !strings.HasSuffix(dirent.Name(), ".go") ||
+					strings.HasSuffix(dirent.Name(), "_test.go") {
 					continue
 				}
-				fname := filepath.Join(thedir, fx.Name())
+				fname := filepath.Join(thedir, dirent.Name())
 				tr, err := parser.ParseFile(token.NewFileSet(), fname, nil, mode)
 				if err != nil {
 					continue // ignore errors, someday log them?
 				}
-				d.syms = append(d.syms, getFileExports(tr)...)
+				syms = append(syms, getFileExports(tr)...)
 			}
+
+			// Create an entry for the package.
+			pkg, names := processSyms(syms)
+			if pkg != "" {
+				mu.Lock()
+				defer mu.Unlock()
+				entries = append(entries, Entry{
+					PkgName:    pkg,
+					Dir:        dir.path,
+					ImportPath: dir.importPath,
+					Version:    dir.version,
+					Names:      names,
+				})
+			}
+
 			return nil
 		})
 	}
-	g.Wait()
+	g.Wait() // ignore error
+
+	return entries
 }
 
 func getFileExports(f *ast.File) []symbol {
 	pkg := f.Name.Name
-	if pkg == "main" {
+	if pkg == "main" || pkg == "" {
 		return nil
 	}
 	var ans []symbol
@@ -110,7 +136,7 @@ func getFileExports(f *ast.File) []symbol {
 				// The only place a $ can occur seems to be in a struct tag, which
 				// can be an arbitrary string literal, and ExprString does not presently
 				// print struct tags. So for this to happen the type of a formal parameter
-				// has to be a explict struct, e.g. foo(x struct{a int "$"}) and ExprString
+				// has to be a explicit struct, e.g. foo(x struct{a int "$"}) and ExprString
 				// would have to show the struct tag. Even testing for this case seems
 				// a waste of effort, but let's remember the possibility
 				if strings.Contains(tp, "$") {
@@ -180,8 +206,7 @@ func isDeprecated(doc *ast.CommentGroup) bool {
 	// go.dev/wiki/Deprecated Paragraph starting 'Deprecated:'
 	// This code fails for /* Deprecated: */, but it's the code from
 	// gopls/internal/analysis/deprecated
-	lines := strings.Split(doc.Text(), "\n\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(doc.Text(), "\n\n") {
 		if strings.HasPrefix(line, "Deprecated:") {
 			return true
 		}
@@ -202,17 +227,18 @@ func processSyms(syms []symbol) (string, []string) {
 	pkg := syms[0].pkg
 	var names []string
 	for _, s := range syms {
-		var nx string
-		if s.pkg == pkg {
-			if s.sig != "" {
-				nx = fmt.Sprintf("%s %s %s", s.name, s.kind, s.sig)
-			} else {
-				nx = fmt.Sprintf("%s %s", s.name, s.kind)
-			}
-			names = append(names, nx)
-		} else {
-			continue // PJW: do we want to keep track of these?
+		if s.pkg != pkg {
+			// Symbols came from two files in same dir
+			// with different package declarations.
+			continue
 		}
+		var nx string
+		if s.sig != "" {
+			nx = fmt.Sprintf("%s %s %s", s.name, s.kind, s.sig)
+		} else {
+			nx = fmt.Sprintf("%s %s", s.name, s.kind)
+		}
+		names = append(names, nx)
 	}
 	return pkg, names
 }

@@ -574,7 +574,7 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types.Package, string) {
 
 						recv := types.NewVar(fn.Pos(), fn.Pkg(), "", named)
 						typesinternal.SetVarKind(recv, typesinternal.RecvVar)
-						methods[i] = types.NewFunc(fn.Pos(), fn.Pkg(), fn.Name(), types.NewSignature(recv, sig.Params(), sig.Results(), sig.Variadic()))
+						methods[i] = types.NewFunc(fn.Pos(), fn.Pkg(), fn.Name(), types.NewSignatureType(recv, nil, nil, sig.Params(), sig.Results(), sig.Variadic()))
 					}
 
 					embeds := make([]types.Type, iface.NumEmbeddeds())
