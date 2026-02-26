@@ -373,6 +373,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelLevel=s0:c1,c2          | --security-opt label=level:s0:c1,c2                  |
 | SecurityLabelNested=true             | --security-opt label=nested                          |
 | SecurityLabelType=spc_t              | --security-opt label=type:spc_t                      |
+| ServiceName=name                     | Name the systemd unit `name.service`                 |
 | ShmSize=100m                         | --shm-size=100m                                      |
 | StartWithPod=true                    | If Pod= is defined, container is started by pod      |
 | StopSignal=SIGINT                    | --stop-signal=SIGINT                                 |
@@ -896,6 +897,13 @@ Allow SecurityLabels to function within the container. This allows separation of
 
 Set the label process type for the container processes.
 
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit using the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
+
 ### `ShmSize=`
 
 Size of /dev/shm.
@@ -1288,6 +1296,7 @@ Valid options for `[Kube]` are listed below:
 | Network=host                        | --network host                                                   |
 | PodmanArgs=\-\-annotation=key=value | --annotation=key=value                                           |
 | PublishPort=8080:80                 | --publish 8080:80                                                |
+| ServiceName=name                    | Name the systemd unit `name.service`                             |
 | SetWorkingDirectory=yaml            | Set `WorkingDirectory` of unit file to location of the YAML file |
 | UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210                                 |
 | Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                                  |
@@ -1391,6 +1400,13 @@ entry from the unit file takes precedence
 
 This key can be listed multiple times.
 
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit using the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
+
 ### `SetWorkingDirectory=`
 
 Set the `WorkingDirectory` field of the `Service` group of the Systemd service unit file.
@@ -1452,6 +1468,7 @@ Valid options for `[Network]` are listed below:
 | NetworkName=foo                     | podman network create foo                                       |
 | Options=isolate=true                | --opt isolate=true                                              |
 | PodmanArgs=--dns=192.168.55.1       | --dns=192.168.55.1                                              |
+| ServiceName=name                    | Name the systemd unit `name.service`                            |
 | Subnet=192.5.0.0/16                 | --subnet 192.5.0.0/16                                           |
 
 Supported keys in `[Network]` section are:
@@ -1573,6 +1590,13 @@ escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit by appending `-network` to the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
+
 ### `Subnet=`
 
 The subnet in CIDR notation.
@@ -1611,6 +1635,7 @@ Valid options for `[Volume]` are listed below:
 | Label="foo=bar"                     | --label "foo=bar"                         |
 | Options=XYZ                         | --opt "o=XYZ"                             |
 | PodmanArgs=--driver=image           | --driver=image                            |
+| ServiceName=name                    | Name the systemd unit `name.service`      |
 | Type=type                           | Filesystem type of Device                 |
 | UID=1234                            | --uid 1234                                |
 | User=123                            | --opt "o=uid=123"                         |
@@ -1697,6 +1722,13 @@ escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit by appending `-volume` to the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
+
 ### `Type=`
 
 The filesystem type of `Device` as used by the **mount(8)** commands `-t` option.
@@ -1757,6 +1789,7 @@ Valid options for `[Build]` are listed below:
 | Retry=5                             | --retry=5                                   |
 | RetryDelay=10s                      | --retry-delay=10s                           |
 | Secret=secret                       | --secret=id=mysecret,src=path               |
+| ServiceName=name                    | Name the systemd unit `name.service`        |
 | SetWorkingDirectory=unit            | Set `WorkingDirectory` of systemd unit file |
 | Target=my-app                       | --target=my-app                             |
 | TLSVerify=false                     | --tls-verify=false                          |
@@ -1932,6 +1965,13 @@ Pass secret information used in Containerfile build stages in a safe way.
 This is equivalent to the `--secret` option of `podman build` and generally has the form
 `secret[,opt=opt ...]`.
 
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit by appending `-build` to the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
+
 ### `SetWorkingDirectory=`
 
 Provide context (a working directory) to `podman build`. Supported values are a path, a URL, or the
@@ -2014,6 +2054,7 @@ Valid options for `[Image]` are listed below:
 | Policy=always                          | --policy=always                                  |
 | Retry=5                                | --retry=5                                        |
 | RetryDelay=10s                         | --retry-delay=10s                                |
+| ServiceName=name                       | Name the systemd unit `name.service`             |
 | TLSVerify=false                        | --tls-verify=false                               |
 | Variant=arm/v7                         | --variant=arm/v7                                 |
 
@@ -2125,6 +2166,13 @@ Number of times to retry the image pull when a HTTP error occurs. Equivalent to 
 ### `RetryDelay=`
 
 Delay between retries. Equivalent to the Podman `--retry-delay` option.
+
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit by appending `-image` to the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
 
 ### `TLSVerify=`
 
