@@ -32,17 +32,15 @@ func bindPorts(ports []types.PortMapping) ([]*os.File, error) {
 	var files []*os.File
 	sctpWarning := true
 	for _, port := range ports {
-		isV6 := net.ParseIP(port.HostIP).To4() == nil
-		if port.HostIP == "" {
-			isV6 = false
-		}
 		protocols := strings.SplitSeq(port.Protocol, ",")
 		for protocol := range protocols {
 			for i := uint16(0); i < port.Range; i++ {
+				isV6 := false
+				if port.HostIP != "" {
+					isV6 = net.ParseIP(port.HostIP).To4() == nil
+				}
 				f, err := bindPort(protocol, port.HostIP, port.HostPort+i, isV6, &sctpWarning)
 				if err != nil {
-					// close all open ports in case of early error so we do not
-					// rely garbage  collector to close them
 					for _, f := range files {
 						f.Close()
 					}
@@ -65,19 +63,23 @@ func bindPort(protocol, hostIP string, port uint16, isV6 bool, sctpWarning *bool
 			addr *net.UDPAddr
 			err  error
 		)
-		if isV6 {
-			addr, err = net.ResolveUDPAddr("udp6", fmt.Sprintf("[%s]:%d", hostIP, port))
+
+		proto := "udp"
+		if hostIP != "" {
+			if isV6 {
+				proto = "udp6"
+				addr, err = net.ResolveUDPAddr(proto, fmt.Sprintf("[%s]:%d", hostIP, port))
+			} else {
+				proto = "udp4"
+				addr, err = net.ResolveUDPAddr(proto, fmt.Sprintf("%s:%d", hostIP, port))
+			}
 		} else {
-			addr, err = net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", hostIP, port))
+			addr, err = net.ResolveUDPAddr(proto, fmt.Sprintf(":%d", port))
 		}
 		if err != nil {
 			return nil, fmt.Errorf("cannot resolve the UDP address: %w", err)
 		}
 
-		proto := "udp4"
-		if isV6 {
-			proto = "udp6"
-		}
 		server, err := net.ListenUDP(proto, addr)
 		if err != nil {
 			return nil, fmt.Errorf("cannot listen on the UDP port: %w", err)
@@ -98,19 +100,24 @@ func bindPort(protocol, hostIP string, port uint16, isV6 bool, sctpWarning *bool
 			addr *net.TCPAddr
 			err  error
 		)
-		if isV6 {
-			addr, err = net.ResolveTCPAddr("tcp6", fmt.Sprintf("[%s]:%d", hostIP, port))
+
+		// dual-stack bind by default unless hostIP is specified
+		proto := "tcp"
+		if hostIP != "" {
+			if isV6 {
+				proto = "tcp6"
+				addr, err = net.ResolveTCPAddr(proto, fmt.Sprintf("[%s]:%d", hostIP, port))
+			} else {
+				proto = "tcp4"
+				addr, err = net.ResolveTCPAddr(proto, fmt.Sprintf("%s:%d", hostIP, port))
+			}
 		} else {
-			addr, err = net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", hostIP, port))
+			addr, err = net.ResolveTCPAddr(proto, fmt.Sprintf(":%d", port))
 		}
 		if err != nil {
 			return nil, fmt.Errorf("cannot resolve the TCP address: %w", err)
 		}
 
-		proto := "tcp4"
-		if isV6 {
-			proto = "tcp6"
-		}
 		server, err := net.ListenTCP(proto, addr)
 		if err != nil {
 			return nil, fmt.Errorf("cannot listen on the TCP port: %w", err)
