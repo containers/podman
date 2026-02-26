@@ -1186,14 +1186,10 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 
 		mountOpts, ok := volume.Lookup(VolumeGroup, KeyOptions)
 		if ok && len(mountOpts) != 0 {
-			if devValid {
-				if opts.Len() > 2 {
-					opts.WriteString(",")
-				}
-				opts.WriteString(mountOpts)
-			} else {
-				return nil, warnings, fmt.Errorf("key Options can't be used without Device")
+			if opts.Len() > 2 {
+				opts.WriteString(",")
 			}
+			opts.WriteString(mountOpts)
 		}
 	}
 
