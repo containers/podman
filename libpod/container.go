@@ -673,6 +673,11 @@ func (c *Container) LogSizeMax() int64 {
 	return c.runtime.config.Containers.LogSizeMax
 }
 
+// LogLabels returns the labels added to the container's log file
+func (c *Container) LogLabels() map[string]string {
+	return c.config.LogLabels
+}
+
 // RestartPolicy returns the container's restart policy.
 func (c *Container) RestartPolicy() string {
 	return c.config.RestartPolicy

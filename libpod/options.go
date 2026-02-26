@@ -1053,6 +1053,19 @@ func WithLogTag(tag string) CtrCreateOption {
 	}
 }
 
+// WithLogLabels sets the labels to the log file.
+func WithLogLabels(logLabels map[string]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.LogLabels = logLabels
+
+		return nil
+	}
+}
+
 // WithCgroupsMode disables the creation of Cgroups for the conmon process.
 func WithCgroupsMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {

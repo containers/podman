@@ -18,3 +18,9 @@ Set custom logging configuration. The following *name*s are supported:
     (e.g. **--log-opt tag="{{.ImageName}}"**.
 It supports the same keys as **podman inspect --format**.
 This option is currently supported only by the **journald** log driver.
+
+**label**: specify a custom log label for the container
+    (e.g. **--log-opt label="CONTAINER_IMAGE={{.ImageName}}"**.
+It supports the same keys as **podman inspect --format**.
+This option can be repeated multiple times.
+This option is currently supported only by the **journald** log driver.

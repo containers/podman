@@ -26,6 +26,10 @@ type LogConfig struct {
 	// Size is the maximum size of the log file
 	// Optional.
 	Size int64 `json:"size,omitempty"`
+	// A set of log labels to apply
+	// Only available if LogDriver is set to "journald".
+	// Optional
+	Labels map[string]string `json:"labels,omitempty"`
 	// A set of options to accompany the log driver.
 	// Optional.
 	Options map[string]string `json:"options,omitempty"`
