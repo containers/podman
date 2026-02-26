@@ -26,6 +26,7 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/fileutils"
 )
 
@@ -161,122 +162,165 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		}
 	}
 
-	// Loop over all given URLs
+	// Loop over all given URLs or local files
 	for _, toInstall := range paths {
-		validateQuadletFile := false
-		if assetFile == "" {
-			// Check if this is a .quadlets file - if so, treat as an app
-			ext := filepath.Ext(toInstall)
-			if ext == ".quadlets" {
-				// For .quadlets files, use .app extension to group all quadlets as one application
-				baseName := strings.TrimSuffix(filepath.Base(toInstall), filepath.Ext(toInstall))
-				assetFile = "." + baseName + ".app"
-			} else {
-				assetFile = "." + filepath.Base(toInstall) + ".asset"
-			}
-			validateQuadletFile = true
-		}
-		switch {
-		case strings.HasPrefix(toInstall, "http://") || strings.HasPrefix(toInstall, "https://"):
+		var sourcePath string
+		var quadletFileName string
+		var isTempFile bool
+
+		// 1. Resolve Path (URL vs Local)
+		if strings.HasPrefix(toInstall, "http://") || strings.HasPrefix(toInstall, "https://") {
 			r, err := http.Get(toInstall)
 			if err != nil {
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to download URL %s: %w", toInstall, err)
 				continue
 			}
-			defer r.Body.Close()
-			quadletFileName, err := getFileName(r, toInstall)
+			quadletFileName, err = getFileName(r, toInstall)
 			if err != nil {
+				r.Body.Close()
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to get file name from url %s: %w", toInstall, err)
 				continue
 			}
-			// It's a URL. Pull to temporary file.
 			tmpFile, err := os.CreateTemp("", quadletFileName)
 			if err != nil {
+				r.Body.Close()
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to create temporary file to download URL %s: %w", toInstall, err)
 				continue
 			}
-			defer func() {
-				tmpFile.Close()
-				if err := os.Remove(tmpFile.Name()); err != nil {
-					logrus.Errorf("unable to remove temporary file %q: %v", tmpFile.Name(), err)
-				}
-			}()
 			_, err = io.Copy(tmpFile, r.Body)
+			r.Body.Close()
+			tmpFile.Close() // explicit close to flush
 			if err != nil {
+				os.Remove(tmpFile.Name())
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("populating temporary file: %w", err)
 				continue
 			}
-			installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), quadletFileName, installDir, assetFile, validateQuadletFile, options.Replace)
-			if err != nil {
+			sourcePath = tmpFile.Name()
+			isTempFile = true
+		} else {
+			if err := fileutils.Exists(toInstall); err != nil {
 				installReport.QuadletErrors[toInstall] = err
 				continue
 			}
-			installReport.InstalledQuadlets[toInstall] = installedPath
-		default:
-			err := fileutils.Exists(toInstall)
-			if err != nil {
-				installReport.QuadletErrors[toInstall] = err
-				continue
+			sourcePath = toInstall
+			quadletFileName = filepath.Base(toInstall)
+		}
+
+		// 2. Process File
+		err := func() error {
+			if isTempFile {
+				defer os.Remove(sourcePath)
 			}
 
-			// Check if this file has a supported extension or is a .quadlets file
-			hasValidExt := systemdquadlet.IsExtSupported(toInstall)
-			isQuadletsFile := filepath.Ext(toInstall) == ".quadlets"
+			validateQuadletFile := false
+			localAssetFile := assetFile
+			if localAssetFile == "" {
+				// Check if this is a .quadlets file - if so, treat as an app
+				ext := filepath.Ext(quadletFileName)
+				if ext == ".quadlets" {
+					baseName := strings.TrimSuffix(quadletFileName, ext)
+					localAssetFile = "." + baseName + ".app"
+				} else {
+					localAssetFile = "." + quadletFileName + ".asset"
+				}
+				validateQuadletFile = true
+			}
 
-			// Handle files with unsupported extensions that are not .quadlets files
-			// If we're installing as part of an app (assetFile is set), allow non-quadlet files as assets
-			// Standalone files with unsupported extensions are not allowed
-			if !hasValidExt && !isQuadletsFile && assetFile == "" {
-				installReport.QuadletErrors[toInstall] = fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(toInstall))
-				continue
+			// CHECK: Is it a tarball?
+			isTarball := strings.HasSuffix(quadletFileName, ".tar") ||
+				strings.HasSuffix(quadletFileName, ".tar.gz") ||
+				strings.HasSuffix(quadletFileName, ".tgz")
+
+			if isTarball {
+				extractDir, err := os.MkdirTemp("", "quadlet-tar-")
+				if err != nil {
+					return fmt.Errorf("creating temp dir for tarball: %w", err)
+				}
+				defer os.RemoveAll(extractDir)
+
+				// This handles .tar, .tar.gz, .tgz automatically via go.podman.io/storage/pkg/archive
+				if err := archive.UntarPath(sourcePath, extractDir); err != nil {
+					return fmt.Errorf("extracting tarball: %w", err)
+				}
+
+				// Generate app asset name stripping known archive extensions
+				appBaseName := strings.TrimSuffix(quadletFileName, ".tgz")
+				appBaseName = strings.TrimSuffix(appBaseName, ".tar.gz")
+				appBaseName = strings.TrimSuffix(appBaseName, ".tar")
+				tarAssetFile := "." + appBaseName + ".app"
+
+				entries, err := os.ReadDir(extractDir)
+				if err != nil {
+					return fmt.Errorf("reading extracted tarball dir: %w", err)
+				}
+
+				for _, entry := range entries {
+					if entry.IsDir() {
+						continue // skip subdirs
+					}
+					extractedFilePath := filepath.Join(extractDir, entry.Name())
+					hasValidExt := systemdquadlet.IsExtSupported(extractedFilePath)
+
+					installedPath, err := ic.installQuadlet(ctx, extractedFilePath, entry.Name(), installDir, tarAssetFile, hasValidExt, options.Replace)
+					if err != nil {
+						installReport.QuadletErrors[fmt.Sprintf("%s#%s", toInstall, entry.Name())] = err
+						continue
+					}
+					installReport.InstalledQuadlets[fmt.Sprintf("%s#%s", toInstall, entry.Name())] = installedPath
+				}
+				return nil
+			}
+
+			// CHECK: Standard file or .quadlets file installation logic
+			hasValidExt := systemdquadlet.IsExtSupported(sourcePath)
+			isQuadletsFile := filepath.Ext(sourcePath) == ".quadlets"
+
+			if !hasValidExt && !isQuadletsFile && localAssetFile == "" {
+				return fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(sourcePath))
 			}
 
 			if isQuadletsFile {
-				// Parse the multi-quadlet file
-				quadlets, err := parseMultiQuadletFile(toInstall)
+				quadlets, err := parseMultiQuadletFile(sourcePath)
 				if err != nil {
-					installReport.QuadletErrors[toInstall] = err
-					continue
+					return err
 				}
 
-				// Install each quadlet section as a separate file
 				for _, quadlet := range quadlets {
-					// Create a temporary file for this quadlet section
 					tmpFile, err := os.CreateTemp("", quadlet.name+"*"+quadlet.extension)
 					if err != nil {
-						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to create temporary file for quadlet section %s: %w", quadlet.name, err)
+						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to create temp file for quadlet section %s: %w", quadlet.name, err)
 						continue
 					}
-					defer os.Remove(tmpFile.Name())
-					// Write the quadlet content to the temporary file
+
 					_, err = tmpFile.WriteString(quadlet.content)
 					tmpFile.Close()
 					if err != nil {
-						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to write quadlet section %s to temporary file: %w", quadlet.name, err)
+						os.Remove(tmpFile.Name())
+						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to write quadlet section %s to temp file: %w", quadlet.name, err)
 						continue
 					}
 
-					// Install the quadlet from the temporary file
 					destName := quadlet.name + quadlet.extension
-					installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), destName, installDir, assetFile, true, options.Replace)
+					installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), destName, installDir, localAssetFile, true, options.Replace)
+					os.Remove(tmpFile.Name())
+
 					if err != nil {
 						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to install quadlet section %s: %w", destName, err)
 						continue
 					}
-
-					// Record the installation (use a unique key for each section)
-					sectionKey := fmt.Sprintf("%s#%s", toInstall, destName)
-					installReport.InstalledQuadlets[sectionKey] = installedPath
+					installReport.InstalledQuadlets[fmt.Sprintf("%s#%s", toInstall, destName)] = installedPath
 				}
 			} else {
-				// If toInstall is a single file with a supported extension, execute the original logic
-				installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir, assetFile, validateQuadletFile, options.Replace)
+				installedPath, err := ic.installQuadlet(ctx, sourcePath, quadletFileName, installDir, localAssetFile, validateQuadletFile, options.Replace)
 				if err != nil {
-					installReport.QuadletErrors[toInstall] = err
-					continue
+					return err
 				}
 				installReport.InstalledQuadlets[toInstall] = installedPath
 			}
+			return nil
+		}()
+		if err != nil {
+			installReport.QuadletErrors[toInstall] = err
 		}
 	}
 

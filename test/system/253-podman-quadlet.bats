@@ -508,4 +508,34 @@ EOF
     run_podman quadlet rm alpine-quadlet.container
 }
 
+@test "podman quadlet install - tarball support" {
+    skip_if_remote "quadlet install is not supported over remote"
+
+    # 1. Setup: Create a dummy quadlet and pack it into .tar
+    local qdir="$PODMAN_TMPDIR/qtar-test"
+    mkdir -p "$qdir"
+
+    cat > "$qdir/sleep.container" <<EOF
+[Container]
+Image=alpine
+Exec=sleep 100
+EOF
+
+    # Create a single tarball
+    tar -cvf "$PODMAN_TMPDIR/testapp.tar" -C "$qdir" sleep.container
+
+    # 2. Test extraction
+    run_podman quadlet install "$PODMAN_TMPDIR/testapp.tar"
+    is "$output" ".*sleep\.container" "tarball extracted and installed"
+
+    # Verify it shows up in list
+    run_podman quadlet list
+    is "$output" ".*sleep\.container.*" "quadlet from tar shows up in list"
+
+    # Verify .app asset tracking works
+    run_podman quadlet rm sleep.container
+    run_podman quadlet list
+    assert "$output" !~ ".*sleep\.container.*" "quadlet cleanly removed"
+}
+
 # vim: filetype=sh
