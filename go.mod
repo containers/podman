@@ -3,7 +3,7 @@ module github.com/containers/podman/v6
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.24.6
+go 1.25.0
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
@@ -67,7 +67,7 @@ require (
 	go.podman.io/image/v5 v5.39.2-0.20260217150212-026c3538f3d1
 	go.podman.io/storage v1.62.1-0.20260217150212-026c3538f3d1
 	golang.org/x/crypto v0.48.0
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
 	golang.org/x/term v0.40.0
