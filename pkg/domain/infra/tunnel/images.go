@@ -129,13 +129,6 @@ func (ir *ImageEngine) Pull(_ context.Context, rawImage string, opts entities.Im
 			options.WithSkipTLSVerify(false)
 		}
 	}
-	if opts.BaseTLSConfig != nil {
-		baseTLSConfig, err := opts.BaseTLSConfig.MarshalText()
-		if err != nil {
-			return nil, err
-		}
-		options.WithBaseTLSConfig(string(baseTLSConfig))
-	}
 	if opts.Retry != nil {
 		options.WithRetry(*opts.Retry)
 	}
