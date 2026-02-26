@@ -25,7 +25,6 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
-	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
@@ -220,9 +219,6 @@ func WithRegistriesConf(path string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if err := fileutils.Exists(path); err != nil {
 			return fmt.Errorf("locating specified registries.conf: %w", err)
-		}
-		if rt.imageContext == nil {
-			rt.imageContext = &types.SystemContext{}
 		}
 
 		rt.imageContext.SystemRegistriesConfPath = path
