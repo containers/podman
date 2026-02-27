@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/api/handlers"
@@ -14,6 +15,7 @@ import (
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/docker/go-units"
 	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
@@ -125,6 +127,68 @@ type pullResult struct {
 	err    error
 }
 
+// This function is inherited from moby/moby and licensed as Apache-2.0.
+// It is used to keep backward compatibility with older docker clients.
+func jsonProgressToString(p *jsonstream.Progress) string {
+	var (
+		pbBox      string
+		numbersBox string
+	)
+	if p.Current <= 0 && p.Total <= 0 {
+		return ""
+	}
+	if p.Total <= 0 {
+		switch p.Units {
+		case "":
+			return fmt.Sprintf("%8v", units.HumanSize(float64(p.Current)))
+		default:
+			return fmt.Sprintf("%d %s", p.Current, p.Units)
+		}
+	}
+
+	percentage := int(float64(p.Current)/float64(p.Total)*100) / 2
+	if percentage > 50 {
+		percentage = 50
+	}
+
+	numSpaces := 0
+	if 50-percentage > 0 {
+		numSpaces = 50 - percentage
+	}
+	pbBox = fmt.Sprintf("[%s>%s] ", strings.Repeat("=", percentage), strings.Repeat(" ", numSpaces))
+
+	switch {
+	case p.HideCounts:
+	case p.Units == "": // no units, use bytes
+		current := units.HumanSize(float64(p.Current))
+		total := units.HumanSize(float64(p.Total))
+
+		numbersBox = fmt.Sprintf("%8v/%v", current, total)
+
+		if p.Current > p.Total {
+			// remove total display if the reported current is wonky.
+			numbersBox = fmt.Sprintf("%8v", current)
+		}
+	default:
+		numbersBox = fmt.Sprintf("%d/%d %s", p.Current, p.Total, p.Units)
+
+		if p.Current > p.Total {
+			// remove total display if the reported current is wonky.
+			numbersBox = fmt.Sprintf("%d %s", p.Current, p.Units)
+		}
+	}
+
+	// Show approximation of remaining time if there's enough width.
+	var timeLeftBox string
+	if p.Current > 0 && p.Start > 0 && percentage < 50 {
+		fromStart := time.Now().UTC().Sub(time.Unix(p.Start, 0))
+		perEntry := fromStart / time.Duration(p.Current)
+		left := time.Duration(p.Total-p.Current) * perEntry
+		timeLeftBox = " " + left.Round(time.Second).String()
+	}
+	return pbBox + numbersBox + timeLeftBox
+}
+
 func CompatPull(r *http.Request, w http.ResponseWriter, runtime *libpod.Runtime, reference string, pullPolicy config.PullPolicy, pullOptions *libimage.PullOptions) {
 	ctx := r.Context()
 	progress := make(chan types.ProgressProperties)
@@ -173,14 +237,7 @@ loop: // break out of for/select infinite loop
 				report.Progress.Total = e.Artifact.Size
 				// Deprecated field, but because consumers might still read it keep it.
 				if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
-					b, err := json.Marshal(&jsonstream.Message{
-						Status:   report.Status,
-						Progress: report.Progress,
-						ID:       report.ID,
-					})
-					if err == nil {
-						report.ProgressMessage = string(b)
-					}
+					report.ProgressMessage = jsonProgressToString(report.Progress)
 				}
 			case types.ProgressEventSkipped:
 				report.Status = "Already exists"
