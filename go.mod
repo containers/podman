@@ -65,7 +65,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	go.podman.io/common v0.67.1-0.20260217150212-026c3538f3d1
 	go.podman.io/image/v5 v5.39.2-0.20260217150212-026c3538f3d1
-	go.podman.io/storage v1.62.1-0.20260217150212-026c3538f3d1
+	go.podman.io/storage v1.62.1-0.20260223161815-3708f144831d
 	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
 	golang.org/x/sync v0.19.0
@@ -191,3 +191,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace go.podman.io/common => github.com/TrevorBurnham/container-libs/common v0.0.0-20260225192346-ebad6b016844

@@ -49,9 +49,6 @@ func (s *SecretsManager) loadDB() error {
 		return err
 	}
 	defer file.Close()
-	if err != nil {
-		return err
-	}
 
 	byteValue, err := io.ReadAll(file)
 	if err != nil {

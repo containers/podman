@@ -1293,25 +1293,25 @@ func (d *Driver) optsAppendMappings(opts string, uidMaps, gidMaps []idtools.IDMa
 	if uidMaps != nil {
 		var uids, gids bytes.Buffer
 		if len(uidMaps) == 1 && uidMaps[0].Size == 1 {
-			uids.WriteString(fmt.Sprintf("squash_to_uid=%d", uidMaps[0].HostID))
+			fmt.Fprintf(&uids, "squash_to_uid=%d", uidMaps[0].HostID)
 		} else {
 			uids.WriteString("uidmapping=")
 			for _, i := range uidMaps {
 				if uids.Len() > 0 {
 					uids.WriteString(":")
 				}
-				uids.WriteString(fmt.Sprintf("%d:%d:%d", i.ContainerID, i.HostID, i.Size))
+				fmt.Fprintf(&uids, "%d:%d:%d", i.ContainerID, i.HostID, i.Size)
 			}
 		}
 		if len(gidMaps) == 1 && gidMaps[0].Size == 1 {
-			gids.WriteString(fmt.Sprintf("squash_to_gid=%d", gidMaps[0].HostID))
+			fmt.Fprintf(&gids, "squash_to_gid=%d", gidMaps[0].HostID)
 		} else {
 			gids.WriteString("gidmapping=")
 			for _, i := range gidMaps {
 				if gids.Len() > 0 {
 					gids.WriteString(":")
 				}
-				gids.WriteString(fmt.Sprintf("%d:%d:%d", i.ContainerID, i.HostID, i.Size))
+				fmt.Fprintf(&gids, "%d:%d:%d", i.ContainerID, i.HostID, i.Size)
 			}
 		}
 		return fmt.Sprintf("%s,%s,%s", opts, uids.String(), gids.String())

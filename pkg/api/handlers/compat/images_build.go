@@ -776,20 +776,39 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 
 	// Process platforms
 	platforms := query.Platform
-	if len(platforms) == 1 {
-		// Docker API uses comma separated platform arg so match this here
-		platforms = strings.Split(query.Platform[0], ",")
-	}
-	for _, platformSpec := range platforms {
-		os, arch, variant, err := parse.Platform(platformSpec)
-		if err != nil {
-			return nil, cleanup, utils.GetBadRequestError("platform", platformSpec, err)
+	if len(platforms) == 0 || (len(platforms) == 1 && platforms[0] == "") {
+		// No explicit platform specified; fall back to
+		// DOCKER_DEFAULT_PLATFORM env var, then containers.conf platform.
+		runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+		confPlatform := ""
+		if rtc, err := runtime.GetConfigNoCopy(); err == nil {
+			confPlatform = rtc.Engine.Platform
 		}
-		buildOptions.Platforms = append(buildOptions.Platforms, struct{ OS, Arch, Variant string }{
-			OS:      os,
-			Arch:    arch,
-			Variant: variant,
-		})
+		defOS, defArch, defVariant, pErr := util.DefaultPlatform(confPlatform)
+		if pErr != nil {
+			return nil, cleanup, utils.GetBadRequestError("platform", confPlatform, pErr)
+		}
+		if defOS != "" || defArch != "" || defVariant != "" {
+			buildOptions.Platforms = append(buildOptions.Platforms, struct{ OS, Arch, Variant string }{
+				OS: defOS, Arch: defArch, Variant: defVariant,
+			})
+		}
+	} else {
+		if len(platforms) == 1 {
+			// Docker API uses comma separated platform arg so match this here
+			platforms = strings.Split(platforms[0], ",")
+		}
+		for _, platformSpec := range platforms {
+			os, arch, variant, err := parse.Platform(platformSpec)
+			if err != nil {
+				return nil, cleanup, utils.GetBadRequestError("platform", platformSpec, err)
+			}
+			buildOptions.Platforms = append(buildOptions.Platforms, struct{ OS, Arch, Variant string }{
+				OS:      os,
+				Arch:    arch,
+				Variant: variant,
+			})
+		}
 	}
 
 	// Process source policy
