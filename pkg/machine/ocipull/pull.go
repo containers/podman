@@ -27,6 +27,21 @@ type pullOptions struct {
 	quiet bool
 }
 
+// systemContext returns an appropriate types.SystemContext for options.
+func (opts *pullOptions) systemContext() (*types.SystemContext, error) {
+	sys := types.SystemContext{
+		DockerInsecureSkipTLSVerify: opts.skipTLSVerify,
+	}
+	if opts.credentials != "" {
+		authConf, err := parse.AuthConfig(opts.credentials)
+		if err != nil {
+			return nil, err
+		}
+		sys.DockerAuthConfig = authConf
+	}
+	return &sys, nil
+}
+
 // noSignaturePolicy is a default policy if policy.json is not found on
 // the host machine.
 var noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
@@ -39,15 +54,9 @@ func pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 		return err
 	}
 
-	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: options.skipTLSVerify,
-	}
-	if options.credentials != "" {
-		authConf, err := parse.AuthConfig(options.credentials)
-		if err != nil {
-			return err
-		}
-		sysCtx.DockerAuthConfig = authConf
+	sysCtx, err := options.systemContext()
+	if err != nil {
+		return err
 	}
 
 	// Policy paths returns a slice of directories where the policy.json
