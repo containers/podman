@@ -11,6 +11,8 @@ import (
 type PlayKubeOptions struct {
 	// Annotations - Annotations to add to Pods
 	Annotations map[string]string
+	// Labels - Labels to add to Pods
+	Labels map[string]string
 	// Authfile - path to an authentication file.
 	Authfile string
 	// Indicator to build all images with Containerfile or Dockerfile
