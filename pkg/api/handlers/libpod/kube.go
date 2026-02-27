@@ -194,6 +194,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		ServiceContainer:   query.ServiceContainer,
 		StaticIPs:          staticIPs,
 		StaticMACs:         staticMACs,
+		SystemContext:      runtime.SystemContext(),
 		UseLongAnnotations: query.NoTrunc,
 		Username:           username,
 		Userns:             query.Userns,
