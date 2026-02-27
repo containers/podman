@@ -4,6 +4,7 @@ package os
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -90,7 +91,7 @@ func (dist *OSTree) Upgrade(ctx context.Context, opts UpgradeOptions) error {
 		// check if an in band update exists. this covers two scenarios
 		// 5.7.1 -> 5.7.2
 		// 5.7.1 -> newer OS image with 5.7.1
-		registryDigest, updateExists, err := checkInBandUpgrade(ctx, originNamed, localDigest)
+		registryDigest, updateExists, err := checkInBandUpgrade(ctx, originNamed, localDigest, opts.BaseTLSConfig)
 		if err != nil {
 			return err
 		}
@@ -152,8 +153,10 @@ func compareMajorMinor(versionA, versionB semver.Version) int {
 
 // checkInBandUpgrade takes a named and the digest of the image that made the operating system.  we then check if the image
 // on the registry is different.
-func checkInBandUpgrade(ctx context.Context, named reference.Named, localHostDigest digest.Digest) (digest.Digest, bool, error) {
-	sysCtx := types.SystemContext{}
+func checkInBandUpgrade(ctx context.Context, named reference.Named, localHostDigest digest.Digest, baseTLSConfig *tls.Config) (digest.Digest, bool, error) {
+	sysCtx := types.SystemContext{
+		BaseTLSConfig: baseTLSConfig,
+	}
 	logrus.Debugf("Checking if %s has upgrade available", named.Name())
 	// Lookup the image from the os
 	ir, err := docker.NewReference(named)
