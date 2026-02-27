@@ -1108,7 +1108,7 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 
 	commitOptions := buildah.CommitOptions{
 		Squash:        true,
-		SystemContext: c.runtime.imageContext,
+		SystemContext: &c.runtime.imageContext,
 	}
 
 	// Create checkpoint image
