@@ -450,5 +450,49 @@ EOF
     wait
 }
 
+# bats test_tags=ci:parallel
+@test "podman pull - containers.conf default platform" {
+    skip_if_remote "remote does not support CONTAINERS_CONF_OVERRIDE"
+
+    # Get the host architecture so we can set it explicitly via containers.conf
+    # and verify it's being used (the pull should succeed with matching arch).
+    run_podman info --format '{{.Host.Arch}}'
+    host_arch="$output"
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[engine]
+platform = "linux/${host_arch}"
+EOF
+
+    iname=i_$(safename)
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman pull -q --policy=always $IMAGE
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman inspect --format '{{.Architecture}}' $IMAGE
+    is "$output" "$host_arch" "image arch matches containers.conf platform"
+
+    # DOCKER_DEFAULT_PLATFORM should take precedence over containers.conf.
+    # Set containers.conf to an unlikely arch, but override via env var
+    # with the host arch — pull should still succeed.
+    cat >$containersconf <<EOF
+[engine]
+platform = "linux/s390x"
+EOF
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf DOCKER_DEFAULT_PLATFORM="linux/${host_arch}" \
+        run_podman pull -q --policy=always $IMAGE
+    CONTAINERS_CONF_OVERRIDE=$containersconf DOCKER_DEFAULT_PLATFORM="linux/${host_arch}" \
+        run_podman inspect --format '{{.Architecture}}' $IMAGE
+    is "$output" "$host_arch" "DOCKER_DEFAULT_PLATFORM overrides containers.conf"
+
+    # Invalid platform value should produce an error.
+    cat >$containersconf <<EOF
+[engine]
+platform = "not/a/valid/platform/string"
+EOF
+
+    CONTAINERS_CONF_OVERRIDE=$containersconf run_podman 125 pull $IMAGE
+    assert "$output" =~ "parsing default platform" "invalid platform in containers.conf"
+}
+
 
 # vim: filetype=sh

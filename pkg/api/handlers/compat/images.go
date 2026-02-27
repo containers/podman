@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/api/handlers"
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
@@ -222,16 +223,37 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		reference = possiblyNormalizedName
 	}
 
-	platformSpecs := strings.Split(query.Platform, "/")
-	opts := entities.ImageImportOptions{
-		Source:    source,
-		Changes:   query.Changes,
-		Message:   query.Message,
-		Reference: reference,
-		OS:        platformSpecs[0],
+	// If no platform was specified in the query, fall back to
+	// DOCKER_DEFAULT_PLATFORM env var, then containers.conf platform.
+	var platOS, platArch, platVariant string
+	if query.Platform != "" {
+		var pErr error
+		platOS, platArch, platVariant, pErr = parse.Platform(query.Platform)
+		if pErr != nil {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("parsing platform: %w", pErr))
+			return
+		}
+	} else {
+		rtc, err := runtime.GetConfig()
+		confPlatform := ""
+		if err == nil {
+			confPlatform = rtc.Engine.Platform
+		}
+		var pErr error
+		platOS, platArch, platVariant, pErr = util.DefaultPlatform(confPlatform)
+		if pErr != nil {
+			utils.Error(w, http.StatusBadRequest, pErr)
+			return
+		}
 	}
-	if len(platformSpecs) > 1 {
-		opts.Architecture = platformSpecs[1]
+	opts := entities.ImageImportOptions{
+		Source:       source,
+		Changes:      query.Changes,
+		Message:      query.Message,
+		Reference:    reference,
+		OS:           platOS,
+		Architecture: platArch,
+		Variant:      platVariant,
 	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
@@ -310,12 +332,26 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle the platform.
-	platformSpecs := strings.Split(query.Platform, "/")
-	pullOptions.OS = platformSpecs[0] // may be empty
-	if len(platformSpecs) > 1 {
-		pullOptions.Architecture = platformSpecs[1]
-		if len(platformSpecs) > 2 {
-			pullOptions.Variant = platformSpecs[2]
+	// If no platform was specified in the query, fall back to
+	// DOCKER_DEFAULT_PLATFORM env var, then containers.conf platform.
+	if query.Platform != "" {
+		var pErr error
+		pullOptions.OS, pullOptions.Architecture, pullOptions.Variant, pErr = parse.Platform(query.Platform)
+		if pErr != nil {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("parsing platform: %w", pErr))
+			return
+		}
+	} else {
+		rtc, err := runtime.GetConfig()
+		confPlatform := ""
+		if err == nil {
+			confPlatform = rtc.Engine.Platform
+		}
+		var pErr error
+		pullOptions.OS, pullOptions.Architecture, pullOptions.Variant, pErr = util.DefaultPlatform(confPlatform)
+		if pErr != nil {
+			utils.Error(w, http.StatusBadRequest, pErr)
+			return
 		}
 	}
 

@@ -535,6 +535,11 @@ default_sysctls = [
 #
 #num_locks = 2048
 
+# Default platform (os/arch[/variant]) for image operations such as pull,
+# build, run, and create. If empty, the host's platform is used.
+#
+#platform = ""
+
 # Whether to pull new image before running a container
 #
 #pull_policy = "missing"

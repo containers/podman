@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/namespaces"
 	"github.com/containers/podman/v6/pkg/rootless"
@@ -141,6 +142,28 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 		Username: username,
 		Password: password,
 	}, nil
+}
+
+// DefaultPlatform returns the default platform (platOS, arch, variant) from
+// the DOCKER_DEFAULT_PLATFORM environment variable or the given
+// containers.conf Engine.Platform value.  The confPlatform parameter should
+// be the caller's config.Engine.Platform string.  If neither source provides
+// a value, empty strings and a nil error are returned.  The platform string
+// is always parsed through buildah's parse.Platform() so that validation and
+// normalisation are consistent across all call sites.
+func DefaultPlatform(confPlatform string) (platOS, arch, variant string, err error) {
+	platform, ok := os.LookupEnv("DOCKER_DEFAULT_PLATFORM")
+	if !ok || platform == "" {
+		platform = confPlatform
+	}
+	if platform == "" {
+		return "", "", "", nil
+	}
+	platOS, arch, variant, err = parse.Platform(platform)
+	if err != nil {
+		return "", "", "", fmt.Errorf("parsing default platform %q: %w", platform, err)
+	}
+	return platOS, arch, variant, nil
 }
 
 // StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool

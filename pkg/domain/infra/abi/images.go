@@ -27,6 +27,7 @@ import (
 	domainUtils "github.com/containers/podman/v6/pkg/domain/utils"
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/containers/podman/v6/pkg/rootless"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -282,6 +283,22 @@ func (ir *ImageEngine) Unmount(ctx context.Context, nameOrIDs []string, options 
 }
 
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+	// If no explicit platform was requested, fall back to
+	// containers.conf [engine] platform (resolved server-side).
+	if options.Arch == "" && options.OS == "" && options.Variant == "" {
+		rtc, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		defOS, defArch, defVariant, err := util.DefaultPlatform(rtc.Engine.Platform)
+		if err != nil {
+			return nil, err
+		}
+		options.OS = defOS
+		options.Arch = defArch
+		options.Variant = defVariant
+	}
+
 	pullOptions := &libimage.PullOptions{AllTags: options.AllTags}
 	pullOptions.AuthFilePath = options.Authfile
 	pullOptions.CertDirPath = options.CertDir
@@ -512,6 +529,22 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 }
 
 func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportOptions) (*entities.ImageImportReport, error) {
+	// If no explicit platform was requested, fall back to
+	// containers.conf [engine] platform (resolved server-side).
+	if options.OS == "" && options.Architecture == "" && options.Variant == "" {
+		rtc, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		defOS, defArch, defVariant, err := util.DefaultPlatform(rtc.Engine.Platform)
+		if err != nil {
+			return nil, err
+		}
+		options.OS = defOS
+		options.Architecture = defArch
+		options.Variant = defVariant
+	}
+
 	importOptions := &libimage.ImportOptions{}
 	importOptions.Changes = options.Changes
 	importOptions.CommitMessage = options.Message
@@ -581,6 +614,24 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+	// If no explicit platform was requested, fall back to
+	// containers.conf [engine] platform (resolved server-side).
+	if len(opts.Platforms) == 0 {
+		rtc, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		defOS, defArch, defVariant, err := util.DefaultPlatform(rtc.Engine.Platform)
+		if err != nil {
+			return nil, err
+		}
+		if defOS != "" || defArch != "" || defVariant != "" {
+			opts.Platforms = append(opts.Platforms, struct{ OS, Arch, Variant string }{
+				OS: defOS, Arch: defArch, Variant: defVariant,
+			})
+		}
+	}
+
 	id, _, err := ir.Libpod.Build(ctx, opts.BuildOptions, containerFiles...)
 	if err != nil {
 		return nil, err

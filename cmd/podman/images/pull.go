@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/utils"
@@ -188,13 +188,9 @@ func imagePull(cmd *cobra.Command, args []string) error {
 			return errors.New("--platform option can not be specified with --arch or --os")
 		}
 
-		specs := strings.Split(platform, "/")
-		pullOptions.OS = specs[0] // may be empty
-		if len(specs) > 1 {
-			pullOptions.Arch = specs[1]
-			if len(specs) > 2 {
-				pullOptions.Variant = specs[2]
-			}
+		pullOptions.OS, pullOptions.Arch, pullOptions.Variant, err = parse.Platform(platform)
+		if err != nil {
+			return fmt.Errorf("parsing platform %q: %w", platform, err)
 		}
 	}
 

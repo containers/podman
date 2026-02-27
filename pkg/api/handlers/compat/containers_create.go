@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/docker/docker/api/types/mount"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
@@ -74,13 +75,25 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	body.Config.Image = imageName
 
 	lookupImageOptions := libimage.LookupImageOptions{}
-	if query.Platform != "" {
+	// If no platform was specified in the query, fall back to
+	// DOCKER_DEFAULT_PLATFORM env var, then containers.conf platform.
+	platform := query.Platform
+	if platform != "" {
 		var err error
-		lookupImageOptions.OS, lookupImageOptions.Architecture, lookupImageOptions.Variant, err = parse.Platform(query.Platform)
+		lookupImageOptions.OS, lookupImageOptions.Architecture, lookupImageOptions.Variant, err = parse.Platform(platform)
 		if err != nil {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("parsing platform: %w", err))
 			return
 		}
+	} else {
+		defOS, defArch, defVariant, err := util.DefaultPlatform(rtc.Engine.Platform)
+		if err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+		lookupImageOptions.OS = defOS
+		lookupImageOptions.Architecture = defArch
+		lookupImageOptions.Variant = defVariant
 	}
 	newImage, resolvedName, err := runtime.LibimageRuntime().LookupImage(body.Config.Image, &lookupImageOptions)
 	if err != nil {

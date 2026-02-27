@@ -319,6 +319,11 @@ architecture of the host (for example `linux/arm`).  Unless overridden,
 subsequent lookups of the same image in the local storage matches this
 platform, regardless of the host.
 
+If not specified, the default platform is resolved in the following order:
+1. The **DOCKER_DEFAULT_PLATFORM** environment variable.
+2. The **platform** setting in **containers.conf**(5).
+3. The host's native OS/architecture.
+
 If `--platform` is set, then the values of the `--arch`, `--os`, and
 `--variant` options is overridden.
 
