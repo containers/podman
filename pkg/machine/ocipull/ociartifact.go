@@ -229,8 +229,9 @@ func (o *OCIArtifactDisk) getDestArtifact() (types.ImageReference, digest.Digest
 		return nil, "", err
 	}
 	fmt.Printf("Looking up Podman Machine image at %s to create VM\n", imgRef.DockerReference())
-	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: o.pullOptions.skipTLSVerify,
+	sysCtx, err := o.pullOptions.systemContext()
+	if err != nil {
+		return nil, "", err
 	}
 	imgSrc, err := imgRef.NewImageSource(o.ctx, sysCtx)
 	if err != nil {
