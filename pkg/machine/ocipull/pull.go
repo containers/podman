@@ -87,7 +87,8 @@ func pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 	}
 
 	copyOpts := copy.Options{
-		SourceCtx: sysCtx,
+		SourceCtx:      sysCtx,
+		DestinationCtx: sysCtx,
 	}
 	if !options.quiet {
 		copyOpts.ReportWriter = os.Stderr
