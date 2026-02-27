@@ -211,6 +211,13 @@ func playFlags(cmd *cobra.Command) {
 		exitFlagName := "service-exit-code-propagation"
 		flags.StringVar(&playOptions.ExitCodePropagation, exitFlagName, "", "Exit-code propagation of the service container")
 		_ = flags.MarkHidden(exitFlagName)
+
+		// --tls-details flag: Podman defines it on the root command,
+		// but buildahParse.SystemContextFromOptions expects it on cmd.
+		// Compare the special handling before calling SystemContextFromOptions.
+		tlsDetailsFlagName := "tls-details"
+		flags.String(tlsDetailsFlagName, "", "path to a containers-tls-details.yaml file")
+		_ = flags.MarkHidden(tlsDetailsFlagName)
 	}
 }
 
@@ -231,6 +238,25 @@ func play(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("build") {
 		playOptions.Build = types.NewOptionalBool(playOptions.BuildCLI)
 		if playOptions.Build == types.OptionalBoolTrue {
+			localTLSDetails := cmd.LocalFlags().Lookup("tls-details")
+			if localTLSDetails == nil { // playFlags should have declared it
+				return errors.New("internal error: missing flag for --tls-details")
+			}
+			// Ensure that whether the user uses --tls-details at the root level or after "build", we
+			// handle them the same.
+			rootTLSDetails := registry.PodmanConfig().TLSDetailsFile
+			switch {
+			case localTLSDetails.Changed && rootTLSDetails != "":
+				// Don't even bother with accepting duplicates with the same value. Why would (the few users that ever use this)
+				// do that?
+				return errors.New("--tls-details set twice")
+			case localTLSDetails.Changed:
+				registry.PodmanConfig().TLSDetailsFile = localTLSDetails.Value.String()
+			case rootTLSDetails != "":
+				if err := localTLSDetails.Value.Set(rootTLSDetails); err != nil {
+					return fmt.Errorf("internal error: syncing --tls-details: %w", err)
+				}
+			}
 			systemContext, err := buildahParse.SystemContextFromOptions(cmd)
 			if err != nil {
 				return err
