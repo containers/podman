@@ -90,7 +90,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.9.0
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.42.1-0.20260216192603-e473f9d26ec6
+# github.com/containers/buildah v1.42.1-0.20260216192603-e473f9d26ec6 => github.com/mtrmac/buildah v0.0.0-20260225211424-ee4bc93e8ec1
 ## explicit; go 1.24.6
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -118,6 +118,7 @@ github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
 github.com/containers/buildah/pkg/completion
+github.com/containers/buildah/pkg/download
 github.com/containers/buildah/pkg/jail
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
@@ -744,12 +745,12 @@ go.etcd.io/bbolt/internal/freelist
 ## explicit; go 1.24.0
 go.opentelemetry.io/auto/sdk
 go.opentelemetry.io/auto/sdk/internal/telemetry
-# go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0
-## explicit; go 1.23.0
+# go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.64.0
+## explicit; go 1.24.0
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv
-# go.opentelemetry.io/otel v1.39.0
+# go.opentelemetry.io/otel v1.40.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
@@ -762,18 +763,19 @@ go.opentelemetry.io/otel/internal/global
 go.opentelemetry.io/otel/propagation
 go.opentelemetry.io/otel/semconv/v1.37.0
 go.opentelemetry.io/otel/semconv/v1.37.0/httpconv
-# go.opentelemetry.io/otel/metric v1.39.0
+go.opentelemetry.io/otel/semconv/v1.39.0
+# go.opentelemetry.io/otel/metric v1.40.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
 go.opentelemetry.io/otel/metric/noop
-# go.opentelemetry.io/otel/trace v1.39.0
+# go.opentelemetry.io/otel/trace v1.40.0
 ## explicit; go 1.24.0
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.67.1-0.20260217150212-026c3538f3d1
+# go.podman.io/common v0.67.1-0.20260225203140-0245b6609233
 ## explicit; go 1.24.6
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -841,7 +843,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.39.2-0.20260217150212-026c3538f3d1
+# go.podman.io/image/v5 v5.39.2-0.20260225203140-0245b6609233
 ## explicit; go 1.24.6
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -889,6 +891,8 @@ go.podman.io/image/v5/pkg/blobinfocache/memory
 go.podman.io/image/v5/pkg/blobinfocache/none
 go.podman.io/image/v5/pkg/blobinfocache/sqlite
 go.podman.io/image/v5/pkg/cli
+go.podman.io/image/v5/pkg/cli/basetls
+go.podman.io/image/v5/pkg/cli/basetls/tlsdetails
 go.podman.io/image/v5/pkg/cli/sigstore
 go.podman.io/image/v5/pkg/cli/sigstore/params
 go.podman.io/image/v5/pkg/compression
@@ -916,7 +920,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.62.1-0.20260217150212-026c3538f3d1
+# go.podman.io/storage v1.62.1-0.20260225203140-0245b6609233
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1221,3 +1225,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/buildah => github.com/mtrmac/buildah v0.0.0-20260225211424-ee4bc93e8ec1

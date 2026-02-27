@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/namespaces"
@@ -26,7 +25,7 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
-	"go.podman.io/image/v5/types"
+	"go.podman.io/image/v5/pkg/cli/basetls"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
@@ -222,13 +221,16 @@ func WithRegistriesConf(path string) RuntimeOption {
 		if err := fileutils.Exists(path); err != nil {
 			return fmt.Errorf("locating specified registries.conf: %w", err)
 		}
-		if rt.imageContext == nil {
-			rt.imageContext = &types.SystemContext{
-				BigFilesTemporaryDir: parse.GetTempDir(),
-			}
-		}
 
 		rt.imageContext.SystemRegistriesConfPath = path
+		return nil
+	}
+}
+
+// WithBaseTLSConfig sets the TLS _algorithm_ options for the runtime.
+func WithBaseTLSConfig(baseTLSConfig *basetls.Config) RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.imageContext.BaseTLSConfig = baseTLSConfig.TLSConfig()
 		return nil
 	}
 }

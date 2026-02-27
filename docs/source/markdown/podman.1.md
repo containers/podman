@@ -177,6 +177,15 @@ Path to a PEM file containing the certificate authority bundle to verify the ser
 
 Path to a PEM file containing the TLS client certificate to present to the server. `--tls-key` must also be provided.
 
+#### **--tls-details**=*path*
+
+Path to a `containers-tls-details.yaml(5)` file, affecting TLS behavior throughout the program.
+
+If not set, defaults to a reasonable default that may change over time (depending on system’s global policy,
+version of the program, version of the Go language, and the like).
+
+Users should generally not use this option unless they have a process to ensure that the configuration will be kept up to date.
+
 #### **--tls-key**=*path*
 
 Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.

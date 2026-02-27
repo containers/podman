@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -48,7 +49,14 @@ func init() {
 
 // Implementation of podman-logout.
 func logout(_ *cobra.Command, args []string) error {
-	sysCtx := &types.SystemContext{}
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return err
+	}
+
+	sysCtx := &types.SystemContext{
+		BaseTLSConfig: baseTLSConfig.TLSConfig(),
+	}
 	common.SetRegistriesConfPath(sysCtx)
 	return auth.Logout(sysCtx, &logoutOptions, args)
 }

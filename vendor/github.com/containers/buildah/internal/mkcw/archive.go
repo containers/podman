@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -38,6 +39,8 @@ type ArchiveOptions struct {
 	// Practically necessary if DiskEncryptionPassphrase is not set, in
 	// which case we'll generate one and throw it away after.
 	AttestationURL string
+	// If not nil, it may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.).
+	BaseTLSConfig *tls.Config
 
 	// Used to measure the environment.  If left unset (0, ""), defaults will be applied.
 	CPUs   int
@@ -376,7 +379,7 @@ func Archive(rootfsPath string, ociConfig *v1.Image, options ArchiveOptions) (io
 
 	// If we're registering the workload, we can do that now.
 	if workloadConfig.AttestationURL != "" {
-		if err := SendRegistrationRequest(workloadConfig, diskEncryptionPassphrase, options.FirmwareLibrary, options.IgnoreAttestationErrors, logger); err != nil {
+		if err := SendRegistrationRequest(workloadConfig, diskEncryptionPassphrase, options.FirmwareLibrary, options.IgnoreAttestationErrors, options.BaseTLSConfig, logger); err != nil {
 			return nil, WorkloadConfig{}, err
 		}
 	}

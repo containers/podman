@@ -1,7 +1,11 @@
 package daemon
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -63,27 +67,62 @@ func newDockerClient(sys *types.SystemContext) (*dockerclient.Client, error) {
 }
 
 func tlsConfig(sys *types.SystemContext) (*http.Client, error) {
-	options := tlsconfig.Options{}
-	if sys != nil && sys.DockerDaemonInsecureSkipTLSVerify {
-		options.InsecureSkipVerify = true
+	// This is intended to follow github.com/moby/moby/client.defaultHTTPClient
+	// and approximately github.com/moby/moby/client.WithTLSClientConfigFromEnv;
+	// we can’t use WithTLSClientConfig because 1) it uses ExclusiveRootPools:true,
+	// and 2) there is no clean way to override the crypto choices of tlsconfig.Client.
+	// So, we need to load the certs and keys ourselves in the BaseTLSConfig case
+	// anyway, we might just as well do it in the other case as well.
+
+	var tlsConfig *tls.Config
+	if sys != nil && sys.BaseTLSConfig != nil {
+		tlsConfig = sys.BaseTLSConfig.Clone()
+	} else {
+		tlsConfig = &tls.Config{
+			// As of 2025-08, tlsconfig.ClientDefault() differs from Go 1.23 defaults only in CipherSuites;
+			// so, limit us to only using that value. If go-connections/tlsconfig changes its policy, we
+			// will want to consider that and make a decision whether to follow suit.
+			// There is some chance that eventually the Go default will be to require TLS 1.3, and that point
+			// we might want to drop the dependency on go-connections entirely.
+			CipherSuites: tlsconfig.ClientDefault().CipherSuites,
+		}
 	}
 
-	if sys != nil && sys.DockerDaemonCertPath != "" {
-		options.CAFile = filepath.Join(sys.DockerDaemonCertPath, "ca.pem")
-		options.CertFile = filepath.Join(sys.DockerDaemonCertPath, "cert.pem")
-		options.KeyFile = filepath.Join(sys.DockerDaemonCertPath, "key.pem")
-	}
+	if sys != nil {
+		if sys.DockerDaemonInsecureSkipTLSVerify {
+			tlsConfig.InsecureSkipVerify = true
+		} else if sys.DockerDaemonCertPath != "" {
+			caFilePath := filepath.Join(sys.DockerDaemonCertPath, "ca.pem")
+			caData, err := os.ReadFile(caFilePath)
+			if err != nil {
+				return nil, fmt.Errorf("reading CA file %q: %w", caFilePath, err)
+			}
+			caPool, err := x509.SystemCertPool()
+			if err != nil {
+				return nil, fmt.Errorf("reading systemwide CAs: %w", err)
+			}
+			if !caPool.AppendCertsFromPEM(caData) {
+				return nil, fmt.Errorf("no certificate found in %q", caFilePath)
+			}
+			tlsConfig.RootCAs = caPool
+		}
 
-	tlsc, err := tlsconfig.Client(options)
-	if err != nil {
-		return nil, err
+		if sys.DockerDaemonCertPath != "" {
+			cert, err := tls.LoadX509KeyPair(
+				filepath.Join(sys.DockerDaemonCertPath, "cert.pem"),
+				filepath.Join(sys.DockerDaemonCertPath, "key.pem"))
+			if err != nil {
+				return nil, fmt.Errorf("loading X509 key pair: %w", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
 	}
 
 	return &http.Client{
 		Transport: &http.Transport{
 			Proxy:           http.ProxyFromEnvironment,
-			TLSClientConfig: tlsc,
-			// In general we want to follow docker/daemon/client.defaultHTTPClient , as long as it doesn’t affect compatibility.
+			TLSClientConfig: tlsConfig,
+			// In general we want to follow github.com/moby/moby/client.defaultHTTPClient , as long as it doesn’t affect compatibility.
 			// These idle connection limits really only apply to long-running clients, which is not our case here;
 			// we include the same values purely for symmetry.
 			MaxIdleConns:    6,
@@ -98,7 +137,7 @@ func httpConfig() *http.Client {
 		Transport: &http.Transport{
 			Proxy:           http.ProxyFromEnvironment,
 			TLSClientConfig: nil,
-			// In general we want to follow docker/daemon/client.defaultHTTPClient , as long as it doesn’t affect compatibility.
+			// In general we want to follow github.com/moby/moby/client.defaultHTTPClient , as long as it doesn’t affect compatibility.
 			// These idle connection limits really only apply to long-running clients, which is not our case here;
 			// we include the same values purely for symmetry.
 			MaxIdleConns:    6,

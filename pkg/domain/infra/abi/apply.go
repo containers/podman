@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	k8sAPI "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -54,7 +55,7 @@ func (ic *ContainerEngine) KubeApply(_ context.Context, body io.Reader, options 
 	}
 
 	// Set up the client to connect to the cluster endpoints
-	client, err := setUpClusterClient(kconfig, options)
+	client, err := setUpClusterClient(ic.Libpod, kconfig, options)
 	if err != nil {
 		return err
 	}
@@ -91,7 +92,7 @@ func (ic *ContainerEngine) KubeApply(_ context.Context, body io.Reader, options 
 
 // setUpClusterClient sets up the client to use when connecting to the cluster. It sets up the CA Certs and
 // client certs and keys based on the information given in the kubeconfig
-func setUpClusterClient(kconfig k8sAPI.Config, applyOptions entities.ApplyOptions) (*http.Client, error) {
+func setUpClusterClient(runtime *libpod.Runtime, kconfig k8sAPI.Config, applyOptions entities.ApplyOptions) (*http.Client, error) {
 	var (
 		clientCert tls.Certificate
 		err        error
@@ -141,9 +142,16 @@ func setUpClusterClient(kconfig k8sAPI.Config, applyOptions entities.ApplyOption
 	}
 
 	// Create transport with ca and client certs
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: caCertPool, Certificates: []tls.Certificate{clientCert}, InsecureSkipVerify: insecureSkipVerify},
+	tr := &http.Transport{}
+	if baseTLSConfig := runtime.SystemContext().BaseTLSConfig; baseTLSConfig != nil {
+		tr.TLSClientConfig = baseTLSConfig.Clone()
+	} else {
+		tr.TLSClientConfig = &tls.Config{}
 	}
+	tr.TLSClientConfig.RootCAs = caCertPool
+	tr.TLSClientConfig.Certificates = []tls.Certificate{clientCert}
+	tr.TLSClientConfig.InsecureSkipVerify = insecureSkipVerify
+
 	return &http.Client{Transport: tr}, nil
 }
 

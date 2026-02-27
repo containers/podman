@@ -77,6 +77,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiv
 }
 
 // LoadManifestDescriptor loads the manifest
+//
 // Deprecated: use LoadManifestDescriptorWithContext instead
 func LoadManifestDescriptor(imgRef types.ImageReference) (imgspecv1.Descriptor, error) {
 	return LoadManifestDescriptorWithContext(nil, imgRef)

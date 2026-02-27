@@ -77,10 +77,8 @@ const PaxSchilyXattr = "SCHILY.xattr."
 
 const (
 	tarExt  = "tar"
-	solaris = "solaris"
 	windows = "windows"
 	darwin  = "darwin"
-	freebsd = "freebsd"
 )
 
 var xattrsToIgnore = map[string]any{
@@ -417,7 +415,7 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 		return nil, fmt.Errorf("tar: cannot canonicalize path: %w", err)
 	}
 	hdr.Name = name
-	setHeaderForSpecialDevice(hdr, name, fi.Sys())
+	setHeaderForSpecialDevice(hdr, fi.Sys())
 	return hdr, nil
 }
 

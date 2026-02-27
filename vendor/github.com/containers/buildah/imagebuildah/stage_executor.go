@@ -24,6 +24,7 @@ import (
 	"github.com/containers/buildah/internal/sanitize"
 	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
 	"github.com/containers/buildah/pkg/sourcepolicy"
@@ -491,7 +492,7 @@ func (s *stageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 							// additional context contains a tar file
 							// so download and explode tar to buildah
 							// temp and point context to that.
-							path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+							path, subdir, err := download.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value, s.systemContext.BaseTLSConfig)
 							if err != nil {
 								return fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
 							}
@@ -592,6 +593,7 @@ func (s *stageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 			// much more generic.
 			CertPath:              s.systemContext.DockerCertPath,
 			InsecureSkipTLSVerify: s.systemContext.DockerInsecureSkipTLSVerify,
+			BaseTLSConfig:         s.systemContext.BaseTLSConfig,
 			MaxRetries:            s.executor.maxPullPushRetries,
 			RetryDelay:            s.executor.retryPullPushDelay,
 			Parents:               copy.Parents,
@@ -690,7 +692,7 @@ func (s *stageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 								// additional context contains a tar file
 								// so download and explode tar to buildah
 								// temp and point context to that.
-								path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+								path, subdir, err := download.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value, s.systemContext.BaseTLSConfig)
 								if err != nil {
 									return nil, fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
 								}
@@ -2700,6 +2702,7 @@ func (s *stageExecutor) generateBuildOutput(buildOutputOpts output.BuildOutputOp
 		HistoryTimestamp:     s.executor.timestamp,
 		SourceDateEpoch:      s.executor.sourceDateEpoch,
 		RewriteTimestamp:     s.executor.rewriteTimestamp,
+		SystemContext:        s.systemContext,
 		CompatLayerOmissions: s.executor.compatLayerOmissions,
 	}, extractRootfsOpts)
 	if err != nil {

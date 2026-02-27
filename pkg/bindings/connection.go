@@ -113,7 +113,12 @@ type Options struct {
 	TLSCertFile string
 	TLSKeyFile  string
 	TLSCAFile   string
-	Machine     bool
+	// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+	// The effect of setting any other options (cryptographic keys, InsecureSkipTLSVerify, callbacks, etc.) is UNDEFINED,
+	// may be inconsistent in various use cases, and may change over time.
+	// Consumers of this value are expected to .Clone() the config and then apply other options.
+	BaseTLSConfig *tls.Config
+	Machine       bool
 }
 
 func orEnv(s string, env string) string {
@@ -139,6 +144,8 @@ func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Contex
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
+		// FIXME? This has security policy concerns similar to opts.BaseTLSConfig;
+		// we don’t currently allow similarly configuring ssh cryptography.
 		conn, err := sshClient(_url, uri, identity, opts.Machine)
 		if err != nil {
 			return nil, err
@@ -155,7 +162,7 @@ func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Contex
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		conn, err := tcpClient(_url, opts.TLSCertFile, opts.TLSKeyFile, opts.TLSCAFile)
+		conn, err := tcpClient(_url, opts)
 		if err != nil {
 			return nil, newConnectError(err)
 		}
@@ -308,7 +315,9 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	return connection, nil
 }
 
-func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connection, error) {
+// tcpClient creates a TCP connection to _url.
+// opts are consulted for TLS options only.
+func tcpClient(_url *url.URL, opts Options) (Connection, error) {
 	connection := Connection{
 		URI: _url,
 	}
@@ -344,23 +353,28 @@ func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connec
 		DialContext:        dialContext,
 		DisableCompression: true,
 	}
-	if len(tlsCAFile) != 0 || len(tlsCertFile) != 0 || len(tlsKeyFile) != 0 {
-		logrus.Debugf("using TLS cert=%s key=%s ca=%s", tlsCertFile, tlsKeyFile, tlsCAFile)
-		transport.TLSClientConfig = &tls.Config{}
+	if opts.BaseTLSConfig != nil {
+		transport.TLSClientConfig = opts.BaseTLSConfig.Clone()
+	}
+	if len(opts.TLSCAFile) != 0 || len(opts.TLSCertFile) != 0 || len(opts.TLSKeyFile) != 0 {
+		logrus.Debugf("using TLS cert=%s key=%s ca=%s", opts.TLSCertFile, opts.TLSKeyFile, opts.TLSCAFile)
+		if transport.TLSClientConfig == nil {
+			transport.TLSClientConfig = &tls.Config{}
+		}
 		connection.tls = true
 	}
-	if len(tlsCAFile) != 0 {
-		pool, err := tlsutil.ReadCertBundle(tlsCAFile)
+	if len(opts.TLSCAFile) != 0 {
+		pool, err := tlsutil.ReadCertBundle(opts.TLSCAFile)
 		if err != nil {
 			return connection, fmt.Errorf("unable to read CA bundle: %w", err)
 		}
 		transport.TLSClientConfig.RootCAs = pool
 	}
-	if (len(tlsCertFile) == 0) != (len(tlsKeyFile) == 0) {
+	if (len(opts.TLSCertFile) == 0) != (len(opts.TLSKeyFile) == 0) {
 		return connection, fmt.Errorf("TLS Key and Certificate must both or neither be provided")
 	}
-	if len(tlsCertFile) != 0 && len(tlsKeyFile) != 0 {
-		keyPair, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+	if len(opts.TLSCertFile) != 0 && len(opts.TLSKeyFile) != 0 {
+		keyPair, err := tls.LoadX509KeyPair(opts.TLSCertFile, opts.TLSKeyFile)
 		if err != nil {
 			return connection, fmt.Errorf("unable to read TLS key pair: %w", err)
 		}

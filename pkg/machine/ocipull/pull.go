@@ -2,6 +2,7 @@ package ocipull
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -16,38 +17,50 @@ import (
 	"go.podman.io/image/v5/types"
 )
 
-// PullOptions includes data to alter certain knobs when pulling a source
+// pullOptions includes data to alter certain knobs when pulling a source
 // image.
-type PullOptions struct {
+type pullOptions struct {
 	// Skip TLS verification when accessing the registry.
-	SkipTLSVerify types.OptionalBool
+	skipTLSVerify types.OptionalBool
+	// If not nil, may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.)
+	baseTLSConfig *tls.Config
 	// [username[:password] to use when connecting to the registry.
-	Credentials string
+	credentials string
 	// Quiet the progress bars when pushing.
-	Quiet bool
+	quiet bool
+}
+
+// systemContext returns an appropriate types.SystemContext for options.
+func (opts *pullOptions) systemContext() (*types.SystemContext, error) {
+	sys := types.SystemContext{
+		DockerInsecureSkipTLSVerify: opts.skipTLSVerify,
+		BaseTLSConfig:               opts.baseTLSConfig,
+	}
+	if opts.credentials != "" {
+		authConf, err := parse.AuthConfig(opts.credentials)
+		if err != nil {
+			return nil, err
+		}
+		sys.DockerAuthConfig = authConf
+	}
+	return &sys, nil
 }
 
 // noSignaturePolicy is a default policy if policy.json is not found on
 // the host machine.
 var noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
 
-// Pull `imageInput` from a container registry to `sourcePath`.
-func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *PullOptions) error {
+// pull `imageInput` from a container registry to `sourcePath`.
+func pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *pullOptions) error {
 	var policy *signature.Policy
 	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
 		return err
 	}
 
-	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
-	}
-	if options.Credentials != "" {
-		authConf, err := parse.AuthConfig(options.Credentials)
-		if err != nil {
-			return err
-		}
-		sysCtx.DockerAuthConfig = authConf
+	sysCtx, err := options.systemContext()
+	if err != nil {
+		return err
 	}
 
 	// Policy paths returns a slice of directories where the policy.json
@@ -78,9 +91,10 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 	}
 
 	copyOpts := copy.Options{
-		SourceCtx: sysCtx,
+		SourceCtx:      sysCtx,
+		DestinationCtx: sysCtx,
 	}
-	if !options.Quiet {
+	if !options.quiet {
 		copyOpts.ReportWriter = os.Stderr
 	}
 	if _, err := copy.Image(ctx, policyContext, destRef, imageInput, &copyOpts); err != nil {

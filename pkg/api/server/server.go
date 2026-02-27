@@ -112,16 +112,20 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 		return ctx
 	}
 
+	if baseTLSConfig := runtime.SystemContext().BaseTLSConfig; baseTLSConfig != nil {
+		server.TLSConfig = baseTLSConfig.Clone()
+	}
 	if opts.TLSClientCAFile != "" {
 		logrus.Debugf("will validate client certs against %s", opts.TLSClientCAFile)
 		pool, err := tlsutil.ReadCertBundle(opts.TLSClientCAFile)
 		if err != nil {
 			return nil, err
 		}
-		server.TLSConfig = &tls.Config{
-			ClientCAs:  pool,
-			ClientAuth: tls.RequireAndVerifyClientCert,
+		if server.TLSConfig == nil {
+			server.TLSConfig = &tls.Config{}
 		}
+		server.TLSConfig.ClientCAs = pool
+		server.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
 	// Capture panics and print stack traces for diagnostics,

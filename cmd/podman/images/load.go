@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/download"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/storage/pkg/fileutils"
 	"golang.org/x/term"
 )
@@ -76,7 +77,13 @@ func load(_ *cobra.Command, _ []string) error {
 			if err != nil {
 				return err
 			}
-			tmpfile, err := download.FromURL(tmpdir, loadOpts.Input)
+			baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+			if err != nil {
+				return err
+			}
+			tmpfile, err := download.FromURL(registry.Context(), tmpdir, loadOpts.Input, download.Options{
+				BaseTLSConfig: baseTLSConfig.TLSConfig(),
+			})
 			if err != nil {
 				return err
 			}

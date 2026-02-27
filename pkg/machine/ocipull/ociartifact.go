@@ -2,6 +2,7 @@ package ocipull
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,7 +40,7 @@ type OCIArtifactDisk struct {
 	imageEndpoint            string
 	machineVersion           *OSVersion
 	diskArtifactFileName     string
-	pullOptions              *PullOptions
+	pullOptions              *pullOptions
 	vmType                   define.VMType
 }
 
@@ -68,7 +69,7 @@ type DiskArtifactOpts struct {
 
 */
 
-func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile, skipTlsVerify types.OptionalBool) (*OCIArtifactDisk, error) {
+func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile, skipTlsVerify types.OptionalBool, baseTLSConfig *tls.Config) (*OCIArtifactDisk, error) {
 	var arch string
 
 	artifactVersion := getVersion()
@@ -119,8 +120,9 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 		imageEndpoint:    endpoint,
 		machineVersion:   artifactVersion,
 		name:             vmName,
-		pullOptions: &PullOptions{
-			SkipTLSVerify: skipTlsVerify,
+		pullOptions: &pullOptions{
+			skipTLSVerify: skipTlsVerify,
+			baseTLSConfig: baseTLSConfig,
 		},
 		vmType: vmType,
 	}
@@ -229,8 +231,9 @@ func (o *OCIArtifactDisk) getDestArtifact() (types.ImageReference, digest.Digest
 		return nil, "", err
 	}
 	fmt.Printf("Looking up Podman Machine image at %s to create VM\n", imgRef.DockerReference())
-	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: o.pullOptions.SkipTLSVerify,
+	sysCtx, err := o.pullOptions.systemContext()
+	if err != nil {
+		return nil, "", err
 	}
 	imgSrc, err := imgRef.NewImageSource(o.ctx, sysCtx)
 	if err != nil {
@@ -274,7 +277,7 @@ func (o *OCIArtifactDisk) pull(destRef types.ImageReference, artifactDigest dige
 	if err != nil {
 		return err
 	}
-	return Pull(o.ctx, destRef, destFile, o.pullOptions)
+	return pull(o.ctx, destRef, destFile, o.pullOptions)
 }
 
 func (o *OCIArtifactDisk) unpack(diskArtifactHash digest.Digest) error {

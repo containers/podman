@@ -1066,7 +1066,8 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 
 	// Build an image scratch
 	builderOptions := buildah.BuilderOptions{
-		FromImage: "scratch",
+		FromImage:     "scratch",
+		SystemContext: &c.runtime.imageContext,
 	}
 	importBuilder, err := buildah.NewBuilder(ctx, c.runtime.store, builderOptions)
 	if err != nil {
@@ -1097,7 +1098,9 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 	}
 
 	// Copy checkpoint from temporary tar file in the image
-	addAndCopyOptions := buildah.AddAndCopyOptions{}
+	addAndCopyOptions := buildah.AddAndCopyOptions{
+		BaseTLSConfig: c.runtime.imageContext.BaseTLSConfig,
+	}
 	if err := importBuilder.Add("", true, addAndCopyOptions, options.TargetFile); err != nil {
 		return err
 	}
@@ -1108,7 +1111,7 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 
 	commitOptions := buildah.CommitOptions{
 		Squash:        true,
-		SystemContext: c.runtime.imageContext,
+		SystemContext: &c.runtime.imageContext,
 	}
 
 	// Create checkpoint image

@@ -37,7 +37,7 @@ type openshiftImageDestination struct {
 
 // newImageDestination creates a new ImageDestination for the specified reference.
 func newImageDestination(ctx context.Context, sys *types.SystemContext, ref openshiftReference) (private.ImageDestination, error) {
-	client, err := newOpenshiftClient(ref)
+	client, err := newOpenshiftClient(sys, ref)
 	if err != nil {
 		return nil, err
 	}

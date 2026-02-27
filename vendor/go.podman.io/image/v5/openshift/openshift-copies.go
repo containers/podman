@@ -21,6 +21,7 @@ import (
 	"dario.cat/mergo"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/internal/multierr"
+	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/homedir"
 	"gopkg.in/yaml.v3"
 )
@@ -715,7 +716,7 @@ func resolvePaths(refs []*string, base string) error {
 // object. Note that a RESTClient may require fields that are optional when initializing a Client.
 // A RESTClient created by this method is generic - it expects to operate on an API that follows
 // the Kubernetes conventions, but may not be the Kubernetes API.
-func restClientFor(config *restConfig) (*url.URL, *http.Client, error) {
+func restClientFor(sys *types.SystemContext, config *restConfig) (*url.URL, *http.Client, error) {
 	// REMOVED: Configurable GroupVersion, Codec
 	// REMOVED: Configurable versionedAPIPath
 	baseURL, err := defaultServerURLFor(config)
@@ -723,7 +724,7 @@ func restClientFor(config *restConfig) (*url.URL, *http.Client, error) {
 		return nil, nil, err
 	}
 
-	transport, err := transportFor(config)
+	transport, err := transportFor(sys, config)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -791,9 +792,9 @@ func defaultServerURLFor(config *restConfig) (*url.URL, error) {
 // TransportFor returns an http.RoundTripper that will provide the authentication
 // or transport level security defined by the provided Config. Will return the
 // default http.DefaultTransport if no special case behavior is needed.
-func transportFor(config *restConfig) (http.RoundTripper, error) {
+func transportFor(sys *types.SystemContext, config *restConfig) (http.RoundTripper, error) {
 	// REMOVED: separation between restclient.Config and transport.Config, Transport, WrapTransport support
-	return transportNew(config)
+	return transportNew(sys, config)
 }
 
 // isConfigTransportTLS is a modified copy of k8s.io/kubernetes/pkg/client/restclient.IsConfigTransportTLS.
@@ -815,7 +816,7 @@ func isConfigTransportTLS(config restConfig) bool {
 // transportNew is a modified copy of k8s.io/kubernetes/pkg/client/transport.New.
 // New returns an http.RoundTripper that will provide the authentication
 // or transport level security defined by the provided Config.
-func transportNew(config *restConfig) (http.RoundTripper, error) {
+func transportNew(sys *types.SystemContext, config *restConfig) (http.RoundTripper, error) {
 	// REMOVED: custom config.Transport support.
 	// Set transport level security
 
@@ -824,7 +825,7 @@ func transportNew(config *restConfig) (http.RoundTripper, error) {
 		err error
 	)
 
-	rt, err = tlsCacheGet(config)
+	rt, err = tlsCacheGet(sys, config)
 	if err != nil {
 		return nil, err
 	}
@@ -883,11 +884,11 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 }
 
 // tlsCacheGet is a modified copy of k8s.io/kubernetes/pkg/client/transport.tlsTransportCache.get.
-func tlsCacheGet(config *restConfig) (http.RoundTripper, error) {
+func tlsCacheGet(sys *types.SystemContext, config *restConfig) (http.RoundTripper, error) {
 	// REMOVED: any actual caching
 
 	// Get the TLS options for this client config
-	tlsConfig, err := tlsConfigFor(config)
+	tlsConfig, err := tlsConfigFor(sys, config)
 	if err != nil {
 		return nil, err
 	}
@@ -918,8 +919,8 @@ func tlsCacheGet(config *restConfig) (http.RoundTripper, error) {
 // tlsConfigFor is a modified copy of k8s.io/kubernetes/pkg/client/transport.TLSConfigFor.
 // TLSConfigFor returns a tls.Config that will provide the transport level security defined
 // by the provided Config. Will return nil if no transport level security is requested.
-func tlsConfigFor(c *restConfig) (*tls.Config, error) {
-	if !c.HasCA() && !c.HasCertAuth() && !c.Insecure {
+func tlsConfigFor(sys *types.SystemContext, c *restConfig) (*tls.Config, error) {
+	if !c.HasCA() && !c.HasCertAuth() && !c.Insecure && (sys == nil || sys.BaseTLSConfig == nil) {
 		return nil, nil
 	}
 	if c.HasCA() && c.Insecure {
@@ -929,9 +930,14 @@ func tlsConfigFor(c *restConfig) (*tls.Config, error) {
 		return nil, err
 	}
 
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: c.Insecure,
+	var tlsConfig *tls.Config
+	if sys != nil && sys.BaseTLSConfig != nil {
+		tlsConfig = sys.BaseTLSConfig.Clone()
+	} else {
+		tlsConfig = &tls.Config{}
 	}
+
+	tlsConfig.InsecureSkipVerify = c.Insecure
 
 	if c.HasCA() {
 		tlsConfig.RootCAs = rootCertPool(c.TLSClientConfig.CAData)
