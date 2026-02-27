@@ -155,7 +155,7 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 			Driver:     network.Driver,
 			Created:    network.Created,
 			Scope:      "local",
-			EnableIPv4: true, // set appropriately for your network (see note below)
+			EnableIPv4: true,
 			EnableIPv6: network.IPv6Enabled,
 			IPAM:       ipam,
 			Internal:   network.Internal,
