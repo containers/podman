@@ -238,17 +238,18 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 	return err
 }
 
-func (h HyperVStubber) Exists(name string) (bool, error) {
+func (h HyperVStubber) Exists(name string) (*bool, error) {
 	// If the user lacks permissions, WMI will throw an access denied error.
 	// We return false to prevent breaking commands like `init`
 	// that loop over all providers to verify machine name uniqueness.
 	if err := VerifyHyperVPermissions(); err != nil {
-		return false, nil //nolint:nilerr
+		exists := false
+		return &exists, nil //nolint:nilerr
 	}
 
 	vmm := hypervctl.NewVirtualMachineManager()
 	exists, _, err := vmm.GetMachineExists(name)
-	return exists, err
+	return &exists, err
 }
 
 func (h HyperVStubber) MountType() vmconfigs.VolumeMountType {

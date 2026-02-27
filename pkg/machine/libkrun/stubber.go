@@ -64,9 +64,9 @@ func (l *LibKrunStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition
 	return nil, nil
 }
 
-func (l *LibKrunStubber) Exists(_ string) (bool, error) {
+func (l *LibKrunStubber) Exists(_ string) (*bool, error) {
 	// not applicable for libkrun (same as applehv)
-	return false, nil
+	return nil, nil
 }
 
 func (l *LibKrunStubber) MountType() vmconfigs.VolumeMountType {
