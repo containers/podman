@@ -16,23 +16,23 @@ import (
 	"go.podman.io/image/v5/types"
 )
 
-// PullOptions includes data to alter certain knobs when pulling a source
+// pullOptions includes data to alter certain knobs when pulling a source
 // image.
-type PullOptions struct {
+type pullOptions struct {
 	// Skip TLS verification when accessing the registry.
-	SkipTLSVerify types.OptionalBool
+	skipTLSVerify types.OptionalBool
 	// [username[:password] to use when connecting to the registry.
-	Credentials string
+	credentials string
 	// Quiet the progress bars when pushing.
-	Quiet bool
+	quiet bool
 }
 
 // noSignaturePolicy is a default policy if policy.json is not found on
 // the host machine.
 var noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
 
-// Pull `imageInput` from a container registry to `sourcePath`.
-func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *PullOptions) error {
+// pull `imageInput` from a container registry to `sourcePath`.
+func pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *pullOptions) error {
 	var policy *signature.Policy
 	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
@@ -40,10 +40,10 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 	}
 
 	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
+		DockerInsecureSkipTLSVerify: options.skipTLSVerify,
 	}
-	if options.Credentials != "" {
-		authConf, err := parse.AuthConfig(options.Credentials)
+	if options.credentials != "" {
+		authConf, err := parse.AuthConfig(options.credentials)
 		if err != nil {
 			return err
 		}
@@ -80,7 +80,7 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 	copyOpts := copy.Options{
 		SourceCtx: sysCtx,
 	}
-	if !options.Quiet {
+	if !options.quiet {
 		copyOpts.ReportWriter = os.Stderr
 	}
 	if _, err := copy.Image(ctx, policyContext, destRef, imageInput, &copyOpts); err != nil {
