@@ -109,13 +109,14 @@ func (dist *OSTree) Upgrade(ctx context.Context, opts UpgradeOptions) error {
 		}
 		machineInfo.InBandUpgradeAvailable = true
 		updateMessage = fmt.Sprintf("Updating OS from %s to %s\n", localDigest.String(), registryDigest.String())
-		args = []string{"bootc", "upgrade"}
+		args = []string{"bootc", "upgrade"} // NOTE: this does not respect baseTLSConfig.
+
 	default:
 		// if caller version > machine version, then update to the caller version
 		newVersion := fmt.Sprintf("%d.%d", opts.MachineVersion.Major, opts.MachineVersion.Minor)
 		updateReference := fmt.Sprintf("%s:%s", originNamed.Name(), newVersion)
 		updateMessage = fmt.Sprintf("Updating OS from version %d.%d to %s\n", opts.ClientVersion.Major, opts.ClientVersion.Minor, newVersion)
-		args = []string{"bootc", "switch", updateReference}
+		args = []string{"bootc", "switch", updateReference} // NOTE: this does not respect baseTLSConfig.
 	}
 
 	if len(opts.Format) > 0 {
