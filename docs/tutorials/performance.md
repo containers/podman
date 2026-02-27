@@ -171,8 +171,7 @@ You can avoid using _pasta_ in the following ways:
 * Use `--network=host`. No network namespace is created. The container will use the host’s network.
   Note: By using `--network=host`, the container is given full access to local system services such as D-bus and is therefore considered insecure.
 
-Side note: Pasta is faster than the network driver [slirp4netns](https://github.com/containers/podman/blob/main/docs/tutorials/basic_networking.md#slirp4netns).
-Pasta is the default network driver since Podman 5.0.0.
+Pasta is the default and only rootless network driver since Podman 6.0.0.
 
 Since Podman 5.1.0 the default network driver can be shown with
 

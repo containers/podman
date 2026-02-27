@@ -31,23 +31,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		Expect(dis).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
-	It("network disconnect with net mode slirp4netns should result in error", func() {
-		netName := "slirp" + stringid.GenerateRandomID()
-		session := podmanTest.Podman([]string{"network", "create", netName})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		defer podmanTest.removeNetwork(netName)
-
-		session = podmanTest.Podman([]string{"create", "--name", "test", "--network", "slirp4netns", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		defer podmanTest.removeNetwork(netName)
-
-		con := podmanTest.Podman([]string{"network", "disconnect", netName, "test"})
-		con.WaitWithDefaultTimeout()
-		Expect(con).Should(ExitWithError(125, `"slirp4netns" is not supported: invalid network mode`))
-	})
-
 	It("podman network disconnect", func() {
 		netName := "aliasTest" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
@@ -118,23 +101,6 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		dis := podmanTest.Podman([]string{"network", "connect", netName, "foobar"})
 		dis.WaitWithDefaultTimeout()
 		Expect(dis).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
-	})
-
-	It("network connect with net mode slirp4netns should result in error", func() {
-		netName := "slirp" + stringid.GenerateRandomID()
-		session := podmanTest.Podman([]string{"network", "create", netName})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		defer podmanTest.removeNetwork(netName)
-
-		session = podmanTest.Podman([]string{"create", "--name", "test", "--network", "slirp4netns", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		defer podmanTest.removeNetwork(netName)
-
-		con := podmanTest.Podman([]string{"network", "connect", netName, "test"})
-		con.WaitWithDefaultTimeout()
-		Expect(con).Should(ExitWithError(125, `"slirp4netns" is not supported: invalid network mode`))
 	})
 
 	It("podman connect on a container that already is connected to the network should error after init", func() {

@@ -16,7 +16,6 @@ const (
 	podType       = "pod"
 	privateType   = "private"
 	shareableType = "shareable"
-	slirpType     = "slirp4netns"
 	pastaType     = "pasta"
 )
 
@@ -202,11 +201,6 @@ func (n NetworkMode) IsBridge() bool {
 	return n == bridgeType
 }
 
-// IsSlirp4netns indicates if we are running a rootless network stack
-func (n NetworkMode) IsSlirp4netns() bool {
-	return n == slirpType || strings.HasPrefix(string(n), slirpType+":")
-}
-
 // IsPasta indicates if we are running a rootless network stack using pasta
 func (n NetworkMode) IsPasta() bool {
 	return n == pastaType || strings.HasPrefix(string(n), pastaType+":")
@@ -230,5 +224,5 @@ func (n NetworkMode) IsPod() bool {
 
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns() && !n.IsPasta() && !n.IsNS()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsPasta() && !n.IsNS()
 }
