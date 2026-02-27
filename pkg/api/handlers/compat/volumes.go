@@ -19,7 +19,8 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/filters"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi/parse"
 	"github.com/containers/podman/v6/pkg/util"
-	"github.com/docker/docker/api/types/volume"
+	"github.com/moby/moby/api/types/volume"
+	"github.com/moby/moby/client"
 )
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
@@ -77,8 +78,16 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		}
 		volumeConfigs = append(volumeConfigs, &config)
 	}
+
+	volVals := make([]volume.Volume, 0, len(vols))
+	for _, v := range volumeConfigs {
+		if v != nil {
+			volVals = append(volVals, *v)
+		}
+	}
+
 	response := volume.ListResponse{
-		Volumes:  volumeConfigs,
+		Volumes:  volVals,
 		Warnings: []string{},
 	}
 	utils.WriteResponse(w, http.StatusOK, response)
@@ -98,7 +107,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// decode params from body
-	input := volume.CreateOptions{}
+	input := client.VolumeCreateOptions{}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return

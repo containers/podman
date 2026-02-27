@@ -14,10 +14,10 @@ import (
 	v12 "github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/util/intstr"
 	"github.com/containers/podman/v6/pkg/specgen"
-	"github.com/docker/docker/pkg/meminfo"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 	"go.podman.io/common/pkg/secrets"
+	"go.podman.io/storage/pkg/system"
 	"sigs.k8s.io/yaml"
 )
 
@@ -447,7 +447,7 @@ func TestEnvVarValue(t *testing.T) {
 	secretsManager := createSecrets(t, d)
 	stringNumCPUs := strconv.Itoa(runtime.NumCPU())
 
-	mi, err := meminfo.Read()
+	mi, err := system.ReadMemInfo()
 	assert.NoError(t, err)
 	stringMemTotal := strconv.FormatInt(mi.MemTotal, 10)
 

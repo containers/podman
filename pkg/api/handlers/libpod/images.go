@@ -31,8 +31,8 @@ import (
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/containers/podman/v6/pkg/util"
 	utils2 "github.com/containers/podman/v6/utils"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/ssh"
@@ -620,7 +620,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 			flush()
 		case <-runCtx.Done():
 			if commitErr != nil {
-				m.Error = &jsonmessage.JSONError{
+				m.Error = &jsonstream.Error{
 					Message: commitErr.Error(),
 				}
 			} else {

@@ -13,11 +13,11 @@ import (
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi"
-	docker "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/build"
-	"github.com/docker/docker/api/types/container"
-	dockerImage "github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/volume"
+	"github.com/moby/moby/api/types/build"
+	dockerContainer "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/image"
+	dockerSystem "github.com/moby/moby/api/types/system"
+	"github.com/moby/moby/api/types/volume"
 )
 
 func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
@@ -30,30 +30,9 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imgs := make([]*dockerImage.Summary, len(df.Images))
-	for i, o := range df.Images {
-		t := dockerImage.Summary{
-			Containers:  int64(o.Containers),
-			Created:     o.Created.Unix(),
-			ID:          o.ImageID,
-			Labels:      map[string]string{},
-			ParentID:    "",
-			RepoDigests: nil,
-			RepoTags:    []string{o.Tag},
-			SharedSize:  o.SharedSize,
-			Size:        o.Size,
-		}
-
-		if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
-			t.VirtualSize = o.Size - o.UniqueSize //nolint:staticcheck // Deprecated field
-		}
-
-		imgs[i] = &t
-	}
-
-	ctnrs := make([]*container.Summary, len(df.Containers))
+	ctnrs := make([]dockerContainer.Summary, len(df.Containers))
 	for i, o := range df.Containers {
-		t := container.Summary{
+		t := dockerContainer.Summary{
 			ID:         o.ContainerID,
 			Names:      []string{o.Names},
 			Image:      o.Image,
@@ -64,7 +43,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			SizeRw:     o.RWSize,
 			SizeRootFs: o.Size,
 			Labels:     map[string]string{},
-			State:      o.Status,
+			State:      dockerContainer.ContainerState(o.Status),
 			Status:     o.Status,
 			HostConfig: struct {
 				NetworkMode string            `json:",omitempty"`
@@ -73,10 +52,10 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			NetworkSettings: nil,
 			Mounts:          nil,
 		}
-		ctnrs[i] = &t
+		ctnrs[i] = t
 	}
 
-	vols := make([]*volume.Volume, len(df.Volumes))
+	vols := make([]volume.Volume, len(df.Volumes))
 	for i, o := range df.Volumes {
 		t := volume.Volume{
 			CreatedAt:  "",
@@ -92,17 +71,60 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 				Size:     o.Size,
 			},
 		}
-		vols[i] = &t
+		vols[i] = t
 	}
 
-	utils.WriteResponse(w, http.StatusOK, handlers.DiskUsage{DiskUsage: docker.DiskUsage{
-		// BuilderSize was explicitly omitted since Docker deprecated its in ver 1.42
-		// and suggests to use BuildCache.
-		// https://docs.docker.com/reference/api/engine/version-history/#v142-api-changes
-		LayersSize: df.ImagesSize,
-		Images:     imgs,
-		Containers: ctnrs,
-		Volumes:    vols,
-		BuildCache: []*build.CacheRecord{},
+	imgs_base := make([]image.Summary, len(df.Images))
+	for i, o := range df.Images {
+		imgs_base[i] = image.Summary{
+			Containers:  int64(o.Containers),
+			Created:     o.Created.Unix(),
+			ID:          o.ImageID,
+			Labels:      map[string]string{},
+			ParentID:    "",
+			RepoDigests: nil,
+			RepoTags:    []string{o.Tag},
+			SharedSize:  o.SharedSize,
+			Size:        o.Size,
+		}
+	}
+
+	// Legacy response.
+	if _, err := apiutil.SupportedVersion(r, "<1.52.0"); err == nil {
+		legacy := make([]handlers.LegacyImageSummary, len(imgs_base))
+
+		needVirtual := false
+		if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
+			needVirtual = true
+		}
+
+		for i := range imgs_base {
+			legacy[i] = handlers.LegacyImageSummary{Summary: imgs_base[i]}
+			if needVirtual {
+				legacy[i].VirtualSize = df.Images[i].Size - df.Images[i].UniqueSize
+			}
+		}
+
+		utils.WriteResponse(w, http.StatusOK, handlers.LegacyDiskUsage{
+			LayersSize: df.ImagesSize,
+			Images:     legacy,
+			Containers: ctnrs,
+			Volumes:    vols,
+			BuildCache: []build.CacheRecord{},
+		})
+		return
+	}
+
+	// Non-legacy response.
+	utils.WriteResponse(w, http.StatusOK, handlers.DiskUsage{DiskUsage: dockerSystem.DiskUsage{
+		ImageUsage: &image.DiskUsage{
+			TotalSize: df.ImagesSize,
+			Items:     imgs_base,
+		},
+		ContainerUsage: &dockerContainer.DiskUsage{Items: ctnrs},
+		VolumeUsage:    &volume.DiskUsage{Items: vols},
+		BuildCacheUsage: &build.DiskUsage{
+			Items: nil,
+		},
 	}})
 }

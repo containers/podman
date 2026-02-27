@@ -311,12 +311,12 @@ class TestContainers(common.DockerTestCase):
 
     def test_container_inspect_compatibility(self):
         """Test container inspect result compatibility with DOCKER_API.
-        When upgrading module "github.com/docker/docker" this test might fail, if so please correct podman inspect
+        When upgrading module "github.com/moby/moby" this test might fail, if so please correct podman inspect
         command result to stay compatible with docker.
         """
         ctr = self.docker.containers.create(image="alpine", detach=True)
         try:
-            spec = yaml.load(open("vendor/github.com/docker/docker/api/swagger.yaml").read(), Loader=yaml.Loader)
+            spec = yaml.load(open("vendor/github.com/moby/moby/api/swagger.yaml").read(), Loader=yaml.Loader)
             ctr_inspect = json.loads(self.podman.run("inspect", ctr.id).stdout)[0]
             schema = spec['paths']["/containers/{id}/json"]["get"]['responses'][200]['schema']
             schema["definitions"] = spec["definitions"]
