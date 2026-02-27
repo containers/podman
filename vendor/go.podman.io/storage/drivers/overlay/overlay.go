@@ -91,17 +91,6 @@ const (
 
 	tocArtifact             = "toc"
 	fsVerityDigestsArtifact = "fs-verity-digests"
-
-	// idLength represents the number of random characters
-	// which can be used to create the unique link identifier
-	// for every layer. If this value is too long then the
-	// page size limit for the mount command may be exceeded.
-	// The idLength should be selected such that following equation
-	// is true (512 is a buffer for label metadata, 128 is the
-	// number of lowers we want to be able to use without having
-	// to use bind mounts to get all the way to the kernel limit).
-	// ((idLength + len(linkDir) + 1) * 128) <= (pageSize - 512)
-	idLength = 26
 )
 
 type overlayOptions struct {
@@ -328,14 +317,8 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	runhome := filepath.Join(options.RunRoot, filepath.Base(home))
 
 	// Create the driver home dir
-	if err := os.MkdirAll(path.Join(home, linkDir), 0o755); err != nil {
+	if err := os.MkdirAll(home, 0o755); err != nil {
 		return nil, err
-	}
-
-	if options.ImageStore != "" {
-		if err := idtools.MkdirAllAs(path.Join(options.ImageStore, linkDir), 0o755, 0, 0); err != nil {
-			return nil, err
-		}
 	}
 
 	if err := os.MkdirAll(runhome, 0o700); err != nil {
@@ -833,7 +816,7 @@ func (d *Driver) Status() [][2]string {
 // Metadata returns meta data about the overlay driver such as
 // LowerDir, UpperDir, WorkDir and MergeDir used to store data.
 func (d *Driver) Metadata(id string) (map[string]string, error) {
-	dir, _, inAdditionalStore := d.dir2(id, false)
+	dir, inAdditionalStore := d.dir2(id, false)
 	if err := fileutils.Exists(dir); err != nil {
 		return nil, err
 	}
@@ -1039,7 +1022,7 @@ func (d *Driver) getLayerPermissions(parent string, uidMaps, gidMaps []idtools.I
 }
 
 func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnly bool) (retErr error) {
-	dir, homedir, _ := d.dir2(id, readOnly)
+	dir, _ := d.dir2(id, readOnly)
 
 	disableQuota := readOnly
 
@@ -1049,11 +1032,6 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnl
 	if opts != nil && opts.IDMappings != nil {
 		uidMaps = opts.IDMappings.UIDs()
 		gidMaps = opts.IDMappings.GIDs()
-	}
-
-	// Make the link directory if it does not exist
-	if err := idtools.MkdirAllAs(path.Join(homedir, linkDir), 0o755, 0, 0); err != nil {
-		return err
 	}
 
 	idPair, forcedSt, st, err := d.getLayerPermissions(parent, uidMaps, gidMaps)
@@ -1067,8 +1045,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnl
 
 	if err := fileutils.Lexists(dir); err == nil {
 		logrus.Warnf("Trying to create a layer %#v while directory %q already exists; removing it first", id, dir)
-		// Don’t just os.RemoveAll(dir) here; d.Remove also removes the link in linkDir,
-		// so that we can’t end up with two symlinks in linkDir pointing to the same layer.
+		// Don't just os.RemoveAll(dir) here; d.Remove also handles proper cleanup.
 		if err := d.Remove(id); err != nil {
 			return fmt.Errorf("removing a pre-existing layer directory %q: %w", dir, err)
 		}
@@ -1118,18 +1095,6 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnl
 		if err := idtools.SetContainersOverrideXattr(diff, st); err != nil {
 			return err
 		}
-	}
-
-	lid := generateID(idLength)
-
-	linkBase := path.Join("..", id, "diff")
-	if err := os.Symlink(linkBase, path.Join(homedir, linkDir, lid)); err != nil {
-		return err
-	}
-
-	// Write link id to link file
-	if err := os.WriteFile(path.Join(dir, "link"), []byte(lid), 0o644); err != nil {
-		return err
 	}
 
 	if err := idtools.MkdirAs(path.Join(dir, "work"), 0o700, forcedSt.IDs.UID, forcedSt.IDs.GID); err != nil {
@@ -1191,22 +1156,7 @@ func (d *Driver) getLower(parent string) (string, error) {
 		return "", err
 	}
 
-	// Read Parent link fileA
-	parentLink, err := os.ReadFile(path.Join(parentDir, "link"))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
-		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(parentDir, "link"))
-		if err := d.recreateSymlinks(); err != nil {
-			return "", fmt.Errorf("recreating the links: %w", err)
-		}
-		parentLink, err = os.ReadFile(path.Join(parentDir, "link"))
-		if err != nil {
-			return "", err
-		}
-	}
-	lowers := []string{path.Join(linkDir, string(parentLink))}
+	lowers := []string{path.Join(parent, "diff")}
 
 	parentLower, err := os.ReadFile(path.Join(parentDir, lowerFile))
 	if err == nil {
@@ -1217,7 +1167,7 @@ func (d *Driver) getLower(parent string) (string, error) {
 }
 
 func (d *Driver) dir(id string) string {
-	p, _, _ := d.dir2(id, false)
+	p, _ := d.dir2(id, false)
 	return p
 }
 
@@ -1239,22 +1189,25 @@ func (d *Driver) homeDirForImageStore() string {
 	return d.home
 }
 
-func (d *Driver) dir2(id string, useImageStore bool) (string, string, bool) {
+func (d *Driver) dir2(id string, useImageStore bool) (string, bool) {
 	homedir := d.home
 	if useImageStore {
 		homedir = d.homeDirForImageStore()
 	}
-	newpath := path.Join(homedir, id)
+	// If id contains a subpath (e.g. "layer-id/diff"), split it so
+	// the image store lookup is done on the layer directory alone.
+	layerID, suffix, _ := strings.Cut(id, "/")
+	newpath := path.Join(homedir, layerID)
 	if err := fileutils.Exists(newpath); err != nil {
 		for _, p := range d.getAllImageStores() {
-			l := path.Join(p, d.name, id)
+			l := path.Join(p, d.name, layerID)
 			err = fileutils.Exists(l)
 			if err == nil {
-				return l, homedir, true
+				return filepath.Join(l, suffix), true
 			}
 		}
 	}
-	return newpath, homedir, false
+	return filepath.Join(newpath, suffix), false
 }
 
 func (d *Driver) getLowerDirs(id string) ([]string, error) {
@@ -1264,24 +1217,15 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 		for s := range strings.SplitSeq(string(lowers), ":") {
 			lower := d.dir(s)
 			lp, err := os.Readlink(lower)
-			// if the link does not exist, we lost the symlinks during a sudden reboot.
-			// Let's go ahead and recreate those symlinks.
 			if err != nil {
-				if os.IsNotExist(err) {
-					logrus.Warnf("Can't read link %q because it does not exist. A storage corruption might have occurred, attempting to recreate the missing symlinks. It might be best wipe the storage to avoid further errors due to storage corruption.", lower)
-					if err := d.recreateSymlinks(); err != nil {
-						return nil, fmt.Errorf("recreating the missing symlinks: %w", err)
-					}
-					// let's call Readlink on lower again now that we have recreated the missing symlinks
-					lp, err = os.Readlink(lower)
-					if err != nil {
-						return nil, err
-					}
-				} else {
-					return nil, err
+				if errors.Is(err, syscall.EINVAL) {
+					// Not a symlink: new format, lower is already the diff path.
+					lowersArray = append(lowersArray, lower)
+					continue
 				}
+				return nil, err
 			}
-			lowersArray = append(lowersArray, path.Clean(d.dir(path.Join("link", lp))))
+			lowersArray = append(lowersArray, d.dir(path.Join("link", lp)))
 		}
 	} else if !os.IsNotExist(err) {
 		return nil, err
@@ -1391,119 +1335,13 @@ func (d *Driver) DeferredRemove(id string) (tempdir.CleanupTempDirFunc, error) {
 	return t.Cleanup, nil
 }
 
-// recreateSymlinks goes through the driver's home directory and checks if the diff directory
-// under each layer has a symlink created for it under the linkDir. If the symlink does not
-// exist, it creates them
-func (d *Driver) recreateSymlinks() error {
-	// We have at most 3 corrective actions per layer, so 10 iterations is plenty.
-	const maxIterations = 10
-
-	// List all the directories under the home directory
-	dirs, err := os.ReadDir(d.home)
-	if err != nil {
-		return fmt.Errorf("reading driver home directory %q: %w", d.home, err)
-	}
-	// This makes the link directory if it doesn't exist
-	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0o755, 0, 0); err != nil {
-		return err
-	}
-	// Keep looping as long as we take some corrective action in each iteration
-	var errs error
-	madeProgress := true
-	iterations := 0
-	for madeProgress {
-		errs = nil
-		madeProgress = false
-		// Check that for each layer, there's a link in "l" with the name in
-		// the layer's "link" file that points to the layer's "diff" directory.
-		for _, dir := range dirs {
-			// Skip over the linkDir, stagingDir, tempDirName and anything that is not a directory
-			if dir.Name() == linkDir || dir.Name() == stagingDir || dir.Name() == tempDirName || !dir.IsDir() {
-				continue
-			}
-			// Read the "link" file under each layer to get the name of the symlink
-			data, err := os.ReadFile(path.Join(d.dir(dir.Name()), "link"))
-			if err != nil {
-				errs = errors.Join(errs, fmt.Errorf("reading name of symlink for %q: %w", dir.Name(), err))
-				continue
-			}
-			linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
-			// Check if the symlink exists, and if it doesn't, create it again with the
-			// name we got from the "link" file
-			err = fileutils.Lexists(linkPath)
-			if err != nil && os.IsNotExist(err) {
-				if err := os.Symlink(path.Join("..", dir.Name(), "diff"), linkPath); err != nil {
-					errs = errors.Join(errs, err)
-					continue
-				}
-				madeProgress = true
-			} else if err != nil {
-				errs = errors.Join(errs, err)
-				continue
-			}
-		}
-
-		// linkDirFullPath is the full path to the linkDir
-		linkDirFullPath := filepath.Join(d.home, "l")
-		// Now check if we somehow lost a "link" file, by making sure
-		// that each symlink we have corresponds to one.
-		links, err := os.ReadDir(linkDirFullPath)
-		if err != nil {
-			errs = errors.Join(errs, err)
-			continue
-		}
-		// Go through all of the symlinks in the "l" directory
-		for _, link := range links {
-			// Read the symlink's target, which should be "../$layer/diff"
-			target, err := os.Readlink(filepath.Join(linkDirFullPath, link.Name()))
-			if err != nil {
-				errs = errors.Join(errs, err)
-				continue
-			}
-			targetComponents := strings.Split(target, string(os.PathSeparator))
-			if len(targetComponents) != 3 || targetComponents[0] != ".." || targetComponents[2] != "diff" {
-				errs = errors.Join(errs, fmt.Errorf("link target of %q looks weird: %q", link, target))
-				// force the link to be recreated on the next pass
-				if err := os.Remove(filepath.Join(linkDirFullPath, link.Name())); err != nil {
-					if !os.IsNotExist(err) {
-						errs = errors.Join(errs, fmt.Errorf("removing link %q: %w", link, err))
-					} // else don’t report any error, but also don’t set madeProgress.
-					continue
-				}
-				madeProgress = true
-				continue
-			}
-			// Reconstruct the name of the target's link file and check that
-			// it has the basename of our symlink in it.
-			targetID := targetComponents[1]
-			linkFile := filepath.Join(d.dir(targetID), "link")
-			data, err := os.ReadFile(linkFile)
-			if err != nil || string(data) != link.Name() {
-				// NOTE: If two or more links point to the same target, we will update linkFile
-				// with every value of link.Name(), and set madeProgress = true every time.
-				if err := os.WriteFile(linkFile, []byte(link.Name()), 0o644); err != nil {
-					errs = errors.Join(errs, fmt.Errorf("correcting link for layer %s: %w", targetID, err))
-					continue
-				}
-				madeProgress = true
-			}
-		}
-		iterations++
-		if iterations >= maxIterations {
-			errs = errors.Join(errs, fmt.Errorf("reached %d iterations in overlay graph driver’s recreateSymlink, giving up", iterations))
-			break
-		}
-	}
-	return errs
-}
-
 // Get creates and mounts the required file system for the given id and returns the mount path.
 func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	return d.get(id, false, options)
 }
 
 func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountOpts) (_ string, retErr error) {
-	dir, _, inAdditionalStore := d.dir2(id, false)
+	dir, inAdditionalStore := d.dir2(id, false)
 	if err := fileutils.Exists(dir); err != nil {
 		return "", err
 	}
@@ -1690,45 +1528,25 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			continue
 		}
 
-		lower := ""
-		newpath := path.Join(d.home, l)
-		if st, err := os.Stat(newpath); err != nil {
-			for _, p := range d.getAllImageStores() {
-				lower = path.Join(p, d.name, l)
-				if st2, err2 := os.Stat(lower); err2 == nil {
-					if !permsKnown {
-						perms = st2.Mode()
-						permsKnown = true
-					}
-					break
-				}
-				lower = ""
+		lower := d.dir(l)
+		lp, err := os.Readlink(lower)
+		if err != nil {
+			if !errors.Is(err, syscall.EINVAL) {
+				return "", fmt.Errorf("can't resolve lower layer %q: %w", lower, err)
 			}
-			// if it is a "not found" error, that means the symlinks were lost in a sudden reboot
-			// so call the recreateSymlinks function to go through all the layer dirs and recreate
-			// the symlinks with the name from their respective "link" files
-			if lower == "" && os.IsNotExist(err) {
-				logrus.Warnf("Can't stat lower layer %q because it does not exist. Going through storage to recreate the missing symlinks.", newpath)
-				if err := d.recreateSymlinks(); err != nil {
-					return "", fmt.Errorf("recreating the missing symlinks: %w", err)
-				}
-				lower = newpath
-			} else if lower == "" {
-				return "", fmt.Errorf("can't stat lower layer %q: %w", newpath, err)
-			}
+			// Not a symlink: lower is already the diff path.
 		} else {
-			if !permsKnown {
-				perms = st.Mode()
-				permsKnown = true
-			}
-			lower = newpath
+			lower = d.dir(path.Join("link", lp))
+		}
+		if st, err := os.Stat(lower); err != nil {
+			return "", fmt.Errorf("can't stat lower layer %q: %w", lower, err)
+		} else if !permsKnown {
+			perms = st.Mode()
+			permsKnown = true
 		}
 
-		linkContent, err := os.Readlink(lower)
-		if err != nil {
-			return "", err
-		}
-		lowerID := filepath.Base(filepath.Dir(linkContent))
+		// lowerID is the layer directory name, used for composefs blob lookup.
+		lowerID := filepath.Base(filepath.Dir(lower))
 		composefsMount, err := maybeAddComposefsMount(lowerID, i+1, readWrite)
 		if err != nil {
 			return "", err
@@ -1975,7 +1793,7 @@ func (d *Driver) getMergedDir(id, dir string, inAdditionalStore bool) string {
 
 // Put unmounts the mount path created for the give id.
 func (d *Driver) Put(id string) error {
-	dir, _, inAdditionalStore := d.dir2(id, false)
+	dir, inAdditionalStore := d.dir2(id, false)
 	if err := fileutils.Exists(dir); err != nil {
 		return err
 	}
@@ -2893,7 +2711,7 @@ func getMappedMountRoot(path string) string {
 func (d *Driver) Dedup(req graphdriver.DedupArgs) (graphdriver.DedupResult, error) {
 	var dirs []string
 	for _, layer := range req.Layers {
-		dir, _, inAdditionalStore := d.dir2(layer, false)
+		dir, inAdditionalStore := d.dir2(layer, false)
 		if inAdditionalStore {
 			continue
 		}

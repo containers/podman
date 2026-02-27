@@ -129,6 +129,8 @@ github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S
 github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/fsouza/go-dockerclient v1.12.3 h1:CEsX4/msyMEekHAR9Pf8XniZBtwGo0Kl+mLPQ/AnSys=
 github.com/fsouza/go-dockerclient v1.12.3/go.mod h1:gl0t2KUfrsLbm4tw5/ySsJkkFpi7Fz9gXzY2BKLEvZA=
+github.com/giuseppe/container-libs/storage v0.0.0-20260227170639-e3f0bdb66abf h1:/gKhknvkAtr3TgcGowrDxIDUBoQvzWtC8OxIQkQB++o=
+github.com/giuseppe/container-libs/storage v0.0.0-20260227170639-e3f0bdb66abf/go.mod h1:B83Ad8mtO0GZs7rEwb66f0Ed5G57NyKI/iJZHoJrpUE=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
 github.com/gkampitakis/ciinfo v0.3.2/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=
 github.com/gkampitakis/go-diff v1.3.2 h1:Qyn0J9XJSDTgnsgHRdz9Zp24RaJeKMUHg2+PDZZdC4M=
@@ -449,8 +451,6 @@ go.podman.io/common v0.67.1-0.20260217150212-026c3538f3d1 h1:MhQdvsUa8hef3qN+hRt
 go.podman.io/common v0.67.1-0.20260217150212-026c3538f3d1/go.mod h1:KKYaKM+ZTve0ZW+3yvd05PpWawetNGNzb05dDUw+LG0=
 go.podman.io/image/v5 v5.39.2-0.20260217150212-026c3538f3d1 h1:41n9FLO6l3xQ7yVAE9oxKNwmJgXbFRTeS1BHTAQjt80=
 go.podman.io/image/v5 v5.39.2-0.20260217150212-026c3538f3d1/go.mod h1:ZcbaWguhrYsWLx6kbX+gcVq9yzIrvzu21JF2bgQIlMc=
-go.podman.io/storage v1.62.1-0.20260217150212-026c3538f3d1 h1:JdxkufArDqjwqWWA+45NsqdAZ9zTSqQmonncbuRzQxo=
-go.podman.io/storage v1.62.1-0.20260217150212-026c3538f3d1/go.mod h1:B83Ad8mtO0GZs7rEwb66f0Ed5G57NyKI/iJZHoJrpUE=
 go.yaml.in/yaml/v2 v2.4.3 h1:6gvOSjQoTB3vt1l+CU+tSyi/HOjfOjRLJ4YwYZGwRO0=
 go.yaml.in/yaml/v2 v2.4.3/go.mod h1:zSxWcmIDjOzPXpjlTTbAsKokqkDNAVtZO0WOMiT90s8=
 go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=
