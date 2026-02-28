@@ -371,7 +371,7 @@ EOF
     # Test custom Go template format - extract only names
     run_podman quadlet list --format '{{range .}}{{.Name}}{{"\n"}}{{end}}'
     assert $status -eq 0 "quadlet list with custom format should succeed"
-    assert "$output" = $'NAME\nformat-test.container' "custom format should show only the name"
+    assert "$output" = $'format-test.container' "custom format should show only the name"
 
     # Test custom Go template format - extract multiple fields
     run_podman quadlet list --format '{{range .}}Name:{{.Name}} Status:{{.Status}}{{"\n"}}{{end}}'
@@ -382,7 +382,7 @@ EOF
     # Test format with specific field extraction
     run_podman quadlet list --format '{{.Name}}'
     assert $status -eq 0 "quadlet list with field format should succeed"
-    assert "$output" = $'NAME\nformat-test.container' "field format should extract just the name"
+    assert "$output" = $'format-test.container' "field format should extract just the name"
 
     # Clean up
     run_podman quadlet rm format-test.container

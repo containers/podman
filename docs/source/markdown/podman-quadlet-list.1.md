@@ -38,6 +38,10 @@ Print results with a Go template.
 | .Status         | Quadlet status corresponding to systemd unit     |
 | .UnitName       | Systemd unit name corresponding to quadlet       |
 
+#### **--noheading**
+
+Omit the table headings from the listing of quadlets.
+
 ## EXAMPLES
 
 Simple list command
@@ -61,7 +65,6 @@ test-service-quadlet.container  test-service-quadlet.service  /home/user/.config
 Format list output for a specific field.
 ```
 $ podman quadlet list --format '{{ .UnitName }}'
-UNIT NAME
 test-service-quadlet.service
 sample-quadlet.service
 ```
