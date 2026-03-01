@@ -443,13 +443,13 @@ func InitFSMounts(mounts []spec.Mount) error {
 	for i, m := range mounts {
 		switch {
 		case m.Type == define.TypeBind:
-			opts, err := util.ProcessOptions(m.Options, false, m.Source)
+			opts, _, err := util.ProcessOptions(m.Options, false, m.Source)
 			if err != nil {
 				return err
 			}
 			mounts[i].Options = opts
 		case m.Type == define.TypeTmpfs && filepath.Clean(m.Destination) != "/dev":
-			opts, err := util.ProcessOptions(m.Options, true, "")
+			opts, _, err := util.ProcessOptions(m.Options, true, "")
 			if err != nil {
 				return err
 			}

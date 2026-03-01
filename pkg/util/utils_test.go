@@ -706,12 +706,13 @@ func getDefaultMountOptionsNoStat(_ string) (defaultMountOptions, error) {
 
 func TestProcessOptions(t *testing.T) {
 	tests := []struct {
-		name       string
-		options    []string
-		isTmpfs    bool
-		sourcePath string
-		expected   []string
-		expectErr  bool
+		name             string
+		options          []string
+		isTmpfs          bool
+		sourcePath       string
+		expected         []string
+		expectedNoCreate bool
+		expectErr        bool
 	}{
 		{
 			name:       "tmpfs",
@@ -816,11 +817,32 @@ func TestProcessOptions(t *testing.T) {
 			options:    []string{"noatime"},
 			expectErr:  true,
 		},
+		{
+			name:             "nocreate option is parsed and filtered",
+			sourcePath:       "/path/to/source",
+			options:          []string{"nocreate", "ro"},
+			expected:         []string{"nodev", "nosuid", "rbind", "ro", "rprivate"},
+			expectedNoCreate: true,
+		},
+		{
+			name:             "nocreate with other options",
+			sourcePath:       "/path/to/source",
+			options:          []string{"rw", "nocreate", "z"},
+			expected:         []string{"nodev", "nosuid", "rbind", "rprivate", "rw", "z"},
+			expectedNoCreate: true,
+		},
+		{
+			name:             "no nocreate option",
+			sourcePath:       "/path/to/source",
+			options:          []string{"ro"},
+			expected:         []string{"nodev", "nosuid", "rbind", "ro", "rprivate"},
+			expectedNoCreate: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts, err := processOptionsInternal(tt.options, tt.isTmpfs, tt.sourcePath, getDefaultMountOptionsNoStat)
+			opts, noCreate, err := processOptionsInternal(tt.options, tt.isTmpfs, tt.sourcePath, getDefaultMountOptionsNoStat)
 			if tt.expectErr {
 				assert.NotNil(t, err)
 			} else {
@@ -828,6 +850,7 @@ func TestProcessOptions(t *testing.T) {
 				sort.Strings(opts)
 				sort.Strings(tt.expected)
 				assert.Equal(t, opts, tt.expected)
+				assert.Equal(t, noCreate, tt.expectedNoCreate)
 			}
 		})
 	}
