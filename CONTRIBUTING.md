@@ -6,12 +6,18 @@ Below summarizes the processes that we follow.
 
 ## Topics
 
+* [LLM ("AI") Policy](#llm-ai-policy)
 * [Reporting Issues](#reporting-issues)
 * [Working On Issues](#working-on-issues)
 * [Contributing to Podman](#contributing-to-podman)
 * [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/main)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
+
+## LLM ("AI") Policy
+
+If your contribution is aided by LLMs or other AI tools, please read the [LLM Policy](LLM_POLICY.md).
+This includes comments, issues, PRs and any other interactions with the Podman team.
 
 ## Reporting Issues
 
