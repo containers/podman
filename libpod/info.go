@@ -228,9 +228,15 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	}
 	bsize := uint64(grStats.Bsize) //nolint:unconvert,nolintlint // Bsize is not always uint64 on Linux.
 	allocated := bsize * grStats.Blocks
+
+	imageCopyTmpDir, err := r.config.ImageCopyTmpDir()
+	if err != nil {
+		return nil, err
+	}
+
 	info := define.StoreInfo{
 		ImageStore:         imageInfo,
-		ImageCopyTmpDir:    os.Getenv("TMPDIR"),
+		ImageCopyTmpDir:    imageCopyTmpDir,
 		ContainerStore:     conInfo,
 		GraphRoot:          r.store.GraphRoot(),
 		GraphRootAllocated: allocated,

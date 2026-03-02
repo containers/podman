@@ -569,6 +569,20 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session.OutputToString()).To(Equal(profile))
 	})
 
+	It("podman info Store.ImageCopyTmpDir fails on invalid config", func() {
+		SkipIfRemote("server env is not under test control")
+
+		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
+		Expect(os.WriteFile(configPath, []byte("[engine]\nimage_copy_tmp_dir=\"relative\""), os.ModePerm)).To(Succeed())
+		env := append(slices.DeleteFunc(slices.Clip(os.Environ()), func(s string) bool {
+			return strings.HasPrefix(s, "CONTAINERS_CONF=")
+		}), "CONTAINERS_CONF="+configPath)
+
+		session := podmanTest.PodmanWithOptions(PodmanExecOptions{Env: env}, "info", "--format", "{{.Store.ImageCopyTmpDir}}")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "invalid image_copy_tmp_dir value \"relative\" (relative paths are not accepted)"))
+	})
+
 	It("add image_copy_tmp_dir", func() {
 		// Prevents overwriting of TMPDIR environment
 		if cacheDir, found := os.LookupEnv("TMPDIR"); found {
