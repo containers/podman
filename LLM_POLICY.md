@@ -67,6 +67,7 @@ Please engage in the review process by:
 * Understanding the implementation of required changes.
 
 ### Final Discretion
+
 Maintainers have final discretion. PRs that are too large, overly complex, poorly structured,
 or difficult to review may be rejected after a few attempts to correct them — regardless
 of whether LLMs were used.
