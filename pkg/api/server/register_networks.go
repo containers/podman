@@ -23,6 +23,15 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name of the network
+	//  - in: query
+	//    name: force
+	//    type: boolean
+	//    default: false
+	//    description: Remove containers associated with the network.
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    description: Seconds to wait for container removal when force is set.
 	// produces:
 	// - application/json
 	// responses:
@@ -352,6 +361,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    description: attributes for creating a network
 	//    schema:
 	//      $ref: "#/definitions/networkCreateLibpod"
+	//  - in: query
+	//    name: ignoreIfExists
+	//    type: boolean
+	//    default: false
+	//    description: Ignore the request if a network with the same name already exists.
 	// responses:
 	//   200:
 	//     $ref: "#/responses/networkCreateResponse"

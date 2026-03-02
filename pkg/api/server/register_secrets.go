@@ -30,11 +30,21 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//   - in: query
 	//     name: driveropts
 	//     type: string
-	//     description: Secret driver options
+	//     description: JSON-encoded string containing secret driver options as a `map[string]string`.
 	//   - in: query
 	//     name: labels
 	//     type: string
-	//     description: Labels on the secret
+	//     description: JSON-encoded string containing labels as a `map[string]string`.
+	//   - in: query
+	//     name: replace
+	//     type: boolean
+	//     default: false
+	//     description: Replace an existing secret with the same name.
+	//   - in: query
+	//     name: ignore
+	//     type: boolean
+	//     default: false
+	//     description: Ignore the request if a secret with the same name already exists.
 	//   - in: body
 	//     name: request
 	//     description: Secret
