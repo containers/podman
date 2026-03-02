@@ -1017,6 +1017,7 @@ BOGUS=foo
 		Entry("Volume - global args", "globalargs.volume"),
 		Entry("Volume - Containers Conf Modules", "containersconfmodule.volume"),
 		Entry("Volume - Type=bind", "device-bind.volume"),
+		Entry("mount-options.volume", "mount-options.volume"),
 
 		Entry("Absolute Path", "absolute.path.kube"),
 		Entry("Basic kube", "basic.kube"),
