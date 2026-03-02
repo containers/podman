@@ -42,6 +42,8 @@ func listFlags(cmd *cobra.Command) {
 	flags.StringVar(&format, formatFlagName, "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\t{{.App}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
 	_ = quadletListCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListQuadlet{}))
 	_ = quadletListCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteQuadletFilters)
+
+	flags.BoolP("noheading", "n", false, "Do not print headers")
 }
 
 func init() {
@@ -65,13 +67,10 @@ func list(cmd *cobra.Command, _ []string) error {
 }
 
 func outputTemplate(cmd *cobra.Command, responses []*entities.ListQuadlet) error {
-	headers := report.Headers(entities.ListQuadlet{}, map[string]string{
-		"Name":     "NAME",
-		"UnitName": "UNIT NAME",
-		"Path":     "PATH ON DISK",
-		"Status":   "STATUS",
-		"App":      "APPLICATION",
-	})
+	renderHeaders := true
+	if noHeading, _ := cmd.Flags().GetBool("noheading"); noHeading {
+		renderHeaders = false
+	}
 
 	rpt := report.New(os.Stdout, cmd.Name())
 	defer rpt.Flush()
@@ -86,8 +85,18 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.ListQuadlet) error
 		return err
 	}
 
-	if err := rpt.Execute(headers); err != nil {
-		return fmt.Errorf("writing column headers: %w", err)
+	if renderHeaders && rpt.RenderHeaders {
+		headers := report.Headers(entities.ListQuadlet{}, map[string]string{
+			"Name":     "NAME",
+			"UnitName": "UNIT NAME",
+			"Path":     "PATH ON DISK",
+			"Status":   "STATUS",
+			"App":      "APPLICATION",
+		})
+
+		if err := rpt.Execute(headers); err != nil {
+			return fmt.Errorf("writing column headers: %w", err)
+		}
 	}
 
 	return rpt.Execute(responses)
