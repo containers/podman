@@ -371,7 +371,7 @@ EOF
     # Test custom Go template format - extract only names
     run_podman quadlet list --format '{{range .}}{{.Name}}{{"\n"}}{{end}}'
     assert $status -eq 0 "quadlet list with custom format should succeed"
-    assert "$output" = $'NAME\nformat-test.container' "custom format should show only the name"
+    assert "$output" = $'format-test.container' "custom format should show only the name"
 
     # Test custom Go template format - extract multiple fields
     run_podman quadlet list --format '{{range .}}Name:{{.Name}} Status:{{.Status}}{{"\n"}}{{end}}'
@@ -382,10 +382,48 @@ EOF
     # Test format with specific field extraction
     run_podman quadlet list --format '{{.Name}}'
     assert $status -eq 0 "quadlet list with field format should succeed"
-    assert "$output" = $'NAME\nformat-test.container' "field format should extract just the name"
+    assert "$output" = $'format-test.container' "field format should extract just the name"
 
     # Clean up
     run_podman quadlet rm format-test.container
+}
+
+@test "quadlet verb - list with --noheading option" {
+    run_podman quadlet list
+    assert $status -eq 0 "baseline: quadlet list should succeed"
+    assert "$output" =~ "^NAME" "baseline: default format should start with a heading"
+    assert "${#lines[@]}" -eq 1 "baseline: list with no quadlets should contain exactly one line"
+
+    run_podman quadlet list --noheading
+    assert $status -eq 0 "baseline: quadlet list --noheading should succeed"
+    assert "$output" == "" "baseline: empty results from quadlet list --noheading"
+
+    # Create a test quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/noheading-test.container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER FOR FORMAT TEST; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+
+    # Install the quadlet
+    run_podman quadlet install "$quadlet_file"
+
+    # Test default format (should show tabular output)
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list should succeed"
+    assert "$output" =~ "^NAME" "default format should start with a heading"
+    assert "$output" =~ "noheading-test.container" "default format should contain quadlet name"
+    assert "${#lines[@]}" -eq 2 "list output should contain exactly two lines"
+
+    # Test output without heading
+    run_podman quadlet list --noheading
+    assert $status -eq 0 "quadlet list --noheading should succeed"
+    assert "$output" =~ "^noheading-test.container" "noheading should should contain only the quadlet name"
+    assert "${#lines[@]}" -eq 1 "list output should contain exactly one line"
+
+    # Clean up
+    run_podman quadlet rm noheading-test.container
 }
 
 @test "quadlet verb - rm --all and --ignore options" {
