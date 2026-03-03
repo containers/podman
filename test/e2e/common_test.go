@@ -668,6 +668,16 @@ func (p *PodmanTestIntegration) PodmanExitCleanlyWithOptions(options PodmanExecO
 	return session
 }
 
+// PodmanFailWithErrorRegex runs a podman command with args, and expects it to ExitWithErrorRegex within the default timeout.
+// It returns the session (to allow consuming output if desired).
+func (p *PodmanTestIntegration) PodmanFailWithErrorRegex(expectExitCode int, expectStderr string, args ...string) *PodmanSessionIntegration {
+	GinkgoHelper()
+	session := p.Podman(args)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(ExitWithErrorRegex(expectExitCode, expectStderr))
+	return session
+}
+
 // InspectContainer returns a container's inspect data in JSON format
 func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectContainerData {
 	cmd := []string{"inspect", name}
