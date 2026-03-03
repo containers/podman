@@ -737,22 +737,22 @@ USER bin`, BB)
 
 	It("podman run limits test", func() {
 		if !isRootless() {
-			session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
+			session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", FEDORA_MINIMAL, "cat", "/proc/self/sched"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 		}
 
-		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", fedoraMinimal, "ulimit", "-n"})
+		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", FEDORA_MINIMAL, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("2048"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=1024:1028", fedoraMinimal, "ulimit", "-n"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=1024:1028", FEDORA_MINIMAL, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("1024"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=999", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=999", FEDORA_MINIMAL, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("999"))
@@ -760,7 +760,7 @@ USER bin`, BB)
 		currentOOMScoreAdj, err := os.ReadFile("/proc/self/oom_score_adj")
 		Expect(err).ToNot(HaveOccurred())
 		name := "ctr-with-oom-score"
-		session = podmanTest.Podman([]string{"create", "--name", name, fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
+		session = podmanTest.Podman([]string{"create", "--name", name, FEDORA_MINIMAL, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -785,7 +785,7 @@ USER bin`, BB)
 		err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &l)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "host", fedoraMinimal, "ulimit", "-Hn"})
+		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "host", FEDORA_MINIMAL, "ulimit", "-Hn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -1331,7 +1331,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		err = os.MkdirAll(vol2, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", fedoraMinimal, "findmnt", "-o", "TARGET,PROPAGATION"})
+		session := podmanTest.Podman([]string{"run", "--volume", vol1 + ":/myvol1:z", "--volume", vol2 + ":/myvol2:z", FEDORA_MINIMAL, "findmnt", "-o", "TARGET,PROPAGATION"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Not(ContainSubstring("shared")))
@@ -1342,12 +1342,12 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		err := os.MkdirAll(vol, 0o755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:z", fedoraMinimal, "findmnt", "-no", "PROPAGATION", "/myvol"})
+		session := podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:z", FEDORA_MINIMAL, "findmnt", "-no", "PROPAGATION", "/myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("private"))
 
-		session = podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:shared,z", fedoraMinimal, "findmnt", "-no", "PROPAGATION", "/myvol"})
+		session = podmanTest.Podman([]string{"run", "--volume", vol + ":/myvol:shared,z", FEDORA_MINIMAL, "findmnt", "-no", "PROPAGATION", "/myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -1361,7 +1361,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 	})
 
 	It("podman run --security-opts proc-opts=", func() {
-		session := podmanTest.Podman([]string{"run", "--security-opt", "proc-opts=nosuid,exec", fedoraMinimal, "findmnt", "-noOPTIONS", "/proc"})
+		session := podmanTest.Podman([]string{"run", "--security-opt", "proc-opts=nosuid,exec", FEDORA_MINIMAL, "findmnt", "-noOPTIONS", "/proc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		output := session.OutputToString()
@@ -1371,14 +1371,14 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --mount type=bind,bind-nonrecursive", func() {
 		SkipIfRootless("FIXME: rootless users are not allowed to mount bind-nonrecursive")
-		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,private,src=/sys,target=/host-sys", fedoraMinimal, "findmnt", "-nR", "/host-sys"})
+		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,private,src=/sys,target=/host-sys", FEDORA_MINIMAL, "findmnt", "-nR", "/host-sys"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman run --mount type=devpts,target=/foo/bar", func() {
-		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/foo/bar", fedoraMinimal, "stat", "-f", "-c%T", "/foo/bar"})
+		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/foo/bar", FEDORA_MINIMAL, "stat", "-f", "-c%T", "/foo/bar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(define.TypeDevpts))
@@ -1386,14 +1386,14 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --mount type=devpts,target=/dev/pts with uid, gid and mode", func() {
 		// runc doesn't seem to honor uid= so avoid testing it
-		session := podmanTest.Podman([]string{"run", "-t", "--mount", "type=devpts,target=/dev/pts,uid=1000,gid=1001,mode=123", fedoraMinimal, "stat", "-c%g-%a", "/dev/pts/0"})
+		session := podmanTest.Podman([]string{"run", "-t", "--mount", "type=devpts,target=/dev/pts,uid=1000,gid=1001,mode=123", FEDORA_MINIMAL, "stat", "-c%g-%a", "/dev/pts/0"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("1001-123"))
 	})
 
 	It("podman run --mount type=devpts,target=/dev/pts with ptmxmode", func() {
-		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/dev/pts,ptmxmode=0444", fedoraMinimal, "findmnt", "-noOPTIONS", "/dev/pts"})
+		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/dev/pts,ptmxmode=0444", FEDORA_MINIMAL, "findmnt", "-noOPTIONS", "/dev/pts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("ptmxmode=444"))
@@ -1865,7 +1865,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 	It("podman run --privileged and --group-add", func() {
 		groupName := "mail"
-		session := podmanTest.Podman([]string{"run", "--group-add", groupName, "--privileged", fedoraMinimal, "groups"})
+		session := podmanTest.Podman([]string{"run", "--group-add", groupName, "--privileged", FEDORA_MINIMAL, "groups"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(groupName))
@@ -1928,7 +1928,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("0002"))
 
-		session = podmanTest.Podman([]string{"run", "--umask", "0077", "--rm", fedoraMinimal, "umask"})
+		session = podmanTest.Podman([]string{"run", "--umask", "0077", "--rm", FEDORA_MINIMAL, "umask"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("0077"))

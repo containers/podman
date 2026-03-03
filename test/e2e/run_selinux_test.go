@@ -62,68 +62,68 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman test selinux label resolv.conf", func() {
-		session := podmanTest.Podman([]string{"run", fedoraMinimal, "ls", "-Z", "/etc/resolv.conf"})
+		session := podmanTest.Podman([]string{"run", FEDORA_MINIMAL, "ls", "-Z", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux label hosts", func() {
-		session := podmanTest.Podman([]string{"run", fedoraMinimal, "ls", "-Z", "/etc/hosts"})
+		session := podmanTest.Podman([]string{"run", FEDORA_MINIMAL, "ls", "-Z", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux label hostname", func() {
-		session := podmanTest.Podman([]string{"run", fedoraMinimal, "ls", "-Z", "/etc/hostname"})
+		session := podmanTest.Podman([]string{"run", FEDORA_MINIMAL, "ls", "-Z", "/etc/hostname"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux label /run/secrets", func() {
-		session := podmanTest.Podman([]string{"run", fedoraMinimal, "ls", "-dZ", "/run/secrets"})
+		session := podmanTest.Podman([]string{"run", FEDORA_MINIMAL, "ls", "-dZ", "/run/secrets"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux --privileged label resolv.conf", func() {
-		session := podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "ls", "-Z", "/etc/resolv.conf"})
+		session := podmanTest.Podman([]string{"run", "--privileged", FEDORA_MINIMAL, "ls", "-Z", "/etc/resolv.conf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux --privileged label hosts", func() {
-		session := podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "ls", "-Z", "/etc/hosts"})
+		session := podmanTest.Podman([]string{"run", "--privileged", FEDORA_MINIMAL, "ls", "-Z", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux --privileged label hostname", func() {
-		session := podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "ls", "-Z", "/etc/hostname"})
+		session := podmanTest.Podman([]string{"run", "--privileged", FEDORA_MINIMAL, "ls", "-Z", "/etc/hostname"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman test selinux --privileged label /run/secrets", func() {
-		session := podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "ls", "-dZ", "/run/secrets"})
+		session := podmanTest.Podman([]string{"run", "--privileged", FEDORA_MINIMAL, "ls", "-dZ", "/run/secrets"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_file_t"))
 	})
 
 	It("podman run selinux file type setup test", func() {
-		session := podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:container_var_lib_t", fedoraMinimal, "ls", "-Z", "/dev"})
+		session := podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:container_var_lib_t", FEDORA_MINIMAL, "ls", "-Z", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("container_var_lib_t"))
 
-		session = podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
+		session = podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", FEDORA_MINIMAL, "ls", "-Z", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(126, "invalid argument"))
 	})
@@ -308,7 +308,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman relabels named volume with :Z", func() {
-		session := podmanTest.Podman([]string{"run", "-v", "testvol:/test1/test:Z", fedoraMinimal, "ls", "-alZ", "/test1"})
+		session := podmanTest.Podman([]string{"run", "-v", "testvol:/test1/test:Z", FEDORA_MINIMAL, "ls", "-alZ", "/test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring(":s0:"))

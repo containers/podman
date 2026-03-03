@@ -504,12 +504,12 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 	})
 
 	It("podman named volume copyup of /var", func() {
-		baselineSession := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ls", "/var"})
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", FEDORA_MINIMAL, "ls", "/var"})
 		baselineSession.WaitWithDefaultTimeout()
 		Expect(baselineSession).Should(ExitCleanly())
 		baselineOutput := baselineSession.OutputToString()
 
-		outputSession := podmanTest.Podman([]string{"run", "-v", "/var", fedoraMinimal, "ls", "/var"})
+		outputSession := podmanTest.Podman([]string{"run", "-v", "/var", FEDORA_MINIMAL, "ls", "/var"})
 		outputSession.WaitWithDefaultTimeout()
 		Expect(outputSession).Should(ExitCleanly())
 		Expect(outputSession.OutputToString()).To(Equal(baselineOutput))

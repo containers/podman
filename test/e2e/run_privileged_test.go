@@ -122,7 +122,7 @@ var _ = Describe("Podman privileged container tests", func() {
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(ExitCleanly())
 
-		session := podmanTest.Podman([]string{"run", "--name=" + containerName, "--privileged", fedoraMinimal, "ls", "/dev"})
+		session := podmanTest.Podman([]string{"run", "--name=" + containerName, "--privileged", FEDORA_MINIMAL, "ls", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

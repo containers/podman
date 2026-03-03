@@ -247,9 +247,9 @@ var _ = Describe("Podman volume create", func() {
 	})
 
 	It("image-backed volume basic functionality", func() {
-		podmanTest.AddImageToRWStore(fedoraMinimal)
+		podmanTest.AddImageToRWStore(FEDORA_MINIMAL)
 		volName := "testvol"
-		volCreate := podmanTest.Podman([]string{"volume", "create", "--driver", "image", "--opt", fmt.Sprintf("image=%s", fedoraMinimal), volName})
+		volCreate := podmanTest.Podman([]string{"volume", "create", "--driver", "image", "--opt", fmt.Sprintf("image=%s", FEDORA_MINIMAL), volName})
 		volCreate.WaitWithDefaultTimeout()
 		Expect(volCreate).Should(ExitCleanly())
 
@@ -258,7 +258,7 @@ var _ = Describe("Podman volume create", func() {
 		Expect(runCmd).Should(ExitCleanly())
 		Expect(runCmd.OutputToString()).To(ContainSubstring("Fedora"))
 
-		rmCmd := podmanTest.Podman([]string{"rmi", "--force", fedoraMinimal})
+		rmCmd := podmanTest.Podman([]string{"rmi", "--force", FEDORA_MINIMAL})
 		rmCmd.WaitWithDefaultTimeout()
 		Expect(rmCmd).Should(ExitCleanly())
 
@@ -274,9 +274,9 @@ var _ = Describe("Podman volume create", func() {
 	})
 
 	It("image-backed volume force removal", func() {
-		podmanTest.AddImageToRWStore(fedoraMinimal)
+		podmanTest.AddImageToRWStore(FEDORA_MINIMAL)
 		volName := "testvol"
-		volCreate := podmanTest.Podman([]string{"volume", "create", "--driver", "image", "--opt", fmt.Sprintf("image=%s", fedoraMinimal), volName})
+		volCreate := podmanTest.Podman([]string{"volume", "create", "--driver", "image", "--opt", fmt.Sprintf("image=%s", FEDORA_MINIMAL), volName})
 		volCreate.WaitWithDefaultTimeout()
 		Expect(volCreate).Should(ExitCleanly())
 
