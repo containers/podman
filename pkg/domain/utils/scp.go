@@ -88,11 +88,6 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		return nil, err
 	}
 
-	createCommandOpts := scpCreateCommandsOptions{}
-	createCommandOpts.parentFlags = opts.ParentFlags
-	createCommandOpts.podman = podman
-	saveCmd, loadCmd := createCommands(source, dest, createCommandOpts)
-
 	switch {
 	case source.Remote: // if we want to load FROM the remote, dest can either be local or remote in this case
 		saveToRemoteOpts := entities.ScpSaveToRemoteOptions{}
@@ -126,6 +121,13 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 			}
 			break
 		}
+		loadCmd := []string{podman}
+		loadCmd = append(loadCmd, opts.ParentFlags...)
+		loadCmd = append(loadCmd, "load")
+		if source.Quiet {
+			loadCmd = append(loadCmd, "-q")
+		}
+		loadCmd = append(loadCmd, "--input", dest.File)
 		id, err := ExecPodman(dest, podman, loadCmd)
 		if err != nil {
 			return nil, err
@@ -134,6 +136,13 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 			loadReport.Names = append(loadReport.Names, id)
 		}
 	case dest.Remote: // remote host load, implies source is local
+		saveCmd := []string{podman}
+		saveCmd = append(saveCmd, opts.ParentFlags...)
+		saveCmd = append(saveCmd, "save")
+		if source.Quiet {
+			saveCmd = append(saveCmd, "-q")
+		}
+		saveCmd = append(saveCmd, "--output", source.File, source.Image)
 		_, err = ExecPodman(dest, podman, saveCmd)
 		if err != nil {
 			return nil, err
@@ -329,32 +338,6 @@ func ExecPodman(dest entities.ScpTransferImageOptions, podman string, command []
 		return img, nil
 	}
 	return "", cmd.Run()
-}
-
-type scpCreateCommandsOptions struct {
-	// parentFlags are the arguments to apply to the parent podman command when called via ssh
-	parentFlags []string
-	// podman is the path to the local podman executable
-	podman string
-}
-
-// createCommands forms the podman save and load commands used by SCP
-func createCommands(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts scpCreateCommandsOptions) ([]string, []string) {
-	loadCmd := []string{opts.podman}
-	saveCmd := []string{opts.podman}
-	if len(opts.parentFlags) > 0 {
-		loadCmd = append(loadCmd, opts.parentFlags...)
-		saveCmd = append(saveCmd, opts.parentFlags...)
-	}
-	loadCmd = append(loadCmd, "load")
-	saveCmd = append(saveCmd, "save")
-	if source.Quiet {
-		loadCmd = append(loadCmd, "-q")
-		saveCmd = append(saveCmd, "-q")
-	}
-	loadCmd = append(loadCmd, "--input", dest.File)
-	saveCmd = append(saveCmd, "--output", source.File, source.Image)
-	return saveCmd, loadCmd
 }
 
 // parseImageSCPArg returns the valid connection, and source/destination data based off of the information provided by the user
