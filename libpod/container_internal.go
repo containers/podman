@@ -1341,6 +1341,63 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 		defer c.lock.Lock()
 	}
 
+	var healthStartPeriod time.Duration
+
+	if shc := c.config.StartupHealthCheckConfig; shc != nil && shc.StartPeriod > 0 {
+		healthStartPeriod = shc.StartPeriod
+	} else if hc := c.config.HealthCheckConfig; hc != nil && hc.StartPeriod > 0 {
+		healthStartPeriod = hc.StartPeriod
+	}
+
+	if healthStartPeriod > 0 {
+		var extendedTotal time.Duration
+		timer := time.NewTicker(25 * time.Second)
+		extendCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		defer timer.Stop()
+		// compute next chunk
+		sendExtend := func() {
+			remaining := healthStartPeriod - extendedTotal
+			if remaining <= 0 {
+				return
+			}
+
+			step := 30 * time.Second
+			if step > remaining {
+				step = remaining
+			}
+
+			// Build the EXTEND message
+			msg := fmt.Sprintf("EXTEND_TIMEOUT_USEC=%d", step.Microseconds())
+			if err := notifyproxy.SendMessage(c.config.SdNotifySocket, msg); err != nil {
+				logrus.Errorf("EXTEND_TIMEOUT_USEC failed in health-wait: %v", err)
+			} else {
+				logrus.Debugf("Extended startup by %v (total %v / %v)",
+					step, extendedTotal+step, healthStartPeriod)
+			}
+
+			extendedTotal += step
+		}
+
+		// First extension immediately
+		sendExtend()
+
+		// Background periodic extension loop
+		go func() {
+			for {
+				select {
+				case <-extendCtx.Done():
+					return
+				case <-timer.C:
+					if extendedTotal >= healthStartPeriod {
+						return
+					}
+					sendExtend()
+				}
+			}
+		}()
+	}
+
 	if _, err := c.WaitForConditionWithInterval(ctx, DefaultWaitInterval, define.HealthCheckHealthy); err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
 			return nil
