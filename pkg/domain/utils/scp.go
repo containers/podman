@@ -88,10 +88,10 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		return nil, err
 	}
 
-	createCommandOpts := entities.ScpCreateCommandsOptions{}
-	createCommandOpts.ParentFlags = opts.ParentFlags
-	createCommandOpts.Podman = podman
-	saveCmd, loadCmd := CreateCommands(source, dest, createCommandOpts)
+	createCommandOpts := scpCreateCommandsOptions{}
+	createCommandOpts.parentFlags = opts.ParentFlags
+	createCommandOpts.podman = podman
+	saveCmd, loadCmd := createCommands(source, dest, createCommandOpts)
 
 	switch {
 	case source.Remote: // if we want to load FROM the remote, dest can either be local or remote in this case
@@ -331,13 +331,20 @@ func ExecPodman(dest entities.ScpTransferImageOptions, podman string, command []
 	return "", cmd.Run()
 }
 
-// CreateCommands forms the podman save and load commands used by SCP
-func CreateCommands(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts entities.ScpCreateCommandsOptions) ([]string, []string) {
-	loadCmd := []string{opts.Podman}
-	saveCmd := []string{opts.Podman}
-	if len(opts.ParentFlags) > 0 {
-		loadCmd = append(loadCmd, opts.ParentFlags...)
-		saveCmd = append(saveCmd, opts.ParentFlags...)
+type scpCreateCommandsOptions struct {
+	// parentFlags are the arguments to apply to the parent podman command when called via ssh
+	parentFlags []string
+	// podman is the path to the local podman executable
+	podman string
+}
+
+// createCommands forms the podman save and load commands used by SCP
+func createCommands(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts scpCreateCommandsOptions) ([]string, []string) {
+	loadCmd := []string{opts.podman}
+	saveCmd := []string{opts.podman}
+	if len(opts.parentFlags) > 0 {
+		loadCmd = append(loadCmd, opts.parentFlags...)
+		saveCmd = append(saveCmd, opts.parentFlags...)
 	}
 	loadCmd = append(loadCmd, "load")
 	saveCmd = append(saveCmd, "save")
