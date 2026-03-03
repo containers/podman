@@ -333,18 +333,20 @@ func ExecPodman(dest entities.ScpTransferImageOptions, podman string, command []
 
 // CreateCommands forms the podman save and load commands used by SCP
 func CreateCommands(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts entities.ScpCreateCommandsOptions) ([]string, []string) {
-	var parentString string
-	quiet := ""
-	if source.Quiet {
-		quiet = "-q "
-	}
+	loadCmd := []string{opts.Podman}
+	saveCmd := []string{opts.Podman}
 	if len(opts.ParentFlags) > 0 {
-		parentString = strings.Join(opts.ParentFlags, " ") + " " // if there are parent args, an extra space needs to be added
-	} else {
-		parentString = strings.Join(opts.ParentFlags, " ")
+		loadCmd = append(loadCmd, opts.ParentFlags...)
+		saveCmd = append(saveCmd, opts.ParentFlags...)
 	}
-	loadCmd := strings.Split(fmt.Sprintf("%s %sload %s--input %s", opts.Podman, parentString, quiet, dest.File), " ")
-	saveCmd := strings.Split(fmt.Sprintf("%s %vsave %s--output %s %s", opts.Podman, parentString, quiet, source.File, source.Image), " ")
+	loadCmd = append(loadCmd, "load")
+	saveCmd = append(saveCmd, "save")
+	if source.Quiet {
+		loadCmd = append(loadCmd, "-q")
+		saveCmd = append(saveCmd, "-q")
+	}
+	loadCmd = append(loadCmd, "--input", dest.File)
+	saveCmd = append(saveCmd, "--output", source.File, source.Image)
 	return saveCmd, loadCmd
 }
 
