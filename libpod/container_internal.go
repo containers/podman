@@ -512,7 +512,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 			}
 			c.config.Name = name
 		}
-		containerInfo, containerInfoErr = c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
+		containerInfo, containerInfoErr = c.runtime.storageService.CreateContainerStorage(ctx, &c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
 
 		if !generateName || !errors.Is(containerInfoErr, storage.ErrDuplicateName) {
 			break

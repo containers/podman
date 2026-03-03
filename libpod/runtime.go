@@ -71,7 +71,7 @@ type Runtime struct {
 	state                  State
 	store                  storage.Store
 	storageService         *storageService
-	imageContext           *types.SystemContext
+	imageContext           types.SystemContext
 	defaultOCIRuntime      OCIRuntime
 	ociRuntimes            map[string]OCIRuntime
 	runtimeFlags           []string
@@ -436,10 +436,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	runtime.eventer = eventer
 
 	// Set up containers/image
-	if runtime.imageContext == nil {
-		runtime.imageContext = &types.SystemContext{
-			BigFilesTemporaryDir: parse.GetTempDir(),
-		}
+	if runtime.imageContext.BigFilesTemporaryDir == "" {
+		runtime.imageContext.BigFilesTemporaryDir = parse.GetTempDir()
 	}
 	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
@@ -910,7 +908,7 @@ func (r *Runtime) configureStore() error {
 	r.storageService = getStorageService(r.store)
 
 	runtimeOptions := &libimage.RuntimeOptions{
-		SystemContext: r.imageContext,
+		SystemContext: &r.imageContext,
 	}
 	libimageRuntime, err := libimage.RuntimeFromStore(store, runtimeOptions)
 	if err != nil {
