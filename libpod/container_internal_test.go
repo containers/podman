@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -18,7 +17,8 @@ import (
 )
 
 // hookPath is the path to an example hook executable.
-var hookPath string
+// This would need to be updated for Windows.
+const hookPath = "/bin/sh"
 
 func TestParseOptionIDs(t *testing.T) {
 	idMap := []idtools.IDMap{
@@ -204,12 +204,4 @@ func TestPostDeleteHooks(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, strings.TrimSuffix(string(content), "\n"), dir)
-}
-
-func init() {
-	if runtime.GOOS != "windows" {
-		hookPath = "/bin/sh"
-	} else {
-		panic("we need a reliable executable path on Windows")
-	}
 }
