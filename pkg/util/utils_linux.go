@@ -6,8 +6,8 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -71,7 +71,23 @@ func FindDeviceNodes() (map[string]string, error) {
 	return nodes, nil
 }
 
-func AddPrivilegedDevices(g *generate.Generator) error {
+func isVirtualConsoleDevice(device string) bool {
+	/*
+		Virtual consoles are of the form `/dev/tty\d+`, any other device such as
+		/dev/tty, ttyUSB0, or ttyACM0 should not be matched.
+		See `man 4 console` for more information.
+
+		NOTE: Matching is done using path.Match even though a regular expression
+		      would have been more accurate. This is because a regular
+			  expression would have required pre-compilation, which would have
+			  increase the startup time needlessly or made the code more complex
+			  than needed.
+	*/
+	matched, _ := path.Match("/dev/tty[0-9]*", device)
+	return matched
+}
+
+func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
@@ -91,7 +107,7 @@ func AddPrivilegedDevices(g *generate.Generator) error {
 				Source:      d.Path,
 				Options:     []string{"slave", "nosuid", "noexec", "rw", "rbind"},
 			}
-			if d.Path == "/dev/ptmx" || strings.HasPrefix(d.Path, "/dev/tty") {
+			if d.Path == "/dev/ptmx" || d.Path == "/dev/tty" || isVirtualConsoleDevice(d.Path) {
 				continue
 			}
 			if _, found := mounts[d.Path]; found {
@@ -105,6 +121,9 @@ func AddPrivilegedDevices(g *generate.Generator) error {
 		}
 	} else {
 		for _, d := range hostDevices {
+			if systemdMode && isVirtualConsoleDevice(d.Path) {
+				continue
+			}
 			g.AddDevice(d)
 		}
 		// Add resources device - need to clear the existing one first.
