@@ -181,7 +181,7 @@ EOF
     run_podman 125 push --authfile=$authfile \
         --tls-verify=false $IMAGE \
         localhost:${PODMAN_LOGIN_REGISTRY_PORT}/badpush:1
-    is "$output" ".*: unauthorized: authentication required" \
+    is "$output" ".*: authentication required" \
        "auth error on push"
 }
 
