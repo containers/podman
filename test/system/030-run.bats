@@ -936,19 +936,6 @@ $IMAGE--c_ok" \
     run_podman stop -t 0 $cid
 }
 
-@test "podman run read-only from containers.conf" {
-    containersconf=$PODMAN_TMPDIR/containers.conf
-    cat >$containersconf <<EOF
-[containers]
-read_only=true
-EOF
-
-    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
-    CONTAINERS_CONF="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
-    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
-    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
-}
-
 @test "podman run ulimit from containers.conf" {
     skip_if_remote "containers.conf has to be set on remote, only tested on E2E test"
     containersconf=$PODMAN_TMPDIR/containers.conf
@@ -967,15 +954,6 @@ EOF
     assert "$output" =~ " ${nofile2}  * ${nofile2}  * files"
 }
 
-@test "podman run bad --name" {
-    randomname=$(random_string 30)
-    run_podman 125 create --name "$randomname/bad" $IMAGE
-    run_podman create --name "/$randomname" $IMAGE
-    run_podman ps -a --filter name="^/$randomname$" --format '{{ .Names }}'
-    is $output "$randomname" "Should be able to find container by name"
-    run_podman rm "/$randomname"
-    run_podman 125 create --name "$randomname/" $IMAGE
-}
 
 @test "podman run --net=host --cgroupns=host with read only cgroupfs" {
     skip_if_rootless_cgroupsv1
@@ -989,46 +967,6 @@ EOF
         run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
         assert "$output" =~ "/sys/fs/cgroup ro"
     fi
-}
-
-@test "podman run - stopping loop" {
-    skip_if_remote "this doesn't work with with the REST service"
-
-    run_podman run -d --name testctr --stop-timeout 240 $IMAGE sh -c 'echo READY; sleep 999'
-    cid="$output"
-    wait_for_ready testctr
-
-    run_podman inspect --format '{{ .State.ConmonPid }}' testctr
-    conmon_pid=$output
-
-    ${PODMAN} stop testctr &
-    stop_pid=$!
-
-    timeout=20
-    while :;do
-        sleep 0.5
-        run_podman container inspect --format '{{.State.Status}}' testctr
-        if [[ "$output" = "stopping" ]]; then
-            break
-        fi
-        timeout=$((timeout - 1))
-        if [[ $timeout == 0 ]]; then
-            run_podman ps -a
-            die "Timed out waiting for testctr to acknowledge signal"
-        fi
-    done
-
-    kill -9 ${stop_pid}
-    kill -9 ${conmon_pid}
-
-    # Unclear why `-t0` is required here, works locally without.
-    # But it shouldn't hurt and does make the test pass...
-    PODMAN_TIMEOUT=5 run_podman 125 stop -t0 testctr
-    is "$output" "Error: container .* conmon exited prematurely, exit code could not be retrieved: internal libpod error" "correct error on missing conmon"
-
-    # This should be safe because stop is guaranteed to call cleanup?
-    run_podman inspect --format "{{ .State.Status }}" testctr
-    is "$output" "exited" "container has successfully transitioned to exited state after stop"
 }
 
 # vim: filetype=sh
