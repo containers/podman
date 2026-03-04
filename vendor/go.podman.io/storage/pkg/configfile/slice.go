@@ -1,4 +1,4 @@
-package attributedstring
+package configfile
 
 import (
 	"bytes"

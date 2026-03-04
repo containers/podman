@@ -128,13 +128,18 @@ func parseOptions(opt []string) (zfsOptions, error) {
 			return options, err
 		}
 		key = strings.ToLower(key)
+		key = strings.TrimPrefix(key, "zfs.")
 		switch key {
-		case "zfs.fsname":
+		case "fsname":
 			options.fsName = val
-		case "zfs.mountopt":
+		case "mountopt":
 			options.mountOptions = val
 		default:
-			return options, fmt.Errorf("unknown option %s", key)
+			// do not error for options meant for another storage driver
+			if !graphdriver.IsDriverPrefixedOption(key) {
+				return options, fmt.Errorf("unknown option %s", key)
+			}
+
 		}
 	}
 	return options, nil

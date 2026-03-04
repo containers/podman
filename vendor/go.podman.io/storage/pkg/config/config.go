@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+
+	"go.podman.io/storage/pkg/configfile"
 )
 
 type BtrfsOptionsConfig struct {
@@ -53,7 +55,7 @@ type OptionsConfig struct {
 	// AdditionalImagesStores is the location of additional read/only
 	// Image stores.  Usually used to access Networked File System
 	// for shared image content
-	AdditionalImageStores []string `toml:"additionalimagestores,omitempty"`
+	AdditionalImageStores configfile.Slice `toml:"additionalimagestores,omitempty"`
 
 	// ImageStore is the location of image store which is separated from the
 	// container store. Usually this is not recommended unless users wants
@@ -65,7 +67,7 @@ type OptionsConfig struct {
 	// for shared image content
 	// This API is experimental and can be changed without bumping the
 	// major version number.
-	AdditionalLayerStores []string `toml:"additionallayerstores,omitempty"`
+	AdditionalLayerStores configfile.Slice `toml:"additionallayerstores,omitempty"`
 
 	// Size
 	Size string `toml:"size,omitempty"`
@@ -96,9 +98,6 @@ type OptionsConfig struct {
 	// Btrfs container options to be handed to btrfs drivers
 	Btrfs struct{ BtrfsOptionsConfig } `toml:"btrfs,omitempty"`
 
-	// Thinpool container options to be handed to thinpool drivers (NOP)
-	Thinpool struct{} `toml:"thinpool,omitempty"`
-
 	// Overlay container options to be handed to overlay drivers
 	Overlay struct{ OverlayOptionsConfig } `toml:"overlay,omitempty"`
 
@@ -126,78 +125,54 @@ type OptionsConfig struct {
 }
 
 // GetGraphDriverOptions returns the driver specific options
-func GetGraphDriverOptions(driverName string, options OptionsConfig) []string {
+func GetGraphDriverOptions(options OptionsConfig) []string {
 	var doptions []string
-	switch driverName {
-	case "btrfs":
-		if options.Btrfs.MinSpace != "" {
-			return append(doptions, fmt.Sprintf("%s.min_space=%s", driverName, options.Btrfs.MinSpace))
-		}
-		if options.Btrfs.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Btrfs.Size))
-		} else if options.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
-		}
-
-	case "overlay", "overlay2":
-		// Specify whether composefs must be used to mount the data layers
-		if options.Overlay.IgnoreChownErrors != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.Overlay.IgnoreChownErrors))
-		} else if options.IgnoreChownErrors != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.IgnoreChownErrors))
-		}
-		if options.Overlay.MountProgram != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mount_program=%s", driverName, options.Overlay.MountProgram))
-		} else if options.MountProgram != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mount_program=%s", driverName, options.MountProgram))
-		}
-		if options.Overlay.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Overlay.MountOpt))
-		} else if options.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
-		}
-		if options.Overlay.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Overlay.Size))
-		} else if options.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
-		}
-		if options.Overlay.Inodes != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.inodes=%s", driverName, options.Overlay.Inodes))
-		}
-		if options.Overlay.SkipMountHome != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.Overlay.SkipMountHome))
-		} else if options.SkipMountHome != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.skip_mount_home=%s", driverName, options.SkipMountHome))
-		}
-		if options.Overlay.ForceMask != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.force_mask=%s", driverName, options.Overlay.ForceMask))
-		} else if options.ForceMask != 0 {
-			doptions = append(doptions, fmt.Sprintf("%s.force_mask=%s", driverName, options.ForceMask))
-		}
-		if options.Overlay.UseComposefs != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.use_composefs=%s", driverName, options.Overlay.UseComposefs))
-		}
-	case "vfs":
-		if options.Vfs.IgnoreChownErrors != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.Vfs.IgnoreChownErrors))
-		} else if options.IgnoreChownErrors != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.ignore_chown_errors=%s", driverName, options.IgnoreChownErrors))
-		}
-
-	case "zfs":
-		if options.Zfs.Name != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.fsname=%s", driverName, options.Zfs.Name))
-		}
-		if options.Zfs.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.Zfs.MountOpt))
-		} else if options.MountOpt != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.mountopt=%s", driverName, options.MountOpt))
-		}
-		if options.Zfs.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Zfs.Size))
-		} else if options.Size != "" {
-			doptions = append(doptions, fmt.Sprintf("%s.size=%s", driverName, options.Size))
-		}
+	if options.Btrfs.MinSpace != "" {
+		return append(doptions, fmt.Sprintf("btrfs.min_space=%s", options.Btrfs.MinSpace))
 	}
+	if options.Btrfs.Size != "" {
+		doptions = append(doptions, fmt.Sprintf("btrfs.size=%s", options.Btrfs.Size))
+	}
+
+	// Specify whether composefs must be used to mount the data layers
+	if options.Overlay.IgnoreChownErrors != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.ignore_chown_errors=%s", options.Overlay.IgnoreChownErrors))
+	}
+	if options.Overlay.MountProgram != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.mount_program=%s", options.Overlay.MountProgram))
+	}
+	if options.Overlay.MountOpt != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.mountopt=%s", options.Overlay.MountOpt))
+	}
+	if options.Overlay.Size != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.size=%s", options.Overlay.Size))
+	}
+	if options.Overlay.Inodes != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.inodes=%s", options.Overlay.Inodes))
+	}
+	if options.Overlay.SkipMountHome != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.skip_mount_home=%s", options.Overlay.SkipMountHome))
+	}
+	if options.Overlay.ForceMask != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.force_mask=%s", options.Overlay.ForceMask))
+	}
+	if options.Overlay.UseComposefs != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.use_composefs=%s", options.Overlay.UseComposefs))
+	}
+
+	if options.Vfs.IgnoreChownErrors != "" {
+		doptions = append(doptions, fmt.Sprintf("vfs.ignore_chown_errors=%s", options.Vfs.IgnoreChownErrors))
+	}
+
+	if options.Zfs.Name != "" {
+		doptions = append(doptions, fmt.Sprintf("zfs.fsname=%s", options.Zfs.Name))
+	}
+	if options.Zfs.MountOpt != "" {
+		doptions = append(doptions, fmt.Sprintf("zfs.mountopt=%s", options.Zfs.MountOpt))
+	}
+	if options.Zfs.Size != "" {
+		doptions = append(doptions, fmt.Sprintf("zfs.size=%s", options.Zfs.Size))
+	}
+
 	return doptions
 }

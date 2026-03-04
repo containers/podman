@@ -51,13 +51,14 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 			return nil, err
 		}
 		key = strings.ToLower(key)
+		key = strings.TrimPrefix(key, "vfs.")
 		switch key {
-		case "vfs.imagestore", ".imagestore":
+		case "imagestore":
 			d.additionalHomes = slices.AppendSeq(d.additionalHomes, strings.SplitSeq(val, ","))
 			continue
-		case "vfs.mountopt":
+		case "mountopt":
 			return nil, fmt.Errorf("vfs driver does not support mount options")
-		case ".ignore_chown_errors", "vfs.ignore_chown_errors":
+		case "ignore_chown_errors":
 			logrus.Debugf("vfs: ignore_chown_errors=%s", val)
 			var err error
 			d.ignoreChownErrors, err = strconv.ParseBool(val)
@@ -65,7 +66,11 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("vfs driver does not support %s options", key)
+			// do not error for options meant for another storage driver
+			if !graphdriver.IsDriverPrefixedOption(key) {
+				return nil, fmt.Errorf("vfs driver does not support %s options", key)
+			}
+
 		}
 	}
 
