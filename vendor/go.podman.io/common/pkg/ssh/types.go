@@ -112,7 +112,7 @@ type HostInfo struct {
 	Distribution      DistributionInfo `json:"distribution"`
 	EventLogger       string           `json:"eventLogger"`
 	Hostname          string           `json:"hostname"`
-	IDMappings        IDMappings       `json:"idMappings,omitempty"`
+	IDMappings        IDMappings       `json:"idMappings"`
 	Kernel            string           `json:"kernel"`
 	LogDriver         string           `json:"logDriver"`
 	MemFree           int64            `json:"memFree"`
@@ -126,7 +126,7 @@ type HostInfo struct {
 	// ServiceIsRemote is true when the podman/libpod service is remote to the client
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
-	Slirp4NetNS     SlirpInfo    `json:"slirp4netns,omitempty"`
+	Slirp4NetNS     SlirpInfo    `json:"slirp4netns"`
 	SwapFree        int64        `json:"swapFree"`
 	SwapTotal       int64        `json:"swapTotal"`
 	Uptime          string       `json:"uptime"`

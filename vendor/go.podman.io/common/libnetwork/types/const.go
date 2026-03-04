@@ -19,9 +19,9 @@ const (
 	// NoneIPAMDriver do not provide ipam management.
 	NoneIPAMDriver = "none"
 
-	// DefaultSubnet is the name that will be used for the default CNI network.
+	// DefaultNetworkName is the name that will be used for the default network.
 	DefaultNetworkName = "podman"
-	// DefaultSubnet is the subnet that will be used for the default CNI network.
+	// DefaultSubnet is the subnet that will be used for the default network.
 	DefaultSubnet = "10.88.0.0/16"
 
 	BridgeModeManaged   = "managed"
@@ -52,7 +52,6 @@ const (
 type NetworkBackend string
 
 const (
-	CNI      NetworkBackend = "cni"
 	Netavark NetworkBackend = "netavark"
 )
 

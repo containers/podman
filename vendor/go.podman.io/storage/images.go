@@ -88,7 +88,7 @@ type Image struct {
 	// versions of the library did not track this information, so callers
 	// will likely want to use the IsZero() method to verify that a value
 	// is set before using it.
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 
 	// ReadOnly is true if this image resides in a read-only layer store.
 	ReadOnly bool `json:"-"`

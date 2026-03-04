@@ -271,24 +271,9 @@ default_sysctls = [
 [network]
 
 # Network backend determines what network driver will be used to set up and tear down container networks.
-# Valid values are "cni" and "netavark".
-# The default value is empty which means that it will automatically choose CNI or netavark. If there are
-# already containers/images or CNI networks preset it will choose CNI.
-#
-# Before changing this value all containers must be stopped otherwise it is likely that
-# iptables rules and network interfaces might leak on the host. A reboot will fix this.
+# The only supported value is "netavark".
 #
 #network_backend = ""
-
-# Path to directory where CNI plugin binaries are located.
-#
-#cni_plugin_dirs = [
-#  "/usr/local/libexec/cni",
-#  "/usr/libexec/cni",
-#  "/usr/local/lib/cni",
-#  "/usr/lib/cni",
-#  "/opt/cni/bin",
-#]
 
 # List of directories that will be searched for netavark plugins.
 #
@@ -328,12 +313,10 @@ default_sysctls = [
 #]
 
 # Path to the directory where network configuration files are located.
-# For the CNI backend the default is "/etc/cni/net.d" as root
-# and "$HOME/.config/cni/net.d" as rootless.
-# For the netavark backend "/etc/containers/networks" is used as root
+# The default is "/usr/local/etc/containers/networks" as root
 # and "$graphroot/networks" as rootless.
 #
-#network_config_dir = "/usr/local/etc/cni/net.d/"
+#network_config_dir = "/usr/local/etc/containers/networks"
 
 # The default host IPs to bind published container ports to when no host IP
 # is explicitly specified in the -p flag (e.g., -p 8000:8000). If empty, the default

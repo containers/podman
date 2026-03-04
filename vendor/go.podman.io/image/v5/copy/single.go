@@ -458,13 +458,9 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	}
 	manifestLayerInfos := man.LayerInfos()
 
-	// copyGroup is used to determine if all layers are copied
-	copyGroup := sync.WaitGroup{}
-
 	data := make([]copyLayerData, len(srcInfos))
 	copyLayerHelper := func(index int, srcLayer types.BlobInfo, toEncrypt bool, pool *mpb.Progress, srcRef reference.Named) {
 		defer ic.c.concurrentBlobCopiesSemaphore.Release(1)
-		defer copyGroup.Done()
 		cld := copyLayerData{}
 		if !ic.c.options.DownloadForeignLayers && ic.c.dest.AcceptsForeignLayerURLs() && len(srcLayer.URLs) != 0 {
 			// DiffIDs are, currently, needed only when converting from schema1.
@@ -509,6 +505,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 		defer progressPool.Wait()
 
 		// Ensure we wait for all layers to be copied. progressPool.Wait() must not be called while any of the copyLayerHelpers interact with the progressPool.
+		copyGroup := sync.WaitGroup{}
 		defer copyGroup.Wait()
 
 		for i, srcLayer := range srcInfos {
@@ -516,8 +513,9 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 				// This can only fail with ctx.Err(), so no need to blame acquiring the semaphore.
 				return fmt.Errorf("copying layer: %w", err)
 			}
-			copyGroup.Add(1)
-			go copyLayerHelper(i, srcLayer, layersToEncrypt.Contains(i), progressPool, ic.c.rawSource.Reference().DockerReference())
+			copyGroup.Go(func() {
+				copyLayerHelper(i, srcLayer, layersToEncrypt.Contains(i), progressPool, ic.c.rawSource.Reference().DockerReference())
+			})
 		}
 
 		// A call to copyGroup.Wait() is done at this point by the defer above.

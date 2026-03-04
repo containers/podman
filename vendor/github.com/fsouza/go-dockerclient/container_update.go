@@ -10,20 +10,21 @@ import (
 //
 // See https://goo.gl/Y6fXUy for more details.
 type UpdateContainerOptions struct {
-	BlkioWeight        int           `json:"BlkioWeight"`
-	CPUShares          int           `json:"CpuShares"`
-	CPUPeriod          int           `json:"CpuPeriod"`
-	CPURealtimePeriod  int64         `json:"CpuRealtimePeriod"`
-	CPURealtimeRuntime int64         `json:"CpuRealtimeRuntime"`
-	CPUQuota           int           `json:"CpuQuota"`
-	CpusetCpus         string        `json:"CpusetCpus"`
-	CpusetMems         string        `json:"CpusetMems"`
-	Memory             int           `json:"Memory"`
-	MemorySwap         int           `json:"MemorySwap"`
-	MemoryReservation  int           `json:"MemoryReservation"`
-	KernelMemory       int           `json:"KernelMemory"`
-	RestartPolicy      RestartPolicy `json:"RestartPolicy,omitempty"`
-	Context            context.Context
+	BlkioWeight        int    `json:"BlkioWeight"`
+	CPUShares          int    `json:"CpuShares"`
+	CPUPeriod          int    `json:"CpuPeriod"`
+	CPURealtimePeriod  int64  `json:"CpuRealtimePeriod"`
+	CPURealtimeRuntime int64  `json:"CpuRealtimeRuntime"`
+	CPUQuota           int    `json:"CpuQuota"`
+	CpusetCpus         string `json:"CpusetCpus"`
+	CpusetMems         string `json:"CpusetMems"`
+	Memory             int    `json:"Memory"`
+	MemorySwap         int    `json:"MemorySwap"`
+	MemoryReservation  int    `json:"MemoryReservation"`
+	// Deprecated: KernelMemory is deprecated as of API 1.42 and removed in API 1.52.
+	KernelMemory  int           `json:"KernelMemory"`
+	RestartPolicy RestartPolicy `json:"RestartPolicy,omitempty"`
+	Context       context.Context
 }
 
 // UpdateContainer updates the container at ID with the options

@@ -194,7 +194,8 @@ outer:
 		return err
 	}
 
-	// we only need to have a socket to reload ports when we run under rootless cni
+	// we only need to have a socket to reload ports when we are using
+	// rootless bridge networking (RootlessCNI is set when netStatus != nil)
 	if cfg.RootlessCNI {
 		socketfile := filepath.Join(socketDir, cfg.ContainerID)
 		// make sure to remove the file if it exists to prevent EADDRINUSE

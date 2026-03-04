@@ -87,7 +87,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		return nil, err
 	}
 
-	netInt, err := getNetworkInterface(store, "", "")
+	netInt, err := getNetworkInterface(store)
 	if err != nil {
 		return nil, err
 	}
