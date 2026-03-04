@@ -88,10 +88,3 @@ type ScpSaveToRemoteOptions struct {
 }
 
 type ScpSaveToRemoteReport struct{}
-
-type ScpCreateCommandsOptions struct {
-	// ParentFlags are the arguments to apply to the parent podman command when called via ssh
-	ParentFlags []string
-	// Podman is the path to the local podman executable
-	Podman string
-}

@@ -1314,9 +1314,9 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		return args
 	}
 
-	var debug string
+	podmanOptions := []string{}
 	if _, ok := os.LookupEnv("E2E_DEBUG"); ok {
-		debug = "--log-level=debug --syslog=true "
+		podmanOptions = append(podmanOptions, "--log-level=debug", "--syslog=true")
 	}
 
 	eventsType := "file"
@@ -1324,8 +1324,16 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		eventsType = "none"
 	}
 
-	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
+	podmanOptions = append(podmanOptions,
+		"--root", p.Root,
+		"--runroot", p.RunRoot,
+		"--runtime", p.OCIRuntime,
+		"--conmon", p.ConmonBinary,
+		"--network-config-dir", p.NetworkConfigDir,
+		"--cgroup-manager", p.CgroupManager,
+		"--tmpdir", p.TmpDir,
+		"--events-backend", eventsType,
+	)
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {

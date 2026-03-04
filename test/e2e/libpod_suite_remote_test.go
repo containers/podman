@@ -122,8 +122,16 @@ func (p *PodmanTestIntegration) StopRemoteService() {
 // getRemoteOptions assembles all the podman main options
 func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	networkDir := p.NetworkConfigDir
-	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, networkDir, p.CgroupManager, p.TmpDir, "file"), " ")
+	podmanOptions := []string{
+		"--root", p.Root,
+		"--runroot", p.RunRoot,
+		"--runtime", p.OCIRuntime,
+		"--conmon", p.ConmonBinary,
+		"--network-config-dir", networkDir,
+		"--cgroup-manager", p.CgroupManager,
+		"--tmpdir", p.TmpDir,
+		"--events-backend", "file",
+	}
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
