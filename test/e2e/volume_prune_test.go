@@ -41,6 +41,38 @@ var _ = Describe("Podman volume prune", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
 	})
 
+	It("podman volume prune excludes pinned volumes by default", func() {
+		pinnedVolName := "pinned-prune-vol"
+		unpinnedVolName := "unpinned-prune-vol"
+
+		session := podmanTest.Podman([]string{"volume", "create", "--pinned", pinnedVolName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "create", unpinnedVolName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "prune", "--force"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(pinnedVolName))
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(unpinnedVolName)))
+
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--include-pinned"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(pinnedVolName)))
+	})
+
 	It("podman prune volume --filter until", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
 		session.WaitWithDefaultTimeout()

@@ -119,4 +119,19 @@ var _ = Describe("Podman volume rm", func() {
 		podmanTest.PodmanExitCleanly("volume", "rm", volNames[0])
 		podmanTest.PodmanExitCleanly("volume", "rm", volNames[2])
 	})
+
+	It("podman volume rm requires --include-pinned for pinned volumes", func() {
+		volName := "pinned-rm-vol"
+		session := podmanTest.Podman([]string{"volume", "create", "--pinned", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "rm", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, fmt.Sprintf("volume %s is pinned and cannot be removed without --include-pinned flag", volName)))
+
+		session = podmanTest.Podman([]string{"volume", "rm", "--include-pinned", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
 })

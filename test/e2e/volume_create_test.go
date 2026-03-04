@@ -41,6 +41,19 @@ var _ = Describe("Podman volume create", func() {
 		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
+	It("podman create pinned volume", func() {
+		volName := "pinned-vol"
+		session := podmanTest.Podman([]string{"volume", "create", "--pinned", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(Equal(volName))
+
+		inspect := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .Pinned }}", volName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(Equal("true"))
+	})
+
 	It("podman create volume with existing name fails", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()

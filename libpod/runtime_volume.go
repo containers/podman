@@ -5,6 +5,7 @@ package libpod
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
@@ -28,7 +29,17 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool, timeo
 		return define.ErrRuntimeStopped
 	}
 
-	return r.removeVolume(ctx, v, force, timeout, false)
+	return r.RemoveVolumeWithOptions(ctx, v, force, timeout, false)
+}
+
+// RemoveVolumeWithOptions removes a volume and allows explicit control over
+// pinned-volume protection.
+func (r *Runtime) RemoveVolumeWithOptions(ctx context.Context, v *Volume, force bool, timeout *uint, includePinned bool) error {
+	if !r.valid {
+		return define.ErrRuntimeStopped
+	}
+
+	return r.removeVolume(ctx, v, force, timeout, false, includePinned)
 }
 
 // GetVolume retrieves a volume given its full name.
@@ -128,7 +139,53 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 		report.Id = vol.Name()
 		var timeout *uint
 		if err := r.RemoveVolume(ctx, vol, false, timeout); err != nil {
-			if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) {
+			if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) && !errors.Is(err, define.ErrVolumePinned) {
+				report.Err = err
+			} else {
+				// We didn't remove the volume for some reason
+				continue
+			}
+		} else {
+			vol.newVolumeEvent(events.Prune)
+		}
+		preports = append(preports, report)
+	}
+	return preports, nil
+}
+
+// PruneVolumesWithOptions removes unused volumes from the system with options
+func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []VolumeFilter, includePinned bool) ([]*reports.PruneReport, error) {
+	preports := make([]*reports.PruneReport, 0)
+	vols, err := r.Volumes(filterFuncs...)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, vol := range vols {
+		report := new(reports.PruneReport)
+		report.Id = vol.Name()
+
+		// Skip pinned volumes unless explicitly requested
+		if !includePinned {
+			isPinned, err := vol.IsPinnedWithError()
+			if err != nil {
+				report.Err = fmt.Errorf("checking pinned status for volume %s: %w", vol.Name(), err)
+				preports = append(preports, report)
+				continue
+			}
+			if isPinned {
+				continue
+			}
+		}
+
+		volSize, err := vol.Size()
+		if err != nil {
+			volSize = 0
+		}
+		report.Size = volSize
+		var timeout *uint
+		if err := r.RemoveVolumeWithOptions(ctx, vol, false, timeout, includePinned); err != nil {
+			if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) && !errors.Is(err, define.ErrVolumePinned) {
 				report.Err = err
 			} else {
 				// We didn't remove the volume for some reason

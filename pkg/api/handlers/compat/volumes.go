@@ -247,7 +247,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		// As above, we do not pass `force` from the query parameters here
 		if err := runtime.RemoveVolume(r.Context(), vol, false, query.Timeout); err != nil {
-			if errors.Is(err, define.ErrVolumeBeingUsed) {
+			if errors.Is(err, define.ErrVolumeBeingUsed) || errors.Is(err, define.ErrVolumePinned) {
 				utils.Error(w, http.StatusConflict, err)
 			} else {
 				utils.InternalServerError(w, err)
@@ -287,7 +287,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 		filterFuncs = append(filterFuncs, filterFunc)
 	}
 
-	pruned, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	pruned, err := runtime.PruneVolumesWithOptions(r.Context(), filterFuncs, false)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

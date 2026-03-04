@@ -1694,6 +1694,19 @@ func WithVolumeNoChown() VolumeCreateOption {
 	}
 }
 
+// WithVolumePinned marks a volume as pinned at creation time.
+func WithVolumePinned() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.state.Pinned = true
+
+		return nil
+	}
+}
+
 // WithVolumeDisableQuota prevents the volume from being assigned a quota.
 func WithVolumeDisableQuota() VolumeCreateOption {
 	return func(volume *Volume) error {

@@ -293,7 +293,7 @@ func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload 
 		if vol.UsesVolumeDriver() {
 			if _, ok := allPluginVolumes[vol.Name()]; !ok {
 				// The volume is no longer in the plugin. Let's remove it from the libpod db.
-				if err := r.removeVolume(ctx, vol, false, nil, true); err != nil {
+				if err := r.removeVolume(ctx, vol, false, nil, true, false); err != nil {
 					if errors.Is(err, define.ErrVolumeBeingUsed) {
 						// Volume is still used by at least one container. This is very bad,
 						// the plugin no longer has this but we still need it.
@@ -358,12 +358,26 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 // removeVolume removes the specified volume from state as well tears down its mountpoint and storage.
 // ignoreVolumePlugin is used to only remove the volume from the db and not the plugin,
 // this is required when the volume was already removed from the plugin, i.e. in UpdateVolumePlugins().
-func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeout *uint, ignoreVolumePlugin bool) error {
+func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeout *uint, ignoreVolumePlugin bool, includePinned bool) error {
 	if !v.valid {
 		if ok, _ := r.state.HasVolume(v.Name()); !ok {
 			return nil
 		}
 		return define.ErrVolumeRemoved
+	}
+
+	if !includePinned {
+		// This check intentionally runs before taking the volume lock below.
+		// Lock ordering requires container locks before volume locks, and
+		// pre-locking here can create ABBA deadlocks during dependency cleanup.
+		// A narrow pin/unpin race window exists for the same reason.
+		isPinned, err := v.IsPinnedWithError()
+		if err != nil {
+			return fmt.Errorf("checking pinned status for volume %s: %w", v.Name(), err)
+		}
+		if isPinned {
+			return fmt.Errorf("volume %s is pinned and cannot be removed without --include-pinned flag: %w", v.Name(), define.ErrVolumePinned)
+		}
 	}
 
 	// DANGEROUS: Do not lock here yet because we might needed to remove containers first.

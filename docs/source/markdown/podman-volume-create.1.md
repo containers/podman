@@ -74,6 +74,10 @@ This option is mandatory when using the **image** driver.
 
 When not using the **local** and **image** drivers, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
 
+#### **--pinned**
+
+Mark the volume as pinned. Pinned volumes are excluded from **podman volume prune**, **podman volume rm**, **podman system prune**, and **podman system reset** operations by default, protecting them from accidental deletion during cleanup operations. The pinned status can be changed later using **podman volume pin**.
+
 #### **--uid**=*uid*
 
 Set the UID that the volume will be created as. Differently than `--opt o=uid=*uid*`, the specified value is not passed to the mount operation. The specified UID will own the volume's mount point directory and affects the volume chown operation.
@@ -136,6 +140,11 @@ Create tmpfs named volume testvol with specified options.
 Create volume overriding the owner UID and GID.
 ```
 # podman volume create --uid 1000 --gid 1000 myvol
+```
+
+Create a pinned volume that is protected from prune and remove operations.
+```
+$ podman volume create --pinned datavol
 ```
 
 Create image named volume using the specified local image in containers/storage.
@@ -215,7 +224,7 @@ If performance is the priority, please check out the more performant [goofys](ht
 
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**, **[podman-volume(1)](podman-volume.1.md)**, **mount(8)**, **xfs_quota(8)**, **xfs_quota(8)**, **projects(5)**, **projid(5)**
+**[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**, **[podman-volume(1)](podman-volume.1.md)**, **[podman-volume-pin(1)](podman-volume-pin.1.md)**, **mount(8)**, **xfs_quota(8)**, **xfs_quota(8)**, **projects(5)**, **projid(5)**
 
 ## HISTORY
 January 2020, updated with information on volume plugins by Matthew Heon <mheon@redhat.com>
