@@ -379,9 +379,11 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 
 	tmpSystemd := conf.Systemd
 	tmpMounts := conf.Mounts
+	tmpEnvSecrets := conf.EnvSecrets
 
 	conf.Systemd = nil
 	conf.Mounts = []string{}
+	conf.EnvSecrets = nil
 
 	if specg == nil {
 		specg = &specgen.SpecGenerator{}
@@ -401,6 +403,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 
 	conf.Systemd = tmpSystemd
 	conf.Mounts = tmpMounts
+	conf.EnvSecrets = tmpEnvSecrets
 
 	if conf.Spec != nil {
 		if conf.Spec.Linux != nil && conf.Spec.Linux.Resources != nil {
@@ -513,6 +516,14 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	specg.HealthConfig = conf.HealthCheckConfig
 	specg.StartupHealthConfig = conf.StartupHealthCheckConfig
 	specg.HealthCheckOnFailureAction = conf.HealthCheckOnFailureAction
+
+	if len(tmpEnvSecrets) > 0 {
+		envSecrets := make(map[string]string, len(tmpEnvSecrets))
+		for target, secret := range tmpEnvSecrets {
+			envSecrets[target] = secret.Name
+		}
+		specg.EnvSecrets = envSecrets
+	}
 
 	specg.IDMappings = &conf.IDMappings
 	specg.ContainerCreateCommand = conf.CreateCommand
