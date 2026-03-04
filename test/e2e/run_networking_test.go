@@ -790,7 +790,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run --uidmap /etc/hosts contains --hostname", func() {
-		SkipIfRootless("uidmap population of cninetworks not supported for rootless users")
+		SkipIfRootless("uidmap population of networks not supported for rootless users")
 		session := podmanTest.Podman([]string{"run", "--uidmap", "0:100000:1000", "--rm", "--hostname", "foohostname", ALPINE, "grep", "foohostname", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
