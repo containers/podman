@@ -14,12 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/netns"
 	"go.podman.io/common/pkg/rootlessport"
 	"golang.org/x/sys/unix"
 )
@@ -137,11 +137,11 @@ func parent() error {
 	cmd.Stdout = &logrusWriter{prefix: "child"}
 	cmd.Stderr = cmd.Stdout
 	cmd.Env = append(os.Environ(), reexecChildEnvOpaque+"="+string(opaqueJSON))
-	childNS, err := ns.GetNS(cfg.NetNSPath)
+	childNS, err := netns.GetNS(cfg.NetNSPath)
 	if err != nil {
 		return err
 	}
-	if err := childNS.Do(func(_ ns.NetNS) error {
+	if err := childNS.Do(func(_ netns.NetNS) error {
 		logrus.Infof("Starting child driver in child netns (%q %v)", cmd.Path, cmd.Args)
 		return cmd.Start()
 	}); err != nil {

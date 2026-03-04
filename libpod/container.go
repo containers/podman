@@ -1465,9 +1465,9 @@ func (c *Container) NetworkMode() string {
 				if ns.Path != "" {
 					networkMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					// We're making a network ns,  but not
-					// configuring with Slirp or CNI. That
-					// means it's --net=none
+					// We're making a network ns, but not
+					// configuring with Slirp. That means
+					// it's --net=none
 					networkMode = "none"
 				}
 				break
