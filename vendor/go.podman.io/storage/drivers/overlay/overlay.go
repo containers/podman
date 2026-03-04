@@ -594,7 +594,10 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			m := os.FileMode(mask)
 			o.forceMask = &m
 		default:
-			return nil, fmt.Errorf("overlay: unknown option %s", key)
+			// do not error for options meant for another storage driver
+			if !graphdriver.IsDriverPrefixedOption(trimkey) {
+				return nil, fmt.Errorf("overlay: unknown option %s", key)
+			}
 		}
 	}
 	return o, nil

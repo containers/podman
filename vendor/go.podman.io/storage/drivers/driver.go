@@ -547,3 +547,15 @@ func driverPut(driver ProtoDriver, id string, mainErr *error) {
 		}
 	}
 }
+
+// IsDriverPrefixedOption checks for options with the syntax of <driver>.<optname>.
+// It only validates the driver name and not optname.
+func IsDriverPrefixedOption(opt string) bool {
+	name, _, ok := strings.Cut(opt, ".")
+	if ok {
+		if _, found := drivers[name]; found {
+			return true
+		}
+	}
+	return false
+}
