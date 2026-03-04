@@ -1210,5 +1210,6 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # go.podman.io/common => github.com/lsm5/container-libs/common v0.0.0-20260303135658-e77cb64d373d
+# github.com/containers/buildah => github.com/lsm5/buildah v0.0.0-20260304102220-0032890b5352
 # go.podman.io/image/v5 => github.com/lsm5/container-libs/image/v5 v5.0.0-20260303135658-e77cb64d373d
 # github.com/containers/buildah => github.com/lsm5/buildah v0.0.0-20260305153054-54d8f5a9f320
