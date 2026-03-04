@@ -821,7 +821,7 @@ ENTRYPOINT ["sleep","99999"]
 		// --userns=keep-id and will just error out when not running as
 		// "root"
 		ctrName := "ctr-name"
-		session := podmanTest.Podman([]string{"run", "--pod", podName, "-d", "--stop-signal", "9", "--name", ctrName, fedoraMinimal, "sleep", "600"})
+		session := podmanTest.Podman([]string{"run", "--pod", podName, "-d", "--stop-signal", "9", "--name", ctrName, FEDORA_MINIMAL, "sleep", "600"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

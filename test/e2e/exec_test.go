@@ -342,7 +342,7 @@ var _ = Describe("Podman exec", func() {
 
 	// #10927 ("no logs from conmon"), one of our nastiest flakes
 	It("podman exec terminal doesn't hang", FlakeAttempts(3), func() {
-		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
+		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", FEDORA_MINIMAL, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 		Expect(setup.ErrorToString()).To(ContainSubstring("The input device is not a TTY. The --tty and --interactive flags might not work properly"))
@@ -355,7 +355,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec pseudo-terminal sanity check", func() {
-		setup := podmanTest.Podman([]string{"run", "--detach", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
+		setup := podmanTest.Podman([]string{"run", "--detach", "--name", "test1", FEDORA_MINIMAL, "sleep", "+Inf"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
 
@@ -495,7 +495,7 @@ var _ = Describe("Podman exec", func() {
 		groupName := "group1"
 		gid := "4444"
 		ctrName1 := "ctr1"
-		ctr1 := podmanTest.Podman([]string{"run", "--name", ctrName1, fedoraMinimal, "groupadd", "-g", gid, groupName})
+		ctr1 := podmanTest.Podman([]string{"run", "--name", ctrName1, FEDORA_MINIMAL, "groupadd", "-g", gid, groupName})
 		ctr1.WaitWithDefaultTimeout()
 		Expect(ctr1).Should(ExitCleanly())
 
@@ -519,7 +519,7 @@ var _ = Describe("Podman exec", func() {
 		dockerfile := fmt.Sprintf(`FROM %s
 RUN groupadd -g 4000 first
 RUN groupadd -g 4001 second
-RUN useradd -u 1000 auser`, fedoraMinimal)
+RUN useradd -u 1000 auser`, FEDORA_MINIMAL)
 		imgName := "testimg"
 		podmanTest.BuildImage(dockerfile, imgName, "false")
 

@@ -31,12 +31,12 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	It("limits test", func() {
 		// containers.conf is set to "nofile=500:500"
-		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
+		session := podmanTest.Podman([]string{"run", "--rm", FEDORA_MINIMAL, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("500"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", fedoraMinimal, "ulimit", "-n"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "nofile=2048:2048", FEDORA_MINIMAL, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("2048"))
@@ -44,7 +44,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		// Reset CONTAINERS_CONF to "/dev/null"
 		// Local should go back to defaults but remote should be set on server side
 		os.Setenv("CONTAINERS_CONF", "/dev/null")
-		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
+		session = podmanTest.Podman([]string{"run", "--rm", FEDORA_MINIMAL, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		if IsRemote() {
@@ -299,13 +299,13 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	It("sysctl test", func() {
 		// containers.conf is set to   "net.ipv4.ping_group_range=0 1000"
-		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "cat", "/proc/sys/net/ipv4/ping_group_range"})
+		session := podmanTest.Podman([]string{"run", "--rm", FEDORA_MINIMAL, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("1000"))
 
 		// Ignore containers.conf setting if --net=host
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", fedoraMinimal, "cat", "/proc/sys/net/ipv4/ping_group_range"})
+		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", FEDORA_MINIMAL, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).ToNot(ContainSubstring("1000"))
@@ -421,7 +421,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("size=200k"))
 
 		// ulimits
-		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
+		session = podmanTest.Podman([]string{"run", "--rm", FEDORA_MINIMAL, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("500"))
@@ -446,7 +446,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	It("add annotations", func() {
 		// containers.conf is set to "run.oci.keep_original_groups=1"
-		session := podmanTest.Podman([]string{"create", "--rm", "--name", "test", fedoraMinimal})
+		session := podmanTest.Podman([]string{"create", "--rm", "--name", "test", FEDORA_MINIMAL})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 

@@ -817,13 +817,13 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 	return session, session.OutputToString()
 }
 
-// RunContainerWithNetworkTest runs the fedoraMinimal curl with the specified network mode.
+// RunContainerWithNetworkTest runs curl in FEDORA_MINIMAL with the specified network mode.
 func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *PodmanSessionIntegration {
 	podmanArgs := []string{"run"}
 	if mode != "" {
 		podmanArgs = append(podmanArgs, "--network", mode)
 	}
-	podmanArgs = append(podmanArgs, fedoraMinimal, "curl", "-s", "-S", "-k", "-o", "/dev/null", "http://www.redhat.com:80")
+	podmanArgs = append(podmanArgs, FEDORA_MINIMAL, "curl", "-s", "-S", "-k", "-o", "/dev/null", "http://www.redhat.com:80")
 	session := p.Podman(podmanArgs)
 	return session
 }

@@ -36,10 +36,10 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		err = syscall.Mkfifo(udsPath, 0o600)
 		Expect(err).ToNot(HaveOccurred())
 		if isRootless() {
-			err = podmanTest.RestoreArtifact(fedoraMinimal)
+			err = podmanTest.RestoreArtifact(FEDORA_MINIMAL)
 			Expect(err).ToNot(HaveOccurred())
 		}
-		_, pid := podmanTest.PodmanPID([]string{"run", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
+		_, pid := podmanTest.PodmanPID([]string{"run", "-v", fmt.Sprintf("%s:/h:Z", udsDir), FEDORA_MINIMAL, "bash", "-c", sigCatch})
 
 		uds, _ := os.OpenFile(udsPath, os.O_RDONLY|syscall.O_NONBLOCK, 0o600)
 		defer uds.Close()
@@ -93,7 +93,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
 		signal := syscall.SIGFPE
-		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch2})
+		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", FEDORA_MINIMAL, "bash", "-c", sigCatch2})
 
 		Expect(WaitForContainer(podmanTest)).To(BeTrue(), "WaitForContainer()")
 

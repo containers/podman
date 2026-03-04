@@ -97,11 +97,11 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "-s", "--retry", "2", "--retry-connrefused", "-f", "localhost:80"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, FEDORA_MINIMAL, "curl", "-s", "--retry", "2", "--retry-connrefused", "-f", "localhost:80"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "-f", "localhost"})
+		session = podmanTest.Podman([]string{"run", FEDORA_MINIMAL, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(7, "Failed to connect to localhost port 80 "))
 
@@ -138,14 +138,14 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "/bin/sh", "-c", "'touch /dev/shm/hi'"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, FEDORA_MINIMAL, "/bin/sh", "-c", "'touch /dev/shm/hi'"})
 		session.WaitWithDefaultTimeout()
 		if session.ExitCode() != 0 {
 			Skip("ShmDir not initialized, skipping...")
 		}
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "/bin/sh", "-c", "'ls /dev/shm'"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, FEDORA_MINIMAL, "/bin/sh", "-c", "'ls /dev/shm'"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("hi"))
