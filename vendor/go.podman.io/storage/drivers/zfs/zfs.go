@@ -16,11 +16,11 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	graphdriver "go.podman.io/storage/drivers"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/mount"
-	"go.podman.io/storage/pkg/parsers"
 	"golang.org/x/sys/unix"
 )
 
@@ -123,18 +123,22 @@ func parseOptions(opt []string) (zfsOptions, error) {
 	var options zfsOptions
 	options.fsName = ""
 	for _, option := range opt {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		driver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return options, err
 		}
-		key = strings.ToLower(key)
+		if driver != "" && driver != "zfs" {
+			// do not parse options meant for another storage driver
+			continue
+		}
+
 		switch key {
-		case "zfs.fsname":
+		case "fsname":
 			options.fsName = val
-		case "zfs.mountopt":
+		case "mountopt":
 			options.mountOptions = val
 		default:
-			return options, fmt.Errorf("unknown option %s", key)
+			return options, fmt.Errorf("unknown option %q (%q)", key, option)
 		}
 	}
 	return options, nil

@@ -734,10 +734,9 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.67.1-0.20260316162257-e70c309aabae
+# go.podman.io/common v0.67.1-0.20260319204327-cfee468e9b0b
 ## explicit; go 1.25.0
 go.podman.io/common/internal
-go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
 go.podman.io/common/libimage/define
 go.podman.io/common/libimage/filter
@@ -801,7 +800,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.39.2-0.20260316162257-e70c309aabae
+# go.podman.io/image/v5 v5.39.2-0.20260319204327-cfee468e9b0b
 ## explicit; go 1.25.0
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -878,7 +877,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.62.1-0.20260316162257-e70c309aabae
+# go.podman.io/storage v1.62.1-0.20260319204327-cfee468e9b0b
 ## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -891,6 +890,7 @@ go.podman.io/storage/drivers/register
 go.podman.io/storage/drivers/vfs
 go.podman.io/storage/drivers/zfs
 go.podman.io/storage/internal/dedup
+go.podman.io/storage/internal/driver
 go.podman.io/storage/internal/rawfilelock
 go.podman.io/storage/internal/staging_lockfile
 go.podman.io/storage/internal/tempdir

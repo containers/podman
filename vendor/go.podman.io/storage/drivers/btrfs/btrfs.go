@@ -33,12 +33,12 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	graphdriver "go.podman.io/storage/drivers"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/mount"
-	"go.podman.io/storage/pkg/parsers"
 	"go.podman.io/storage/pkg/system"
 	"golang.org/x/sys/unix"
 )
@@ -97,23 +97,27 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 	var options btrfsOptions
 	userDiskQuota := false
 	for _, option := range opt {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		driver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return options, userDiskQuota, err
 		}
-		key = strings.ToLower(key)
+		if driver != "" && driver != "btrfs" {
+			// do not parse options meant for another storage driver
+			continue
+		}
+
 		switch key {
-		case "btrfs.min_space":
+		case "min_space":
 			minSpace, err := units.RAMInBytes(val)
 			if err != nil {
 				return options, userDiskQuota, err
 			}
 			userDiskQuota = true
 			options.minSpace = uint64(minSpace)
-		case "btrfs.mountopt":
+		case "mountopt":
 			return options, userDiskQuota, fmt.Errorf("btrfs driver does not support mount options")
 		default:
-			return options, userDiskQuota, fmt.Errorf("unknown option %s (%q)", key, option)
+			return options, userDiskQuota, fmt.Errorf("unknown option %q (%q)", key, option)
 		}
 	}
 	return options, userDiskQuota, nil

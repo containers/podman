@@ -25,13 +25,13 @@ import (
 	"github.com/sirupsen/logrus"
 	drivers "go.podman.io/storage/drivers"
 	"go.podman.io/storage/internal/dedup"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/ioutils"
 	"go.podman.io/storage/pkg/lockfile"
-	"go.podman.io/storage/pkg/parsers"
 	"go.podman.io/storage/pkg/stringutils"
 	"go.podman.io/storage/pkg/system"
 	"go.podman.io/storage/types"
@@ -807,7 +807,7 @@ type store struct {
 //	    return
 //	}
 func GetStore(options types.StoreOptions) (Store, error) {
-	defaultOpts, err := types.Options()
+	defaultOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -858,14 +858,6 @@ func GetStore(options types.StoreOptions) (Store, error) {
 	}
 	if options.ImageStore != "" {
 		if err := os.MkdirAll(options.ImageStore, 0o700); err != nil {
-			return nil, err
-		}
-	}
-	if err := os.MkdirAll(filepath.Join(options.GraphRoot, options.GraphDriverName), 0o700); err != nil {
-		return nil, err
-	}
-	if options.ImageStore != "" {
-		if err := os.MkdirAll(filepath.Join(options.ImageStore, options.GraphDriverName), 0o700); err != nil {
 			return nil, err
 		}
 	}
@@ -977,6 +969,16 @@ func (s *store) load() error {
 	}(); err != nil {
 		return err
 	}
+
+	if err := os.MkdirAll(filepath.Join(s.graphRoot, s.graphDriverName), 0o700); err != nil {
+		return err
+	}
+	if s.imageStoreDir != "" {
+		if err := os.MkdirAll(filepath.Join(s.imageStoreDir, s.graphDriverName), 0o700); err != nil {
+			return err
+		}
+	}
+
 	driverPrefix := s.graphDriverName + "-"
 
 	imgStoreRoot := s.imageStoreDir
@@ -3499,6 +3501,12 @@ func (s *store) LookupAdditionalLayer(tocDigest digest.Digest, imageref string) 
 		}
 		return nil, err
 	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			al.Release()
+		}
+	}()
 	info, err := al.Info()
 	if err != nil {
 		return nil, err
@@ -3508,6 +3516,7 @@ func (s *store) LookupAdditionalLayer(tocDigest digest.Digest, imageref string) 
 	if err := json.NewDecoder(info).Decode(&layer); err != nil {
 		return nil, err
 	}
+	succeeded = true
 	return &additionalLayer{&layer, al, s}, nil
 }
 
@@ -3923,27 +3932,9 @@ const AutoUserNsMaxSize = 65536
 // creating a user namespace.
 const RootAutoUserNsUser = "containers"
 
-// SetDefaultConfigFilePath sets the default configuration to the specified path, and loads the file.
-// Deprecated: Use types.SetDefaultConfigFilePath, which can return an error.
-func SetDefaultConfigFilePath(path string) {
-	_ = types.SetDefaultConfigFilePath(path)
-}
-
-// DefaultConfigFile returns the path to the storage config file used
-func DefaultConfigFile() (string, error) {
-	return types.DefaultConfigFile()
-}
-
-// ReloadConfigurationFile parses the specified configuration file and overrides
-// the configuration in storeOptions.
-// Deprecated: Use types.ReloadConfigurationFile, which can return an error.
-func ReloadConfigurationFile(configFile string, storeOptions *types.StoreOptions) {
-	_ = types.ReloadConfigurationFile(configFile, storeOptions)
-}
-
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
-	defaultStoreOptions, err := types.Options()
+	defaultStoreOptions, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -3951,18 +3942,13 @@ func GetDefaultMountOptions() ([]string, error) {
 }
 
 // GetMountOptions returns the mountoptions for the specified driver and graphDriverOptions
-func GetMountOptions(driver string, graphDriverOptions []string) ([]string, error) {
-	mountOpts := []string{
-		".mountopt",
-		fmt.Sprintf("%s.mountopt", driver),
-	}
+func GetMountOptions(usedDriver string, graphDriverOptions []string) ([]string, error) {
 	for _, option := range graphDriverOptions {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		optDriver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return nil, err
 		}
-		key = strings.ToLower(key)
-		if slices.Contains(mountOpts, key) {
+		if (optDriver == "" || optDriver == usedDriver) && key == "mountopt" {
 			return strings.Split(val, ","), nil
 		}
 	}

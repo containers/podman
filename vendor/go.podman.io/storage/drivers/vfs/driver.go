@@ -15,12 +15,12 @@ import (
 	"github.com/vbatts/tar-split/tar/storage"
 	graphdriver "go.podman.io/storage/drivers"
 	"go.podman.io/storage/internal/dedup"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
-	"go.podman.io/storage/pkg/parsers"
 	"go.podman.io/storage/pkg/system"
 )
 
@@ -46,18 +46,22 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		return nil, err
 	}
 	for _, option := range options.DriverOptions {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		driver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return nil, err
 		}
-		key = strings.ToLower(key)
+		if driver != "" && driver != "vfs" {
+			// do not parse options meant for another storage driver
+			continue
+		}
+
 		switch key {
-		case "vfs.imagestore", ".imagestore":
+		case "imagestore":
 			d.additionalHomes = slices.AppendSeq(d.additionalHomes, strings.SplitSeq(val, ","))
 			continue
-		case "vfs.mountopt":
+		case "mountopt":
 			return nil, fmt.Errorf("vfs driver does not support mount options")
-		case ".ignore_chown_errors", "vfs.ignore_chown_errors":
+		case "ignore_chown_errors":
 			logrus.Debugf("vfs: ignore_chown_errors=%s", val)
 			var err error
 			d.ignoreChownErrors, err = strconv.ParseBool(val)
@@ -65,7 +69,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("vfs driver does not support %s options", key)
+			return nil, fmt.Errorf("unknown option %q (%q)", key, option)
 		}
 	}
 

@@ -28,6 +28,7 @@ import (
 	"go.podman.io/storage/drivers/overlayutils"
 	"go.podman.io/storage/drivers/quota"
 	"go.podman.io/storage/internal/dedup"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/staging_lockfile"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/archive"
@@ -38,7 +39,6 @@ import (
 	"go.podman.io/storage/pkg/idmap"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/mount"
-	"go.podman.io/storage/pkg/parsers"
 	"go.podman.io/storage/pkg/system"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
@@ -467,15 +467,16 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 func parseOptions(options []string) (*overlayOptions, error) {
 	o := &overlayOptions{}
 	for _, option := range options {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		driver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return nil, err
 		}
-		trimkey := strings.ToLower(key)
-		trimkey = strings.TrimPrefix(trimkey, "overlay.")
-		trimkey = strings.TrimPrefix(trimkey, "overlay2.")
-		trimkey = strings.TrimPrefix(trimkey, ".")
-		switch trimkey {
+		if driver != "" && driver != "overlay" && driver != "overlay2" {
+			// do not parse options meant for another storage driver
+			continue
+		}
+
+		switch key {
 		case "override_kernel_check":
 			logrus.Debugf("overlay: override_kernel_check option was specified, but is no longer necessary")
 		case "mountopt":
@@ -594,7 +595,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			m := os.FileMode(mask)
 			o.forceMask = &m
 		default:
-			return nil, fmt.Errorf("overlay: unknown option %s", key)
+			return nil, fmt.Errorf("unknown option %q (%q)", key, option)
 		}
 	}
 	return o, nil
@@ -648,10 +649,10 @@ func SupportsNativeOverlay(home, runhome string) (bool, error) {
 		// Do nothing.
 	default:
 		needsMountProgram, err := scanForMountProgramIndicators(home)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return false, err
 		}
-		if err := os.WriteFile(getMountProgramFlagFile(home), []byte(fmt.Sprintf("%t", needsMountProgram)), 0o600); err != nil && !os.IsNotExist(err) {
+		if err := os.WriteFile(getMountProgramFlagFile(home), []byte(fmt.Sprintf("%t", needsMountProgram)), 0o600); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return false, err
 		}
 		if needsMountProgram {
@@ -1193,7 +1194,7 @@ func (d *Driver) getLower(parent string) (string, error) {
 	// Read Parent link fileA
 	parentLink, err := os.ReadFile(path.Join(parentDir, "link"))
 	if err != nil {
-		if !os.IsNotExist(err) {
+		if !errors.Is(err, fs.ErrNotExist) {
 			return "", err
 		}
 		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(parentDir, "link"))
@@ -1266,7 +1267,7 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 			// if the link does not exist, we lost the symlinks during a sudden reboot.
 			// Let's go ahead and recreate those symlinks.
 			if err != nil {
-				if os.IsNotExist(err) {
+				if errors.Is(err, fs.ErrNotExist) {
 					logrus.Warnf("Can't read link %q because it does not exist. A storage corruption might have occurred, attempting to recreate the missing symlinks. It might be best wipe the storage to avoid further errors due to storage corruption.", lower)
 					if err := d.recreateSymlinks(); err != nil {
 						return nil, fmt.Errorf("recreating the missing symlinks: %w", err)
@@ -1282,7 +1283,7 @@ func (d *Driver) getLowerDirs(id string) ([]string, error) {
 			}
 			lowersArray = append(lowersArray, path.Clean(d.dir(path.Join("link", lp))))
 		}
-	} else if !os.IsNotExist(err) {
+	} else if !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
 	return lowersArray, nil
@@ -1335,7 +1336,7 @@ func (d *Driver) removeCommon(id string, cleanup func(string) error) error {
 
 	d.releaseAdditionalLayerByID(id)
 
-	if err := cleanup(dir); err != nil && !os.IsNotExist(err) {
+	if err := cleanup(dir); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	if d.quotaCtl != nil {
@@ -1430,7 +1431,7 @@ func (d *Driver) recreateSymlinks() error {
 			// Check if the symlink exists, and if it doesn't, create it again with the
 			// name we got from the "link" file
 			err = fileutils.Lexists(linkPath)
-			if err != nil && os.IsNotExist(err) {
+			if err != nil && errors.Is(err, fs.ErrNotExist) {
 				if err := os.Symlink(path.Join("..", dir.Name(), "diff"), linkPath); err != nil {
 					errs = errors.Join(errs, err)
 					continue
@@ -1464,7 +1465,7 @@ func (d *Driver) recreateSymlinks() error {
 				errs = errors.Join(errs, fmt.Errorf("link target of %q looks weird: %q", link, target))
 				// force the link to be recreated on the next pass
 				if err := os.Remove(filepath.Join(linkDirFullPath, link.Name())); err != nil {
-					if !os.IsNotExist(err) {
+					if !errors.Is(err, fs.ErrNotExist) {
 						errs = errors.Join(errs, fmt.Errorf("removing link %q: %w", link, err))
 					} // else don’t report any error, but also don’t set madeProgress.
 					continue
@@ -1591,7 +1592,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 
 	lowers, err := os.ReadFile(path.Join(dir, lowerFile))
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return "", err
 	}
 	splitLowers := strings.Split(string(lowers), ":")
@@ -1646,7 +1647,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	maybeAddComposefsMount := func(lowerID string, i int, readWrite bool) (string, error) {
 		composefsBlob := d.getComposefsData(lowerID)
 		if err := fileutils.Exists(composefsBlob); err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, fs.ErrNotExist) {
 				return "", nil
 			}
 			return "", err
@@ -1707,7 +1708,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			// if it is a "not found" error, that means the symlinks were lost in a sudden reboot
 			// so call the recreateSymlinks function to go through all the layer dirs and recreate
 			// the symlinks with the name from their respective "link" files
-			if lower == "" && os.IsNotExist(err) {
+			if lower == "" && errors.Is(err, fs.ErrNotExist) {
 				logrus.Warnf("Can't stat lower layer %q because it does not exist. Going through storage to recreate the missing symlinks.", newpath)
 				if err := d.recreateSymlinks(); err != nil {
 					return "", fmt.Errorf("recreating the missing symlinks: %w", err)
@@ -1984,7 +1985,7 @@ func (d *Driver) Put(id string) error {
 	if count := d.ctr.Decrement(mountpoint); count > 0 {
 		return nil
 	}
-	if err := fileutils.Exists(path.Join(dir, lowerFile)); err != nil && !os.IsNotExist(err) {
+	if err := fileutils.Exists(path.Join(dir, lowerFile)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 
@@ -2029,7 +2030,7 @@ func (d *Driver) Put(id string) error {
 	}
 
 	if !unmounted {
-		if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !os.IsNotExist(err) {
+		if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)
 			if !errors.Is(err, unix.EINVAL) {
 				return fmt.Errorf("unmounting %q: %w", mountpoint, err)
@@ -2206,7 +2207,7 @@ func (d *Driver) DiffGetter(id string) (_ graphdriver.FileGetCloser, Err error) 
 		if Err != nil {
 			for _, f := range composefsMounts {
 				f.Close()
-				if err := unix.Rmdir(f.Name()); err != nil && !os.IsNotExist(err) {
+				if err := unix.Rmdir(f.Name()); err != nil && !errors.Is(err, fs.ErrNotExist) {
 					logrus.Warnf("Failed to remove %s: %v", f.Name(), err)
 				}
 			}
@@ -2379,7 +2380,7 @@ func (d *Driver) ApplyDiffFromStagingDirectory(id, parent string, diffOutput *gr
 			return err
 		}
 	}
-	if err := os.RemoveAll(diffPath); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(diffPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 
@@ -2752,7 +2753,7 @@ func (d *Driver) getAdditionalLayerPath(tocDigest digest.Digest, ref string) (st
 func (d *Driver) releaseAdditionalLayerByID(id string) {
 	if al, err := d.getAdditionalLayerPathByID(id); err == nil {
 		notifyReleaseAdditionalLayer(al)
-	} else if !os.IsNotExist(err) {
+	} else if !errors.Is(err, fs.ErrNotExist) {
 		logrus.Warnf("Unexpected error on reading Additional Layer Store pointer %v", err)
 	}
 }
@@ -2829,7 +2830,7 @@ func notifyUseAdditionalLayer(al string) {
 	}
 	useFile := path.Join(al, "use")
 	f, err := os.Create(useFile)
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return
 	} else if err == nil {
 		f.Close()
@@ -2851,7 +2852,7 @@ func notifyReleaseAdditionalLayer(al string) {
 	}
 	// tell the additional layer store that we don't use this layer anymore.
 	err := unix.Rmdir(al)
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return
 	}
 	logrus.Warnf("Unexpected error by Additional Layer Store %v during release; GC doesn't seem to be supported", err)
