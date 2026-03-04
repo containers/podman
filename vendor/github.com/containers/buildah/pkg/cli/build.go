@@ -331,7 +331,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		}
 	}
 
-	if c.Flag("network").Changed && c.Flag("isolation").Changed {
+	if c.Flag("network").Changed {
 		if isolation == define.IsolationChroot {
 			if ns := namespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil {
 				if !ns.Host {
@@ -390,8 +390,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		CacheTo:                 cacheTo,
 		CacheTTL:                cacheTTL,
 		CDIConfigDir:            iopts.CDIConfigDir,
-		CNIConfigDir:            iopts.CNIConfigDir,
-		CNIPluginPath:           iopts.CNIPlugInPath,
 		CompatVolumes:           compatVolumes,
 		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CPPFlags:                iopts.CPPFlags,

@@ -12,7 +12,7 @@ var ErrNotSupported = errors.New("rootless netns only supported on linux")
 
 type Netns struct{}
 
-func New(dir string, backend NetworkBackend, conf *config.Config) (*Netns, error) {
+func New(dir string, conf *config.Config) (*Netns, error) {
 	return nil, ErrNotSupported
 }
 

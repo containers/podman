@@ -153,7 +153,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	// Only get the used networks for validation if we do not create the default network.
 	// The default network should not be validated against used subnets, we have to ensure
 	// that this network can always be created even when a subnet is already used on the host.
-	// This could happen if you run a container on this net, then the cni interface will be
+	// This could happen if you run a container on this net, then the network interface will be
 	// created on the host and "block" this subnet from being used again.
 	// Therefore the next podman command tries to create the default net again and it would
 	// fail because it thinks the network is used on the host.

@@ -27,12 +27,9 @@ const (
 	aardvarkBinary = "aardvark-dns"
 )
 
-// NetworkBackend returns the network backend name and interface
-// It returns either the CNI or netavark backend depending on what is set in the config.
-// If the backend is set to "" we will automatically assign the backend on the following conditions:
-//  1. read ${graphroot}/defaultNetworkBackend
-//  2. find netavark binary (if not installed use CNI)
-//  3. check containers, images and CNI networks and if there are some we have an existing install and should continue to use CNI
+// NetworkBackend returns the network backend name and interface.
+// It returns the netavark backend. If no backend is set in the config,
+// it reads ${graphroot}/defaultNetworkBackend and defaults to netavark.
 //
 // revive does not like the name because the package is already called network
 //
@@ -47,7 +44,15 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 		}
 	}
 
-	return backendFromType(backend, store, conf, syslog)
+	if backend != types.Netavark {
+		return "", nil, fmt.Errorf("unsupported network backend %q, only netavark is supported", backend)
+	}
+
+	netInt, err := netavarkBackendFromConf(store, conf, syslog)
+	if err != nil {
+		return "", nil, err
+	}
+	return types.Netavark, netInt, nil
 }
 
 func netavarkBackendFromConf(store storage.Store, conf *config.Config, syslog bool) (types.ContainerNetwork, error) {
@@ -83,7 +88,7 @@ func netavarkBackendFromConf(store storage.Store, conf *config.Config, syslog bo
 	return netInt, err
 }
 
-func defaultNetworkBackend(store storage.Store, conf *config.Config) (backend types.NetworkBackend, err error) {
+func defaultNetworkBackend(store storage.Store, _ *config.Config) (backend types.NetworkBackend, err error) {
 	err = nil
 
 	file := filepath.Join(store.GraphRoot(), defaultNetworkBackendFileName)
@@ -102,24 +107,10 @@ func defaultNetworkBackend(store storage.Store, conf *config.Config) (backend ty
 	if err == nil {
 		val := string(b)
 
-		// if the network backend has been already set previously,
-		// handle the values depending on whether CNI is supported and
-		// whether the network backend is explicitly configured
 		if val == string(types.Netavark) {
-			// netavark is always good
-			return types.Netavark, nil
-		} else if val == string(types.CNI) {
-			if cniSupported {
-				return types.CNI, nil
-			}
-			// the user has *not* configured a network
-			// backend explicitly but used CNI in the past
-			// => we upgrade them in this case to netavark only
-			writeBackendToFile(types.Netavark)
-			logrus.Info("Migrating network backend to netavark as no backend has been configured previously")
 			return types.Netavark, nil
 		}
-		return "", fmt.Errorf("unknown network backend value %q in %q", val, file)
+		return "", fmt.Errorf("unknown network backend value %q in %q, only netavark is supported", val, file)
 	}
 
 	// fail for all errors except ENOENT
@@ -127,14 +118,9 @@ func defaultNetworkBackend(store storage.Store, conf *config.Config) (backend ty
 		return "", fmt.Errorf("could not read network backend value: %w", err)
 	}
 
-	backend, err = networkBackendFromStore(store, conf)
-	if err != nil {
-		return "", err
-	}
-	// cache the network backend to make sure always the same one will be used
-	writeBackendToFile(backend)
-
-	return backend, nil
+	// Default to netavark
+	writeBackendToFile(types.Netavark)
+	return types.Netavark, nil
 }
 
 // getDefaultNetavarkConfigDir return the netavark config dir. For rootful it will

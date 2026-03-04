@@ -331,22 +331,13 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 }
 
 // getNetworkInterface creates the network interface
-func getNetworkInterface(store storage.Store, cniConfDir, cniPluginPath string) (netTypes.ContainerNetwork, error) {
+func getNetworkInterface(store storage.Store) (netTypes.ContainerNetwork, error) {
 	conf, err := config.Default()
 	if err != nil {
 		return nil, err
 	}
-	// copy the config to not modify the default by accident
-	newconf := *conf
-	if len(cniConfDir) > 0 {
-		newconf.Network.NetworkConfigDir = cniConfDir
-	}
-	if len(cniPluginPath) > 0 {
-		plugins := strings.Split(cniPluginPath, string(os.PathListSeparator))
-		newconf.Network.CNIPluginDirs.Set(plugins)
-	}
 
-	_, netInt, err := network.NetworkBackend(store, &newconf, false)
+	_, netInt, err := network.NetworkBackend(store, conf, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1433,6 +1424,9 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		mounts = append(mounts, mount)
 	}
 
+	// Some mounts require env vars to be set, do these here
+	spec.Process.Env = append(spec.Process.Env, mountArtifacts.EnvVars...)
+
 	// Set the list in the spec.
 	spec.Mounts = mounts
 	succeeded = true
@@ -1522,7 +1516,7 @@ func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources 
 	intermediateMounts := make([]string, 0, len(mounts))
 	finalMounts := make([]specs.Mount, 0, len(mounts))
 	agents := make([]*sshagent.AgentServer, 0, len(mounts))
-	defaultSSHSock := ""
+	var envVars []string
 	targetLocks := []*lockfile.LockFile{}
 	var overlayDirs []string
 	succeeded := false
@@ -1561,11 +1555,7 @@ func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources 
 		}
 	}()
 	for _, mount := range mounts {
-		var mountSpec *specs.Mount
-		var err error
-		var envFile, image, bundleMountsDir, overlayDir, intermediateMount string
-		var agent *sshagent.AgentServer
-		var tl *lockfile.LockFile
+		var bundleMountsDir string
 
 		tokens := strings.Split(mount, ",")
 
@@ -1583,35 +1573,39 @@ func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources 
 		}
 		switch mountType {
 		case "secret":
-			mountSpec, envFile, err = b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
+			mountOrEnvSpec, err := b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
-			if mountSpec != nil {
-				finalMounts = append(finalMounts, *mountSpec)
-				if envFile != "" {
-					tmpFiles = append(tmpFiles, envFile)
-				}
+			if mountOrEnvSpec.Mount != nil {
+				finalMounts = append(finalMounts, *mountOrEnvSpec.Mount)
+			}
+			if mountOrEnvSpec.EnvFile != "" {
+				tmpFiles = append(tmpFiles, mountOrEnvSpec.EnvFile)
+			}
+			if mountOrEnvSpec.EnvVariable != "" {
+				envVars = append(envVars, mountOrEnvSpec.EnvVariable)
 			}
 		case "ssh":
-			mountSpec, agent, err = b.getSSHMount(tokens, len(agents), sources.SSHSources, idMaps)
+			mountSpec, agent, err := b.getSSHMount(tokens, len(agents), sources.SSHSources, idMaps)
 			if err != nil {
 				return nil, nil, err
 			}
 			if mountSpec != nil {
 				finalMounts = append(finalMounts, *mountSpec)
 				if len(agents) == 0 {
-					defaultSSHSock = mountSpec.Destination
+					envVars = append(envVars, "SSH_AUTH_SOCK="+mountSpec.Destination)
 				}
 				agents = append(agents, agent)
 			}
 		case define.TypeBind:
 			if bundleMountsDir == "" {
+				var err error
 				if bundleMountsDir, err = os.MkdirTemp(bundlePath, "mounts"); err != nil {
 					return nil, nil, err
 				}
 			}
-			mountSpec, image, intermediateMount, overlayDir, err = b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir, bundleMountsDir)
+			mountSpec, image, intermediateMount, overlayDir, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir, bundleMountsDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1626,18 +1620,19 @@ func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources 
 			}
 			finalMounts = append(finalMounts, *mountSpec)
 		case "tmpfs":
-			mountSpec, err = b.getTmpfsMount(tokens, idMaps, sources.WorkDir)
+			mountSpec, err := b.getTmpfsMount(tokens, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
 			finalMounts = append(finalMounts, *mountSpec)
 		case "cache":
 			if bundleMountsDir == "" {
+				var err error
 				if bundleMountsDir, err = os.MkdirTemp(bundlePath, "mounts"); err != nil {
 					return nil, nil, err
 				}
 			}
-			mountSpec, image, intermediateMount, overlayDir, tl, err = b.getCacheMount(tokens, sources.SystemContext, sources.StageMountPoints, idMaps, sources.WorkDir, bundleMountsDir)
+			mountSpec, image, intermediateMount, overlayDir, tl, err := b.getCacheMount(tokens, sources.SystemContext, sources.StageMountPoints, idMaps, sources.WorkDir, bundleMountsDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1663,9 +1658,9 @@ func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources 
 		RunOverlayDirs:     overlayDirs,
 		Agents:             agents,
 		MountedImages:      mountImages,
-		SSHAuthSock:        defaultSSHSock,
 		TargetLocks:        targetLocks,
 		IntermediateMounts: intermediateMounts,
+		EnvVars:            envVars,
 	}
 	return finalMounts, artifacts, nil
 }
@@ -1731,16 +1726,27 @@ func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps, workDir string) 
 	return &volumes[0], nil
 }
 
-func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (_ *specs.Mount, _ string, retErr error) {
-	errInvalidSyntax := errors.New("secret should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint")
+type secretMountOrEnv struct {
+	// set if mount created
+	Mount *specs.Mount
+
+	// set if caller mount created from temp created env file
+	EnvFile string
+
+	// set if caller should add to env variable list
+	EnvVariable string
+}
+
+func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (_ secretMountOrEnv, retErr error) {
+	errInvalidSyntax := errors.New("secret should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint,env=dstVarName")
 	if len(tokens) == 0 {
-		return nil, "", errInvalidSyntax
+		return secretMountOrEnv{}, errInvalidSyntax
 	}
-	var err error
-	var id, target string
+	var id, target, env string
 	var required bool
 	var uid, gid uint32
 	var mode uint32 = 0o400
+	var rv secretMountOrEnv
 	for _, val := range tokens {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
@@ -1757,110 +1763,133 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 		case "required":
 			required = true
 			if len(kv) > 1 {
+				var err error
 				required, err = strconv.ParseBool(kv[1])
 				if err != nil {
-					return nil, "", errInvalidSyntax
+					return secretMountOrEnv{}, errInvalidSyntax
 				}
 			}
 		case "mode":
 			mode64, err := strconv.ParseUint(kv[1], 8, 32)
 			if err != nil {
-				return nil, "", errInvalidSyntax
+				return secretMountOrEnv{}, errInvalidSyntax
 			}
 			mode = uint32(mode64)
 		case "uid":
 			uid64, err := strconv.ParseUint(kv[1], 10, 32)
 			if err != nil {
-				return nil, "", errInvalidSyntax
+				return secretMountOrEnv{}, errInvalidSyntax
 			}
 			uid = uint32(uid64)
 		case "gid":
 			gid64, err := strconv.ParseUint(kv[1], 10, 32)
 			if err != nil {
-				return nil, "", errInvalidSyntax
+				return secretMountOrEnv{}, errInvalidSyntax
 			}
 			gid = uint32(gid64)
+		case "env":
+			if kv[1] == "" {
+				return secretMountOrEnv{}, errInvalidSyntax
+			}
+			env = kv[1]
 		default:
-			return nil, "", errInvalidSyntax
+			return secretMountOrEnv{}, errInvalidSyntax
+		}
+	}
+
+	// apply defaults, matching documented behaviour
+	if target == "" {
+		if env == "" {
+			target = "/run/secrets/" + id
+		}
+	} else {
+		if id == "" {
+			id = filepath.Base(target)
 		}
 	}
 
 	if id == "" {
-		return nil, "", errInvalidSyntax
-	}
-	// Default location for secrets is /run/secrets/id
-	if target == "" {
-		target = "/run/secrets/" + id
+		return secretMountOrEnv{}, errInvalidSyntax
 	}
 
+	// first fetch the secret data
 	secr, ok := secrets[id]
 	if !ok {
 		if required {
-			return nil, "", fmt.Errorf("secret required but no secret with id %q found", id)
+			return secretMountOrEnv{}, fmt.Errorf("secret required but no secret with id %q found", id)
 		}
-		return nil, "", nil
+		return rv, nil
 	}
-	var data []byte
-	var envFile string
+	data, err := secr.ResolveValue()
+	if err != nil {
+		return secretMountOrEnv{}, err
+	}
+
+	// if env is set, then we set that
+	if env != "" {
+		rv.EnvVariable = env + "=" + string(data)
+	}
+
+	// if no target needs to be mounted, then return now, we're done
+	if target == "" {
+		return rv, nil
+	}
+
 	var ctrFileOnHost string
 
 	switch secr.SourceType {
 	case "env":
-		data = []byte(os.Getenv(secr.Source))
 		tmpFile, err := os.CreateTemp(tmpdir.GetTempDir(), "buildah*")
 		if err != nil {
-			return nil, "", err
+			return secretMountOrEnv{}, err
 		}
+		tmpFile.Close()
 		defer func() {
 			if retErr != nil {
 				os.Remove(tmpFile.Name())
 			}
 		}()
-		envFile = tmpFile.Name()
+		rv.EnvFile = tmpFile.Name()
 		ctrFileOnHost = tmpFile.Name()
 	case "file":
 		containerWorkingDir, err := b.store.ContainerDirectory(b.ContainerID)
 		if err != nil {
-			return nil, "", err
-		}
-		data, err = os.ReadFile(secr.Source)
-		if err != nil {
-			return nil, "", err
+			return secretMountOrEnv{}, err
 		}
 		ctrFileOnHost = filepath.Join(containerWorkingDir, "secrets", digest.FromString(id).Encoded()[:16])
 	default:
-		return nil, "", errors.New("invalid source secret type")
+		return secretMountOrEnv{}, errors.New("invalid source secret type")
 	}
 
 	// Copy secrets to container working dir (or tmp dir if it's an env), since we need to chmod,
 	// chown and relabel it for the container user and we don't want to mess with the original file
 	if err := os.MkdirAll(filepath.Dir(ctrFileOnHost), 0o755); err != nil {
-		return nil, "", err
+		return secretMountOrEnv{}, err
 	}
 	if err := os.WriteFile(ctrFileOnHost, data, 0o644); err != nil {
-		return nil, "", err
+		return secretMountOrEnv{}, err
 	}
 
 	if err := relabel(ctrFileOnHost, b.MountLabel, false); err != nil {
-		return nil, "", err
+		return secretMountOrEnv{}, err
 	}
 	hostUID, hostGID, err := util.GetHostIDs(idMaps.uidmap, idMaps.gidmap, uid, gid)
 	if err != nil {
-		return nil, "", err
+		return secretMountOrEnv{}, err
 	}
 	if err := os.Lchown(ctrFileOnHost, int(hostUID), int(hostGID)); err != nil {
-		return nil, "", err
+		return secretMountOrEnv{}, err
 	}
 	if err := os.Chmod(ctrFileOnHost, os.FileMode(mode)); err != nil {
-		return nil, "", err
+		return secretMountOrEnv{}, err
 	}
-	newMount := specs.Mount{
+	rv.Mount = &specs.Mount{
 		Destination: target,
 		Type:        define.TypeBind,
 		Source:      ctrFileOnHost,
 		Options:     append(define.BindOptions, "rprivate", "ro"),
 	}
-	return &newMount, envFile, nil
+	return rv, nil
 }
 
 // getSSHMount parses the --mount type=ssh flag in the Containerfile, checks if there's an ssh source provided, and creates and starts an ssh-agent to be forwarded into the container

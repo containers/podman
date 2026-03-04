@@ -22,5 +22,4 @@ type Config struct {
 	TmpDir      string
 	ChildIP     string
 	ContainerID string
-	RootlessCNI bool
 }
