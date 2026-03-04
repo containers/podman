@@ -25,7 +25,7 @@ var (
 		Args:              validateStart,
 		ValidArgsFunction: common.AutocompleteContainersStartable,
 		Example: `podman start 860a4b231279 5421ab43b45
-  podman start --interactive --attach imageID`,
+podman start --interactive --attach imageID`,
 	}
 
 	containerStartCommand = &cobra.Command{
@@ -36,7 +36,7 @@ var (
 		Args:              startCommand.Args,
 		ValidArgsFunction: startCommand.ValidArgsFunction,
 		Example: `podman container start 860a4b231279 5421ab43b45
-  podman container start --interactive --attach imageID`,
+podman container start --interactive --attach imageID`,
 	}
 )
 

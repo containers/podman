@@ -14,7 +14,7 @@ var existsCmd = &cobra.Command{
 	RunE:              exists,
 	ValidArgsFunction: common.AutocompleteImages,
 	Example: `podman image exists ID
-  podman image exists IMAGE && podman pull IMAGE`,
+podman image exists IMAGE && podman pull IMAGE`,
 }
 
 func init() {

@@ -40,8 +40,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod rm mywebserverpod
-  podman pod rm -f 860a4b23
-  podman pod rm -f -a`,
+podman pod rm -f 860a4b23
+podman pod rm -f -a`,
 	}
 	stopTimeout int
 )

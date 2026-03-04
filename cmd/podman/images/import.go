@@ -30,8 +30,8 @@ var (
 		Args:              cobra.RangeArgs(1, 2),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman import https://example.com/ctr.tar url-image
-  cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
-  cat ctr.tar | podman import -`,
+cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
+cat ctr.tar | podman import -`,
 	}
 
 	imageImportCommand = &cobra.Command{
@@ -42,8 +42,8 @@ var (
 		Args:              importCommand.Args,
 		ValidArgsFunction: importCommand.ValidArgsFunction,
 		Example: `podman image import https://example.com/ctr.tar url-image
-  cat ctr.tar | podman -q image import --message "importing the ctr.tar tarball" - image-imported
-  cat ctr.tar | podman image import -`,
+cat ctr.tar | podman -q image import --message "importing the ctr.tar tarball" - image-imported
+cat ctr.tar | podman image import -`,
 	}
 )
 

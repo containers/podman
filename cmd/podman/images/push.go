@@ -42,7 +42,7 @@ var (
 		Args:              cobra.RangeArgs(1, 2),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman push imageID docker://registry.example.com/repository:tag
-		podman push imageID oci-archive:/path/to/layout:image:tag`,
+podman push imageID oci-archive:/path/to/layout:image:tag`,
 	}
 
 	// Command: podman image push
@@ -56,7 +56,7 @@ var (
 		Args:              pushCmd.Args,
 		ValidArgsFunction: pushCmd.ValidArgsFunction,
 		Example: `podman image push imageID docker://registry.example.com/repository:tag
-		podman image push imageID oci-archive:/path/to/layout:image:tag`,
+podman image push imageID oci-archive:/path/to/layout:image:tag`,
 	}
 )
 

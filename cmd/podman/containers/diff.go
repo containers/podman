@@ -22,7 +22,7 @@ var (
 		RunE:              diffRun,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container diff myCtr
-  podman container diff -l --format json myCtr`,
+podman container diff -l --format json myCtr`,
 	}
 	diffOpts *entities.DiffOptions
 )

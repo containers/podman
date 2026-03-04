@@ -27,8 +27,8 @@ var (
 		RunE:              rm,
 		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume rm myvol1 myvol2
-  podman volume rm --all
-  podman volume rm --force myvol`,
+podman volume rm --all
+podman volume rm --force myvol`,
 	}
 )
 

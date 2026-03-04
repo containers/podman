@@ -44,7 +44,7 @@ var (
 		RunE:              imagePull,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman pull imageName
-  podman pull fedora:latest`,
+podman pull fedora:latest`,
 	}
 
 	// Command: podman image pull
@@ -58,7 +58,7 @@ var (
 		RunE:              pullCmd.RunE,
 		ValidArgsFunction: pullCmd.ValidArgsFunction,
 		Example: `podman image pull imageName
-  podman image pull fedora:latest`,
+podman image pull fedora:latest`,
 	}
 )
 

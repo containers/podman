@@ -26,7 +26,7 @@ var (
 		PersistentPostRunE: validate.NoOp,
 		ValidArgsFunction:  completion.AutocompleteNone,
 		Example: `podman farm create myfarm connection1
-  podman farm create myfarm`,
+podman farm create myfarm`,
 	}
 )
 

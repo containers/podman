@@ -36,8 +36,8 @@ var (
 		RunE:              stats,
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stats
-  podman pod stats a69b23034235 named-pod
-  podman pod stats --all`,
+podman pod stats a69b23034235 named-pod
+podman pod stats --all`,
 	}
 )
 

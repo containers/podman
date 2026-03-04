@@ -19,12 +19,10 @@ var (
 		Aliases:           []string{"remove"},
 		Args:              checkAllAndArgs,
 		ValidArgsFunction: common.AutocompleteArtifacts,
-		Example: `
-  podman artifact rm quay.io/myimage/myartifact:latest
-  podman artifact rm -a
-  podman artifact rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
-  podman artifact rm -i c4dfb1609ee2
-		`,
+		Example: `podman artifact rm quay.io/myimage/myartifact:latest
+podman artifact rm -a
+podman artifact rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
+podman artifact rm -i c4dfb1609ee2`,
 	}
 
 	rmOptions = entities.ArtifactRemoveOptions{}

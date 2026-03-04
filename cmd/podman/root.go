@@ -41,6 +41,21 @@ Description:
 
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
+// indentExamples is a Cobra template function registered via cobra.AddTemplateFunc.
+// It prepends two spaces to every non-empty line in a command's Example string
+// so that examples are consistently indented in --help output.
+// Example strings in source must be flush-left (no leading whitespace);
+// this is enforced by TestExampleFormat.
+func indentExamples(s string) string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = "  " + line
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // UsageTemplate is the usage template for podman commands
 // This blocks the displaying of the global options. The main podman
 // command should not use this.
@@ -52,7 +67,7 @@ Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
 Examples:
-  {{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+{{.Example | indentExamples}}{{end}}{{if .HasAvailableSubCommands}}
 
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
@@ -94,6 +109,8 @@ var (
 )
 
 func init() {
+	cobra.AddTemplateFunc("indentExamples", indentExamples)
+
 	// Hooks are called before PersistentPreRunE(). These hooks affect global
 	// state and are executed after processing the command-line, but before
 	// actually running the command.

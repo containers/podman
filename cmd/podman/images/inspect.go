@@ -18,8 +18,8 @@ var (
 		RunE:              inspectExec,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image inspect alpine
-  podman image inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
-  podman image inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
+podman image inspect --format "imageId: {{.Id}} size: {{.Size}}" alpine
+podman image inspect --format "image: {{.ImageName}} driver: {{.Driver}}" myctr`,
 	}
 	inspectOpts *entities.InspectOptions
 )

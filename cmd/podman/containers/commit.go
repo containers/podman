@@ -24,9 +24,9 @@ var (
 		Args:              cobra.RangeArgs(1, 2),
 		ValidArgsFunction: common.AutocompleteCommitCommand,
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
-  podman commit -q --author "firstName lastName" reverent_golick image-committed
-  podman commit -q --pause=false containerID image-committed
-  podman commit containerID`,
+podman commit -q --author "firstName lastName" reverent_golick image-committed
+podman commit -q --pause=false containerID image-committed
+podman commit containerID`,
 	}
 
 	containerCommitCommand = &cobra.Command{
@@ -37,9 +37,9 @@ var (
 		RunE:              commitCommand.RunE,
 		ValidArgsFunction: commitCommand.ValidArgsFunction,
 		Example: `podman container commit -q --message "committing container to image" reverent_golick image-committed
-  podman container commit -q --author "firstName lastName" reverent_golick image-committed
-  podman container commit -q --pause=false containerID image-committed
-  podman container commit containerID`,
+podman container commit -q --author "firstName lastName" reverent_golick image-committed
+podman container commit -q --pause=false containerID image-committed
+podman container commit containerID`,
 	}
 )
 

@@ -23,7 +23,7 @@ var sshCmd = &cobra.Command{
 	PersistentPreRunE: machinePreRunE,
 	RunE:              ssh,
 	Example: `podman machine ssh podman-machine-default
-  podman machine ssh myvm echo hello`,
+podman machine ssh myvm echo hello`,
 	ValidArgsFunction: autocompleteMachineSSH,
 }
 

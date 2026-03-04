@@ -25,7 +25,7 @@ var (
 		RunE:              apply,
 		ValidArgsFunction: common.AutocompleteForKube,
 		Example: `podman kube apply ctrName volName
-  podman kube apply --namespace project -f fileName`,
+podman kube apply --namespace project -f fileName`,
 	}
 )
 

@@ -49,10 +49,10 @@ var (
 		RunE:              logs,
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod logs podID
-		podman pod logs -c ctrname podName
-		podman pod logs --tail 2 mywebserver
-		podman pod logs --follow=true --since 10m podID
-		podman pod logs mywebserver`,
+podman pod logs -c ctrname podName
+podman pod logs --tail 2 mywebserver
+podman pod logs --follow=true --since 10m podID
+podman pod logs mywebserver`,
 	}
 )
 

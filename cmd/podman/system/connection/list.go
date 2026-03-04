@@ -24,14 +24,14 @@ var (
 		Short:   "List destination for the Podman service(s)",
 		Long:    `List destination information for the Podman service(s) in podman configuration`,
 		Example: `podman system connection list
-	# Format as table without TLS info
-  podman system connection ls
-	# Format as table with TLS info
-  podman system connection ls --format=tls
-	# Format as JSON
-  podman system connection ls --format=json
-	# Format as custom go template
-  podman system connection ls --format='{{range .}}{{.Name}}{{ "\n" }}{{ end }}'`,
+# Format as table without TLS info
+podman system connection ls
+# Format as table with TLS info
+podman system connection ls --format=tls
+# Format as JSON
+podman system connection ls --format=json
+# Format as custom go template
+podman system connection ls --format='{{range .}}{{.Name}}{{ "\n" }}{{ end }}'`,
 		ValidArgsFunction: completion.AutocompleteNone,
 		RunE:              list,
 		TraverseChildren:  false,

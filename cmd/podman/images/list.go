@@ -41,8 +41,8 @@ var (
 		RunE:              images,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image list --format json
-  podman image list --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
-  podman image list --filter dangling=true`,
+podman image list --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
+podman image list --filter dangling=true`,
 	}
 
 	imagesCmd = &cobra.Command{
@@ -53,8 +53,8 @@ var (
 		RunE:              imageListCmd.RunE,
 		ValidArgsFunction: imageListCmd.ValidArgsFunction,
 		Example: `podman images --format json
-  podman images --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
-  podman images --filter dangling=true`,
+podman images --sort repository --format "table {{.ID}} {{.Repository}} {{.Tag}}"
+podman images --filter dangling=true`,
 	}
 
 	// Options to pull data

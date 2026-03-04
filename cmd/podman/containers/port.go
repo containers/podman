@@ -27,7 +27,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainerOneArg,
 		Example: `podman port --all
-  podman port ctrID 80/tcp`,
+podman port ctrID 80/tcp`,
 	}
 
 	containerPortCommand = &cobra.Command{
@@ -40,7 +40,7 @@ var (
 		},
 		ValidArgsFunction: portCommand.ValidArgsFunction,
 		Example: `podman container port --all
-  podman container port CTRID 80`,
+podman container port CTRID 80`,
 	}
 )
 

@@ -30,8 +30,8 @@ var (
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: common.AutocompleteRegistries,
 		Example: `podman login quay.io
-  podman login --username ... --password ... quay.io
-  podman login --authfile dir/auth.json quay.io`,
+podman login --username ... --password ... quay.io
+podman login --authfile dir/auth.json quay.io`,
 	}
 )
 

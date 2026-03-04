@@ -28,9 +28,9 @@ var (
 		RunE:              eventsCmd,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman events
-  podman events --filter event=create
-  podman events --format {{.Image}}
-  podman events --since 1h30s`,
+podman events --filter event=create
+podman events --format {{.Image}}
+podman events --since 1h30s`,
 	}
 
 	systemEventsCommand = &cobra.Command{
