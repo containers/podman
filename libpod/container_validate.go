@@ -179,6 +179,10 @@ func (c *Container) validate() error {
 		return fmt.Errorf("default rootfs-based infra container is set for non-infra container")
 	}
 
+	if c.config.LogTag != "" && c.config.LogDriver != define.JournaldLogging {
+		return fmt.Errorf("log tags can only be used with the journald log driver but driver is %q: %w", c.config.LogDriver, define.ErrInvalidArg)
+	}
+
 	if len(c.config.ArtifactVolumes) > 0 {
 		artStore, err := c.runtime.ArtifactStore()
 		if err != nil {

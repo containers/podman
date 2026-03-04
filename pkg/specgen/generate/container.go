@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v6/pkg/signal"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/openshift/imagebuilder"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
@@ -332,16 +331,11 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.LogConfiguration.Driver = rtc.Containers.LogDriver
 	}
 	if len(rtc.Containers.LogTag) > 0 {
-		if s.LogConfiguration.Driver != define.JSONLogging {
-			if s.LogConfiguration.Options == nil {
-				s.LogConfiguration.Options = make(map[string]string)
-			}
-
-			if _, exists := s.LogConfiguration.Options["tag"]; !exists {
-				s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
-			}
-		} else {
-			logrus.Warnf("log_tag %q is not allowed with %q log_driver", rtc.Containers.LogTag, define.JSONLogging)
+		if s.LogConfiguration.Options == nil {
+			s.LogConfiguration.Options = make(map[string]string)
+		}
+		if _, exists := s.LogConfiguration.Options["tag"]; !exists {
+			s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
 		}
 	}
 

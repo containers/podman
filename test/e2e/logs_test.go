@@ -638,6 +638,12 @@ var _ = Describe("Podman logs", func() {
 		Expect(logc.OutputToString()).To(Equal("podman"))
 	})
 
+	It("log tag with non-journald driver fails", func() {
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "k8s-file", "--log-opt", "tag=mytag", ALPINE, "true"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(ExitWithError(125, "log tags can only be used with the journald log driver"))
+	})
+
 	It("podman pod logs with container names", func() {
 		SkipIfRemote("Remote can only process one container at a time")
 		podName := "testPod"
