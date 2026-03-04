@@ -31,7 +31,6 @@ import (
 	"github.com/docker/docker/pkg/meminfo"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
@@ -265,17 +264,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			}
 			s.LogConfiguration.Size = logSize
 		default:
-			switch len(val) {
-			case 0:
+			if len(val) == 0 {
 				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
-			default:
-				// tags for journald only
-				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
-					s.LogConfiguration.Options[opt] = val
-				} else {
-					logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
-				}
 			}
+			s.LogConfiguration.Options[opt] = val
 		}
 	}
 
