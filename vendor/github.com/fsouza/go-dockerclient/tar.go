@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/moby/go-archive"
+	"github.com/moby/go-archive/compression"
 	"github.com/moby/patternmatcher"
 )
 
@@ -59,7 +60,7 @@ func createTarStream(srcPath, dockerfilePath string) (io.ReadCloser, error) {
 	tarOpts := &archive.TarOptions{
 		ExcludePatterns: excludes,
 		IncludeFiles:    includes,
-		Compression:     archive.Uncompressed,
+		Compression:     compression.None,
 		NoLchown:        true,
 	}
 	return archive.TarWithOptions(srcPath, tarOpts)

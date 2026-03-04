@@ -17,8 +17,8 @@ type NamespaceOption struct {
 	// is not set.  If Host is not set and Path is also empty, a new
 	// namespace will be created for the process that we're starting.
 	// If Name is specs.NetworkNamespace, if Path doesn't look like an
-	// absolute path, it is treated as a comma-separated list of CNI
-	// configuration names which will be selected from among all of the CNI
+	// absolute path, it is treated as a comma-separated list of network
+	// configuration names which will be selected from among all of the
 	// network configurations which we find.
 	Path string
 }

@@ -117,14 +117,6 @@ var (
 		"CAP_SYS_CHROOT",
 	}
 
-	// Search these locations in which CNIPlugins can be installed.
-	DefaultCNIPluginDirs = []string{
-		"/usr/local/libexec/cni",
-		"/usr/libexec/cni",
-		"/usr/local/lib/cni",
-		"/usr/lib/cni",
-		"/opt/cni/bin",
-	}
 	DefaultNetavarkPluginDirs = []string{
 		"/usr/local/libexec/netavark",
 		"/usr/libexec/netavark",
@@ -272,7 +264,6 @@ func defaultConfig() (*Config, error) {
 			DefaultSubnetPools:        DefaultSubnetPools,
 			DefaultRootlessNetworkCmd: "pasta",
 			DNSBindPort:               0,
-			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
 			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),
 		},
 		Engine:   *defaultEngineConfig,

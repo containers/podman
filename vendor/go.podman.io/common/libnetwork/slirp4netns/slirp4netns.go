@@ -18,10 +18,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/netns"
 	"go.podman.io/common/pkg/rootlessport"
 	"go.podman.io/common/pkg/servicereaper"
 	"go.podman.io/common/pkg/util"
@@ -334,7 +334,7 @@ func Setup(opts *SetupOptions) (*SetupResult, error) {
 		netnsReadyWg.Add(1)
 
 		go func() {
-			err := ns.WithNetNSPath(opts.Netns, func(_ ns.NetNS) error {
+			err := netns.WithNetNSPath(opts.Netns, func(_ netns.NetNS) error {
 				// Duplicate Address Detection slows the ipv6 setup down for 1-2 seconds.
 				// Since slirp4netns is run in its own namespace and not directly routed
 				// we can skip this to make the ipv6 address immediately available.

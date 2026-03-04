@@ -47,7 +47,7 @@ type Config struct {
 	Engine EngineConfig `toml:"engine"`
 	// Machine specifies configurations of podman machine VMs
 	Machine MachineConfig `toml:"machine"`
-	// Network section defines the configuration of CNI Plugins
+	// Network section defines the configuration of network plugins
 	Network NetworkConfig `toml:"network"`
 	// Secret section defines configurations for the secret management
 	Secrets SecretConfig `toml:"secrets"`
@@ -589,9 +589,6 @@ type NetworkConfig struct {
 	// NetworkBackend determines what backend should be used for Podman's
 	// networking.
 	NetworkBackend string `toml:"network_backend,omitempty"`
-
-	// CNIPluginDirs is where CNI plugin binaries are stored.
-	CNIPluginDirs attributedstring.Slice `toml:"cni_plugin_dirs,omitempty"`
 
 	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
 	NetavarkPluginDirs attributedstring.Slice `toml:"netavark_plugin_dirs,omitempty"`

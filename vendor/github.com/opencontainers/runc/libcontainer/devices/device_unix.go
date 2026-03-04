@@ -98,7 +98,7 @@ func GetDevices(path string) ([]*Device, error) {
 			if errors.Is(err, ErrNotADevice) {
 				continue
 			}
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
 			return nil, err

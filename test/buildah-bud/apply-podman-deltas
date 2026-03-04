@@ -338,7 +338,9 @@ skip_if_remote "FIXME: 2025-04-01 git related errors returning wrong exit code" 
 skip "process substitution with overlay context not supported" \
      "build-with-timestamp-applies-to-oci-archive" \
      "build-with-timestamp-applies-to-oci-archive-with-base" \
-     "build-with-run-mount"
+     "build-with-run-mount" \
+     "use-secret-to-env-variable" \
+     "use-secret-to-env-variable-and-file-path"
 
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################

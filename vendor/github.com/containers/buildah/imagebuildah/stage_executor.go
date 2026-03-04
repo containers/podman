@@ -811,7 +811,7 @@ func (s *stageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 			args = []string{full}
 		}
 	}
-	stageMountPoints, err := s.runStageMountPoints(run.Mounts)
+	stageMountPoints, err := s.runStageMountPoints(slices.Concat(run.Mounts, s.executor.transientRunMounts))
 	if err != nil {
 		return err
 	}
@@ -876,7 +876,7 @@ func (s *stageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	}
 
 	if run.Shell {
-		if len(config.Shell) > 0 && s.builder.Format == define.Dockerv2ImageManifest {
+		if len(config.Shell) > 0 {
 			args = append(config.Shell, args...)
 		} else {
 			args = append([]string{"/bin/sh", "-c"}, args...)
@@ -1084,8 +1084,6 @@ func (s *stageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		Isolation:             s.executor.isolation,
 		NamespaceOptions:      s.executor.namespaceOptions,
 		ConfigureNetwork:      s.executor.configureNetwork,
-		CNIPluginPath:         s.executor.cniPluginPath,
-		CNIConfigDir:          s.executor.cniConfigDir,
 		NetworkInterface:      s.executor.networkInterface,
 		IDMappingOptions:      s.executor.idmappingOptions,
 		CommonBuildOpts:       s.executor.commonBuildOptions,
@@ -1412,6 +1410,7 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		logImageID(imgID)
 	}
 
+	executedLayerStep := false
 	for i, node := range children {
 		logRusage()
 		moreInstructions := i < len(children)-1
@@ -1521,6 +1520,9 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		// instruction.
 		if !s.executor.layers {
 			s.didExecute = true
+			if s.stepRequiresLayer(step) {
+				executedLayerStep = true
+			}
 			err := ib.Run(step, s, noRunsRemaining)
 			if err != nil {
 				logrus.Debugf("Error building at step %+v: %v", *step, err)
@@ -1555,7 +1557,7 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 				if err != nil {
 					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 				}
-				imgID, commitResults, err = s.commit(ctx, createdBy, false, s.output, s.executor.squash, lastStage && lastInstruction)
+				imgID, commitResults, err = s.commit(ctx, createdBy, !executedLayerStep, s.output, s.executor.squash, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
 				}
