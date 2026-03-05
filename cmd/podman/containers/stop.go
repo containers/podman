@@ -73,6 +73,10 @@ func stopFlags(cmd *cobra.Command) {
 	flags.StringArrayVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
+	notStoppedByUserFlagName := "not-stopped-by-user"
+	flags.BoolVar(&stopOptions.NotStoppedByUser, notStoppedByUserFlagName, false, "Do not mark container as stopped by user")
+	_ = flags.MarkHidden(notStoppedByUserFlagName)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("ignore")

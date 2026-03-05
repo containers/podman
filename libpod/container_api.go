@@ -283,6 +283,17 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
+	return c.StopWithArgs(timeout, false)
+}
+
+// StopWithArgs is a version of Stop that allows a timeout to be specified manually
+// and controls whether to set the StoppedByUser state field. If timeout is 0,
+// SIGKILL will be used immediately to kill the container.
+//
+// An explicit stop is treated as a user-driven lifecycle action. Because of
+// that, this path may not trigger automatic restart-policy handling in cleanup,
+// even when notStoppedByUser is true.
+func (c *Container) StopWithArgs(timeout uint, notStoppedByUser bool) (finalErr error) {
 	// Have to lock the pod the container is a part of.
 	// This prevents running `podman stop` at the same time a
 	// `podman pod start` is running, which could lead to weird races.
@@ -320,8 +331,7 @@ func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
 			return err
 		}
 	}
-
-	return c.stop(timeout)
+	return c.stopInternal(timeout, notStoppedByUser)
 }
 
 // Kill sends a signal to a container
