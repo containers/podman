@@ -4,6 +4,9 @@ package signature
 
 import (
 	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"os"
@@ -17,6 +20,100 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
+// loadBytesFromDataOrPath ensures there is at most one of ${prefix}Data and ${prefix}Path set,
+// and returns the referenced data, or nil if neither is set.
+func loadBytesFromDataOrPath(prefix string, data []byte, path string) ([]byte, error) {
+	switch {
+	case data != nil && path != "":
+		return nil, fmt.Errorf(`Internal inconsistency: both "%sPath" and "%sData" specified`, prefix, prefix)
+	case path != "":
+		d, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
+	case data != nil:
+		return data, nil
+	default: // Nothing
+		return nil, nil
+	}
+}
+
+// prepareTrustRoot creates a fulcioTrustRoot from the input data.
+// (This also prevents external implementations of this interface, ensuring that prSigstoreSignedFulcio is the only one.)
+func (f *prSigstoreSignedFulcio) prepareTrustRoot() (*fulcioTrustRoot, error) {
+	caCertBytes, err := loadBytesFromDataOrPath("fulcioCA", f.CAData, f.CAPath)
+	if err != nil {
+		return nil, err
+	}
+	if caCertBytes == nil {
+		return nil, errors.New(`Internal inconsistency: Fulcio specified with neither "caPath" nor "caData"`)
+	}
+	certs := x509.NewCertPool()
+	if ok := certs.AppendCertsFromPEM(caCertBytes); !ok {
+		return nil, errors.New("error loading Fulcio CA certificates")
+	}
+	fulcio := fulcioTrustRoot{
+		caCertificates: certs,
+		oidcIssuer:     f.OIDCIssuer,
+		subjectEmail:   f.SubjectEmail,
+	}
+	if err := fulcio.validate(); err != nil {
+		return nil, err
+	}
+	return &fulcio, nil
+}
+
+// sigstoreSignedTrustRoot contains an already parsed version of the prSigstoreSigned policy
+type sigstoreSignedTrustRoot struct {
+	publicKey      crypto.PublicKey
+	fulcio         *fulcioTrustRoot
+	rekorPublicKey *ecdsa.PublicKey
+}
+
+func (pr *prSigstoreSigned) prepareTrustRoot() (*sigstoreSignedTrustRoot, error) {
+	res := sigstoreSignedTrustRoot{}
+
+	publicKeyPEM, err := loadBytesFromDataOrPath("key", pr.KeyData, pr.KeyPath)
+	if err != nil {
+		return nil, err
+	}
+	if publicKeyPEM != nil {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(publicKeyPEM)
+		if err != nil {
+			return nil, fmt.Errorf("parsing public key: %w", err)
+		}
+		res.publicKey = pk
+	}
+
+	if pr.Fulcio != nil {
+		f, err := pr.Fulcio.prepareTrustRoot()
+		if err != nil {
+			return nil, err
+		}
+		res.fulcio = f
+	}
+
+	rekorPublicKeyPEM, err := loadBytesFromDataOrPath("rekorPublicKey", pr.RekorPublicKeyData, pr.RekorPublicKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	if rekorPublicKeyPEM != nil {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(rekorPublicKeyPEM)
+		if err != nil {
+			return nil, fmt.Errorf("parsing Rekor public key: %w", err)
+		}
+		pkECDSA, ok := pk.(*ecdsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("Rekor public key is not using ECDSA")
+
+		}
+		res.rekorPublicKey = pkECDSA
+	}
+
+	return &res, nil
+}
+
 func (pr *prSigstoreSigned) isSignatureAuthorAccepted(ctx context.Context, image private.UnparsedImage, sig []byte) (signatureAcceptanceResult, *Signature, error) {
 	// We don’t know of a single user of this API, and we might return unexpected values in Signature.
 	// For now, just punt.
@@ -24,24 +121,10 @@ func (pr *prSigstoreSigned) isSignatureAuthorAccepted(ctx context.Context, image
 }
 
 func (pr *prSigstoreSigned) isSignatureAccepted(ctx context.Context, image private.UnparsedImage, sig signature.Sigstore) (signatureAcceptanceResult, error) {
-	if pr.KeyPath != "" && pr.KeyData != nil {
-		return sarRejected, errors.New(`Internal inconsistency: both "keyPath" and "keyData" specified`)
-	}
 	// FIXME: move this to per-context initialization
-	var publicKeyPEM []byte
-	if pr.KeyData != nil {
-		publicKeyPEM = pr.KeyData
-	} else {
-		d, err := os.ReadFile(pr.KeyPath)
-		if err != nil {
-			return sarRejected, err
-		}
-		publicKeyPEM = d
-	}
-
-	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(publicKeyPEM)
+	trustRoot, err := pr.prepareTrustRoot()
 	if err != nil {
-		return sarRejected, fmt.Errorf("parsing public key: %w", err)
+		return sarRejected, err
 	}
 
 	untrustedAnnotations := sig.UntrustedAnnotations()
@@ -49,8 +132,66 @@ func (pr *prSigstoreSigned) isSignatureAccepted(ctx context.Context, image priva
 	if !ok {
 		return sarRejected, fmt.Errorf("missing %s annotation", signature.SigstoreSignatureAnnotationKey)
 	}
+	untrustedPayload := sig.UntrustedPayload()
 
-	signature, err := internal.VerifySigstorePayload(publicKey, sig.UntrustedPayload(), untrustedBase64Signature, internal.SigstorePayloadAcceptanceRules{
+	var publicKey crypto.PublicKey
+	switch {
+	case trustRoot.publicKey != nil && trustRoot.fulcio != nil: // newPRSigstoreSigned rejects such combinations.
+		return sarRejected, errors.New("Internal inconsistency: Both a public key and Fulcio CA specified")
+	case trustRoot.publicKey == nil && trustRoot.fulcio == nil: // newPRSigstoreSigned rejects such combinations.
+		return sarRejected, errors.New("Internal inconsistency: Neither a public key nor a Fulcio CA specified")
+
+	case trustRoot.publicKey != nil:
+		if trustRoot.rekorPublicKey != nil {
+			untrustedSET, ok := untrustedAnnotations[signature.SigstoreSETAnnotationKey]
+			if !ok { // For user convenience; passing an empty []byte to VerifyRekorSet should work.
+				return sarRejected, fmt.Errorf("missing %s annotation", signature.SigstoreSETAnnotationKey)
+			}
+			// We could use publicKeyPEM directly, but let’s re-marshal to avoid inconsistencies.
+			// FIXME: We could just generate DER instead of the full PEM text
+			recreatedPublicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(trustRoot.publicKey)
+			if err != nil {
+				// Coverage: The key was loaded from a PEM format, so it’s unclear how this could fail.
+				// (PEM is not essential, MarshalPublicKeyToPEM can only fail if marshaling to ASN1.DER fails.)
+				return sarRejected, fmt.Errorf("re-marshaling public key to PEM: %w", err)
+
+			}
+			// We don’t care about the Rekor timestamp, just about log presence.
+			if _, err := internal.VerifyRekorSET(trustRoot.rekorPublicKey, []byte(untrustedSET), recreatedPublicKeyPEM, untrustedBase64Signature, untrustedPayload); err != nil {
+				return sarRejected, err
+			}
+		}
+		publicKey = trustRoot.publicKey
+
+	case trustRoot.fulcio != nil:
+		if trustRoot.rekorPublicKey == nil { // newPRSigstoreSigned rejects such combinations.
+			return sarRejected, errors.New("Internal inconsistency: Fulcio CA specified without a Rekor public key")
+		}
+		untrustedSET, ok := untrustedAnnotations[signature.SigstoreSETAnnotationKey]
+		if !ok { // For user convenience; passing an empty []byte to VerifyRekorSet should correctly reject it anyway.
+			return sarRejected, fmt.Errorf("missing %s annotation", signature.SigstoreSETAnnotationKey)
+		}
+		untrustedCert, ok := untrustedAnnotations[signature.SigstoreCertificateAnnotationKey]
+		if !ok { // For user convenience; passing an empty []byte to VerifyRekorSet should correctly reject it anyway.
+			return sarRejected, fmt.Errorf("missing %s annotation", signature.SigstoreCertificateAnnotationKey)
+		}
+		var untrustedIntermediateChainBytes []byte
+		if untrustedIntermediateChain, ok := untrustedAnnotations[signature.SigstoreIntermediateCertificateChainAnnotationKey]; ok {
+			untrustedIntermediateChainBytes = []byte(untrustedIntermediateChain)
+		}
+		pk, err := verifyRekorFulcio(trustRoot.rekorPublicKey, trustRoot.fulcio,
+			[]byte(untrustedSET), []byte(untrustedCert), untrustedIntermediateChainBytes, untrustedBase64Signature, untrustedPayload)
+		if err != nil {
+			return sarRejected, err
+		}
+		publicKey = pk
+	}
+
+	if publicKey == nil {
+		// Coverage: This should never happen, we have already excluded the possibility in the switch above.
+		return sarRejected, fmt.Errorf("Internal inconsistency: publicKey not set before verifying sigstore payload")
+	}
+	signature, err := internal.VerifySigstorePayload(publicKey, untrustedPayload, untrustedBase64Signature, internal.SigstorePayloadAcceptanceRules{
 		ValidateSignedDockerReference: func(ref string) error {
 			if !pr.SignedIdentity.matchesDockerReference(image, ref) {
 				return PolicyRequirementError(fmt.Sprintf("Signature for identity %s is not accepted", ref))

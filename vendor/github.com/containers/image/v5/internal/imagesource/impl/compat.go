@@ -19,13 +19,14 @@ type Compat struct {
 // for implementations of private.ImageSource.
 //
 // Use it like this:
-// type yourSource struct {
-//     impl.Compat
-//     …
-// }
-// src := &yourSource{…}
-// src.Compat = impl.AddCompat(src)
 //
+//	type yourSource struct {
+//		impl.Compat
+//		…
+//	}
+//
+//	src := &yourSource{…}
+//	src.Compat = impl.AddCompat(src)
 func AddCompat(src private.ImageSourceInternalOnly) Compat {
 	return Compat{src}
 }

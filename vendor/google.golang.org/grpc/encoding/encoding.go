@@ -19,7 +19,7 @@
 // Package encoding defines the interface for the compressor and codec, and
 // functions to register and retrieve compressors and codecs.
 //
-// Experimental
+// # Experimental
 //
 // Notice: This package is EXPERIMENTAL and may be changed or removed in a
 // later release.
@@ -28,6 +28,8 @@ package encoding
 import (
 	"io"
 	"strings"
+
+	"google.golang.org/grpc/internal/grpcutil"
 )
 
 // Identity specifies the optional encoding for uncompressed streams.
@@ -73,6 +75,9 @@ var registeredCompressor = make(map[string]Compressor)
 // registered with the same name, the one registered last will take effect.
 func RegisterCompressor(c Compressor) {
 	registeredCompressor[c.Name()] = c
+	if !grpcutil.IsCompressorNameRegistered(c.Name()) {
+		grpcutil.RegisteredCompressorNames = append(grpcutil.RegisteredCompressorNames, c.Name())
+	}
 }
 
 // GetCompressor returns Compressor for the given compressor name.
@@ -85,9 +90,9 @@ func GetCompressor(name string) Compressor {
 // methods can be called from concurrent goroutines.
 type Codec interface {
 	// Marshal returns the wire format of v.
-	Marshal(v interface{}) ([]byte, error)
+	Marshal(v any) ([]byte, error)
 	// Unmarshal parses the wire format into v.
-	Unmarshal(data []byte, v interface{}) error
+	Unmarshal(data []byte, v any) error
 	// Name returns the name of the Codec implementation. The returned string
 	// will be used as part of content type in transmission.  The result must be
 	// static; the result cannot change between calls.

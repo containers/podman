@@ -1,4 +1,4 @@
-// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2022 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -31,8 +31,7 @@ import (
 // printed. There is no control over the order of the items printed and
 // the format. The full format is:
 //
-//   2009-01-23 01:23:23.123123 /a/b/c/d.go:23: message
-//
+//	2009-01-23 01:23:23.123123 /a/b/c/d.go:23: message
 const (
 	Ldate         = 1 << iota // the date: 2009-01-23
 	Ltime                     // the time: 01:23:23

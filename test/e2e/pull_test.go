@@ -376,21 +376,21 @@ var _ = Describe("Podman pull", func() {
 		dirpath := filepath.Join(podmanTest.TempDir, "cirros")
 		err = os.MkdirAll(dirpath, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		imgPath := fmt.Sprintf("oci:%s", dirpath)
+		imgName := "localhost/name:tag"
+		imgPath := fmt.Sprintf("oci:%s:%s", dirpath, imgName)
 
-		session := podmanTest.Podman([]string{"push", "cirros", imgPath})
+		session := podmanTest.Podman([]string{"push", "-q", "cirros", imgPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"pull", imgPath})
+		session = podmanTest.Podman([]string{"pull", "-q", imgPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"images"})
+		session = podmanTest.Podman([]string{"image", "exists", imgName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContainsTag(filepath.Join("localhost", dirpath), "latest")).To(BeTrue())
 	})
 
 	It("podman pull + inspect from unqualified-search registry", func() {

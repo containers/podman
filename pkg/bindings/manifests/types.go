@@ -3,6 +3,7 @@ package manifests
 //go:generate go run ../generator/generator.go InspectOptions
 // InspectOptions are optional options for inspecting manifests
 type InspectOptions struct {
+	SkipTLSVerify *bool
 }
 
 //go:generate go run ../generator/generator.go CreateOptions

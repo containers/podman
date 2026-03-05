@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2022, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -25,7 +25,7 @@ func NewBuffer(buf []byte) *Buffer {
 var errNegativeOffset = errors.New("negative offset")
 
 // ReadAt implements the io.ReaderAt interface.
-func (b *Buffer) ReadAt(p []byte, off int64) (n int, err error) {
+func (b *Buffer) ReadAt(p []byte, off int64) (int, error) {
 	if off < 0 {
 		return 0, errNegativeOffset
 	}
@@ -34,17 +34,17 @@ func (b *Buffer) ReadAt(p []byte, off int64) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	n = copy(p, b.buf[off:])
+	n := copy(p, b.buf[off:])
 	if n < len(p) {
-		err = io.EOF
+		return n, io.EOF
 	}
-	return n, err
+	return n, nil
 }
 
 var errNegativePosition = errors.New("negative position")
 
 // Write implements the io.Writer interface.
-func (b *Buffer) Write(p []byte) (n int, err error) {
+func (b *Buffer) Write(p []byte) (int, error) {
 	if b.pos < 0 {
 		return 0, errNegativePosition
 	}
@@ -53,7 +53,7 @@ func (b *Buffer) Write(p []byte) (n int, err error) {
 		b.buf = append(b.buf, make([]byte, need-have)...)
 	}
 
-	n = copy(b.buf[b.pos:], p)
+	n := copy(b.buf[b.pos:], p)
 	b.pos += int64(n)
 	return n, nil
 }

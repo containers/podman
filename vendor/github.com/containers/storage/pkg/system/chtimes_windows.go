@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package system
@@ -8,8 +9,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-//setCTime will set the create time on a file. On Windows, this requires
-//calling SetFileTime and explicitly including the create time.
+// setCTime will set the create time on a file. On Windows, this requires
+// calling SetFileTime and explicitly including the create time.
 func setCTime(path string, ctime time.Time) error {
 	ctimespec := windows.NsecToTimespec(ctime.UnixNano())
 	pathp, e := windows.UTF16PtrFromString(path)

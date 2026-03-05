@@ -1,9 +1,10 @@
-// Copyright © 2013 Steve Francia <spf@spf13.com>.
+// Copyright 2013-2023 The Cobra Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,8 +30,19 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+const (
+	FlagSetByCobraAnnotation     = "cobra_annotation_flag_set_by_cobra"
+	CommandDisplayNameAnnotation = "cobra_annotation_command_display_name"
+)
+
 // FParseErrWhitelist configures Flag parse errors to be ignored
 type FParseErrWhitelist flag.ParseErrorsWhitelist
+
+// Group Structure to manage groups for commands
+type Group struct {
+	ID    string
+	Title string
+}
 
 // Command is just that, a command for your application.
 // E.g.  'go run ...' - 'run' is the command. Cobra requires
@@ -38,7 +50,7 @@ type FParseErrWhitelist flag.ParseErrorsWhitelist
 // definition to ensure usability.
 type Command struct {
 	// Use is the one-line usage message.
-	// Recommended syntax is as follow:
+	// Recommended syntax is as follows:
 	//   [ ] identifies an optional argument. Arguments that are not enclosed in brackets are required.
 	//   ... indicates that you can specify multiple values for the previous argument.
 	//   |   indicates mutually exclusive information. You can use the argument to the left of the separator or the
@@ -57,6 +69,9 @@ type Command struct {
 
 	// Short is the short description shown in the 'help' output.
 	Short string
+
+	// The group id under which this subcommand is grouped in the 'help' output of its parent.
+	GroupID string
 
 	// Long is the long message shown in the 'help <this-command>' output.
 	Long string
@@ -87,7 +102,7 @@ type Command struct {
 	Deprecated string
 
 	// Annotations are key/value pairs that can be used by applications to identify or
-	// group commands.
+	// group commands or set special options.
 	Annotations map[string]string
 
 	// Version defines the version for this command. If this value is non-empty and the command does not
@@ -103,6 +118,8 @@ type Command struct {
 	//   * PostRun()
 	//   * PersistentPostRun()
 	// All functions get the same args, the arguments after the command name.
+	// The *PreRun and *PostRun functions will only be executed if the Run function of the current
+	// command has been declared.
 	//
 	// PersistentPreRun: children of this command will inherit and execute.
 	PersistentPreRun func(cmd *Command, args []string)
@@ -124,6 +141,9 @@ type Command struct {
 	PersistentPostRun func(cmd *Command, args []string)
 	// PersistentPostRunE: PersistentPostRun but returns an error.
 	PersistentPostRunE func(cmd *Command, args []string) error
+
+	// groups for subcommands
+	commandgroups []*Group
 
 	// args is actual args parsed from flags.
 	args []string
@@ -157,8 +177,17 @@ type Command struct {
 	// helpCommand is command with usage 'help'. If it's not defined by user,
 	// cobra uses default help command.
 	helpCommand *Command
+	// helpCommandGroupID is the group id for the helpCommand
+	helpCommandGroupID string
+
+	// completionCommandGroupID is the group id for the completion command
+	completionCommandGroupID string
+
 	// versionTemplate is the version template defined by user.
 	versionTemplate string
+
+	// errPrefix is the error message prefix defined by user.
+	errPrefix string
 
 	// inReader is a reader defined by the user that replaces stdin
 	inReader io.Reader
@@ -236,8 +265,8 @@ func (c *Command) Context() context.Context {
 	return c.ctx
 }
 
-// SetContext sets context for the command. It is set to context.Background by default and will be overwritten by
-// Command.ExecuteContext or Command.ExecuteContextC
+// SetContext sets context for the command. This context will be overwritten by
+// Command.ExecuteContext or Command.ExecuteContextC.
 func (c *Command) SetContext(ctx context.Context) {
 	c.ctx = ctx
 }
@@ -300,6 +329,21 @@ func (c *Command) SetHelpCommand(cmd *Command) {
 	c.helpCommand = cmd
 }
 
+// SetHelpCommandGroupID sets the group id of the help command.
+func (c *Command) SetHelpCommandGroupID(groupID string) {
+	if c.helpCommand != nil {
+		c.helpCommand.GroupID = groupID
+	}
+	// helpCommandGroupID is used if no helpCommand is defined by the user
+	c.helpCommandGroupID = groupID
+}
+
+// SetCompletionCommandGroupID sets the group id of the completion command.
+func (c *Command) SetCompletionCommandGroupID(groupID string) {
+	// completionCommandGroupID is used if no completion command is defined by the user
+	c.Root().completionCommandGroupID = groupID
+}
+
 // SetHelpTemplate sets help template to be used. Application can use it to set custom template.
 func (c *Command) SetHelpTemplate(s string) {
 	c.helpTemplate = s
@@ -308,6 +352,11 @@ func (c *Command) SetHelpTemplate(s string) {
 // SetVersionTemplate sets version template to be used. Application can use it to set custom template.
 func (c *Command) SetVersionTemplate(s string) {
 	c.versionTemplate = s
+}
+
+// SetErrPrefix sets error message prefix to be used. Application can use it to set custom prefix.
+func (c *Command) SetErrPrefix(s string) {
+	c.errPrefix = s
 }
 
 // SetGlobalNormalizationFunc sets a normalization function to all flag sets and also to child commands.
@@ -508,10 +557,16 @@ Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
 Examples:
-{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
 
-Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{else}}{{range $group := .Groups}}
+
+{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
+
+Additional Commands:{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
 Flags:
 {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
@@ -551,6 +606,18 @@ func (c *Command) VersionTemplate() string {
 	}
 	return `{{with .Name}}{{printf "%s " .}}{{end}}{{printf "version %s" .Version}}
 `
+}
+
+// ErrPrefix return error message prefix for the command
+func (c *Command) ErrPrefix() string {
+	if c.errPrefix != "" {
+		return c.errPrefix
+	}
+
+	if c.HasParent() {
+		return c.parent.ErrPrefix()
+	}
+	return "Error:"
 }
 
 func hasNoOptDefVal(name string, fs *flag.FlagSet) bool {
@@ -613,20 +680,44 @@ Loop:
 
 // argsMinusFirstX removes only the first x from args.  Otherwise, commands that look like
 // openshift admin policy add-role-to-user admin my-user, lose the admin argument (arg[4]).
-func argsMinusFirstX(args []string, x string) []string {
-	for i, y := range args {
-		if x == y {
-			ret := []string{}
-			ret = append(ret, args[:i]...)
-			ret = append(ret, args[i+1:]...)
-			return ret
+// Special care needs to be taken not to remove a flag value.
+func (c *Command) argsMinusFirstX(args []string, x string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	c.mergePersistentFlags()
+	flags := c.Flags()
+
+Loop:
+	for pos := 0; pos < len(args); pos++ {
+		s := args[pos]
+		switch {
+		case s == "--":
+			// -- means we have reached the end of the parseable args. Break out of the loop now.
+			break Loop
+		case strings.HasPrefix(s, "--") && !strings.Contains(s, "=") && !hasNoOptDefVal(s[2:], flags):
+			fallthrough
+		case strings.HasPrefix(s, "-") && !strings.Contains(s, "=") && len(s) == 2 && !shortHasNoOptDefVal(s[1:], flags):
+			// This is a flag without a default value, and an equal sign is not used. Increment pos in order to skip
+			// over the next arg, because that is the value of this flag.
+			pos++
+			continue
+		case !strings.HasPrefix(s, "-"):
+			// This is not a flag or a flag value. Check to see if it matches what we're looking for, and if so,
+			// return the args, excluding the one at this position.
+			if s == x {
+				ret := []string{}
+				ret = append(ret, args[:pos]...)
+				ret = append(ret, args[pos+1:]...)
+				return ret
+			}
 		}
 	}
 	return args
 }
 
 func isFlagArg(arg string) bool {
-	return ((len(arg) >= 3 && arg[1] == '-') ||
+	return ((len(arg) >= 3 && arg[0:2] == "--") ||
 		(len(arg) >= 2 && arg[0] == '-' && arg[1] != '-'))
 }
 
@@ -644,7 +735,7 @@ func (c *Command) Find(args []string) (*Command, []string, error) {
 
 		cmd := c.findNext(nextSubCmd)
 		if cmd != nil {
-			return innerfind(cmd, argsMinusFirstX(innerArgs, nextSubCmd))
+			return innerfind(cmd, c.argsMinusFirstX(innerArgs, nextSubCmd))
 		}
 		return c, innerArgs
 	}
@@ -676,7 +767,7 @@ func (c *Command) findSuggestions(arg string) string {
 func (c *Command) findNext(next string) *Command {
 	matches := make([]*Command, 0)
 	for _, cmd := range c.commands {
-		if cmd.Name() == next || cmd.HasAlias(next) {
+		if commandNameMatches(cmd.Name(), next) || cmd.HasAlias(next) {
 			cmd.commandCalledAs.name = next
 			return cmd
 		}
@@ -686,7 +777,9 @@ func (c *Command) findNext(next string) *Command {
 	}
 
 	if len(matches) == 1 {
-		return matches[0]
+		// Temporarily disable gosec G602, which produces a false positive.
+		// See https://github.com/securego/gosec/issues/1005.
+		return matches[0] // #nosec G602
 	}
 
 	return nil
@@ -833,6 +926,8 @@ func (c *Command) execute(a []string) (err error) {
 
 	c.preRun()
 
+	defer c.postRun()
+
 	argWoFlags := c.Flags().Args()
 	if c.DisableFlagParsing {
 		argWoFlags = a
@@ -842,15 +937,31 @@ func (c *Command) execute(a []string) (err error) {
 		return err
 	}
 
+	parents := make([]*Command, 0, 5)
 	for p := c; p != nil; p = p.Parent() {
+		if EnableTraverseRunHooks {
+			// When EnableTraverseRunHooks is set:
+			// - Execute all persistent pre-runs from the root parent till this command.
+			// - Execute all persistent post-runs from this command till the root parent.
+			parents = append([]*Command{p}, parents...)
+		} else {
+			// Otherwise, execute only the first found persistent hook.
+			parents = append(parents, p)
+		}
+	}
+	for _, p := range parents {
 		if p.PersistentPreRunE != nil {
 			if err := p.PersistentPreRunE(c, argWoFlags); err != nil {
 				return err
 			}
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		} else if p.PersistentPreRun != nil {
 			p.PersistentPreRun(c, argWoFlags)
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		}
 	}
 	if c.PreRunE != nil {
@@ -861,10 +972,10 @@ func (c *Command) execute(a []string) (err error) {
 		c.PreRun(c, argWoFlags)
 	}
 
-	if err := c.validateRequiredFlags(); err != nil {
+	if err := c.ValidateRequiredFlags(); err != nil {
 		return err
 	}
-	if err := c.validateFlagGroups(); err != nil {
+	if err := c.ValidateFlagGroups(); err != nil {
 		return err
 	}
 
@@ -887,10 +998,14 @@ func (c *Command) execute(a []string) (err error) {
 			if err := p.PersistentPostRunE(c, argWoFlags); err != nil {
 				return err
 			}
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		} else if p.PersistentPostRun != nil {
 			p.PersistentPostRun(c, argWoFlags)
-			break
+			if !EnableTraverseRunHooks {
+				break
+			}
 		}
 	}
 
@@ -899,6 +1014,12 @@ func (c *Command) execute(a []string) (err error) {
 
 func (c *Command) preRun() {
 	for _, x := range initializers {
+		x()
+	}
+}
+
+func (c *Command) postRun() {
+	for _, x := range finalizers {
 		x()
 	}
 }
@@ -946,7 +1067,11 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 	// initialize help at the last point to allow for user overriding
 	c.InitDefaultHelpCmd()
 	// initialize completion at the last point to allow for user overriding
-	c.initDefaultCompletionCmd()
+	c.InitDefaultCompletionCmd()
+
+	// Now that all commands have been created, let's make sure all groups
+	// are properly created also
+	c.checkCommandGroups()
 
 	args := c.args
 
@@ -970,7 +1095,7 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 			c = cmd
 		}
 		if !c.SilenceErrors {
-			c.PrintErrln("Error:", err.Error())
+			c.PrintErrln(c.ErrPrefix(), err.Error())
 			c.PrintErrf("Run '%v --help' for usage.\n", c.CommandPath())
 		}
 		return c, err
@@ -999,7 +1124,7 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 		// If root command has SilenceErrors flagged,
 		// all subcommands should respect it
 		if !cmd.SilenceErrors && !c.SilenceErrors {
-			c.PrintErrln("Error:", err.Error())
+			c.PrintErrln(cmd.ErrPrefix(), err.Error())
 		}
 
 		// If root command has SilenceUsage flagged,
@@ -1018,7 +1143,8 @@ func (c *Command) ValidateArgs(args []string) error {
 	return c.Args(c, args)
 }
 
-func (c *Command) validateRequiredFlags() error {
+// ValidateRequiredFlags validates all required flags are present and returns an error otherwise
+func (c *Command) ValidateRequiredFlags() error {
 	if c.DisableFlagParsing {
 		return nil
 	}
@@ -1041,6 +1167,19 @@ func (c *Command) validateRequiredFlags() error {
 	return nil
 }
 
+// checkCommandGroups checks if a command has been added to a group that does not exists.
+// If so, we panic because it indicates a coding error that should be corrected.
+func (c *Command) checkCommandGroups() {
+	for _, sub := range c.commands {
+		// if Group is not defined let the developer know right away
+		if sub.GroupID != "" && !c.ContainsGroup(sub.GroupID) {
+			panic(fmt.Sprintf("group id '%s' is not defined for subcommand '%s'", sub.GroupID, sub.CommandPath()))
+		}
+
+		sub.checkCommandGroups()
+	}
+}
+
 // InitDefaultHelpFlag adds default help flag to c.
 // It is called automatically by executing the c or by calling help and usage.
 // If c already has help flag, it will do nothing.
@@ -1054,6 +1193,7 @@ func (c *Command) InitDefaultHelpFlag() {
 			usage += c.Name()
 		}
 		c.Flags().BoolP("help", "h", false, usage)
+		_ = c.Flags().SetAnnotation("help", FlagSetByCobraAnnotation, []string{"true"})
 	}
 }
 
@@ -1079,6 +1219,7 @@ func (c *Command) InitDefaultVersionFlag() {
 		} else {
 			c.Flags().Bool("version", false, usage)
 		}
+		_ = c.Flags().SetAnnotation("version", FlagSetByCobraAnnotation, []string{"true"})
 	}
 }
 
@@ -1121,10 +1262,12 @@ Simply type ` + c.Name() + ` help [path to command] for full details.`,
 					c.Printf("Unknown help topic %#q\n", args)
 					CheckErr(c.Root().Usage())
 				} else {
-					cmd.InitDefaultHelpFlag() // make possible 'help' flag to be shown
+					cmd.InitDefaultHelpFlag()    // make possible 'help' flag to be shown
+					cmd.InitDefaultVersionFlag() // make possible 'version' flag to be shown
 					CheckErr(cmd.Help())
 				}
 			},
+			GroupID: c.helpCommandGroupID,
 		}
 	}
 	c.RemoveCommand(c.helpCommand)
@@ -1183,6 +1326,36 @@ func (c *Command) AddCommand(cmds ...*Command) {
 		c.commands = append(c.commands, x)
 		c.commandsAreSorted = false
 	}
+}
+
+// Groups returns a slice of child command groups.
+func (c *Command) Groups() []*Group {
+	return c.commandgroups
+}
+
+// AllChildCommandsHaveGroup returns if all subcommands are assigned to a group
+func (c *Command) AllChildCommandsHaveGroup() bool {
+	for _, sub := range c.commands {
+		if (sub.IsAvailableCommand() || sub == c.helpCommand) && sub.GroupID == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// ContainsGroup return if groupID exists in the list of command groups.
+func (c *Command) ContainsGroup(groupID string) bool {
+	for _, x := range c.commandgroups {
+		if x.ID == groupID {
+			return true
+		}
+	}
+	return false
+}
+
+// AddGroup adds one or more command groups to this parent command.
+func (c *Command) AddGroup(groups ...*Group) {
+	c.commandgroups = append(c.commandgroups, groups...)
 }
 
 // RemoveCommand removes one or more commands from a parent command.
@@ -1254,6 +1427,9 @@ func (c *Command) CommandPath() string {
 	if c.HasParent() {
 		return c.Parent().CommandPath() + " " + c.Name()
 	}
+	if displayName, ok := c.Annotations[CommandDisplayNameAnnotation]; ok {
+		return displayName
+	}
 	return c.Name()
 }
 
@@ -1276,6 +1452,7 @@ func (c *Command) UseLine() string {
 
 // DebugFlags used to determine which flags have been assigned to which commands
 // and which persist.
+// nolint:goconst
 func (c *Command) DebugFlags() {
 	c.Println("DebugFlags called on", c.Name())
 	var debugflags func(*Command)
@@ -1328,7 +1505,7 @@ func (c *Command) Name() string {
 // HasAlias determines if a given string is an alias of the command.
 func (c *Command) HasAlias(s string) bool {
 	for _, a := range c.Aliases {
-		if a == s {
+		if commandNameMatches(a, s) {
 			return true
 		}
 	}
@@ -1505,7 +1682,8 @@ func (c *Command) LocalFlags() *flag.FlagSet {
 	}
 
 	addToLocal := func(f *flag.Flag) {
-		if c.lflags.Lookup(f.Name) == nil && c.parentsPflags.Lookup(f.Name) == nil {
+		// Add the flag if it is not a parent PFlag, or it shadows a parent PFlag
+		if c.lflags.Lookup(f.Name) == nil && f != c.parentsPflags.Lookup(f.Name) {
 			c.lflags.AddFlag(f)
 		}
 	}
@@ -1693,4 +1871,15 @@ func (c *Command) updateParentsPflags() {
 	c.VisitParents(func(parent *Command) {
 		c.parentsPflags.AddFlagSet(parent.PersistentFlags())
 	})
+}
+
+// commandNameMatches checks if two command names are equal
+// taking into account case sensitivity according to
+// EnableCaseInsensitive global configuration.
+func commandNameMatches(s string, t string) bool {
+	if EnableCaseInsensitive {
+		return strings.EqualFold(s, t)
+	}
+
+	return s == t
 }

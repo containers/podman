@@ -1,14 +1,17 @@
-// +build go1.16
+//go:build linux
+// +build linux
 
 package overlay
 
 import (
+	"errors"
 	"io/fs"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/system"
+	"golang.org/x/sys/unix"
 )
 
 func scanForMountProgramIndicators(home string) (detected bool, err error) {
@@ -26,7 +29,7 @@ func scanForMountProgramIndicators(home string) (detected bool, err error) {
 		}
 		if d.IsDir() {
 			xattrs, err := system.Llistxattr(path)
-			if err != nil {
+			if err != nil && !errors.Is(err, unix.EOPNOTSUPP) {
 				return err
 			}
 			for _, xattr := range xattrs {

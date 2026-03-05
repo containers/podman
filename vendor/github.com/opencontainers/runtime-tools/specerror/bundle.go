@@ -16,11 +16,9 @@ const (
 	ArtifactsInSingleDir
 )
 
-var (
-	containerFormatRef = func(version string) (reference string, err error) {
-		return fmt.Sprintf(referenceTemplate, version, "bundle.md#container-format"), nil
-	}
-)
+var containerFormatRef = func(version string) (reference string, err error) {
+	return fmt.Sprintf(referenceTemplate, version, "bundle.md#container-format"), nil
+}
 
 func init() {
 	register(ConfigInRootBundleDir, rfc2119.Must, containerFormatRef)

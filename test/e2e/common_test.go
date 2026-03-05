@@ -195,6 +195,28 @@ var _ = SynchronizedAfterSuite(func() {},
 		removeCache()
 	})
 
+// cleanupStaleLockFiles removes orphaned lock files to prevent
+// accumulation from crashed/interrupted tests
+func cleanupStaleLockFiles(pathPrefix string) {
+	pattern := fmt.Sprintf("%s-*.sock-lock", pathPrefix)
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return
+	}
+
+	for _, lockFile := range matches {
+		// Extract the UUID from the lock file name to find corresponding socket
+		// Lock file format: {pathPrefix}-{uuid}.sock-lock
+		// Socket file format: {pathPrefix}-{uuid}.sock
+		socketPath := strings.TrimSuffix(lockFile, "-lock")
+
+		// If the socket doesn't exist, the lock file is orphaned
+		if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+			_ = os.Remove(lockFile)
+		}
+	}
+}
+
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	var podmanRemoteBinary string
@@ -294,16 +316,30 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 
 	if remote {
 		var pathPrefix string
-		if !rootless.IsRootless() {
+		var dirPath string
+		if !isRootless() {
+			dirPath = "/run/podman"
 			pathPrefix = "/run/podman/podman"
 		} else {
 			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+			dirPath = runtimeDir
 			pathPrefix = filepath.Join(runtimeDir, "podman")
 		}
+
+		// Ensure the directory exists before creating lock files
+		if err := os.MkdirAll(dirPath, 0755); err != nil {
+			panic(fmt.Sprintf("Failed to create directory %s: %v", dirPath, err))
+		}
+
 		// We want to avoid collisions in socket paths, but using the
-		// socket directly for a collision check doesn’t work; bind(2) on AF_UNIX
+		// socket directly for a collision check doesn't work; bind(2) on AF_UNIX
 		// creates the file, and we need to pass a unique path now before the bind(2)
 		// happens. So, use a podman-%s.sock-lock empty file as a marker.
+
+		// Clean up stale lock files from crashed/interrupted tests
+		// to prevent accumulation that causes collisions
+		cleanupStaleLockFiles(pathPrefix)
+
 		tries := 0
 		for {
 			uuid := stringid.GenerateRandomID()
@@ -317,7 +353,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			}
 			tries++
 			if tries >= 1000 {
-				panic("Too many RemoteSocket collisions")
+				panic(fmt.Sprintf("Too many RemoteSocket collisions (last error: %v)", err))
 			}
 		}
 	}

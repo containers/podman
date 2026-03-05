@@ -9,35 +9,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 
 	units "github.com/docker/go-units"
+	"tags.cncf.io/container-device-interface/pkg/parser"
 )
-
-// isDirectory tests whether the given path exists and is a directory. It
-// follows symlinks.
-func isDirectory(path string) error {
-	path, err := resolveHomeDir(path)
-	if err != nil {
-		return err
-	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-
-	if !info.Mode().IsDir() {
-		// Return a PathError to be consistent with os.Stat().
-		return &os.PathError{
-			Op:   "stat",
-			Path: path,
-			Err:  syscall.ENOTDIR,
-		}
-	}
-
-	return nil
-}
 
 func (c *EngineConfig) validatePaths() error {
 	// Relative paths can cause nasty bugs, because core paths we use could
@@ -56,7 +31,10 @@ func (c *EngineConfig) validatePaths() error {
 }
 
 func (c *ContainersConfig) validateDevices() error {
-	for _, d := range c.Devices {
+	for _, d := range c.Devices.Get() {
+		if parser.IsQualifiedName(d) {
+			continue
+		}
 		_, _, _, err := Device(d)
 		if err != nil {
 			return err
@@ -66,7 +44,7 @@ func (c *ContainersConfig) validateDevices() error {
 }
 
 func (c *ContainersConfig) validateUlimits() error {
-	for _, u := range c.DefaultUlimits {
+	for _, u := range c.DefaultUlimits.Get() {
 		ul, err := units.ParseUlimit(u)
 		if err != nil {
 			return fmt.Errorf("unrecognized ulimit %s: %w", u, err)

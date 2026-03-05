@@ -6,6 +6,9 @@ import (
 	"os"
 	"sync"
 
+	"golang.org/x/sys/unix"
+
+	"github.com/opencontainers/runc/internal/pathrs"
 	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
@@ -26,23 +29,22 @@ func isEnabled() bool {
 }
 
 func setProcAttr(attr, value string) error {
-	// Under AppArmor you can only change your own attr, so use /proc/self/
-	// instead of /proc/<tid>/ like libapparmor does
-	attrPath := "/proc/self/attr/apparmor/" + attr
-	if _, err := os.Stat(attrPath); errors.Is(err, os.ErrNotExist) {
+	attr = utils.CleanPath(attr)
+	attrSubPath := "attr/apparmor/" + attr
+	if _, err := os.Stat("/proc/self/" + attrSubPath); errors.Is(err, os.ErrNotExist) {
 		// fall back to the old convention
-		attrPath = "/proc/self/attr/" + attr
+		attrSubPath = "attr/" + attr
 	}
 
-	f, err := os.OpenFile(attrPath, os.O_WRONLY, 0)
+	// Under AppArmor you can only change your own attr, so there's no reason
+	// to not use /proc/thread-self/ (instead of /proc/<tid>/, like libapparmor
+	// does).
+	f, closer, err := pathrs.ProcThreadSelfOpen(attrSubPath, unix.O_WRONLY|unix.O_CLOEXEC)
 	if err != nil {
 		return err
 	}
+	defer closer()
 	defer f.Close()
-
-	if err := utils.EnsureProcHandle(f); err != nil {
-		return err
-	}
 
 	_, err = f.WriteString(value)
 	return err

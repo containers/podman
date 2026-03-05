@@ -4,6 +4,7 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -58,7 +59,8 @@ func getSwapInfo() (int64, int64, error) {
 }
 
 // ReadMemInfo retrieves memory statistics of the host system and returns a
-//  MemInfo type.
+//
+//	MemInfo type.
 func ReadMemInfo() (*MemInfo, error) {
 	MemTotal, MemFree, err := getMemInfo()
 	if err != nil {
@@ -70,7 +72,7 @@ func ReadMemInfo() (*MemInfo, error) {
 	}
 
 	if MemTotal < 0 || MemFree < 0 || SwapTotal < 0 || SwapFree < 0 {
-		return nil, fmt.Errorf("getting system memory info %w", err)
+		return nil, errors.New("getting system memory info")
 	}
 
 	meminfo := &MemInfo{}

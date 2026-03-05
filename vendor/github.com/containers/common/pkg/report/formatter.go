@@ -49,26 +49,42 @@ type Formatter struct {
 	writer        io.Writer          // Destination for formatted output
 }
 
+// stringsCutPrefix is equivalent to Go 1.20’s strings.CutPrefix.
+// Replace this function with a direct call to the standard library after we update to Go 1.20.
+func stringsCutPrefix(s, prefix string) (string, bool) {
+	if !strings.HasPrefix(s, prefix) {
+		return s, false
+	}
+	return s[len(prefix):], true
+}
+
 // Parse parses golang template returning a formatter
 //
-// - OriginPodman implies text is a template from podman code. Output will
-//   be filtered through a tabwriter.
+//   - OriginPodman implies text is a template from podman code. Output will
+//     be filtered through a tabwriter.
 //
-// - OriginUser implies text is a template from a user. If template includes
-//   keyword "table" output will be filtered through a tabwriter.
+//   - OriginUser implies text is a template from a user. If template includes
+//     keyword "table" output will be filtered through a tabwriter.
 func (f *Formatter) Parse(origin Origin, text string) (*Formatter, error) {
 	f.Origin = origin
 
+	// docker tries to be smart and replaces \n with the actual newline character.
+	// For compat we do the same but this will break formats such as '{{printf "\n"}}'
+	// To be backwards compatible with the previous behavior we try to replace and
+	// parse the template. If it fails use the original text and parse again.
+	var normText string
+	textWithoutTable, hasTable := stringsCutPrefix(text, "table ")
 	switch {
-	case strings.HasPrefix(text, "table "):
+	case hasTable:
 		f.RenderTable = true
-		text = "{{range .}}" + NormalizeFormat(text) + "{{end -}}"
+		normText = "{{range .}}" + NormalizeFormat(text) + "{{end -}}"
+		text = "{{range .}}" + textWithoutTable + "{{end -}}"
 	case OriginUser == origin:
-		text = EnforceRange(NormalizeFormat(text))
+		normText = EnforceRange(NormalizeFormat(text))
+		text = EnforceRange(text)
 	default:
-		text = NormalizeFormat(text)
+		normText = NormalizeFormat(text)
 	}
-	f.text = text
 
 	if f.RenderTable || origin == OriginPodman {
 		tw := tabwriter.NewWriter(f.writer, 12, 2, 2, ' ', tabwriter.StripEscape)
@@ -77,10 +93,14 @@ func (f *Formatter) Parse(origin Origin, text string) (*Formatter, error) {
 		f.RenderHeaders = true
 	}
 
-	tmpl, err := f.template.Funcs(template.FuncMap(DefaultFuncs)).Parse(text)
+	tmpl, err := f.template.Funcs(template.FuncMap(DefaultFuncs)).Parse(normText)
 	if err != nil {
+		tmpl, err = f.template.Funcs(template.FuncMap(DefaultFuncs)).Parse(text)
+		f.template = tmpl
+		f.text = text
 		return f, err
 	}
+	f.text = normText
 	f.template = tmpl
 	return f, nil
 }

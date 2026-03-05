@@ -286,7 +286,9 @@ func (s *ostreeImageSource) readSingleFile(commit, path string) (io.ReadCloser, 
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
-
+	if err := info.Digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, so validate explicitly.
+		return nil, -1, err
+	}
 	blob := info.Digest.Hex()
 
 	// Ensure s.compressed is initialized.  It is build by LayerInfosForCopy.
