@@ -44,6 +44,13 @@ type artifactBadAuth struct {
 	Body errorhandling.ErrorModel
 }
 
+// Error from registry
+// swagger:response
+type errorFromRegistry struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
 // No such network
 // swagger:response
 type networkNotFound struct {

@@ -23,6 +23,9 @@ import (
 	"go.podman.io/image/v5/types"
 )
 
+// The duration for which we are willing to wait before starting the stream, to be able to decide the HTTP status code more accurately.
+const maximalStreamingDelay = 5 * time.Second
+
 // ImagesPull is the v2 libpod endpoint for pulling images.  Note that the
 // mandatory `reference` must be a reference to a registry (i.e., of docker
 // transport or be normalized to one).  Other transports are rejected as they
@@ -116,10 +119,12 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	// Let's keep thing simple when running in quiet mode and pull directly.
 	if query.Quiet {
 		images, err := runtime.LibimageRuntime().Pull(r.Context(), query.Reference, pullPolicy, pullOptions)
-		var report entities.ImagePullReport
 		if err != nil {
-			report.Error = err.Error()
+			utils.Error(w, utils.HTTPStatusFromRegistryError(err), err)
+			return
 		}
+
+		var report entities.ImagePullReport
 		for _, image := range images {
 			report.Images = append(report.Images, image.ID())
 			// Pull last ID from list and publish in 'id' stanza.  This maintains previous API contract
@@ -138,6 +143,9 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	defer writer.Close()
 	pullOptions.Writer = writer
 
+	progress := make(chan types.ProgressProperties)
+	pullOptions.Progress = progress
+
 	var pulledImages []*libimage.Image
 	var pullError error
 	runCtx, cancel := context.WithCancel(r.Context())
@@ -152,22 +160,58 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	flush()
-
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
-	for {
-		var report entities.ImagePullReport
-		select {
-		case s := <-writer.Chan():
-			report.Stream = string(s)
-			if err := enc.Encode(report); err != nil {
-				logrus.Warnf("Failed to encode json: %v", err)
+
+	streamingStarted := false
+	var reportBuffer []entities.ImagePullReport
+
+	// This timer ensures that streaming is not delayed indefinitely.
+	streamingDelayTimer := time.NewTimer(maximalStreamingDelay)
+
+	// Streaming is delayed to choose the HTTP status code more accurately (e.g. if the image does not exist at all).
+	// Once a message is streamed, it is no longer possible to change the status code.
+	startStreaming := func() {
+		if !streamingStarted {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+
+			for _, report := range reportBuffer {
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to encode json: %v", err)
+				}
+				flush()
 			}
-			flush()
+			streamingStarted = true
+		}
+	}
+
+	for {
+		select {
+		case <-progress:
+			startStreaming() // We are reporting progress working with the image contents, so it presumably exists and it is accessible.
+		case <-streamingDelayTimer.C:
+			startStreaming() // At some point, give up on the precise error code and let the caller show an “operation in progress, no data available yet” UI.
+		case s := <-writer.Chan():
+			report := entities.ImagePullReport{
+				Stream: string(s),
+			}
+			if streamingStarted {
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to encode json: %v", err)
+				}
+				flush()
+			} else {
+				reportBuffer = append(reportBuffer, report)
+			}
 		case <-runCtx.Done():
+			if !streamingStarted && pullError != nil {
+				utils.Error(w, utils.HTTPStatusFromRegistryError(pullError), pullError)
+				return
+			}
+
+			startStreaming()
+			var report entities.ImagePullReport
 			for _, image := range pulledImages {
 				report.Images = append(report.Images, image.ID())
 				// Pull last ID from list and publish in 'id' stanza.  This maintains previous API contract

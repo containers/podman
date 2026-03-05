@@ -252,12 +252,7 @@ loop: // break out of for/select infinite loop
 		case pullRes := <-pullResChan:
 			err := pullRes.err
 			if err != nil {
-				var errcd errcode.ErrorCoder
-				if errors.As(err, &errcd) {
-					writeStatusCode(errcd.ErrorCode().Descriptor().HTTPStatusCode)
-				} else {
-					writeStatusCode(http.StatusInternalServerError)
-				}
+				writeStatusCode(HTTPStatusFromRegistryError(err))
 				msg := err.Error()
 				report.Error = &jsonstream.Error{
 					Message: msg,
@@ -304,4 +299,15 @@ loop: // break out of for/select infinite loop
 			break loop // break out of for/select infinite loop
 		}
 	}
+}
+
+func HTTPStatusFromRegistryError(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+	var errcd errcode.ErrorCoder
+	if errors.As(err, &errcd) {
+		return errcd.ErrorCode().Descriptor().HTTPStatusCode
+	}
+	return http.StatusInternalServerError
 }
