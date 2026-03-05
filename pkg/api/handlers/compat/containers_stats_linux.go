@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/types/container"
 	runccgroups "github.com/opencontainers/cgroups"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/cgroups"

@@ -13,10 +13,10 @@ import (
 	"unsafe"
 
 	"github.com/blang/semver/v4"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
 
@@ -269,7 +269,7 @@ func (b *ResponseSender) SendBuildStream(message string) {
 func (b *ResponseSender) SendBuildError(message string) {
 	response := images.BuildResponse{
 		ErrorMessage: message,
-		Error: &jsonmessage.JSONError{
+		Error: &jsonstream.Error{
 			Message: message,
 		},
 	}

@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net"
 	"net/http"
+	"net/netip"
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
@@ -20,7 +21,7 @@ import (
 	nettypes "go.podman.io/common/libnetwork/types"
 	netutil "go.podman.io/common/libnetwork/util"
 
-	dockerNetwork "github.com/docker/docker/api/types/network"
+	dockerNetwork "github.com/moby/moby/api/types/network"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,44 +65,64 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, changed)
+	report, err := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, changed)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi.ContainerNetStatus, network *nettypes.Network, changeDefaultName bool) *dockerNetwork.Inspect {
+func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi.ContainerNetStatus, network *nettypes.Network, changeDefaultName bool) (*dockerNetwork.Inspect, error) {
 	containerEndpoints := make(map[string]dockerNetwork.EndpointResource, len(statuses))
 	for _, st := range statuses {
 		if netData, ok := st.Status[network.Name]; ok {
-			ipv4Address := ""
-			ipv6Address := ""
-			macAddr := ""
+			var err error
+			var ipv4_pfx netip.Prefix
+			var ipv6_pfx netip.Prefix
+			macAddr := nettypes.HardwareAddr{}
 			for _, dev := range netData.Interfaces {
 				for _, subnet := range dev.Subnets {
 					// Note the docker API really wants the full CIDR subnet not just a single ip.
 					// https://github.com/containers/podman/pull/12328
 					if netutil.IsIPv4(subnet.IPNet.IP) {
-						ipv4Address = subnet.IPNet.String()
+						ipv4_pfx, err = netip.ParsePrefix(subnet.IPNet.String())
+						if err != nil {
+							return nil, fmt.Errorf("invalid IPv4Address %q: %w", subnet.IPNet.String(), err)
+						}
 					} else {
-						ipv6Address = subnet.IPNet.String()
+						ipv6_pfx, err = netip.ParsePrefix(subnet.IPNet.String())
+						if err != nil {
+							return nil, fmt.Errorf("invalid IPv6Address %q: %w", subnet.IPNet.String(), err)
+						}
 					}
 				}
-				macAddr = dev.MacAddress.String()
+				macAddr = dev.MacAddress
 				break
 			}
+
 			containerEndpoint := dockerNetwork.EndpointResource{
 				Name:        st.Name,
-				MacAddress:  macAddr,
-				IPv4Address: ipv4Address,
-				IPv6Address: ipv6Address,
+				MacAddress:  dockerNetwork.HardwareAddr(net.HardwareAddr(macAddr)),
+				IPv4Address: ipv4_pfx,
+				IPv6Address: ipv6_pfx,
 			}
 			containerEndpoints[st.ID] = containerEndpoint
 		}
 	}
 	ipamConfigs := make([]dockerNetwork.IPAMConfig, 0, len(network.Subnets))
 	for _, sub := range network.Subnets {
+		subnet, err := netip.ParsePrefix(sub.Subnet.String())
+		if err != nil {
+			return nil, err
+		}
+		gateway, ok := netip.AddrFromSlice(sub.Gateway)
+		if !ok {
+			return nil, fmt.Errorf("invalid gateway IP %v", sub.Gateway)
+		}
 		ipamConfig := dockerNetwork.IPAMConfig{
-			Subnet:  sub.Subnet.String(),
-			Gateway: sub.Gateway.String(),
+			Subnet:  subnet,
+			Gateway: gateway,
 			// TODO add range
 		}
 		ipamConfigs = append(ipamConfigs, ipamConfig)
@@ -128,25 +149,28 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 	delete(options, nettypes.IsolateOption)
 
 	report := dockerNetwork.Inspect{
-		Name:       name,
-		ID:         network.ID,
-		Driver:     network.Driver,
-		Created:    network.Created,
-		Internal:   network.Internal,
-		EnableIPv6: network.IPv6Enabled,
-		Labels:     network.Labels,
-		Options:    options,
-		IPAM:       ipam,
-		Scope:      "local",
-		Attachable: false,
-		Ingress:    false,
-		ConfigFrom: dockerNetwork.ConfigReference{},
-		ConfigOnly: false,
+		Network: dockerNetwork.Network{
+			Name:       name,
+			ID:         network.ID,
+			Driver:     network.Driver,
+			Created:    network.Created,
+			Scope:      "local",
+			EnableIPv4: true,
+			EnableIPv6: network.IPv6Enabled,
+			IPAM:       ipam,
+			Internal:   network.Internal,
+			Attachable: false,
+			Ingress:    false,
+			ConfigFrom: dockerNetwork.ConfigReference{},
+			ConfigOnly: false,
+			Options:    options,
+			Labels:     network.Labels,
+			Peers:      nil,
+		},
 		Containers: containerEndpoints,
-		Peers:      nil,
 		Services:   nil,
 	}
-	return &report
+	return &report, nil
 }
 
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
@@ -174,8 +198,14 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 	reports := make([]*dockerNetwork.Summary, 0, len(nets))
 	for _, net := range nets {
-		report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, true)
-		reports = append(reports, report)
+		report, err := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, true)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		reports = append(reports, &dockerNetwork.Summary{
+			Network: report.Network,
+		})
 	}
 	utils.WriteResponse(w, http.StatusOK, reports)
 }
@@ -241,25 +271,22 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	if networkCreate.IPAM != nil && len(networkCreate.IPAM.Config) > 0 {
 		for _, conf := range networkCreate.IPAM.Config {
 			s := nettypes.Subnet{}
-			if len(conf.Subnet) > 0 {
-				var err error
-				subnet, err := nettypes.ParseCIDR(conf.Subnet)
-				if err != nil {
-					utils.InternalServerError(w, fmt.Errorf("failed to parse subnet: %w", err))
-					return
+			if conf.Subnet.IsValid() {
+				pfx := conf.Subnet.Masked()
+				addr := pfx.Addr()
+
+				s.Subnet = nettypes.IPNet{
+					IPNet: net.IPNet{
+						IP:   net.IP(addr.AsSlice()),
+						Mask: net.CIDRMask(pfx.Bits(), addr.BitLen()),
+					},
 				}
-				s.Subnet = subnet
 			}
-			if len(conf.Gateway) > 0 {
-				gw := net.ParseIP(conf.Gateway)
-				if gw == nil {
-					utils.InternalServerError(w, fmt.Errorf("failed to parse gateway ip %s", conf.Gateway))
-					return
-				}
-				s.Gateway = gw
+			if conf.Gateway.IsValid() {
+				s.Gateway = net.IP(conf.Gateway.AsSlice())
 			}
-			if len(conf.IPRange) > 0 {
-				_, net, err := net.ParseCIDR(conf.IPRange)
+			if conf.IPRange.IsValid() {
+				_, net, err := net.ParseCIDR(conf.IPRange.String())
 				if err != nil {
 					utils.InternalServerError(w, fmt.Errorf("failed to parse ip range: %w", err))
 					return
@@ -360,7 +387,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	var netConnect dockerNetwork.ConnectOptions
+	var netConnect dockerNetwork.ConnectRequest
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
@@ -375,47 +402,36 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// if IP address is provided
-		if len(netConnect.EndpointConfig.IPAddress) > 0 {
-			staticIP := net.ParseIP(netConnect.EndpointConfig.IPAddress)
-			if staticIP == nil {
-				utils.Error(w, http.StatusInternalServerError,
-					fmt.Errorf("failed to parse the ip address %q", netConnect.EndpointConfig.IPAddress))
-				return
-			}
+		if netConnect.EndpointConfig.IPAddress.IsValid() {
+			staticIP := net.IP(netConnect.EndpointConfig.IPAddress.AsSlice())
 			netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 		}
 
 		if netConnect.EndpointConfig.IPAMConfig != nil {
-			// if IPAMConfig.IPv4Address is provided
-			if len(netConnect.EndpointConfig.IPAMConfig.IPv4Address) > 0 {
-				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv4Address)
-				if staticIP == nil {
-					utils.Error(w, http.StatusInternalServerError,
-						fmt.Errorf("failed to parse the ipv4 address %q", netConnect.EndpointConfig.IPAMConfig.IPv4Address))
-					return
-				}
-				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+			ipam := netConnect.EndpointConfig.IPAMConfig
+
+			// IPv4
+			if ipam.IPv4Address.IsValid() {
+				netOpts.StaticIPs = append(
+					netOpts.StaticIPs,
+					net.IP(ipam.IPv4Address.AsSlice()),
+				)
 			}
-			// if IPAMConfig.IPv6Address is provided
-			if len(netConnect.EndpointConfig.IPAMConfig.IPv6Address) > 0 {
-				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv6Address)
-				if staticIP == nil {
-					utils.Error(w, http.StatusInternalServerError,
-						fmt.Errorf("failed to parse the ipv6 address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
-					return
-				}
-				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
+
+			// IPv6
+			if ipam.IPv6Address.IsValid() {
+				netOpts.StaticIPs = append(
+					netOpts.StaticIPs,
+					net.IP(ipam.IPv6Address.AsSlice()),
+				)
 			}
 		}
+
 		// If MAC address is provided
-		if len(netConnect.EndpointConfig.MacAddress) > 0 {
-			staticMac, err := net.ParseMAC(netConnect.EndpointConfig.MacAddress)
-			if err != nil {
-				utils.Error(w, http.StatusInternalServerError,
-					fmt.Errorf("failed to parse the mac address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
-				return
-			}
-			netOpts.StaticMAC = nettypes.HardwareAddr(staticMac)
+		if len(netConnect.EndpointConfig.MacAddress) != 0 {
+			netOpts.StaticMAC = nettypes.HardwareAddr(
+				net.HardwareAddr(netConnect.EndpointConfig.MacAddress),
+			)
 		}
 	}
 	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netOpts)
@@ -442,7 +458,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 func Disconnect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	var netDisconnect dockerNetwork.DisconnectOptions
+	var netDisconnect dockerNetwork.DisconnectRequest
 	if err := json.NewDecoder(r.Body).Decode(&netDisconnect); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return

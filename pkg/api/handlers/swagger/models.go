@@ -5,8 +5,8 @@ package swagger
 
 import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 )
 
 // Details for creating a volume
@@ -38,11 +38,11 @@ type networkCreate network.CreateRequest
 
 // Network connect
 // swagger:model
-type networkConnectRequest network.ConnectOptions
+type networkConnectRequest network.ConnectRequest
 
 // Network disconnect
 // swagger:model
-type networkDisconnectRequest network.DisconnectOptions
+type networkDisconnectRequest network.DisconnectRequest
 
 // Network connect
 // swagger:model
