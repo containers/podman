@@ -20,13 +20,13 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/parse"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/annotations"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi/internal/expansion"
 	v1apps "github.com/containers/podman/v6/pkg/k8s.io/api/apps/v1"
 	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
 	metav1 "github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmeta "github.com/containers/podman/v6/pkg/kube"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgen/generate"
 	"github.com/containers/podman/v6/pkg/specgen/generate/kube"
@@ -361,16 +361,27 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
 
+			if podYAML.Annotations == nil {
+				podYAML.Annotations = make(map[string]string)
+			}
 			for name, val := range options.Annotations {
-				if podYAML.Annotations == nil {
-					podYAML.Annotations = make(map[string]string)
-				}
 				podYAML.Annotations[name] = val
 			}
-
-			if err := annotations.ValidateAnnotations(podYAML.Annotations); err != nil {
+			if err := kmeta.Validate(podYAML.Annotations); err != nil {
 				return nil, err
 			}
+			podTemplateSpec.Annotations = podYAML.Annotations
+
+			if podYAML.Labels == nil {
+				podYAML.Labels = make(map[string]string)
+			}
+			for name, val := range options.Labels {
+				podYAML.Labels[name] = val
+			}
+			if err := kmeta.Validate(podYAML.Labels); err != nil {
+				return nil, err
+			}
+			podTemplateSpec.Labels = podYAML.Labels
 
 			r, proxies, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps, serviceContainer)
 			if err != nil {

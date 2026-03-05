@@ -100,6 +100,16 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService, podmanOnly bool) 
 	}
 	pod.Spec.HostAliases = extraHost
 
+	labels := p.Labels()
+	if labels != nil {
+		if pod.Labels == nil {
+			pod.Labels = make(map[string]string)
+		}
+		for k, v := range labels {
+			pod.Labels[k] = v
+		}
+	}
+
 	// Set the pod's restart policy
 	pod.Spec.RestartPolicy = getPodRestartPolicy(p.config.RestartPolicy)
 
