@@ -422,6 +422,12 @@ type EngineConfig struct {
 	// OCIRuntimesFlags are the set of configured OCI runtimes' flags
 	OCIRuntimesFlags map[string][]string `toml:"runtimes_flags,omitempty"`
 
+	// Platform specifies the default platform (os/arch[/variant]) for image
+	// operations such as pull, build, run, and create. If empty, the host's
+	// platform is used. Format: "os/arch" or "os/arch/variant" (e.g.,
+	// "linux/amd64", "linux/arm64/v8").
+	Platform string `toml:"platform,omitempty"`
+
 	// PlatformToOCIRuntime requests specific OCI runtime for a specified platform of image.
 	PlatformToOCIRuntime map[string]string `toml:"platform_to_oci_runtime,omitempty"`
 

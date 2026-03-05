@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/utils"
@@ -352,11 +353,13 @@ func pullImage(cmd *cobra.Command, imageName string, cliVals *entities.Container
 			if cliVals.Arch != "" || cliVals.OS != "" {
 				return "", errors.New("--platform option can not be specified with --arch or --os")
 			}
-			OS, Arch, hasArch := strings.Cut(cliVals.Platform, "/")
-			cliVals.OS = OS
-			if hasArch {
-				cliVals.Arch = Arch
+			pOS, pArch, pVariant, pErr := parse.Platform(cliVals.Platform)
+			if pErr != nil {
+				return "", fmt.Errorf("parsing platform %q: %w", cliVals.Platform, pErr)
 			}
+			cliVals.OS = pOS
+			cliVals.Arch = pArch
+			cliVals.Variant = pVariant
 		}
 	}
 
