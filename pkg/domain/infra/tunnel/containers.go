@@ -183,6 +183,10 @@ func (ic *ContainerEngine) ContainerStop(_ context.Context, namesOrIds []string,
 	return reports, nil
 }
 
+func (ic *ContainerEngine) ContainerStopService(_ context.Context, _ []string, _ entities.StopOptions) ([]*entities.StopReport, error) {
+	return nil, fmt.Errorf("container stop as service is not supported when using remote connections")
+}
+
 func (ic *ContainerEngine) ContainerKill(_ context.Context, namesOrIds []string, opts entities.KillOptions) ([]*entities.KillReport, error) {
 	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, false, namesOrIds, nil)
 	if err != nil {
