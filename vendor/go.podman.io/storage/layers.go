@@ -2610,16 +2610,14 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 		if err != nil {
 			return -1, err
 		}
-		defer compressor.Close()                                        // This must happen before tsdata is consumed.
+		defer compressor.Close() // This must happen before tsdata is consumed.
+
 		if err := compressor.SetConcurrency(1024*1024, 1); err != nil { // 1024*1024 is the hard-coded default; we're not changing that
 			logrus.Infof("setting compression concurrency threads to 1: %v; ignoring", err)
 		}
+
 		metadata := storage.NewJSONPacker(compressor)
-		uncompressed, err := archive.DecompressStream(defragmented)
-		if err != nil {
-			return -1, err
-		}
-		defer uncompressed.Close()
+
 		idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
 			if !strings.HasPrefix(path.Base(h.Name), archive.WhiteoutPrefix) {
 				uidLog[uint32(h.Uid)] = struct{}{}
@@ -2630,17 +2628,61 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 			return -1, err
 		}
 		defer idLogger.Close() // This must happen before uidLog and gidLog is consumed.
+
+		uncompressed, err := archive.DecompressStream(defragmented)
+		if err != nil {
+			return -1, err
+		}
+
 		uncompressedCounter = ioutils.NewWriteCounter(idLogger)
 		uncompressedWriter := (io.Writer)(uncompressedCounter)
 		if uncompressedDigester != nil {
 			uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
 		}
-		payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
+
+		tsRdr, done, err := asm.NewInputTarStreamWithDone(
+			io.TeeReader(uncompressed, uncompressedWriter),
+			metadata,
+			storage.NewDiscardFilePutter(),
+		)
 		if err != nil {
+			uncompressed.Close()
 			return -1, err
 		}
 
-		return applyDriverFunc(payload)
+		// cleanup closes tsRdr, waits for tar-split to finish, then closes uncompressed.
+		// It returns the tar-split goroutine's error (if any).
+		var once sync.Once
+		var tsErr error
+		cleanup := func() error {
+			once.Do(func() {
+				// Close can be called multiple times; ignore errors.
+				tsRdr.Close()
+
+				// done is guaranteed to deliver exactly one value.
+				tsErr = <-done
+				uncompressed.Close()
+			})
+
+			return tsErr
+		}
+
+		// Ensure we clean up on any early return from applyDriverFunc
+		defer cleanup()
+
+		size, applyErr := applyDriverFunc(tsRdr)
+
+		// Normal path: cleanup exactly once.
+		tsSplitErr := cleanup()
+
+		if applyErr != nil {
+			return -1, applyErr
+		}
+		if tsSplitErr != nil {
+			return -1, tsSplitErr
+		}
+
+		return size, nil
 	}()
 	if err != nil {
 		return nil, err
