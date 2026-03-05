@@ -547,6 +547,10 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	lFlags.StringVar(&podmanConfig.TLSCAFile, tlsCAFileFlagName, podmanConfig.TLSCAFile, "path to TLS certificate Authority PEM file for remote.")
 	_ = cmd.RegisterFlagCompletionFunc(tlsCAFileFlagName, completion.AutocompleteDefault)
 
+	tlsDetailsFlagName := "tls-details"
+	lFlags.StringVar(&podmanConfig.TLSDetailsFile, tlsDetailsFlagName, "", "Path to a containers-tls-details.yaml(5) file")
+	_ = cmd.RegisterFlagCompletionFunc(tlsDetailsFlagName, completion.AutocompleteDefault)
+
 	// Flags that control or influence any kind of output.
 	outFlagName := "out"
 	lFlags.StringVar(&useStdout, outFlagName, "", "Send output (stdout) from podman to a file")

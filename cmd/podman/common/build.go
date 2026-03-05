@@ -15,6 +15,7 @@ import (
 
 	buildahDefine "github.com/containers/buildah/define"
 	buildahCLI "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/containers/buildah/pkg/parse"
 	buildahUtil "github.com/containers/buildah/pkg/util"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -30,6 +31,7 @@ import (
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -82,6 +84,11 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 		logrus.Errorf("Unable to set --pull to 'missing': %v", err)
 	}
 	flag.Usage = `Pull image policy ("always"|"missing"|"never"|"newer")`
+
+	// --tls-details flag: Podman defines it on the root command instead.
+	// Compare the special handling in ParseBuildOpts.
+	_ = budFlags.MarkHidden("tls-details")
+
 	flags.AddFlagSet(&budFlags)
 
 	// Add the completion functions
@@ -171,6 +178,26 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 		}
 	}
 
+	localTLSDetails := cmd.LocalFlags().Lookup("tls-details")
+	if localTLSDetails == nil { // buildahCLI.GetBudFlags should have declared it
+		return nil, errors.New("internal error: missing flag for --tls-details")
+	}
+	// Ensure that whether the user uses --tls-details at the root level or after "build", we
+	// handle them the same.
+	rootTLSDetails := registry.PodmanConfig().TLSDetailsFile
+	switch {
+	case localTLSDetails.Changed && rootTLSDetails != "":
+		// Don't even bother with accepting duplicates with the same value. Why would (the few users that ever use this)
+		// do that?
+		return nil, errors.New("--tls-details set twice")
+	case localTLSDetails.Changed:
+		registry.PodmanConfig().TLSDetailsFile = localTLSDetails.Value.String()
+	case rootTLSDetails != "":
+		if err := localTLSDetails.Value.Set(rootTLSDetails); err != nil {
+			return nil, fmt.Errorf("internal error: syncing --tls-details: %w", err)
+		}
+	}
+
 	// Extract container files from the CLI (i.e., --file/-f) first.
 	var containerFiles []string
 	for _, f := range buildOpts.File {
@@ -192,7 +219,11 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 	)
 	if len(args) > 0 {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := buildahDefine.TempDirForURL("", "buildah", args[0])
+		baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+		if err != nil {
+			return nil, err
+		}
+		tempDir, subDir, err := download.TempDirForURL("", "buildah", args[0], baseTLSConfig.TLSConfig())
 		if err != nil {
 			return nil, fmt.Errorf("prepping temporary context directory: %w", err)
 		}

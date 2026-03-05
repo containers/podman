@@ -4,6 +4,7 @@ package os
 
 import (
 	"context"
+	"crypto/tls"
 
 	"github.com/blang/semver/v4"
 	"github.com/opencontainers/go-digest"
@@ -27,6 +28,7 @@ type UpgradeOptions struct {
 	DryRun         bool
 	Format         string
 	ClientVersion  semver.Version
+	BaseTLSConfig  *tls.Config // Only applies to accesses this Podman process does itself.
 }
 
 type Host struct {

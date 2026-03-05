@@ -65,6 +65,7 @@ type PodmanTest struct {
 	RemoteTLSServerCAPool   *x509.CertPool
 	RemoteTLSClientCertFile string
 	RemoteTLSClientKeyFile  string
+	RemoteTLSDetails        string
 	RemoteTest              bool
 	TempDir                 string
 }

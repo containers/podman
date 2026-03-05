@@ -3,12 +3,10 @@ package buildah
 import (
 	"context"
 	"errors"
-	"io"
 	"path/filepath"
 	"time"
 
 	"github.com/containers/buildah/define"
-	encconfig "github.com/containers/ocicrypt/config"
 	"go.podman.io/common/pkg/retry"
 	cp "go.podman.io/image/v5/copy"
 	"go.podman.io/image/v5/docker"
@@ -26,30 +24,6 @@ const (
 	// DOCKER used to define the "docker" image format
 	DOCKER = define.DOCKER
 )
-
-func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string, ociEncryptLayers *[]int, ociEncryptConfig *encconfig.EncryptConfig, ociDecryptConfig *encconfig.DecryptConfig, destinationTimestamp *time.Time) *cp.Options {
-	sourceCtx := getSystemContext(store, nil, "")
-	if sourceSystemContext != nil {
-		*sourceCtx = *sourceSystemContext
-	}
-
-	destinationCtx := getSystemContext(store, nil, "")
-	if destinationSystemContext != nil {
-		*destinationCtx = *destinationSystemContext
-	}
-	return &cp.Options{
-		ReportWriter:          reportWriter,
-		SourceCtx:             sourceCtx,
-		DestinationCtx:        destinationCtx,
-		ForceManifestMIMEType: manifestType,
-		RemoveSignatures:      removeSignatures,
-		SignBy:                addSigner,
-		OciEncryptConfig:      ociEncryptConfig,
-		OciDecryptConfig:      ociDecryptConfig,
-		OciEncryptLayers:      ociEncryptLayers,
-		DestinationTimestamp:  destinationTimestamp,
-	}
-}
 
 func getSystemContext(store storage.Store, defaults *types.SystemContext, signaturePolicyPath string) *types.SystemContext {
 	sc := &types.SystemContext{}

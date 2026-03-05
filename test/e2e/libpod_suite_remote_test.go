@@ -66,6 +66,10 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	if _, found := os.LookupEnv("DEBUG_SERVICE"); found {
 		args = append(args, "--log-level", "trace")
 	}
+	if p.RemoteTLSDetails != "" {
+		args = append(args, "--tls-details", p.RemoteTLSDetails)
+	}
+
 	remoteSocket := p.RemoteSocket
 	args = append(args, "system", "service", "--time", "0")
 

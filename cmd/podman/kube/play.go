@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -210,6 +211,13 @@ func playFlags(cmd *cobra.Command) {
 		exitFlagName := "service-exit-code-propagation"
 		flags.StringVar(&playOptions.ExitCodePropagation, exitFlagName, "", "Exit-code propagation of the service container")
 		_ = flags.MarkHidden(exitFlagName)
+
+		// --tls-details flag: Podman defines it on the root command,
+		// but buildahParse.SystemContextFromOptions expects it on cmd.
+		// Compare the special handling before calling SystemContextFromOptions.
+		tlsDetailsFlagName := "tls-details"
+		flags.String(tlsDetailsFlagName, "", "path to a containers-tls-details.yaml file")
+		_ = flags.MarkHidden(tlsDetailsFlagName)
 	}
 }
 
@@ -230,6 +238,25 @@ func play(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("build") {
 		playOptions.Build = types.NewOptionalBool(playOptions.BuildCLI)
 		if playOptions.Build == types.OptionalBoolTrue {
+			localTLSDetails := cmd.LocalFlags().Lookup("tls-details")
+			if localTLSDetails == nil { // playFlags should have declared it
+				return errors.New("internal error: missing flag for --tls-details")
+			}
+			// Ensure that whether the user uses --tls-details at the root level or after "build", we
+			// handle them the same.
+			rootTLSDetails := registry.PodmanConfig().TLSDetailsFile
+			switch {
+			case localTLSDetails.Changed && rootTLSDetails != "":
+				// Don't even bother with accepting duplicates with the same value. Why would (the few users that ever use this)
+				// do that?
+				return errors.New("--tls-details set twice")
+			case localTLSDetails.Changed:
+				registry.PodmanConfig().TLSDetailsFile = localTLSDetails.Value.String()
+			case rootTLSDetails != "":
+				if err := localTLSDetails.Value.Set(rootTLSDetails); err != nil {
+					return fmt.Errorf("internal error: syncing --tls-details: %w", err)
+				}
+			}
 			systemContext, err := buildahParse.SystemContextFromOptions(cmd)
 			if err != nil {
 				return err
@@ -383,10 +410,32 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 		return bytes.NewReader(data), nil
 	}
 
+	basetls, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return nil, err
+	}
+	baseTLSConfig := basetls.TLSConfig()
+	// nil means http.DefaultTransport.
+	// This variable must have type http.RoundTripper, not *http.Transport, to avoid https://go.dev/doc/faq#nil_error .
+	var transport http.RoundTripper
+	if baseTLSConfig != nil {
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return nil, errors.New("internal error: http.DefaultTransport is not a *http.Transport")
+		}
+		t := defaultTransport.Clone()
+		t.TLSClientConfig = baseTLSConfig
+		defer t.CloseIdleConnections()
+		transport = t
+	}
+	httpClient := &http.Client{
+		Transport: transport,
+	}
+
 	var combined bytes.Buffer
 
 	for i, arg := range args {
-		reader, err := readerFromArg(arg)
+		reader, err := readerFromArg(arg, httpClient)
 		if err != nil {
 			return nil, err
 		}
@@ -406,10 +455,10 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 	return bytes.NewReader(combined.Bytes()), nil
 }
 
-func readerFromArg(fileOrURL string) (io.ReadCloser, error) {
+func readerFromArg(fileOrURL string, httpClient *http.Client) (io.ReadCloser, error) {
 	switch {
 	case parse.ValidWebURL(fileOrURL) == nil:
-		response, err := http.Get(fileOrURL)
+		response, err := httpClient.Get(fileOrURL)
 		if err != nil {
 			return nil, err
 		}
