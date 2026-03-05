@@ -407,4 +407,27 @@ var _ = Describe("Podman stop", func() {
 		Expect(session1).Should(ExitCleanly())
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
 	})
+
+	It("podman stop --service sets StoppedByUser to false", func() {
+		SkipIfRemote("--service flag is not supported on remote")
+		containerName := "test-not-stopped-by-user"
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", containerName, ALPINE, "top")
+
+		podmanTest.PodmanExitCleanly("stop", "--service", containerName)
+
+		data := podmanTest.InspectContainer(containerName)
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].State.StoppedByUser).To(BeFalse())
+	})
+
+	It("podman stop without --service flag sets StoppedByUser to true", func() {
+		containerName := "test-default-stop"
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", containerName, ALPINE, "top")
+
+		podmanTest.PodmanExitCleanly("stop", containerName)
+
+		data := podmanTest.InspectContainer(containerName)
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].State.StoppedByUser).To(BeTrue())
+	})
 })
