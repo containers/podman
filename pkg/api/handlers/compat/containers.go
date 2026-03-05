@@ -283,6 +283,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	utils.WaitContainerDocker(w, r)
 }
 
+//nolint:staticcheck
 func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *handlers.LegacyNetworkSettings) {
 	for index, ip := range input.SecondaryIPAddresses {
 		output.SecondaryIPAddresses[index].PrefixLen = ip.PrefixLength
@@ -446,6 +447,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	}, nil
 }
 
+//nolint:staticcheck
 func LibpodToContainerJSON(l *libpod.Container, sz bool) (*handlers.LegacyImageInspect, error) {
 	imageID, imageName := l.Image()
 	inspect, err := l.Inspect(sz)
@@ -544,7 +546,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*handlers.LegacyImageI
 		Data: inspect.GraphDriver.Data,
 	}
 
-	cb := handlers.LegacyImageInspect{
+	cb := handlers.LegacyImageInspect{ //nolint:staticcheck
 		InspectResponse: container.InspectResponse{
 			ID:              l.ID(),
 			Created:         l.CreatedTime().UTC().Format(time.RFC3339Nano), // Docker uses UTC
@@ -658,7 +660,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*handlers.LegacyImageI
 		return nil, err
 	}
 
-	networkSettings := handlers.LegacyNetworkSettings{}
+	networkSettings := handlers.LegacyNetworkSettings{} //nolint:staticcheck
 	if err := json.Unmarshal(n, &networkSettings); err != nil {
 		return nil, err
 	}

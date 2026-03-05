@@ -105,7 +105,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		utils.WriteResponse(w, http.StatusOK, handlers.LegacyDiskUsage{
+		utils.WriteResponse(w, http.StatusOK, handlers.LegacyDiskUsage{ //nolint:staticcheck
 			LayersSize: df.ImagesSize,
 			Images:     legacy,
 			Containers: ctnrs,

@@ -222,7 +222,7 @@ func CompatPull(r *http.Request, w http.ResponseWriter, runtime *libpod.Runtime,
 
 loop: // break out of for/select infinite loop
 	for {
-		report := handlers.LegacyJSONMessage{}
+		report := handlers.LegacyJSONMessage{} //nolint:staticcheck
 		report.Progress = &jsonstream.Progress{}
 		select {
 		case e := <-progress:

@@ -219,7 +219,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// expose ports
 	expose := make([]string, 0, len(cc.Config.ExposedPorts))
 	for p := range cc.Config.ExposedPorts {
-		expose = append(expose, fmt.Sprintf("%d/%s", p.Num(), p.Proto()))
+		expose = append(expose, p.String())
 	}
 
 	// mounts type=tmpfs/bind,source=...,target=...=,opt=val

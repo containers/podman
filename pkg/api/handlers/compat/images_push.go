@@ -152,7 +152,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 loop: // break out of for/select infinite loop
 	for {
-		var report handlers.LegacyJSONMessage
+		var report handlers.LegacyJSONMessage //nolint:staticcheck
 
 		select {
 		case e := <-options.Progress:
