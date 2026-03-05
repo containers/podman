@@ -127,6 +127,7 @@ type LegacyImageSummary struct {
 	VirtualSize int64 `json:"VirtualSize,omitempty"`
 }
 
+// Deprecated: kept to maintain backwards compatibility with API < v1.52
 type LegacyDiskUsage struct {
 	// Deprecated: kept to maintain backwards compatibility with API < v1.52, use [ImagesDiskUsage.TotalSize] instead.
 	LayersSize int64 `json:"LayersSize"`
@@ -144,6 +145,7 @@ type LegacyDiskUsage struct {
 	BuildCache []build.CacheRecord `json:"BuildCache,omitzero"`
 }
 
+// Deprecated: kept to maintain backwards compatibility with API < v1.52
 type LegacyJSONMessage struct {
 	jsonstream.Message
 	// ErrorMessage contains errors encountered during the operation.
@@ -153,17 +155,20 @@ type LegacyJSONMessage struct {
 	ProgressMessage string `json:"progress,omitempty"`
 }
 
+// Deprecated: kept to maintain backwards compatibility with API < v1.52
 type LegacyAddress struct {
 	Addr      string
 	PrefixLen int
 }
 
+// Deprecated: kept to maintain backwards compatibility with API < v1.52
 type LegacyNetworkSettings struct {
 	dockerContainer.NetworkSettings
 	SecondaryIPAddresses   []LegacyAddress `json:"SecondaryIPAddresses,omitempty"`
 	SecondaryIPv6Addresses []LegacyAddress `json:"SecondaryIPv6Addresses,omitempty"`
 }
 
+// Deprecated: kept to maintain backwards compatibility with API < v1.52
 type LegacyImageInspect struct {
 	dockerContainer.InspectResponse
 	NetworkSettings *LegacyNetworkSettings
