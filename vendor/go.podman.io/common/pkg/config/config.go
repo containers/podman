@@ -631,6 +631,13 @@ type NetworkConfig struct {
 	// PastaOptions contains a default list of pasta(1) options that should
 	// be used when running pasta.
 	PastaOptions attributedstring.Slice `toml:"pasta_options,omitempty"`
+
+	// DefaultHostIPs is the default host IPs to bind published container ports
+	// to when no host IP is explicitly specified in the -p flag (e.g., -p 80:80).
+	// If empty, the default behavior is to bind to all interfaces (0.0.0.0).
+	// If multiple IPs are specified, separate port mapping for each of the specified
+	// IP would be created.
+	DefaultHostIPs attributedstring.Slice `toml:"default_host_ips,omitempty"`
 }
 
 type SubnetPool struct {

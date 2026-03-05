@@ -69,7 +69,7 @@ func chmodTarEntry(perm os.FileMode) os.FileMode {
 	return perm // noop for unix as golang APIs provide perm bits correctly
 }
 
-func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat any) {
+func setHeaderForSpecialDevice(hdr *tar.Header, stat any) {
 	s, ok := stat.(*syscall.Stat_t)
 
 	if ok {

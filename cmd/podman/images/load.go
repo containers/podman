@@ -76,7 +76,7 @@ func load(_ *cobra.Command, _ []string) error {
 			if err != nil {
 				return err
 			}
-			tmpfile, err := download.FromURL(tmpdir, loadOpts.Input)
+			tmpfile, err := download.FromURL(registry.Context(), tmpdir, loadOpts.Input, download.Options{})
 			if err != nil {
 				return err
 			}

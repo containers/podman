@@ -37,7 +37,7 @@ type openshiftImageSource struct {
 // newImageSource creates a new ImageSource for the specified reference.
 // The caller must call .Close() on the returned ImageSource.
 func newImageSource(sys *types.SystemContext, ref openshiftReference) (private.ImageSource, error) {
-	client, err := newOpenshiftClient(ref)
+	client, err := newOpenshiftClient(sys, ref)
 	if err != nil {
 		return nil, err
 	}

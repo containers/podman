@@ -2640,7 +2640,17 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 			return -1, err
 		}
 
-		return applyDriverFunc(payload)
+		size, err := applyDriverFunc(payload)
+		if err != nil {
+			return -1, err
+		}
+		// Fully consume the payload; it may contain trailing zero padding, and we need all of that
+		// recorded in tar-split (which happens when the data passes through NewInputTarStream).
+		if _, err := io.Copy(io.Discard, payload); err != nil {
+			return -1, err
+		}
+
+		return size, nil
 	}()
 	if err != nil {
 		return nil, err

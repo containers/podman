@@ -40,6 +40,12 @@ var (
 	maxParallelDownloads = uint(6)
 )
 
+// InstancePlatformFilter specifies a platform by OS and Architecture for filtering instances
+type InstancePlatformFilter struct {
+	OS           string // OS, e.g., "linux"
+	Architecture string // Architecture, e.g., "amd64"
+}
+
 const (
 	// CopySystemImage is the default value which, when set in
 	// Options.ImageListSelection, indicates that the caller expects only one
@@ -93,8 +99,9 @@ type Options struct {
 	PreserveDigests bool
 	// manifest MIME type of image set by user. "" is default and means use the autodetection to the manifest MIME type
 	ForceManifestMIMEType string
-	ImageListSelection    ImageListSelection // set to either CopySystemImage (the default), CopyAllImages, or CopySpecificImages to control which instances we copy when the source reference is a list; ignored if the source reference is not a list
-	Instances             []digest.Digest    // if ImageListSelection is CopySpecificImages, copy only these instances and the list itself
+	ImageListSelection    ImageListSelection       // set to either CopySystemImage (the default), CopyAllImages, or CopySpecificImages to control which instances we copy when the source reference is a list; ignored if the source reference is not a list
+	Instances             []digest.Digest          // if ImageListSelection is CopySpecificImages, copy only these instances, instances matching the InstancePlatforms list, and the list itself
+	InstancePlatforms     []InstancePlatformFilter // if ImageListSelection is CopySpecificImages, copy instances with matching OS/Architecture (all variants and compressions), it also copies the index/manifest_list instance.
 	// Give priority to pulling gzip images if multiple images are present when configured to OptionalBoolTrue,
 	// prefers the best compression if this is configured as OptionalBoolFalse. Choose automatically (and the choice may change over time)
 	// if this is set to OptionalBoolUndefined (which is the default behavior, and recommended for most callers).

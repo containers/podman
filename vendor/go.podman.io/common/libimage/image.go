@@ -97,7 +97,7 @@ func (i *Image) isCorrupted(ctx context.Context, name string) error {
 		return err
 	}
 
-	img, err := ref.NewImage(ctx, nil)
+	img, err := ref.NewImage(ctx, &i.runtime.systemContext)
 	if err != nil {
 		if name == "" {
 			name = i.ID()[:12]

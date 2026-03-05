@@ -3,6 +3,7 @@ package rekor
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -29,7 +30,8 @@ const (
 func WithRekor(rekorURL *url.URL) signerInternal.Option {
 	return func(s *signerInternal.SigstoreSigner) error {
 		logrus.Debugf("Using Rekor server at %s", rekorURL.Redacted())
-		client := newRekorClient(rekorURL)
+		baseTLSConfig := (*tls.Config)(nil) // FIXME: decide on an API — should it be shared with Fulcio?
+		client := newRekorClient(rekorURL, baseTLSConfig)
 		s.RekorUploader = client.uploadKeyOrCert
 		return nil
 	}
@@ -43,9 +45,14 @@ type rekorClient struct {
 }
 
 // newRekorClient creates a rekorClient for rekorURL.
-func newRekorClient(rekorURL *url.URL) *rekorClient {
+// If baseTLSConfig is not nil, it may contain TLS _algorithm_ options (e.g. TLS version, cipher suites, “curves”, etc.).
+func newRekorClient(rekorURL *url.URL, baseTLSConfig *tls.Config) *rekorClient {
 	retryableClient := retryablehttp.NewClient()
-	retryableClient.HTTPClient = cleanhttp.DefaultClient()
+	transport := cleanhttp.DefaultTransport()
+	if baseTLSConfig != nil {
+		transport.TLSClientConfig = baseTLSConfig.Clone()
+	}
+	retryableClient.HTTPClient = &http.Client{Transport: transport}
 	retryableClient.RetryMax = defaultRetryCount
 	retryableClient.Logger = leveledLoggerForLogrus(logrus.StandardLogger())
 	basePath := rekorURL.Path

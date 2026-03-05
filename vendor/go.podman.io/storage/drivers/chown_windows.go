@@ -16,5 +16,5 @@ func newLChowner() *platformChowner {
 }
 
 func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContainer *idtools.IDMappings) error {
-	return &os.PathError{"lchown", path, syscall.EWINDOWS}
+	return &os.PathError{Op: "lchown", Path: path, Err: syscall.EWINDOWS}
 }
