@@ -889,6 +889,8 @@ go.podman.io/image/v5/pkg/blobinfocache/memory
 go.podman.io/image/v5/pkg/blobinfocache/none
 go.podman.io/image/v5/pkg/blobinfocache/sqlite
 go.podman.io/image/v5/pkg/cli
+go.podman.io/image/v5/pkg/cli/basetls
+go.podman.io/image/v5/pkg/cli/basetls/tlsdetails
 go.podman.io/image/v5/pkg/cli/sigstore
 go.podman.io/image/v5/pkg/cli/sigstore/params
 go.podman.io/image/v5/pkg/compression

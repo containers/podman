@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 )
 
@@ -65,9 +66,13 @@ func init() {
 // Implementation of podman-login.
 func login(cmd *cobra.Command, args []string) error {
 	var skipTLS types.OptionalBool
-
 	if cmd.Flags().Changed("tls-verify") {
 		skipTLS = types.NewOptionalBool(!loginOptions.tlsVerify)
+	}
+
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return err
 	}
 
 	secretName := cmd.Flag("secret").Value.String()
@@ -97,6 +102,7 @@ func login(cmd *cobra.Command, args []string) error {
 
 	sysCtx := &types.SystemContext{
 		DockerInsecureSkipTLSVerify: skipTLS,
+		BaseTLSConfig:               baseTLSConfig.TLSConfig(),
 	}
 	common.SetRegistriesConfPath(sysCtx)
 	loginOptions.GetLoginSet = cmd.Flag("get-login").Changed

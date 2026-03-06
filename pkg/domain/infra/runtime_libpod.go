@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/types"
 )
@@ -190,6 +191,11 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("registries-conf") {
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
 	}
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(cfg.TLSDetailsFile)
+	if err != nil {
+		return nil, err
+	}
+	options = append(options, libpod.WithBaseTLSConfig(baseTLSConfig))
 
 	if cfg.CdiSpecDirs != nil {
 		options = append(options, libpod.WithCDISpecDirs(cfg.CdiSpecDirs))
