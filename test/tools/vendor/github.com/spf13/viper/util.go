@@ -12,13 +12,13 @@ package viper
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"unicode"
 
-	slog "github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/cast"
 )
 
@@ -126,15 +126,6 @@ func absPathify(logger *slog.Logger, inPath string) string {
 	logger.Error(fmt.Errorf("could not discover absolute path: %w", err).Error())
 
 	return ""
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }
 
 func userHomeDir() string {

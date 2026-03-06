@@ -67,20 +67,19 @@ func (c *Client) generate(opts *generator.GenOpts) error {
 	return generator.GenerateClient(c.Name, c.Models.Models, c.Operations.Operations, opts)
 }
 
-func (c *Client) log(rp string) {
+func (c *Client) log(_ string) {
 	log.Println(`Generation completed!
 
 For this generation to compile you need to have some packages in your go.mod:
 
 	* github.com/go-openapi/errors
 	* github.com/go-openapi/runtime
-	* github.com/go-openapi/runtime/client
 	* github.com/go-openapi/strfmt
 
 You can get these now with: go mod tidy`)
 }
 
 // Execute runs this command
-func (c *Client) Execute(args []string) error {
+func (c *Client) Execute(_ []string) error {
 	return createSwagger(c)
 }
