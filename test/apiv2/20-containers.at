@@ -912,4 +912,23 @@ t POST containers/create?platform=linux/amd64 \
 t POST containers/create?platform=linux/aarch64 \
   Image=$IMAGE \
   404
+
+# 27998: make sure a created (and not started) container with userns=auto shows
+# UsernsMode = private before being started
+
+t POST libpod/containers/create \
+  image=$IMAGE \
+  UserNS='{"NSMode":"auto"}' \
+  IDMappings='{"AutoUserNs":true,"AutoUserNsOpts":{"AdditionalUIDMappings":[],"AdditionalGIDMappings":[],"PasswdFile":"","GroupFile":"","InitialSize":0,"Size":0}}' \
+  201
+cid=$(jq -r '.Id' <<<"$output")
+
+t GET libpod/containers/$cid/json \
+  200 \
+  .HostConfig.UsernsMode='private'
+
+t DELETE libpod/containers/$cid 200 .[0].Id=$cid
+
+
+# clean up
 podman rmi -f $IMAGE
