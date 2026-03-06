@@ -1600,7 +1600,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
 					}
 				}
-				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
+				// Normally interfaces have a length of 1, only for some special configs we could get more.
 				// For now just use the first interface to get the ips this should be good enough for most cases.
 				break
 			}

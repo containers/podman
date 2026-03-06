@@ -38,6 +38,6 @@ func DefaultNamespaceOptions() (NamespaceOptions, error) {
 }
 
 // getNetworkInterface creates the network interface
-func getNetworkInterface(store storage.Store, cniConfDir, cniPluginPath string) (nettypes.ContainerNetwork, error) {
+func getNetworkInterface(store storage.Store) (nettypes.ContainerNetwork, error) {
 	return nil, nil
 }

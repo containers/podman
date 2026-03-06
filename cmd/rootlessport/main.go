@@ -14,12 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/netns"
 	"go.podman.io/common/pkg/rootlessport"
 	"golang.org/x/sys/unix"
 )
@@ -137,11 +137,11 @@ func parent() error {
 	cmd.Stdout = &logrusWriter{prefix: "child"}
 	cmd.Stderr = cmd.Stdout
 	cmd.Env = append(os.Environ(), reexecChildEnvOpaque+"="+string(opaqueJSON))
-	childNS, err := ns.GetNS(cfg.NetNSPath)
+	childNS, err := netns.GetNS(cfg.NetNSPath)
 	if err != nil {
 		return err
 	}
-	if err := childNS.Do(func(_ ns.NetNS) error {
+	if err := childNS.Do(func(_ netns.NetNS) error {
 		logrus.Infof("Starting child driver in child netns (%q %v)", cmd.Path, cmd.Args)
 		return cmd.Start()
 	}); err != nil {
@@ -194,30 +194,28 @@ outer:
 		return err
 	}
 
-	// we only need to have a socket to reload ports when we run under rootless cni
-	if cfg.RootlessCNI {
-		socketfile := filepath.Join(socketDir, cfg.ContainerID)
-		// make sure to remove the file if it exists to prevent EADDRINUSE
-		_ = os.Remove(socketfile)
-		// workaround to bypass the 108 char socket path limit
-		// open the fd and use the path to the fd as bind argument
-		fd, err := unix.Open(socketDir, unix.O_PATH, 0)
-		if err != nil {
-			return err
-		}
-		socket, err := net.ListenUnix("unixpacket", &net.UnixAddr{Name: fmt.Sprintf("/proc/self/fd/%d/%s", fd, cfg.ContainerID), Net: "unixpacket"})
-		if err != nil {
-			return err
-		}
-		err = unix.Close(fd)
-		// remove the socket file on exit
-		defer os.Remove(socketfile)
-		if err != nil {
-			logrus.Warnf("Failed to close the socketDir fd: %v", err)
-		}
-		defer socket.Close()
-		go serve(socket, driver)
+	// set up a socket to reload ports (e.g. on network connect/disconnect)
+	socketfile := filepath.Join(socketDir, cfg.ContainerID)
+	// make sure to remove the file if it exists to prevent EADDRINUSE
+	_ = os.Remove(socketfile)
+	// workaround to bypass the 108 char socket path limit
+	// open the fd and use the path to the fd as bind argument
+	fd, err := unix.Open(socketDir, unix.O_PATH, 0)
+	if err != nil {
+		return err
 	}
+	socket, err := net.ListenUnix("unixpacket", &net.UnixAddr{Name: fmt.Sprintf("/proc/self/fd/%d/%s", fd, cfg.ContainerID), Net: "unixpacket"})
+	if err != nil {
+		return err
+	}
+	err = unix.Close(fd)
+	// remove the socket file on exit
+	defer os.Remove(socketfile)
+	if err != nil {
+		logrus.Warnf("Failed to close the socketDir fd: %v", err)
+	}
+	defer socket.Close()
+	go serve(socket, driver)
 
 	logrus.Info("Ready")
 

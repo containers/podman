@@ -87,14 +87,6 @@ func Pull(_ context.Context, imageName string, options PullOptions) (imageID str
 		return "", err
 	}
 
-	// Note: It is important to do this before we pull any images/create containers.
-	// The default backend detection logic needs an empty store to correctly detect
-	// that we can use netavark, if the store was not empty it will use CNI to not break existing installs.
-	_, err = getNetworkInterface(options.Store, "", "")
-	if err != nil {
-		return "", err
-	}
-
 	runtime, err := libimage.RuntimeFromStore(options.Store, &libimage.RuntimeOptions{SystemContext: options.SystemContext})
 	if err != nil {
 		return "", err

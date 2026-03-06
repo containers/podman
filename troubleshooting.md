@@ -779,26 +779,7 @@ And now this should work:
 $ podman-remote info
 ```
 
-### 29) Rootless CNI networking fails in RHEL with Podman v2.2.1 to v3.0.1.
-
-A failure is encountered when trying to use networking on a rootless
-container in Podman v2.2.1 through v3.0.1 on RHEL.  This error does not
-occur on other Linux distributions.
-
-#### Symptom
-
-A rootless container is created using a CNI network, but the `podman run` command
-returns an error that an image must be built.
-
-#### Solution
-
-In order to use a CNI network in a rootless container on RHEL,
-an Infra container image for CNI-in-slirp4netns must be created.  The
-instructions for building the Infra container image can be found for
-v2.2.1 [here](https://github.com/containers/podman/tree/v2.2.1-rhel/contrib/rootless-cni-infra),
-and for v3.0.1 [here](https://github.com/containers/podman/tree/v3.0.1-rhel/contrib/rootless-cni-infra).
-
-### 30) Container related firewall rules are lost after reloading firewalld
+### 29) Container related firewall rules are lost after reloading firewalld
 Container network can't be reached after `firewall-cmd --reload` and `systemctl restart firewalld` Running `podman network reload` will fix it but it has to be done manually.
 
 #### Symptom

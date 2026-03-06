@@ -18,11 +18,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/libnetwork/util"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/netns"
 )
 
 const (
@@ -104,7 +104,7 @@ func Setup(opts *SetupOptions) (*SetupResult, error) {
 
 	var ipv4, ipv6 bool
 	result := &SetupResult{}
-	err = ns.WithNetNSPath(opts.Netns, func(_ ns.NetNS) error {
+	err = netns.WithNetNSPath(opts.Netns, func(_ netns.NetNS) error {
 		addrs, err := net.InterfaceAddrs()
 		if err != nil {
 			return err
