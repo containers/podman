@@ -39,3 +39,7 @@ Learn how to run containers that support socket activation.
 **[Performance](performance.md)**
 
 Performance guide regarding Podman configuration and usage.
+
+**[macOS Autostart](macos_autostart.md)**
+
+How to automatically start a Podman machine at login on macOS using launchd.
