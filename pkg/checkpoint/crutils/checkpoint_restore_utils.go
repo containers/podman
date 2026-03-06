@@ -11,6 +11,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v7/stats"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"go.podman.io/storage/pkg/archive"
 )
@@ -85,9 +86,11 @@ func CRRemoveDeletedFiles(id, baseDirectory, containerRootDirectory string) erro
 	}
 
 	for _, deleteFile := range deletedFiles {
-		// Using RemoveAll as deletedFiles, which is generated from 'podman diff'
-		// lists completely deleted directories as a single entry: 'D /root'.
-		if err := os.RemoveAll(filepath.Join(containerRootDirectory, deleteFile)); err != nil {
+		path, err := securejoin.SecureJoin(containerRootDirectory, deleteFile)
+		if err != nil {
+			return fmt.Errorf("failed to resolve path %s in container %s: %w", deleteFile, id, err)
+		}
+		if err := os.RemoveAll(path); err != nil {
 			return fmt.Errorf("failed to delete files from container %s during restore: %w", id, err)
 		}
 	}
