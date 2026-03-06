@@ -67,7 +67,10 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context, force bo
 			}
 			// Do a force removal of the volume, and all containers
 			// using it.
-			if err := r.RemoveVolume(ctx, vol, true, nil); err != nil {
+			if err := r.RemoveVolumeWithOptions(ctx, vol, true, nil, false); err != nil {
+				if errors.Is(err, define.ErrVolumePinned) {
+					return fmt.Errorf("removing image %s: volume %s is pinned; unpin it first with 'podman volume unpin %s': %w", imageID, vol.Name(), vol.Name(), err)
+				}
 				return fmt.Errorf("removing image %s: volume %s backed by image could not be removed: %w", imageID, vol.Name(), err)
 			}
 		}

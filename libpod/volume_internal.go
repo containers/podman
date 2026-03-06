@@ -108,6 +108,8 @@ func (v *Volume) refresh() error {
 // It is performed before a refresh and clears the state after a reboot.
 // It does not save the results - assumes the database will do that for us.
 func resetVolumeState(state *VolumeState) {
+	// Pinned is intentionally not reset here. It represents persisted user
+	// intent and must survive refresh after reboot.
 	state.MountCount = 0
 	state.MountPoint = ""
 	state.CopiedUp = false

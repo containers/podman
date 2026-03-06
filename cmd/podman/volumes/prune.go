@@ -30,7 +30,8 @@ var (
 		RunE:              prune,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
-	filter = []string{}
+	filter       = []string{}
+	pruneOptions = entities.VolumePruneOptions{}
 )
 
 func init() {
@@ -44,11 +45,12 @@ func init() {
 	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumeFilters)
 	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
+	flags.BoolVar(&pruneOptions.IncludePinned, "include-pinned", false, "Include pinned volumes in prune operation")
 }
 
 func prune(cmd *cobra.Command, _ []string) error {
 	var (
-		pruneOptions  = entities.VolumePruneOptions{}
+		pruneRequest  = entities.VolumePruneOptions{IncludePinned: pruneOptions.IncludePinned}
 		listOptions   = entities.VolumeListOptions{}
 		unusedOptions = entities.VolumeListOptions{}
 	)
@@ -57,7 +59,7 @@ func prune(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filter)
+	pruneRequest.Filters, err = parse.FilterArgumentsIntoFilters(filter)
 	if err != nil {
 		return err
 	}
@@ -75,7 +77,12 @@ func prune(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return err
 		}
-		// filter volumes based on user input
+		// Exclude pinned volumes from the confirmation preview unless
+		// --include-pinned was requested. The actual prune call also
+		// receives IncludePinned as the authoritative behavior flag.
+		if !pruneRequest.IncludePinned {
+			listOptions.Filter["pinned"] = []string{"false"}
+		}
 		filteredVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), listOptions)
 		if err != nil {
 			return err
@@ -97,7 +104,7 @@ func prune(cmd *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
-	responses, err := registry.ContainerEngine().VolumePrune(context.Background(), pruneOptions)
+	responses, err := registry.ContainerEngine().VolumePrune(context.Background(), pruneRequest)
 	if err != nil {
 		return err
 	}

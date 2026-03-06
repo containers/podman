@@ -24,6 +24,8 @@ type ListOptions struct {
 type PruneOptions struct {
 	// Filters applied to the pruning of volumes
 	Filters map[string][]string
+	// IncludePinned includes pinned volumes in pruning
+	IncludePinned *bool `schema:"includePinned"`
 }
 
 // RemoveOptions are optional options for removing volumes
@@ -33,6 +35,8 @@ type RemoveOptions struct {
 	// Force removes the volume even if it is being used
 	Force   *bool
 	Timeout *uint
+	// IncludePinned includes pinned volumes for removal
+	IncludePinned *bool `schema:"includePinned"`
 }
 
 // ExistsOptions are optional options for checking

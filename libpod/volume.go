@@ -112,6 +112,10 @@ type VolumeState struct {
 	UIDChowned int `json:"uidChowned,omitempty"`
 	// GIDChowned is the GID the volume was chowned to.
 	GIDChowned int `json:"gidChowned,omitempty"`
+	// Pinned indicates that this volume should be excluded from
+	// system prune and reset operations by default.
+	// It is persistent state and must survive reboot/refresh.
+	Pinned bool `json:"pinned,omitempty"`
 }
 
 // Name retrieves the volume's name
@@ -278,6 +282,56 @@ func (v *Volume) UsesVolumeDriver() bool {
 		return false
 	}
 	return v.config.Driver != define.VolumeDriverLocal && v.config.Driver != ""
+}
+
+// IsPinned returns whether this volume is marked as pinned.
+// Pinned volumes are excluded from system prune and reset operations by default.
+// On refresh errors, this method logs and returns false.
+// Prefer IsPinnedWithError when callers need to handle failures explicitly.
+func (v *Volume) IsPinned() bool {
+	pinned, err := v.IsPinnedWithError()
+	if err != nil {
+		logrus.Errorf("Refreshing volume %s state for pin check: %v", v.Name(), err)
+		return false
+	}
+
+	return pinned
+}
+
+// IsPinnedWithError returns whether this volume is marked as pinned.
+func (v *Volume) IsPinnedWithError() (bool, error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if err := v.update(); err != nil {
+		return false, err
+	}
+
+	return v.state.Pinned, nil
+}
+
+// SetPinned sets the pinned status of the volume.
+// Pinned volumes are excluded from system prune and reset operations by default.
+func (v *Volume) SetPinned(pinned bool) error {
+	if !v.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if err := v.update(); err != nil {
+		return err
+	}
+
+	// If the volume is already in the desired state, this is a no-op
+	if v.state.Pinned == pinned {
+		return nil
+	}
+
+	v.state.Pinned = pinned
+
+	return v.save()
 }
 
 func (v *Volume) Mount() (string, error) {

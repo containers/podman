@@ -31,3 +31,18 @@ func (o *PruneOptions) GetFilters() map[string][]string {
 	}
 	return o.Filters
 }
+
+// WithIncludePinned set field IncludePinned to given value
+func (o *PruneOptions) WithIncludePinned(value bool) *PruneOptions {
+	o.IncludePinned = &value
+	return o
+}
+
+// GetIncludePinned returns value of field IncludePinned
+func (o *PruneOptions) GetIncludePinned() bool {
+	if o.IncludePinned == nil {
+		var z bool
+		return z
+	}
+	return *o.IncludePinned
+}

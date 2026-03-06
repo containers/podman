@@ -22,10 +22,11 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
-		All      bool `schema:"all"`
-		Volumes  bool `schema:"volumes"`
-		External bool `schema:"external"`
-		Build    bool `schema:"build"`
+		All           bool `schema:"all"`
+		Volumes       bool `schema:"volumes"`
+		External      bool `schema:"external"`
+		Build         bool `schema:"build"`
+		IncludePinned bool `schema:"includePinned"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -49,6 +50,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 		External: query.External,
 		Build:    query.Build,
 	}
+	pruneOptions.VolumePruneOptions.IncludePinned = query.IncludePinned
 	report, err := containerEngine.SystemPrune(r.Context(), pruneOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
