@@ -59,7 +59,7 @@ type imagesImportResponseLibpod struct {
 	Body entities.ImageImportReport
 }
 
-// Image Pull
+// Image Pull. Errors may be detected later even if this returns HTTP status 200, and in that case, the error description will be in the `error` field.
 // swagger:response
 type imagesPullResponseLibpod struct {
 	// in:body
