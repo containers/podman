@@ -247,6 +247,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	s.LogConfiguration.Options = make(map[string]string)
+	s.LogConfiguration.Labels = make(map[string]string)
 	for _, o := range opts.LogOptions {
 		opt, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
@@ -263,6 +264,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				return nil, err
 			}
 			s.LogConfiguration.Size = logSize
+		case "label":
+			labelKey, labelVal, hasVal := strings.Cut(val, "=")
+			if !hasVal {
+				return nil, fmt.Errorf("invalid log label %q", o)
+			}
+			s.LogConfiguration.Labels[labelKey] = labelVal
 		default:
 			if len(val) == 0 {
 				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)

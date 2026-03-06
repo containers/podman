@@ -399,7 +399,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	}
 	defer processFile.Close()
 
-	args, err := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), c.execPersistDir(sessionID), ociLog, define.NoLogging, c.config.LogTag)
+	args, err := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), c.execPersistDir(sessionID), ociLog, define.NoLogging, c.config.LogTag, nil)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -598,6 +598,27 @@ var _ = Describe("Podman logs", func() {
 		}).Should(Succeed())
 	})
 
+	It("using journald labels", func() {
+		SkipIfJournaldUnavailable()
+		SkipIfConmonVersionLessThan("2.2.0")
+		containerName := "inside-journal"
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt", "label=CONTAINER_LABEL=LabelValue", "-d", "--name", containerName, ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).To(ExitCleanly())
+		cid := logc.OutputToString()
+
+		wait := podmanTest.Podman([]string{"wait", cid})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).To(ExitCleanly())
+
+		Eventually(func(g Gomega) {
+			cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_LABEL", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
+			out, err := cmd.CombinedOutput()
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(string(out)).To(ContainSubstring("LabelValue"))
+		}).Should(Succeed())
+	})
+
 	It("podman logs with log-driver=none errors", func() {
 		ctrName := "logsctr"
 		logc := podmanTest.Podman([]string{"run", "--name", ctrName, "-d", "--log-driver", "none", ALPINE, "top"})
