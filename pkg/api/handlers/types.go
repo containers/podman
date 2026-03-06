@@ -104,6 +104,7 @@ type Info struct {
 type Container struct {
 	docker.Container
 	dockerBackend.ContainerCreateConfig
+	Health string `json:"Health,omitempty"`
 }
 
 type DiskUsage struct {

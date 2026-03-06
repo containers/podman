@@ -82,7 +82,8 @@ t GET /containers/json?all=true 200 \
   .[0].Id~[0-9a-f]\\{64\\} \
   .[0].Image=$IMAGE \
   .[0].Mounts~.*/tmp \
-  .[0].NetworkSettings.$network_expect
+  .[0].NetworkSettings.$network_expect \
+  .[0].Health=none
 
 # compat API imageid with sha256: prefix
 t GET containers/json?limit=1 200 \
@@ -900,6 +901,23 @@ t POST libpod/containers/$cid/update \
 t DELETE containers/$cid 204
 
 rm -rf $TMPD
+
+# Test health status in /containers/json (GH #27786)
+podman run -d --name healthcheck-test-running --health-cmd "true" --health-interval 1s $IMAGE top
+# Give it a moment to initialize health status
+sleep 1
+t GET containers/json?filters='{"name":["healthcheck-test-running"]}' 200 \
+  .[0].Health~"\(starting\|healthy\)"
+t GET containers/healthcheck-test-running/json 200 \
+  .State.Health.Status~"\(starting\|healthy\)"
+
+podman stop -t0 healthcheck-test-running
+t GET "containers/json?all=true&filters={\"name\":[\"healthcheck-test-running\"]}" 200 \
+  .[0].Health~"\(starting\|healthy\)"
+t GET containers/healthcheck-test-running/json 200 \
+  .State.Health.Status~"\(starting\|healthy\)"
+
+podman rm -f healthcheck-test-running
 
 podman container rm -fa
 
