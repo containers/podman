@@ -779,6 +779,7 @@ podman_machine_task:
         image: "${VM_IMAGE_NAME}"
         type: "${EC2_INST_TYPE}"
         region: us-east-1
+        spot: true
     timeout_in: 30m
     env:
       EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
@@ -841,6 +842,7 @@ podman_machine_windows_task:
         <<: *windows
         type: z1d.metal
         platform: windows
+        spot: true
     timeout_in: 60m
     env: *winenv
     matrix:
