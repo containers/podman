@@ -470,7 +470,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// env-file overrides any previous variables
 	for _, f := range c.EnvFile {
-		fileEnv, err := envLib.ParseFile(f)
+		parsedFile, ignore := util.CheckFileIgnorePrefix(f)
+		if ignore {
+			continue // skip the missing file as per systemd.exec specs
+		}
+
+		fileEnv, err := envLib.ParseFile(parsedFile)
 		if err != nil {
 			return err
 		}
@@ -486,6 +491,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.Env) == 0 {
 		s.Env = envLib.Join(env, parsedEnv)
 	}
+
+	// PROCESS LABEL FILES FOR '-' PREFIX
+	var validLabelFiles []string
+	for _, f := range c.LabelFile {
+		parsedFile, ignore := util.CheckFileIgnorePrefix(f)
+		if ignore {
+			continue // skip the missing file as per systemd.exec specs
+		}
+		validLabelFiles = append(validLabelFiles, parsedFile)
+	}
+	c.LabelFile = validLabelFiles
 
 	// LABEL VARIABLES
 	labels, err := parse.GetAllLabels(c.LabelFile, c.Label)

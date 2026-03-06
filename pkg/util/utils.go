@@ -1257,3 +1257,17 @@ func ExecAddTERM(existingEnv []string, execEnvs map[string]string) {
 
 	execEnvs["TERM"] = "xterm"
 }
+
+// CheckFileIgnorePrefix checks if a filepath starts with the '-' prefix,
+// indicating it should be ignored if it does not exist.
+// Returns the stripped filepath and a boolean indicating whether the file
+// is missing and should be bypassed.
+func CheckFileIgnorePrefix(filePath string) (string, bool) {
+	if strings.HasPrefix(filePath, "-") {
+		filePath = filePath[1:]
+		if err := fileutils.Exists(filePath); err != nil && errors.Is(err, os.ErrNotExist) {
+			return "", true // file is missing and should be ignored
+		}
+	}
+	return filePath, false
+}
