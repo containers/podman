@@ -208,6 +208,10 @@ type State interface { //nolint:interfacebloat
 	// and checks if the volume is being used by any container. If it is
 	// a slice of container IDs using the volume is returned
 	VolumeInUse(volume *Volume) ([]string, error)
+	// RenameVolume renames the given volume. The new name must not
+	// already be in use. The volume must not be in use by any
+	// containers.
+	RenameVolume(volume *Volume, newName string) error
 	// AddVolume adds the specified volume to state. The volume's name
 	// must be unique within the list of existing volumes
 	AddVolume(volume *Volume) error

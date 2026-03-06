@@ -5,10 +5,15 @@ package libpod
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/domain/entities/reports"
+	"github.com/sirupsen/logrus"
 )
 
 // Contains the public Runtime API for volumes
@@ -108,6 +113,102 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 	}
 
 	return r.state.AllVolumes()
+}
+
+// RenameVolume renames the given volume to a new name.
+// The volume must not be in use by any containers, and must use the
+// local driver (not a volume plugin).
+func (r *Runtime) RenameVolume(_ context.Context, vol *Volume, newName string) (*Volume, error) {
+	if !r.valid {
+		return nil, define.ErrRuntimeStopped
+	}
+
+	vol.lock.Lock()
+	defer vol.lock.Unlock()
+
+	if err := vol.update(); err != nil {
+		return nil, err
+	}
+
+	newName = strings.TrimSpace(newName)
+	if newName == "" || !define.NameRegex.MatchString(newName) {
+		return nil, define.RegexError
+	}
+
+	if vol.Name() == newName {
+		return nil, fmt.Errorf("renaming volume %s: new name is the same as the old name: %w", vol.Name(), define.ErrInvalidArg)
+	}
+
+	// Anonymous volumes should not be renamed
+	if vol.config.IsAnon {
+		return nil, fmt.Errorf("renaming volume %s: cannot rename anonymous volumes: %w", vol.Name(), define.ErrInvalidArg)
+	}
+
+	// Image-driver volumes cannot be renamed
+	if vol.config.Driver == define.VolumeDriverImage {
+		return nil, fmt.Errorf("renaming volume %s: rename is not supported for image-based volumes: %w", vol.Name(), define.ErrInvalidArg)
+	}
+
+	// Only local-driver volumes can be renamed
+	if vol.UsesVolumeDriver() {
+		return nil, fmt.Errorf("renaming volume %s: rename is not supported for volumes using driver %q: %w", vol.Name(), vol.Driver(), define.ErrInvalidArg)
+	}
+
+	// Refuse rename if the volume is currently mounted
+	if vol.state.MountCount > 0 {
+		return nil, fmt.Errorf("renaming volume %s: volume is currently mounted: %w", vol.Name(), define.ErrVolumeBeingUsed)
+	}
+
+	// Refuse rename if the volume is in use by any container
+	ctrs, err := r.state.VolumeInUse(vol)
+	if err != nil {
+		return nil, fmt.Errorf("checking if volume %s is in use: %w", vol.Name(), err)
+	}
+	if len(ctrs) > 0 {
+		return nil, fmt.Errorf("volume %s is being used by the following container(s): %s: %w", vol.Name(), strings.Join(ctrs, ", "), define.ErrVolumeBeingUsed)
+	}
+
+	// Check that no volume with the new name already exists
+	if _, err := r.state.Volume(newName); err == nil {
+		return nil, fmt.Errorf("volume with name %q already exists: %w", newName, define.ErrVolumeExists)
+	}
+
+	oldName := vol.config.Name
+	oldMountPoint := vol.config.MountPoint
+
+	// Rename the filesystem directory
+	oldPath := filepath.Join(r.config.Engine.VolumePath, oldName)
+	newPath := filepath.Join(r.config.Engine.VolumePath, newName)
+	if err := os.Rename(oldPath, newPath); err != nil {
+		// If the directory doesn't exist (e.g., plugin volumes), skip
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("renaming volume directory %q to %q: %w", oldPath, newPath, err)
+		}
+	}
+
+	// Update mount point in-memory before the DB call. This is safe
+	// because MountPoint is only stored in the JSON blob, not used in
+	// any SQL WHERE clauses. The Name field stays unchanged so the
+	// WHERE clauses still match the old name correctly.
+	vol.config.MountPoint = filepath.Join(r.config.Engine.VolumePath, newName, "_data")
+
+	// Persist to database (vol.config.Name still equals oldName,
+	// so the SQL WHERE clauses match correctly).
+	if err := r.state.RenameVolume(vol, newName); err != nil {
+		// Rollback filesystem rename and mount point
+		vol.config.MountPoint = oldMountPoint
+		if rerr := os.Rename(newPath, oldPath); rerr != nil {
+			logrus.Errorf("Failed to rollback volume directory rename from %q to %q: %v", newPath, oldPath, rerr)
+		}
+		return nil, fmt.Errorf("renaming volume %s in database: %w", oldName, err)
+	}
+
+	// Update the name in-memory only after the database has been
+	// successfully updated.
+	vol.config.Name = newName
+
+	vol.newVolumeEvent(events.Rename)
+	return vol, nil
 }
 
 // PruneVolumes removes unused volumes from the system
