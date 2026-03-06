@@ -42,7 +42,7 @@ var (
 		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman manifest add mylist:v1.11 image:v1.11-amd64
-  podman manifest add mylist:v1.11 transport:imageName`,
+podman manifest add mylist:v1.11 transport:imageName`,
 	}
 )
 

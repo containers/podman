@@ -60,8 +60,8 @@ Please refer to podman-systemd.unit(5) for details.
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteContainersAndPods,
 		Example: `podman generate systemd CTR
-  podman generate systemd --new --time 10 CTR
-  podman generate systemd --files --name POD`,
+podman generate systemd --new --time 10 CTR
+podman generate systemd --files --name POD`,
 	}
 )
 

@@ -43,8 +43,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman save --quiet -o myimage.tar imageID
-  podman save --format docker-dir -o ubuntu-dir ubuntu
-  podman save > alpine-all.tar alpine:latest`,
+podman save --format docker-dir -o ubuntu-dir ubuntu
+podman save > alpine-all.tar alpine:latest`,
 	}
 
 	imageSaveCommand = &cobra.Command{
@@ -55,8 +55,8 @@ var (
 		RunE:              saveCommand.RunE,
 		ValidArgsFunction: saveCommand.ValidArgsFunction,
 		Example: `podman image save --quiet -o myimage.tar imageID
-  podman image save --format docker-dir -o ubuntu-dir ubuntu
-  podman image save > alpine-all.tar alpine:latest`,
+podman image save --format docker-dir -o ubuntu-dir ubuntu
+podman image save > alpine-all.tar alpine:latest`,
 	}
 )
 

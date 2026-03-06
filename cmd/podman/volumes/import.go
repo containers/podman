@@ -22,7 +22,7 @@ var (
 		Args:              cobra.ExactArgs(2),
 		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume import my_vol /home/user/import.tar
-  cat ctr.tar | podman volume import my_vol -`,
+cat ctr.tar | podman volume import my_vol -`,
 	}
 )
 

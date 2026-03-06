@@ -37,10 +37,9 @@ Enable a listening service for API access to Podman commands.
 		RunE:              service,
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman system service --time=0 unix:///tmp/podman.sock
-  podman system service --time=0 tcp://localhost:8888
-  podman system service --time=0 --tls-cert=tls.crt --tls-key=tls.key tcp://localhost:8888
-  podman system service --time=0 --tls-cert=tls.crt --tls-key=tls.key --tls-client-ca=ca.crt tcp://localhost:8888
-    `,
+podman system service --time=0 tcp://localhost:8888
+podman system service --time=0 --tls-cert=tls.crt --tls-key=tls.key tcp://localhost:8888
+podman system service --time=0 --tls-cert=tls.crt --tls-key=tls.key --tls-client-ca=ca.crt tcp://localhost:8888`,
 	}
 
 	srvArgs = struct {

@@ -30,10 +30,10 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteForGenerate,
 		Example: `podman kube generate ctrID
-  podman kube generate podID
-  podman kube generate --service podID
-  podman kube generate volumeName
-  podman kube generate ctrID podID volumeName --service`,
+podman kube generate podID
+podman kube generate --service podID
+podman kube generate volumeName
+podman kube generate ctrID podID volumeName --service`,
 	}
 
 	generateKubeCmd = &cobra.Command{

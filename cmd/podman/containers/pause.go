@@ -27,8 +27,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman pause mywebserver
-  podman pause 860a4b23
-  podman pause --all`,
+podman pause 860a4b23
+podman pause --all`,
 	}
 
 	containerPauseCommand = &cobra.Command{
@@ -41,8 +41,8 @@ var (
 		},
 		ValidArgsFunction: pauseCommand.ValidArgsFunction,
 		Example: `podman container pause mywebserver
-  podman container pause 860a4b23
-  podman container pause --all`,
+podman container pause 860a4b23
+podman container pause --all`,
 	}
 )
 

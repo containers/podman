@@ -25,7 +25,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman network reload 3c13ef6dd843
-  podman network reload test1 test2`,
+podman network reload test1 test2`,
 	}
 )
 

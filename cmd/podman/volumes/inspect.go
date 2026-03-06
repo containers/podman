@@ -22,8 +22,8 @@ var (
 		RunE:              volumeInspect,
 		ValidArgsFunction: common.AutocompleteVolumes,
 		Example: `podman volume inspect myvol
-  podman volume inspect --all
-  podman volume inspect --format "{{.Driver}} {{.Scope}}" myvol`,
+podman volume inspect --all
+podman volume inspect --format "{{.Driver}} {{.Scope}}" myvol`,
 	}
 )
 

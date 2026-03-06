@@ -29,8 +29,8 @@ var (
 		Args:      cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 		RunE:      completion,
 		Example: `podman completion bash
-  podman completion zsh -f _podman
-  podman completion fish --no-desc`,
+podman completion zsh -f _podman
+podman completion fish --no-desc`,
 		// don't show this command to users
 		Hidden: true,
 	}

@@ -49,8 +49,8 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman search --filter=is-official --limit 3 alpine
-  podman search registry.fedoraproject.org/  # only works with v2 registries
-  podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
+podman search registry.fedoraproject.org/  # only works with v2 registries
+podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
 	}
 
 	imageSearchCmd = &cobra.Command{
@@ -61,8 +61,8 @@ var (
 		Args:              searchCmd.Args,
 		ValidArgsFunction: searchCmd.ValidArgsFunction,
 		Example: `podman image search --filter=is-official --limit 3 alpine
-  podman image search registry.fedoraproject.org/  # only works with v2 registries
-  podman image search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
+podman image search registry.fedoraproject.org/  # only works with v2 registries
+podman image search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
 	}
 )
 

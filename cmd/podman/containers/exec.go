@@ -30,8 +30,8 @@ var (
 		RunE:              exec,
 		ValidArgsFunction: common.AutocompleteExecCommand,
 		Example: `podman exec -it ctrID ls
-  podman exec -it -w /tmp myCtr pwd
-  podman exec --user root ctrID ls`,
+podman exec -it -w /tmp myCtr pwd
+podman exec --user root ctrID ls`,
 	}
 
 	containerExecCommand = &cobra.Command{
@@ -41,8 +41,8 @@ var (
 		RunE:              execCommand.RunE,
 		ValidArgsFunction: execCommand.ValidArgsFunction,
 		Example: `podman container exec -it ctrID ls
-  podman container exec -it -w /tmp myCtr pwd
-  podman container exec --user root ctrID ls`,
+podman container exec -it -w /tmp myCtr pwd
+podman container exec --user root ctrID ls`,
 	}
 )
 

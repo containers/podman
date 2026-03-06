@@ -21,8 +21,8 @@ var (
 		RunE:              rm,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image rm imageID
-  podman image rm --force alpine
-  podman image rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
+podman image rm --force alpine
+podman image rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
 	}
 
 	rmiCmd = &cobra.Command{
@@ -33,8 +33,8 @@ var (
 		RunE:              rmCmd.RunE,
 		ValidArgsFunction: rmCmd.ValidArgsFunction,
 		Example: `podman rmi imageID
-  podman rmi --force alpine
-  podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
+podman rmi --force alpine
+podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7`,
 	}
 
 	imageOpts = entities.ImageRemoveOptions{}

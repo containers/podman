@@ -29,8 +29,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman kill mywebserver
-  podman kill 860a4b23
-  podman kill --signal TERM ctrID`,
+podman kill 860a4b23
+podman kill --signal TERM ctrID`,
 	}
 
 	containerKillCommand = &cobra.Command{
@@ -43,8 +43,8 @@ var (
 		RunE:              killCommand.RunE,
 		ValidArgsFunction: killCommand.ValidArgsFunction,
 		Example: `podman container kill mywebserver
-  podman container kill 860a4b23
-  podman container kill --signal TERM ctrID`,
+podman container kill 860a4b23
+podman container kill --signal TERM ctrID`,
 	}
 )
 

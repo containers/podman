@@ -27,7 +27,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersPaused,
 		Example: `podman unpause ctrID
-  podman unpause --all`,
+podman unpause --all`,
 	}
 
 	containerUnpauseCommand = &cobra.Command{
@@ -40,7 +40,7 @@ var (
 		},
 		ValidArgsFunction: unpauseCommand.ValidArgsFunction,
 		Example: `podman container unpause ctrID
-  podman container unpause --all`,
+podman container unpause --all`,
 	}
 )
 

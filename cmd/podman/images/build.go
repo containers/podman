@@ -24,8 +24,8 @@ var (
 		RunE:              build,
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman build .
-  podman build --creds=username:password -t imageName -f Containerfile.simple .
-  podman build --layers --force-rm --tag imageName .`,
+podman build --creds=username:password -t imageName -f Containerfile.simple .
+podman build --layers --force-rm --tag imageName .`,
 	}
 
 	imageBuildCmd = &cobra.Command{
@@ -36,8 +36,8 @@ var (
 		RunE:              buildCmd.RunE,
 		ValidArgsFunction: buildCmd.ValidArgsFunction,
 		Example: `podman image build .
-  podman image build --creds=username:password -t imageName -f Containerfile.simple .
-  podman image build --layers --force-rm --tag imageName .`,
+podman image build --creds=username:password -t imageName -f Containerfile.simple .
+podman image build --layers --force-rm --tag imageName .`,
 	}
 
 	buildxBuildCmd = &cobra.Command{
@@ -48,8 +48,8 @@ var (
 		RunE:              buildCmd.RunE,
 		ValidArgsFunction: buildCmd.ValidArgsFunction,
 		Example: `podman buildx build .
-  podman buildx build --creds=username:password -t imageName -f Containerfile.simple .
-  podman buildx build --layers --force-rm --tag imageName .`,
+podman buildx build --creds=username:password -t imageName -f Containerfile.simple .
+podman buildx build --layers --force-rm --tag imageName .`,
 	}
 
 	buildOpts = common.BuildFlagsWrapper{}

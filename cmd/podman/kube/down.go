@@ -25,8 +25,8 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman kube down nginx.yml
-   cat nginx.yml | podman kube down -
-   podman kube down https://example.com/nginx.yml`,
+cat nginx.yml | podman kube down -
+podman kube down https://example.com/nginx.yml`,
 	}
 
 	downOptions = downKubeOptions{}

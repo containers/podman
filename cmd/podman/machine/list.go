@@ -36,8 +36,8 @@ var (
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman machine list,
-  podman machine list --format json
-  podman machine ls`,
+podman machine list --format json
+podman machine ls`,
 	}
 	listFlag = listFlagType{}
 )

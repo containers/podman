@@ -28,7 +28,7 @@ var buildxInspectCmd = &cobra.Command{
 	Long:  "Displays information about the current builder instance (compatibility with Docker buildx inspect)",
 	RunE:  runBuildxInspect,
 	Example: `podman buildx inspect
-	podman buildx inspect --bootstrap`,
+podman buildx inspect --bootstrap`,
 }
 
 func init() {
