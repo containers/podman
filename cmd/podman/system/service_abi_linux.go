@@ -8,7 +8,7 @@ import (
 	"go.podman.io/common/pkg/servicereaper"
 )
 
-// Currently, we only need servicereaper on Linux to support slirp4netns.
+// Currently, we only need servicereaper on Linux for rootless networking.
 func maybeStartServiceReaper() {
 	servicereaper.Start()
 }

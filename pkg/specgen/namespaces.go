@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage/pkg/fileutils"
@@ -49,10 +50,6 @@ const (
 	// should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Bridge NamespaceMode = "bridge"
-	// Slirp indicates that a slirp4netns network stack should
-	// be used.
-	// Only used with the network namespace, invalid otherwise.
-	Slirp NamespaceMode = "slirp4netns"
 	// Pasta indicates that a pasta network stack should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Pasta NamespaceMode = "pasta"
@@ -158,8 +155,6 @@ func validateNetNS(n *Namespace) error {
 		return nil
 	}
 	switch n.NSMode {
-	case Slirp:
-		break
 	case Pasta:
 		// Check if we run rootless/in a userns. Do not use rootless.IsRootless() here.
 		// Pasta switches to nobody when running as root which causes it to fail while
@@ -181,8 +176,8 @@ func validateNetNS(n *Namespace) error {
 		if len(n.Value) < 1 {
 			return fmt.Errorf("namespace mode %s requires a value", n.NSMode)
 		}
-	} else if n.NSMode != Slirp {
-		// All others except must NOT set a string value
+	} else {
+		// All others must NOT set a string value
 		if len(n.Value) > 0 {
 			return fmt.Errorf("namespace value %s cannot be provided with namespace mode %s", n.Value, n.NSMode)
 		}
@@ -211,7 +206,7 @@ func (n *Namespace) validate() error {
 	switch n.NSMode {
 	case "", Default, Host, Path, FromContainer, FromPod, Private:
 		// Valid, do nothing
-	case NoNetwork, Bridge, Slirp, Pasta:
+	case NoNetwork, Bridge, Pasta:
 		return errors.New("cannot use network modes with non-network namespace")
 	default:
 		return fmt.Errorf("invalid namespace type %s specified", n.NSMode)
@@ -318,6 +313,40 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 	}
 }
 
+// convertSlirp4netnsToPastaOptions maps slirp4netns options to pasta equivalents
+func convertSlirp4netnsToPastaOptions(options string) []string {
+	slirpOpts := strings.Split(options, ",")
+	pastaOpts := []string{}
+
+	for _, opt := range slirpOpts {
+		key, value, _ := strings.Cut(opt, "=")
+		switch key {
+		case "enable_ipv6":
+			if value == "false" {
+				pastaOpts = append(pastaOpts, "--ipv4-only")
+			}
+		case "mtu":
+			pastaOpts = append(pastaOpts, "--mtu")
+			pastaOpts = append(pastaOpts, value)
+		case "outbound_addr", "outbound_addr6":
+			pastaOpts = append(pastaOpts, "--outbound")
+			pastaOpts = append(pastaOpts, value)
+		case "cidr":
+			logrus.Warnf("slirp4netns cidr option not supported by pasta, ignoring")
+		case "allow_host_loopback":
+			if value == "true" {
+				logrus.Warnf("slirp4netns allow_host_loopback option not supported by pasta, ignoring")
+			}
+		case "port_handler":
+			// Skip port_handler option, pasta uses RootlessKit by default
+		default:
+			logrus.Warnf("unknown slirp4netns option %s, ignoring", key)
+		}
+	}
+
+	return pastaOpts
+}
+
 // ParseNetworkFlag parses a network string slice into the network options
 // If the input is nil or empty it will use the default setting from containers.conf
 func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
@@ -337,13 +366,20 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 	podmanNetworks := make(map[string]types.PerNetworkOptions)
 
 	switch {
-	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
-		key, options, hasOptions := strings.Cut(ns, ":")
+	case ns == "slirp4netns", strings.HasPrefix(ns, "slirp4netns:"):
+		// Auto-convert slirp4netns to pasta for backward compatibility
+		logrus.Warn("slirp4netns support has been removed in Podman 6.0; automatically converting to pasta for backward compatibility")
+
+		_, options, hasOptions := strings.Cut(ns, ":")
 		if hasOptions {
-			networkOptions = make(map[string][]string)
-			networkOptions[key] = strings.Split(options, ",")
+			// Map slirp4netns options to pasta equivalents
+			pastaOpts := convertSlirp4netnsToPastaOptions(options)
+			if len(pastaOpts) > 0 {
+				networkOptions = make(map[string][]string)
+				networkOptions["pasta"] = pastaOpts
+			}
 		}
-		toReturn.NSMode = Slirp
+		toReturn.NSMode = Pasta
 	case ns == string(FromPod):
 		toReturn.NSMode = FromPod
 	case ns == "" || ns == string(Default) || ns == string(Private):
@@ -416,7 +452,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
 			if slices.Contains([]string{
-				string(Bridge), string(Slirp), string(Pasta), string(FromPod), string(NoNetwork),
+				string(Bridge), string(Pasta), string(FromPod), string(NoNetwork),
 				string(Default), string(Private), string(Path), string(FromContainer), string(Host),
 			}, name) {
 				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", name, define.ErrInvalidArg)

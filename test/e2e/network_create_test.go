@@ -535,7 +535,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with invalid name", func() {
-		for _, name := range []string{"none", "host", "bridge", "private", "slirp4netns", "pasta", "container", "ns", "default"} {
+		for _, name := range []string{"none", "host", "bridge", "private", "pasta", "container", "ns", "default"} {
 			nc := podmanTest.Podman([]string{"network", "create", name})
 			nc.WaitWithDefaultTimeout()
 			Expect(nc).To(ExitWithError(125, fmt.Sprintf("cannot create network with name %q because it conflicts with a valid network mode", name)))
