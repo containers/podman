@@ -274,9 +274,8 @@ EOF
     safe_opts=$(podman_isolation_opts ${PODMAN_TMPDIR})
 
     # Force all custom directories so we don't pick up an existing database
-    CONTAINERS_STORAGE_CONF=$PODMAN_TMPDIR/storage.conf run_podman 0+w $safe_opts info
-    require_warning "The storage 'driver' option should be set" \
-       	            "c/storage should warn on empty storage driver"
+    CONTAINERS_STORAGE_CONF=$PODMAN_TMPDIR/storage.conf run_podman $safe_opts info --format {{.Store.GraphDriverName}}
+    driver="$output"
 
     # Now add a valid graph driver to storage.conf
     cat >$PODMAN_TMPDIR/storage.conf <<EOF
@@ -285,7 +284,8 @@ driver="$(podman_storage_driver)"
 EOF
 
     # Second run of Podman should still succeed after editing the graph driver.
-    CONTAINERS_STORAGE_CONF=$PODMAN_TMPDIR/storage.conf run_podman $safe_opts info
+    CONTAINERS_STORAGE_CONF=$PODMAN_TMPDIR/storage.conf run_podman $safe_opts info --format {{.Store.GraphDriverName}}
+    assert "$output" == "$driver" "podman should keep using original driver after edit of storage.conf"
 }
 
 # vim: filetype=sh
