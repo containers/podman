@@ -1382,19 +1382,15 @@ func (s *SQLiteState) RenameVolume(volume *Volume, newName string) (defErr error
 		}
 	}()
 
-	// Update VolumeState first
-	results, err := tx.Exec("UPDATE VolumeState SET Name=? WHERE Name=?;", newName, volume.Name())
-	if err != nil {
+	// Update VolumeState first.
+	// VolumeState may not exist for all volumes, so we intentionally
+	// do not check RowsAffected here.
+	if _, err := tx.Exec("UPDATE VolumeState SET Name=? WHERE Name=?;", newName, volume.Name()); err != nil {
 		return fmt.Errorf("updating volume state name for volume %s: %w", volume.Name(), err)
-	}
-	if rows, err := results.RowsAffected(); err != nil {
-		return fmt.Errorf("retrieving volume %s state rename rows affected: %w", volume.Name(), err)
-	} else if rows == 0 {
-		// VolumeState may not exist for all volumes, so don't error on 0 rows
 	}
 
 	// Update VolumeConfig (Name column + JSON blob)
-	results, err = tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE Name=?;", newName, json, volume.Name())
+	results, err := tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE Name=?;", newName, json, volume.Name())
 	if err != nil {
 		return fmt.Errorf("updating volume config for volume %s: %w", volume.Name(), err)
 	}

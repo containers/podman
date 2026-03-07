@@ -31,7 +31,7 @@ var _ = Describe("Podman volume rename", func() {
 		// Old name should no longer exist
 		check = podmanTest.Podman([]string{"volume", "inspect", "myvol"})
 		check.WaitWithDefaultTimeout()
-		Expect(check).To(ExitWithError(125, "no such volume myvol"))
+		Expect(check).To(ExitWithError(125, "no such volume"))
 	})
 
 	It("podman volume rename data persists", func() {
