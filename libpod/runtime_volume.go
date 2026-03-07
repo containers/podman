@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -181,7 +182,7 @@ func (r *Runtime) RenameVolume(_ context.Context, vol *Volume, newName string) (
 	newPath := filepath.Join(r.config.Engine.VolumePath, newName)
 	if err := os.Rename(oldPath, newPath); err != nil {
 		// If the directory doesn't exist (e.g., plugin volumes), skip
-		if !os.IsNotExist(err) {
+		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("renaming volume directory %q to %q: %w", oldPath, newPath, err)
 		}
 	}
