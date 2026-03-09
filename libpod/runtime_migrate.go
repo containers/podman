@@ -139,8 +139,7 @@ func (r *Runtime) checkCanMigrate() error {
 
 func (r *Runtime) migrateDB() error {
 	// Does the SQLite state already exist?
-	dbBasePath, dbFilename := sqliteStatePath(r)
-	dbPath := filepath.Join(dbBasePath, dbFilename)
+	dbPath := sqliteStatePath(r)
 	if err := fileutils.Exists(dbPath); err == nil {
 		return fmt.Errorf("a SQLite database already exists at %s, refusing to overwrite", dbPath)
 	}
