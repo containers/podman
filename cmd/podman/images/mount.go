@@ -32,9 +32,9 @@ var (
 		RunE:              mount,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image mount imgID
-  podman image mount imgID1 imgID2 imgID3
-  podman image mount
-  podman image mount --all`,
+podman image mount imgID1 imgID2 imgID3
+podman image mount
+podman image mount --all`,
 	}
 )
 

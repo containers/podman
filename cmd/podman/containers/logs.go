@@ -51,10 +51,10 @@ var (
 		RunE:              logs,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman logs ctrID
-  podman logs --names ctrID1 ctrID2
-  podman logs --tail 2 mywebserver
-  podman logs --follow=true --since 10m ctrID
-  podman logs mywebserver mydbserver`,
+podman logs --names ctrID1 ctrID2
+podman logs --tail 2 mywebserver
+podman logs --follow=true --since 10m ctrID
+podman logs mywebserver mydbserver`,
 	}
 
 	containerLogsCommand = &cobra.Command{
@@ -65,11 +65,11 @@ var (
 		RunE:              logsCommand.RunE,
 		ValidArgsFunction: logsCommand.ValidArgsFunction,
 		Example: `podman container logs ctrID
-		podman container logs --names ctrID1 ctrID2
-		podman container logs --color --names ctrID1 ctrID2
-		podman container logs --tail 2 mywebserver
-		podman container logs --follow=true --since 10m ctrID
-		podman container logs mywebserver mydbserver`,
+podman container logs --names ctrID1 ctrID2
+podman container logs --color --names ctrID1 ctrID2
+podman container logs --tail 2 mywebserver
+podman container logs --follow=true --since 10m ctrID
+podman container logs mywebserver mydbserver`,
 	}
 )
 

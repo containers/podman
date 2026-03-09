@@ -28,10 +28,10 @@ var (
 		TraverseChildren:  true,
 		ValidArgsFunction: common.AutocompleteInspect,
 		Example: `podman inspect fedora
-  podman inspect --type image fedora
-  podman inspect --type artifact quay.io/myimage/myartifact:latest
-  podman inspect CtrID ImgID
-  podman inspect --format "imageId: {{.Id}} size: {{.Size}}" fedora`,
+podman inspect --type image fedora
+podman inspect --type artifact quay.io/myimage/myartifact:latest
+podman inspect CtrID ImgID
+podman inspect --format "imageId: {{.Id}} size: {{.Size}}" fedora`,
 	}
 	inspectOpts *entities.InspectOptions
 )

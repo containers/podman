@@ -25,7 +25,7 @@ var (
 		RunE:              wait,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman wait --interval 5s ctrID
-  podman wait ctrID1 ctrID2`,
+podman wait ctrID1 ctrID2`,
 	}
 
 	containerWaitCommand = &cobra.Command{
@@ -35,7 +35,7 @@ var (
 		RunE:              waitCommand.RunE,
 		ValidArgsFunction: waitCommand.ValidArgsFunction,
 		Example: `podman container wait --interval 5s ctrID
-  podman container wait ctrID1 ctrID2`,
+podman container wait ctrID1 ctrID2`,
 	}
 )
 

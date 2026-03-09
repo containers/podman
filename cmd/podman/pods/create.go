@@ -39,7 +39,7 @@ var (
 		RunE:              create,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman pod create
-  podman pod create --label foo=bar mypod`,
+podman pod create --label foo=bar mypod`,
 	}
 )
 

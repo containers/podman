@@ -30,7 +30,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stop ctrID
-  podman stop --time 2 mywebserver 6e534f14da9d`,
+podman stop --time 2 mywebserver 6e534f14da9d`,
 	}
 
 	containerStopCommand = &cobra.Command{
@@ -43,7 +43,7 @@ var (
 		},
 		ValidArgsFunction: stopCommand.ValidArgsFunction,
 		Example: `podman container stop ctrID
-  podman container stop --time 2 mywebserver 6e534f14da9d`,
+podman container stop --time 2 mywebserver 6e534f14da9d`,
 	}
 )
 

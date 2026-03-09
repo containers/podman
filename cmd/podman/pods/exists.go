@@ -19,7 +19,7 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod exists podID
-  podman pod exists mypod || podman pod create --name mypod`,
+podman pod exists mypod || podman pod create --name mypod`,
 	}
 )
 

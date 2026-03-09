@@ -31,8 +31,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman unmount ctrID
-  podman unmount ctrID1 ctrID2 ctrID3
-  podman unmount --all`,
+podman unmount ctrID1 ctrID2 ctrID3
+podman unmount --all`,
 	}
 
 	containerUnmountCommand = &cobra.Command{
@@ -47,8 +47,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container unmount ctrID
-  podman container unmount ctrID1 ctrID2 ctrID3
-  podman container unmount --all`,
+podman container unmount ctrID1 ctrID2 ctrID3
+podman container unmount --all`,
 	}
 )
 

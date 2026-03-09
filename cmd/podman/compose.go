@@ -30,7 +30,7 @@ If you want to change the default behavior or have a custom installation path fo
 	RunE:              composeMain,
 	ValidArgsFunction: composeCompletion,
 	Example: `podman compose -f nginx.yaml up --detach
-  podman --log-level=debug compose -f many-images.yaml pull`,
+podman --log-level=debug compose -f many-images.yaml pull`,
 	DisableFlagParsing: true,
 	Annotations:        map[string]string{registry.ParentNSRequired: ""}, // don't join user NS for SSH to work correctly
 }

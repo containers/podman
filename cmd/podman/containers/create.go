@@ -39,8 +39,8 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteCreateRun,
 		Example: `podman create alpine ls
-  podman create --annotation HELLO=WORLD alpine ls
-  podman create -t -i --name myctr alpine ls`,
+podman create --annotation HELLO=WORLD alpine ls
+podman create -t -i --name myctr alpine ls`,
 	}
 
 	containerCreateCommand = &cobra.Command{
@@ -51,8 +51,8 @@ var (
 		RunE:              createCommand.RunE,
 		ValidArgsFunction: createCommand.ValidArgsFunction,
 		Example: `podman container create alpine ls
-  podman container create --annotation HELLO=WORLD alpine ls
-  podman container create -t -i --name myctr alpine ls`,
+podman container create --annotation HELLO=WORLD alpine ls
+podman container create -t -i --name myctr alpine ls`,
 	}
 )
 

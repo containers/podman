@@ -30,7 +30,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman restart ctrID
-  podman restart ctrID1 ctrID2`,
+podman restart ctrID1 ctrID2`,
 	}
 
 	containerRestartCommand = &cobra.Command{
@@ -41,7 +41,7 @@ var (
 		Args:              restartCommand.Args,
 		ValidArgsFunction: restartCommand.ValidArgsFunction,
 		Example: `podman container restart ctrID
-  podman container restart ctrID1 ctrID2`,
+podman container restart ctrID1 ctrID2`,
 	}
 )
 

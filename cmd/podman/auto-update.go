@@ -38,7 +38,7 @@ var (
 		RunE:              autoUpdate,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman auto-update
-  podman auto-update --authfile ~/authfile.json`,
+podman auto-update --authfile ~/authfile.json`,
 	}
 )
 

@@ -60,9 +60,9 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman kube play nginx.yml
-  cat nginx.yml | podman kube play -
-  podman kube play --creds user:password --seccomp-profile-root /custom/path apache.yml
-  podman kube play https://example.com/nginx.yml`,
+cat nginx.yml | podman kube play -
+podman kube play --creds user:password --seccomp-profile-root /custom/path apache.yml
+podman kube play https://example.com/nginx.yml`,
 	}
 )
 
@@ -76,9 +76,9 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman play kube nginx.yml
-  cat nginx.yml | podman play kube -
-  podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml
-  podman play kube https://example.com/nginx.yml`,
+cat nginx.yml | podman play kube -
+podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml
+podman play kube https://example.com/nginx.yml`,
 	}
 	logDriverFlagName = "log-driver"
 )

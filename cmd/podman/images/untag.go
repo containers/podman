@@ -16,8 +16,8 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman untag 0e3bbc2
-  podman untag imageID:latest otherImageName:latest
-  podman untag httpd myregistryhost:5000/fedora/httpd:v2`,
+podman untag imageID:latest otherImageName:latest
+podman untag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
 
 	imageUntagCmd = &cobra.Command{
@@ -28,8 +28,8 @@ var (
 		RunE:              untagCmd.RunE,
 		ValidArgsFunction: untagCmd.ValidArgsFunction,
 		Example: `podman image untag 0e3bbc2
-  podman image untag imageID:latest otherImageName:latest
-  podman image untag httpd myregistryhost:5000/fedora/httpd:v2`,
+podman image untag imageID:latest otherImageName:latest
+podman image untag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
 )
 

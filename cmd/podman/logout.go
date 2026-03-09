@@ -22,8 +22,8 @@ var (
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: common.AutocompleteRegistries,
 		Example: `podman logout quay.io
-  podman logout --authfile dir/auth.json quay.io
-  podman logout --all`,
+podman logout --authfile dir/auth.json quay.io
+podman logout --all`,
 	}
 )
 

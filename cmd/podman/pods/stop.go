@@ -40,7 +40,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stop mywebserverpod
-  podman pod stop --time 0 490eb 3557fb`,
+podman pod stop --time 0 490eb 3557fb`,
 	}
 )
 

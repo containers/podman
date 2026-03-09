@@ -20,7 +20,7 @@ var renameCmd = &cobra.Command{
 	ValidArgsFunction: common.AutocompleteSystemConnections,
 	RunE:              rename,
 	Example: `podman system connection rename laptop devl,
-  podman system connection mv laptop devl`,
+podman system connection mv laptop devl`,
 }
 
 func init() {

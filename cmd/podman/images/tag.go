@@ -17,8 +17,8 @@ var (
 		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman tag 0e3bbc2 fedora:latest
-  podman tag imageID:latest myNewImage:newTag
-  podman tag httpd myregistryhost:5000/fedora/httpd:v2`,
+podman tag imageID:latest myNewImage:newTag
+podman tag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
 
 	imageTagCommand = &cobra.Command{
@@ -29,8 +29,8 @@ var (
 		RunE:              tagCommand.RunE,
 		ValidArgsFunction: tagCommand.ValidArgsFunction,
 		Example: `podman image tag 0e3bbc2 fedora:latest
-  podman image tag imageID:latest myNewImage:newTag
-  podman image tag httpd myregistryhost:5000/fedora/httpd:v2`,
+podman image tag imageID:latest myNewImage:newTag
+podman image tag httpd myregistryhost:5000/fedora/httpd:v2`,
 	}
 )
 

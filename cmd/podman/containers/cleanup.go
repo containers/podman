@@ -31,7 +31,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersExited,
 		Example: `podman container cleanup ctrID1 ctrID2 ctrID3
-  podman container cleanup --all`,
+podman container cleanup --all`,
 	}
 )
 

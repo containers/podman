@@ -33,8 +33,8 @@ var (
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman ps -a
-  podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
-  podman ps --size --sort names`,
+podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
+podman ps --size --sort names`,
 	}
 
 	psContainerCommand = &cobra.Command{
