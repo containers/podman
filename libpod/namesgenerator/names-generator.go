@@ -1,3 +1,8 @@
+// This file has been copied from
+// https://github.com/moby/moby/tree/a52171f5eeb6e553e7c4744abf6b722962b2aca4/internal/namesgenerator.
+// It is licensed under the Apache License 2.0.
+// See https://github.com/moby/moby/blob/a52171f5eeb6e553e7c4744abf6b722962b2aca4/LICENSE.
+//
 // Package namesgenerator generates random names.
 //
 // This package is officially "frozen" - no new additions will be accepted.
@@ -263,7 +268,7 @@ var (
 		// David Lee Chaum - American computer scientist and cryptographer. Known for his seminal contributions in the field of anonymous communication. https://en.wikipedia.org/wiki/David_Chaum
 		"chaum",
 
-		// Pafnuty Chebyshev - Russian mathematician. He is known fo his works on probability, statistics, mechanics, analytical geometry and number theory https://en.wikipedia.org/wiki/Pafnuty_Chebyshev
+		// Pafnuty Chebyshev - Russian mathematician. He is known for his works on probability, statistics, mechanics, analytical geometry and number theory https://en.wikipedia.org/wiki/Pafnuty_Chebyshev
 		"chebyshev",
 
 		// Joan Clarke - Bletchley Park code breaker during the Second World War who pioneered techniques that remained top secret for decades. Also an accomplished numismatist https://en.wikipedia.org/wiki/Joan_Clarke
@@ -793,7 +798,7 @@ var (
 		// Dorothy Vaughan was a NASA mathematician and computer programmer on the SCOUT launch vehicle program that put America's first satellites into space - https://en.wikipedia.org/wiki/Dorothy_Vaughan
 		"vaughan",
 
-		// Cédric Villani - French mathematician, won Fields Medal, Fermat Prize and Poincaré Price for his work in differential geometry and statistical mechanics. https://en.wikipedia.org/wiki/C%C3%A9dric_Villani
+		// Cédric Villani - French mathematician, won Fields Medal, Fermat Prize and Poincaré Prize for his work in differential geometry and statistical mechanics. https://en.wikipedia.org/wiki/C%C3%A9dric_Villani
 		"villani",
 
 		// Sir Mokshagundam Visvesvaraya - is a notable Indian engineer.  He is a recipient of the Indian Republic's highest honour, the Bharat Ratna, in 1955. On his birthday, 15 September is celebrated as Engineer's Day in India in his memory - https://en.wikipedia.org/wiki/Visvesvaraya

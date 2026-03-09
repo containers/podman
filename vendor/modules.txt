@@ -251,7 +251,6 @@ github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/jsonmessage
-github.com/docker/docker/pkg/namesgenerator
 github.com/docker/docker/pkg/stdcopy
 # github.com/docker/docker-credential-helpers v0.9.5
 ## explicit; go 1.21
