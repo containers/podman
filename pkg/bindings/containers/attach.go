@@ -464,10 +464,24 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		attachHandleResize(ctx, winCtx, winChange, true, sessionID, terminalFile, terminalOutFile)
 	}
 
+	// Parse detach keys for client-side detach detection.
+	// If DetachKeys option is set, use it (empty string disables detaching).
+	// If not set, use empty byte slice (no client-side detach detection,
+	// server handles it).
+	detachKeysInBytes := []byte{}
+	if options.Changed("DetachKeys") {
+		if options.GetDetachKeys() != "" {
+			detachKeysInBytes, err = term.ToBytes(options.GetDetachKeys())
+			if err != nil {
+				return fmt.Errorf("invalid detach keys: %w", err)
+			}
+		}
+	}
+
 	if options.GetAttachInput() {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
-			_, err := detach.Copy(socket, options.InputStream, []byte{})
+			_, err := detach.Copy(socket, options.InputStream, detachKeysInBytes)
 			// Ignore "closed network connection" as it occurs when the exec ends, which is expected.
 			// This avoids noisy logs but does not fix the goroutine leak
 			// https://github.com/containers/podman/issues/25344
@@ -488,7 +502,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			return fmt.Errorf("exec session %s has a terminal and must have STDOUT enabled", sessionID)
 		}
 		// If not multiplex'ed, read from server and write to stdout
-		_, err := detach.Copy(options.GetOutputStream(), socket, []byte{})
+		_, err := detach.Copy(options.GetOutputStream(), socket, detachKeysInBytes)
 		if err != nil {
 			return err
 		}

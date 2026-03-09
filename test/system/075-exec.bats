@@ -312,4 +312,17 @@ load helpers
 
     run_podman rm -f -t0 $cid
 }
+
+# Regression test for https://github.com/containers/podman/issues/28193
+# bats test_tags=ci:parallel
+@test "podman exec with empty --detach-keys" {
+    # Empty string should disable detaching, not error with "invalid detach keys"
+    run_podman run -d $IMAGE sleep 60
+    cid="$output"
+
+    run_podman exec --detach-keys="" $cid echo "success"
+    is "$output" "success" "empty detach-keys for exec should work"
+
+    run_podman rm -f -t0 $cid
+}
 # vim: filetype=sh

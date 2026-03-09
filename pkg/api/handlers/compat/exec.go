@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -27,10 +28,27 @@ import (
 func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		utils.InternalServerError(w, fmt.Errorf("reading request body: %w", err))
+		return
+	}
+
 	input := new(handlers.ExecCreateConfig)
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := json.Unmarshal(bodyBytes, &input); err != nil {
 		utils.InternalServerError(w, fmt.Errorf("decoding request body as JSON: %w", err))
 		return
+	}
+
+	// Determine whether DetachKeys was explicitly provided in the JSON body.
+	// We need to distinguish between "not set" (should use default detach keys)
+	// and "set to empty string" (should disable detach keys).
+	// Since the Docker API uses a plain string (not *string), both cases
+	// unmarshal to "", so we check the raw JSON for the field's presence.
+	detachKeysSet := false
+	var rawFields map[string]json.RawMessage
+	if err := json.Unmarshal(bodyBytes, &rawFields); err == nil {
+		_, detachKeysSet = rawFields["DetachKeys"]
 	}
 
 	ctrName := utils.GetName(r)
@@ -46,7 +64,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	libpodConfig.AttachStdin = input.AttachStdin
 	libpodConfig.AttachStderr = input.AttachStderr
 	libpodConfig.AttachStdout = input.AttachStdout
-	if input.DetachKeys != "" {
+	if input.DetachKeys != "" || detachKeysSet {
 		libpodConfig.DetachKeys = &input.DetachKeys
 	}
 	libpodConfig.Environment = make(map[string]string)

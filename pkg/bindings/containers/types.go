@@ -313,6 +313,9 @@ type ExecStartAndAttachOptions struct {
 	// AttachInput is whether to attach to STDIN
 	// If false, stdout will not be attached
 	AttachInput *bool
+	// DetachKeys are keys that will be used to detach from the exec
+	// session. Empty string disables detaching.
+	DetachKeys *string
 }
 
 // ExistsOptions are optional options for checking if a container exists

@@ -108,3 +108,18 @@ func (o *ExecStartAndAttachOptions) GetAttachInput() bool {
 	}
 	return *o.AttachInput
 }
+
+// WithDetachKeys set keys to detach from exec session
+func (o *ExecStartAndAttachOptions) WithDetachKeys(value string) *ExecStartAndAttachOptions {
+	o.DetachKeys = &value
+	return o
+}
+
+// GetDetachKeys returns value of keys to detach from exec session
+func (o *ExecStartAndAttachOptions) GetDetachKeys() string {
+	if o.DetachKeys == nil {
+		var z string
+		return z
+	}
+	return *o.DetachKeys
+}

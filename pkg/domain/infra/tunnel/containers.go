@@ -644,6 +644,7 @@ func (ic *ContainerEngine) ContainerExec(_ context.Context, nameOrID string, opt
 		startAndAttachOptions.WithInputStream(*streams.InputStream)
 	}
 	startAndAttachOptions.WithAttachError(streams.AttachError).WithAttachOutput(streams.AttachOutput).WithAttachInput(streams.AttachInput)
+	startAndAttachOptions.WithDetachKeys(options.DetachKeys)
 	if err := containers.ExecStartAndAttach(ic.ClientCtx, sessionID, startAndAttachOptions); err != nil {
 		return 125, err
 	}
