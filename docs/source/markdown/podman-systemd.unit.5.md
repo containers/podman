@@ -214,8 +214,9 @@ to mount a distinct volume. In this case you can create a template Quadlet
 `foo-data@.volume`:
 ```
 [Volume]
-# Optional: automatic naming does work with template Quadlets too.
-# This is just to demonstrate the behaviour of systemd specifiers (e.g. %i).
+# Optional: without an explicit VolumeName, Quadlet auto-generates one with a
+# "systemd-" prefix (e.g. systemd-foo-data-%i for foo-data@.volume).
+# This does not affect how you reference this Quadlet from other Quadlets.
 VolumeName=my-name-%i
 ```
 
