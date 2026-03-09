@@ -305,10 +305,23 @@ func getDBState(runtime *Runtime) (State, error) {
 
 	// get default boltdb path
 	boltDBPath := getBoltDBPath(runtime)
+	sqlitePath := sqliteStatePath(runtime)
 
 	switch backend {
 	case config.DBBackendDefault:
-		// for backwards compatibility check if boltdb exists, if it does not we use sqlite
+		// First check if we have a sqlite file, then we know we must use sqlite.
+		if err := fileutils.Exists(sqlitePath); err == nil {
+			// need to set DBBackend string so podman info will show the backend name correctly
+			runtime.config.Engine.DBBackend = config.DBBackendSQLite.String()
+			return NewSqliteState(runtime)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			// Return error here some other problem with the sqlite file, rather than silently
+			// switch to boltdb which would be hard to debug for the user return the error back
+			// as this likely a real bug.
+			return nil, err
+		}
+
+		// for backwards compatibility check if boltdb exists, if it does not we also use sqlite
 		if err := fileutils.Exists(boltDBPath); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				// need to set DBBackend string so podman info will show the backend name correctly
