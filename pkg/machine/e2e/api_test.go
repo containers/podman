@@ -7,8 +7,8 @@ import (
 	"runtime"
 
 	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/docker/docker/client"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/moby/moby/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -39,9 +39,9 @@ var _ = Describe("run podman API test calls", func() {
 		Expect(err).ToNot(HaveOccurred())
 		sockPath := inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()
 
-		cli, err := client.NewClientWithOpts(client.WithHost("unix://" + sockPath))
+		cli, err := client.New(client.WithHost("unix://" + sockPath))
 		Expect(err).ToNot(HaveOccurred())
-		_, err = cli.Ping(context.Background())
+		_, err = cli.Ping(context.Background(), client.PingOptions{})
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -65,9 +65,9 @@ var _ = Describe("run podman API test calls", func() {
 		Expect(err).ToNot(HaveOccurred())
 		pipePath := inspectInfo[0].ConnectionInfo.PodmanPipe.GetPath()
 
-		cli, err := client.NewClientWithOpts(client.WithHost(NamedPipeProto + filepath.ToSlash(pipePath)))
+		cli, err := client.New(client.WithHost(NamedPipeProto + filepath.ToSlash(pipePath)))
 		Expect(err).ToNot(HaveOccurred())
-		_, err = cli.Ping(context.Background())
+		_, err = cli.Ping(context.Background(), client.PingOptions{})
 		Expect(err).ToNot(HaveOccurred())
 	})
 

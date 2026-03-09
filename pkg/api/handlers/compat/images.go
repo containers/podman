@@ -21,10 +21,10 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi"
 	"github.com/containers/podman/v6/pkg/util"
-	dockerContainer "github.com/docker/docker/api/types/container"
-	dockerImage "github.com/docker/docker/api/types/image"
-	dockerStorage "github.com/docker/docker/api/types/storage"
 	dockerSpec "github.com/moby/docker-image-spec/specs-go/v1"
+	dockerContainer "github.com/moby/moby/api/types/container"
+	dockerImage "github.com/moby/moby/api/types/image"
+	dockerStorage "github.com/moby/moby/api/types/storage"
 	"github.com/opencontainers/go-digest"
 	imageSpec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -319,7 +319,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	utils.CompatPull(r.Context(), w, runtime, possiblyNormalizedName, config.PullPolicyAlways, pullOptions)
+	utils.CompatPull(r, w, runtime, possiblyNormalizedName, config.PullPolicyAlways, pullOptions)
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
@@ -390,35 +390,38 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image, r *http.Req
 	cc.Volumes = info.Config.Volumes
 
 	dockerImageInspect := dockerImage.InspectResponse{
-		Architecture:  info.Architecture,
-		Author:        info.Author,
-		Comment:       info.Comment,
-		Config:        &config,
-		Created:       l.Created().Format(time.RFC3339Nano),
-		DockerVersion: info.Version,
-		GraphDriver:   graphDriver,
-		ID:            "sha256:" + l.ID(),
-		Metadata:      dockerImage.Metadata{},
-		Os:            info.Os,
-		OsVersion:     info.Version,
-		Parent:        info.Parent,
-		RepoDigests:   info.RepoDigests,
-		RepoTags:      info.RepoTags,
-		RootFS:        rootfs,
-		Size:          info.Size,
-		Variant:       "",
+		Architecture: info.Architecture,
+		Author:       info.Author,
+		Comment:      info.Comment,
+		Config:       &config,
+		Created:      l.Created().Format(time.RFC3339Nano),
+		GraphDriver:  &graphDriver,
+		ID:           "sha256:" + l.ID(),
+		Metadata:     dockerImage.Metadata{},
+		Os:           info.Os,
+		OsVersion:    info.Version,
+		RepoDigests:  info.RepoDigests,
+		RepoTags:     info.RepoTags,
+		RootFS:       rootfs,
+		Size:         info.Size,
+		Variant:      "",
+	}
+
+	imageInspect := handlers.ImageInspect{
+		InspectResponse: dockerImageInspect,
+		DockerVersion:   info.Version,
+		Parent:          info.Parent,
 	}
 
 	if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
-		//nolint:staticcheck // Deprecated field
-		dockerImageInspect.VirtualSize = info.VirtualSize
+		imageInspect.VirtualSize = info.VirtualSize
 	}
 
 	if _, err := apiutil.SupportedVersion(r, "<1.45.0"); err == nil {
-		dockerImageInspect.ContainerConfig = cc //nolint:staticcheck // Deprecated field
+		imageInspect.ContainerConfig = cc
 	}
 
-	return &handlers.ImageInspect{InspectResponse: dockerImageInspect}, nil
+	return &imageInspect, nil
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {

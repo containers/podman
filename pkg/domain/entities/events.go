@@ -6,7 +6,7 @@ import (
 
 	libpodEvents "github.com/containers/podman/v6/libpod/events"
 	types "github.com/containers/podman/v6/pkg/domain/entities/types"
-	dockerEvents "github.com/docker/docker/api/types/events"
+	dockerEvents "github.com/moby/moby/api/types/events"
 )
 
 type Event = types.Event
@@ -78,10 +78,6 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *types.Event {
 		attributes["error"] = e.Error
 	}
 	message := dockerEvents.Message{
-		// Compatibility with clients that still look for deprecated API elements
-		Status: e.Status.String(),
-		ID:     e.ID,
-		From:   e.Image,
 		Type:   dockerEvents.Type(e.Type.String()),
 		Action: dockerEvents.Action(e.Status.String()),
 		Actor: dockerEvents.Actor{
@@ -92,8 +88,12 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *types.Event {
 		Time:     e.Time.Unix(),
 		TimeNano: e.Time.UnixNano(),
 	}
+
 	return &types.Event{
 		Message:      message,
 		HealthStatus: e.HealthStatus,
+		Status:       e.Status.String(),
+		ID:           e.ID,
+		From:         e.Image,
 	}
 }

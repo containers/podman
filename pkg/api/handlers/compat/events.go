@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
+	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/util"
@@ -108,6 +109,13 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 				e.Status = "die"
 				e.Action = "die"
 				e.Actor.Attributes["exitCode"] = e.Actor.Attributes["containerExitCode"]
+			}
+
+			// Remove fields which are not set in 1.52 and newer.
+			if _, err := apiutil.SupportedVersion(r, ">=1.52.0"); err == nil && !apiutil.IsLibpodRequest(r) {
+				e.Status = "" //nolint:staticcheck
+				e.ID = ""     //nolint:staticcheck
+				e.From = ""   //nolint:staticcheck
 			}
 
 			if err := coder.Encode(e); err != nil {
