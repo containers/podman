@@ -644,6 +644,7 @@ load helpers.network
 }
 
 @test "podman run CONTAINERS_CONF dns options" {
+    skip "Fails on RHEL 9.2 b/c netavark < 1.5.0 (missing PR 452), host dns servers always used."
     skip_if_remote "CONTAINERS_CONF redirect does not work on remote"
     # Test on the CLI and via containers.conf
     containersconf=$PODMAN_TMPDIR/containers.conf
