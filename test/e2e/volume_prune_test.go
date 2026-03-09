@@ -13,7 +13,7 @@ var _ = Describe("Podman volume prune", func() {
 		podmanTest.CleanupVolume()
 	})
 
-	It("podman prune volume", func() {
+	It("podman prune volume -a removes all unused volumes", func() {
 		session := podmanTest.Podman([]string{"volume", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -31,7 +31,7 @@ var _ = Describe("Podman volume prune", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(4))
 
-		session = podmanTest.Podman([]string{"volume", "prune", "--force"})
+		session = podmanTest.Podman([]string{"volume", "prune", "-a", "--force"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -39,6 +39,30 @@ var _ = Describe("Podman volume prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
+	})
+
+	It("podman volume prune", func() {
+		session := podmanTest.PodmanExitCleanly("create", "-v", "/anon", ALPINE, "top")
+		podmanTest.PodmanExitCleanly("rm", session.OutputToString())
+
+		podmanTest.PodmanExitCleanly("volume", "create", "named_vol")
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		Expect(session.OutputToStringArray()).To(HaveLen(3))
+
+		podmanTest.PodmanExitCleanly("volume", "prune", "--force")
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring("named_vol"))
+	})
+
+	It("podman volume prune --filter all=true removes all unused volumes", func() {
+		podmanTest.PodmanExitCleanly("volume", "create", "prune_filter_all_test")
+		podmanTest.PodmanExitCleanly("volume", "prune", "--filter", "all=true", "--force")
+
+		session := podmanTest.PodmanExitCleanly("volume", "ls")
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman prune volume --filter until", func() {

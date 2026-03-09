@@ -1,6 +1,7 @@
 package util
 
 import (
+	"net/url"
 	"testing"
 
 	"go.podman.io/common/pkg/filters"
@@ -77,4 +78,47 @@ func TestMatchLabelFilters(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNormalizeVolumePruneFilters(t *testing.T) {
+	t.Parallel()
+	t.Run("empty means anonymous true", func(t *testing.T) {
+		t.Parallel()
+		got := NormalizeVolumePruneFilters(url.Values{})
+		if got.Get("anonymous") != "true" {
+			t.Fatalf("expected anonymous=true, got %q", got.Get("anonymous"))
+		}
+	})
+	t.Run("all true drops all and no anonymous", func(t *testing.T) {
+		t.Parallel()
+		got := NormalizeVolumePruneFilters(url.Values{"all": {"true"}})
+		if got.Has("all") || got.Has("anonymous") {
+			t.Fatalf("got %#v, want no all/anonymous keys", got)
+		}
+	})
+	t.Run("label without anonymous key does not inject anonymous", func(t *testing.T) {
+		t.Parallel()
+		in := url.Values{"label": {"k=v"}}
+		got := NormalizeVolumePruneFilters(in)
+		if got.Has("anonymous") {
+			t.Fatal("must not inject anonymous alongside label (OR would ignore label for anonymous volumes)")
+		}
+		if got.Get("label") != "k=v" {
+			t.Fatalf("label got %q", got.Get("label"))
+		}
+	})
+	t.Run("explicit anonymous skips injection branch", func(t *testing.T) {
+		t.Parallel()
+		got := NormalizeVolumePruneFilters(url.Values{"anonymous": {"false"}})
+		if got.Get("anonymous") != "false" {
+			t.Fatalf("got %q", got.Get("anonymous"))
+		}
+	})
+	t.Run("until does not inject anonymous", func(t *testing.T) {
+		t.Parallel()
+		got := NormalizeVolumePruneFilters(url.Values{"until": {"1h"}})
+		if got.Has("anonymous") {
+			t.Fatal("must not inject anonymous alongside until")
+		}
+	})
 }

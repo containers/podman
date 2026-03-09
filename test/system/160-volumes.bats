@@ -386,26 +386,47 @@ EOF
     run_podman volume prune --filter label=mylabel <<< N
     is "$(echo $(sort <<<${lines[*]:1:2}))" "${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use and 4 filtered out, lists 5,6"
 
-    # prune should remove v4
-    run_podman volume prune --force
+    # prune with -a should remove named unused volumes v4, v5, v6
+    run_podman volume prune --force -a
     is "$(echo $(sort <<<$output))" "${v[4]} ${v[5]} ${v[6]}" \
        "volume prune, with 1, 2, 3 in use, deletes only 4, 5, 6"
 
     # Remove the container using v2 and v3. Prune should now remove those.
     # The 'echo sort' is to get the output sorted and in one line.
     run_podman rm c2
-    run_podman volume prune --force
+    run_podman volume prune --force -a
     is "$(echo $(sort <<<$output))" "${v[2]} ${v[3]}" \
        "volume prune, after rm c2, deletes volumes 2 and 3"
 
     # Remove the final container. Prune should now remove v1.
     run_podman rm c1
-    run_podman volume prune --force
+    run_podman volume prune --force -a
     is "$output"  "${v[1]}" "volume prune, after rm c2 & c1, deletes volume 1"
 
     # Further prunes are NOPs
-    run_podman volume prune --force
+    run_podman volume prune --force -a
     is "$output"  "" "no more volumes to prune"
+}
+
+@test "podman volume prune without -a keeps named volumes" {
+    local -a v=()
+    for i in 1 2 3;do
+        vol=myvol${i}$(random_string)
+        v[$i]=$vol
+        run_podman volume create $vol
+    done
+
+    run_podman run --name c1 --volume ${v[1]}:/vol1 $IMAGE date
+
+    run_podman volume prune <<< N
+    is "$(echo $(sort <<<${lines[*]:1:2}))" "${v[2]} ${v[3]}" \
+       "volume prune without -a lists named unused volumes"
+
+    run_podman volume prune --force
+    is "$output" "" "volume prune without -a does not delete named volumes"
+
+    run_podman volume exists ${v[2]}
+    run_podman volume exists ${v[3]}
 }
 
 @test "podman volume type=bind" {

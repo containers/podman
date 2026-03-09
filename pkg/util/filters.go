@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -54,6 +55,29 @@ func FiltersFromRequest(r *http.Request) ([]string, error) {
 	}
 
 	return libpodFilters, nil
+}
+
+// NormalizeVolumePruneFilters mutates f in place (non-empty maps); if f is empty/nil it
+// returns a new map—always use the return value. If "all" is true/1, all keys are removed;
+// else "all" is deleted and anonymous=true is set only when no other keys remain.
+func NormalizeVolumePruneFilters(f url.Values) url.Values {
+	if len(f) == 0 {
+		f = make(url.Values)
+	}
+	allValue := f.Get("all")
+	if strings.EqualFold(allValue, "true") || allValue == "1" {
+		for key := range f {
+			f.Del(key)
+		}
+		return f
+	}
+	f.Del("all")
+
+	if len(f) > 0 {
+		return f
+	}
+	f.Set("anonymous", "true")
+	return f
 }
 
 // PrepareFilters prepares a *map[string][]string of filters to be later searched
