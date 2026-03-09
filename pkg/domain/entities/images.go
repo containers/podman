@@ -81,8 +81,29 @@ type ImagePullOptions struct {
 	OciDecryptConfig *encconfig.DecryptConfig
 }
 
+// ImagePullStatus contains the status of the image pull
+type ImagePullStatus = entitiesTypes.ImagePullStatus
+
+const (
+	ImagePullStatusPulling = entitiesTypes.ImagePullStatusPulling
+	ImagePullStatusSuccess = entitiesTypes.ImagePullStatusSuccess
+	ImagePullStatusError   = entitiesTypes.ImagePullStatusError
+)
+
 // ImagePullReport is the response from pulling one or more images.
 type ImagePullReport = entitiesTypes.ImagePullReport
+
+// ArtifactPullStatus contains the status of the artifact pull
+type ArtifactPullStatus = entitiesTypes.ArtifactPullStatus
+
+const (
+	ArtifactPullStatusPulling = entitiesTypes.ArtifactPullStatusPulling
+	ArtifactPullStatusSuccess = entitiesTypes.ArtifactPullStatusSuccess
+	ArtifactPullStatusSkipped = entitiesTypes.ArtifactPullStatusSkipped
+)
+
+// ArtifactPullProgress contains the information about the progress of the artifact pull
+type ArtifactPullProgress = entitiesTypes.ArtifactPullProgress
 
 // ImagePushOptions are the arguments for pushing images.
 type ImagePushOptions struct {
