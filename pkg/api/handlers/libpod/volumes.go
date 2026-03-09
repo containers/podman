@@ -150,7 +150,7 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 		return nil, err
 	}
 
-	f := (url.Values)(*filterMap)
+	f := util.NormalizeVolumePruneFilters(url.Values(*filterMap))
 	filterFuncs := []libpod.VolumeFilter{}
 	for filter, filterValues := range f {
 		filterFunc, err := filters.GeneratePruneVolumeFilters(filter, filterValues, runtime)
