@@ -95,6 +95,7 @@ my %Format_Option_Is_Special = map { $_ => 1 } (
     'machine os upgrade',                       #  "    "  "      "
     'push',   'image push', 'manifest push',    # oci | v2s*
     'save',   'image save',                     # image formats (oci-*, ...)
+    'image scp',                                # image archive formats only
     'inspect',                                  # ambiguous (container/image)
  );
 

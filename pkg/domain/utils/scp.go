@@ -97,6 +97,7 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		saveToRemoteOpts.URL = sshInfo.URI[0]
 		saveToRemoteOpts.Iden = sshInfo.Identities[0]
 		saveToRemoteOpts.SSHMode = opts.SSHMode
+		saveToRemoteOpts.Format = opts.SaveFormat
 		_, err = SaveToRemote(saveToRemoteOpts)
 		if err != nil {
 			return nil, err
@@ -139,6 +140,9 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		saveCmd := []string{podman}
 		saveCmd = append(saveCmd, opts.ParentFlags...)
 		saveCmd = append(saveCmd, "save")
+		if opts.SaveFormat != "" {
+			saveCmd = append(saveCmd, "--format", opts.SaveFormat)
+		}
 		if source.Quiet {
 			saveCmd = append(saveCmd, "-q")
 		}
@@ -183,6 +187,7 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		rep.Source = &source
 		rep.Dest = &dest
 		rep.ParentFlags = opts.ParentFlags
+		rep.SaveFormat = opts.SaveFormat
 		return &rep, nil // transfer needs to be done in ABI due to cross issues
 	}
 
@@ -302,7 +307,14 @@ func SaveToRemote(opts entities.ScpSaveToRemoteOptions) (*entities.ScpSaveToRemo
 		return nil, err
 	}
 
-	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"podman", "image", "save", opts.Image, "--format", "oci-archive", "--output", remoteFile}}, opts.SSHMode)
+	saveArgs := []string{"podman", "image", "save", opts.Image}
+	if opts.Format != "" {
+		saveArgs = append(saveArgs, "--format", opts.Format)
+	}
+
+	saveArgs = append(saveArgs, "--output", remoteFile)
+
+	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: saveArgs}, opts.SSHMode)
 	if err != nil {
 		return nil, err
 	}

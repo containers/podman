@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
+	"github.com/containers/podman/v6/cmd/podman/validate"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/ssh"
@@ -30,6 +31,7 @@ var (
 var (
 	parentFlags []string
 	quiet       bool
+	format      string
 )
 
 func init() {
@@ -43,6 +45,10 @@ func init() {
 func scpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVarP(&quiet, "quiet", "q", false, "Suppress the output")
+
+	formatChoice := validate.Value(&format, common.ValidScpFormats...)
+	flags.Var(formatChoice, "format", "Format for podman save when creating the transfer archive ("+formatChoice.Choices()+"). Default is docker-archive when omitted.")
+	_ = cmd.RegisterFlagCompletionFunc("format", common.AutocompleteImageScpFormat)
 }
 
 func scp(_ *cobra.Command, args []string) (finalErr error) {
@@ -76,6 +82,7 @@ func scp(_ *cobra.Command, args []string) (finalErr error) {
 	scpOpts.ParentFlags = parentFlags
 	scpOpts.Quiet = quiet
 	scpOpts.SSHMode = sshEngine
+	scpOpts.SaveFormat = format
 	_, err = registry.ImageEngine().Scp(registry.Context(), src, dst, scpOpts)
 	if err != nil {
 		return err
