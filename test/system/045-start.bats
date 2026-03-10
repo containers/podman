@@ -63,7 +63,7 @@ load helpers
 
     # Start via filtered names
     run_podman start --filter restart-policy=on-failure $c2 $c3
-    is "$output" "$c2" "--filter finds container 2"
+    is "$output" "$c2_id" "--filter finds container 2"
 
     # Nothing on match
     run_podman start --filter restart-policy=none --all

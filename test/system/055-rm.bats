@@ -117,8 +117,9 @@ load helpers
     is "$output" "" "Should print no output"
 
     run_podman create --name testctr-$(safename) $IMAGE
+    cid="$output"
     run_podman container rm --force bogus-$(safename) testctr-$(safename)
-    assert "$output" = "testctr-$(safename)" "should delete test"
+    assert "$output" = "$cid" "should delete test"
 
     run_podman ps -a -q
     assert "$output" !~ "$(safename)" "container should be removed"
