@@ -146,13 +146,6 @@ EOF
     # Not entirely a NOP! This is just so we get the /run/... mount points created on a CI VM
     $PODMAN run --rm $OLD_PODMAN true
 
-    # Containers-common around release 1-55 no-longer supplies this file
-    sconf=/etc/containers/storage.conf
-    v_sconf=
-    if [[ -e "$sconf" ]]; then
-        v_sconf="-v $sconf:$sconf"
-    fi
-
     #
     # Use new-podman to run the above script under old-podman.
     #
