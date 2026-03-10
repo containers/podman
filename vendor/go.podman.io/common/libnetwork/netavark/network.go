@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/internal/rootlessnetns"
 	"go.podman.io/common/libnetwork/internal/util"
@@ -357,6 +358,32 @@ func (n *netavarkNetwork) Len() int {
 // DefaultInterfaceName return the default cni bridge name, must be suffixed with a number.
 func (n *netavarkNetwork) DefaultInterfaceName() string {
 	return defaultBridgeName
+}
+
+// checkVersion checks if the netavark version is at least the required version.
+func (n *netavarkNetwork) checkVersion(minVersion string) error {
+	programVersion, err := version.Program(n.netavarkBinary)
+	if err != nil {
+		return fmt.Errorf("failed to get netavark version: %w", err)
+	}
+	// version.Program returns "netavark 1.2.3"
+	fields := strings.Fields(programVersion)
+	if len(fields) < 2 {
+		return fmt.Errorf("unexpected netavark version format: %q", programVersion)
+	}
+	versionStr := fields[1]
+	current, err := semver.Parse(versionStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse netavark version %q: %w", versionStr, err)
+	}
+	minVer, err := semver.Parse(minVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse minimum version %q: %w", minVersion, err)
+	}
+	if current.Compare(minVer) < 0 {
+		return fmt.Errorf("netavark version %s is less than required %s", programVersion, minVersion)
+	}
+	return nil
 }
 
 // NetworkInfo return the network information about binary path,

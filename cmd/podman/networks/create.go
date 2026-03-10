@@ -73,7 +73,7 @@ func networkCreateFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(subnetFlagName, completion.AutocompleteNone)
 
 	routeFlagName := "route"
-	flags.StringArrayVar(&networkCreateOptions.Routes, routeFlagName, nil, "static routes")
+	flags.StringArrayVar(&networkCreateOptions.Routes, routeFlagName, nil, "Static routes for this network. Format: <destination>,<gateway>[,<metric>] or <destination>,<type>[,<metric>] where type is blackhole, unreachable, or prohibit")
 	_ = cmd.RegisterFlagCompletionFunc(routeFlagName, completion.AutocompleteNone)
 
 	interfaceFlagName := "interface-name"
@@ -192,41 +192,57 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 
 func parseRoute(routeStr string) (*types.Route, error) {
 	s := strings.Split(routeStr, ",")
-	var metric *uint32
 
-	if len(s) == 2 || len(s) == 3 {
-		dstStr := s[0]
-		gwStr := s[1]
+	if len(s) < 2 || len(s) > 3 {
+		return nil, fmt.Errorf("invalid route: %s\nFormat: --route <destination>,<gateway>[,<metric>] or --route <destination>,<type>[,<metric>] where type is blackhole, unreachable, or prohibit", routeStr)
+	}
 
-		destination, err := types.ParseCIDR(dstStr)
-		gateway := net.ParseIP(gwStr)
+	destination, err := types.ParseCIDR(s[0])
+	if err != nil {
+		return nil, fmt.Errorf("invalid route destination %s: %w", s[0], err)
+	}
 
-		if err != nil {
-			return nil, fmt.Errorf("invalid route destination %s", dstStr)
-		}
+	route := &types.Route{
+		Destination: destination,
+	}
 
-		if gateway == nil {
-			return nil, fmt.Errorf("invalid route gateway %s", gwStr)
-		}
-
-		if len(s) == 3 {
+	// Check if second field is a route type (blackhole, unreachable, prohibit)
+	secondField := strings.ToLower(s[1])
+	switch types.RouteType(secondField) {
+	case types.RouteTypeBlackhole, types.RouteTypeUnreachable, types.RouteTypeProhibit:
+		route.RouteType = types.RouteType(secondField)
+		// Parse optional metric from position 2
+		if len(s) >= 3 {
 			mtr, err := strconv.ParseUint(s[2], 10, 32)
 			if err != nil {
 				return nil, fmt.Errorf("invalid route metric %s", s[2])
 			}
 			x := uint32(mtr)
-			metric = &x
+			route.Metric = &x
 		}
-
-		r := types.Route{
-			Destination: destination,
-			Gateway:     gateway,
-			Metric:      metric,
-		}
-
-		return &r, nil
+		return route, nil
+	case types.RouteTypeUnicast:
+		return nil, fmt.Errorf("unicast route requires a gateway, format: --route <destination>,<gateway>[,<metric>]")
 	}
-	return nil, fmt.Errorf("invalid route: %s\nFormat: --route <destination in CIDR>,<gateway>,<metric (optional)>", routeStr)
+
+	// Regular unicast route with gateway
+	gateway := net.ParseIP(s[1])
+	if gateway == nil {
+		return nil, fmt.Errorf("invalid route gateway %s", s[1])
+	}
+	route.Gateway = gateway
+	route.RouteType = types.RouteTypeUnicast // Default
+
+	// Parse optional metric
+	if len(s) >= 3 {
+		mtr, err := strconv.ParseUint(s[2], 10, 32)
+		if err != nil {
+			return nil, fmt.Errorf("invalid route metric %s", s[2])
+		}
+		x := uint32(mtr)
+		route.Metric = &x
+	}
+	return route, nil
 }
 
 func parseRange(iprange string) (*types.LeaseRange, error) {

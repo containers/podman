@@ -1221,6 +1221,31 @@ func SkipIfConmonVersionLessThan(minVersion string) {
 	}
 }
 
+// SkipIfNetavarkVersionLessThan skips a test if the netavark version is less than
+// the specified minimum version (e.g., "2.0.0").
+func SkipIfNetavarkVersionLessThan(minVersion string) {
+	out, err := exec.Command("netavark", "--version").Output()
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to get netavark version: %v", err))
+	}
+	// Output format: "netavark 1.14.0" or "netavark 2.0.0"
+	fields := strings.Fields(strings.TrimSpace(string(out)))
+	if len(fields) < 2 {
+		Fail(fmt.Sprintf("[netavark]: unexpected netavark --version output: %s", out))
+	}
+	current, err := semver.Parse(fields[1])
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to parse netavark version %q: %v", fields[1], err))
+	}
+	minVer, err := semver.Parse(minVersion)
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to parse minimum version %q: %v", minVersion, err))
+	}
+	if current.Compare(minVer) < 0 {
+		Skip(fmt.Sprintf("[netavark]: need netavark >= %s; have %s", minVersion, fields[1]))
+	}
+}
+
 // SkipIfNotActive skips a test if the given systemd unit is not active
 func SkipIfNotActive(unit string, reason string) {
 	checkReason(reason)

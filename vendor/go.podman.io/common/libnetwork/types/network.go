@@ -201,15 +201,31 @@ type Subnet struct {
 	LeaseRange *LeaseRange `json:"lease_range,omitempty"`
 }
 
+// RouteType represents the type of a route.
+type RouteType string
+
+const (
+	// RouteTypeUnicast is a regular route with a gateway (default).
+	RouteTypeUnicast RouteType = "unicast"
+	// RouteTypeBlackhole silently discards packets.
+	RouteTypeBlackhole RouteType = "blackhole"
+	// RouteTypeUnreachable rejects with "destination unreachable".
+	RouteTypeUnreachable RouteType = "unreachable"
+	// RouteTypeProhibit rejects with "administratively prohibited".
+	RouteTypeProhibit RouteType = "prohibit"
+)
+
 type Route struct {
 	// Destination for this route in CIDR form.
 	// swagger:strfmt string
 	Destination IPNet `json:"destination"`
-	// Gateway IP for this route.
+	// Gateway IP for this route. Required for unicast routes, must be empty for blackhole/unreachable/prohibit.
 	// swagger:strfmt string
-	Gateway net.IP `json:"gateway"`
+	Gateway net.IP `json:"gateway,omitempty"`
 	// Metric for this route. Optional.
 	Metric *uint32 `json:"metric,omitempty"`
+	// RouteType is the type of route: unicast (default), blackhole, unreachable, prohibit.
+	RouteType RouteType `json:"route_type,omitempty"`
 }
 
 // LeaseRange contains the range where IP are leased.

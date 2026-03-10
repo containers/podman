@@ -102,8 +102,20 @@ func ValidateRoute(route types.Route) error {
 		return errors.New("route destination mask nil")
 	}
 
-	if route.Gateway == nil {
-		return errors.New("route gateway nil")
+	// Validate route type and gateway requirements
+	switch route.RouteType {
+	case "", types.RouteTypeUnicast:
+		// Unicast routes require gateway
+		if route.Gateway == nil {
+			return errors.New("unicast route requires gateway")
+		}
+	case types.RouteTypeBlackhole, types.RouteTypeUnreachable, types.RouteTypeProhibit:
+		// Blackhole routes must NOT have gateway
+		if route.Gateway != nil {
+			return fmt.Errorf("%s route must not have a gateway", route.RouteType)
+		}
+	default:
+		return fmt.Errorf("invalid route type: %s", route.RouteType)
 	}
 
 	// Reparse to ensure destination is valid.

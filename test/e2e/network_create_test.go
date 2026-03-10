@@ -20,6 +20,10 @@ func removeNetworkDevice(name string) {
 	session.WaitWithDefaultTimeout()
 }
 
+func uintPtr(u uint32) *uint32 {
+	return &u
+}
+
 var _ = Describe("Podman network create", func() {
 	It("podman network create with name and subnet", func() {
 		netName := "subnet-" + stringid.GenerateRandomID()
@@ -711,4 +715,51 @@ var _ = Describe("Podman network create", func() {
 		// All we care about is the ip is from the range which allows for both.
 		Expect(containerIP.String()).To(Or(Equal("10.11.16.11"), Equal("10.11.16.12")), "ip address must be in --ip-range")
 	})
+
+	DescribeTable("podman network create with special route types",
+		func(subnet string, route string, expectedDest string, expectedRouteType types.RouteType, expectedMetric *uint32) {
+			SkipIfNetavarkVersionLessThan("2.0.0")
+			netName := "subnet-" + stringid.GenerateRandomID()
+			nc := podmanTest.Podman([]string{
+				"network",
+				"create",
+				"--subnet",
+				subnet,
+				"--route",
+				route,
+				netName,
+			})
+			nc.WaitWithDefaultTimeout()
+			defer podmanTest.removeNetwork(netName)
+			Expect(nc).Should(ExitCleanly())
+
+			inspect := podmanTest.Podman([]string{"network", "inspect", netName})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(ExitCleanly())
+
+			var results []entities.NetworkInspectReport
+			err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(results).To(HaveLen(1))
+			result := results[0]
+			Expect(result).To(HaveField("Name", netName))
+			Expect(result.Subnets).To(HaveLen(1))
+			Expect(result.Subnets[0].Subnet.String()).To(Equal(subnet))
+			Expect(result.Routes).To(HaveLen(1))
+			Expect(result.Routes[0].Destination.String()).To(Equal(expectedDest))
+			Expect(result.Routes[0].Gateway).To(BeNil())
+			Expect(result.Routes[0].RouteType).To(Equal(expectedRouteType))
+			if expectedMetric != nil {
+				Expect(*result.Routes[0].Metric).To(Equal(*expectedMetric))
+			} else {
+				Expect(result.Routes[0].Metric).To(BeNil())
+			}
+
+			defer removeNetworkDevice(result.NetworkInterface)
+		},
+		Entry("blackhole route", "10.19.20.0/24", "10.21.10.0/24,blackhole", "10.21.10.0/24", types.RouteTypeBlackhole, nil),
+		Entry("unreachable route", "10.19.21.0/24", "10.21.11.0/24,unreachable", "10.21.11.0/24", types.RouteTypeUnreachable, nil),
+		Entry("prohibit route", "10.19.22.0/24", "10.21.12.0/24,prohibit", "10.21.12.0/24", types.RouteTypeProhibit, nil),
+		Entry("blackhole route with metric", "10.19.23.0/24", "10.21.13.0/24,blackhole,250", "10.21.13.0/24", types.RouteTypeBlackhole, uintPtr(250)),
+	)
 })
