@@ -305,10 +305,23 @@ func getDBState(runtime *Runtime) (State, error) {
 
 	// get default boltdb path
 	boltDBPath := getBoltDBPath(runtime)
+	sqlitePath := sqliteStatePath(runtime)
 
 	switch backend {
 	case config.DBBackendDefault:
-		// for backwards compatibility check if boltdb exists, if it does not we use sqlite
+		// First check if we have a sqlite file, then we know we must use sqlite.
+		if err := fileutils.Exists(sqlitePath); err == nil {
+			// need to set DBBackend string so podman info will show the backend name correctly
+			runtime.config.Engine.DBBackend = config.DBBackendSQLite.String()
+			return NewSqliteState(runtime)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			// Return error here some other problem with the sqlite file, rather than silently
+			// switch to boltdb which would be hard to debug for the user return the error back
+			// as this likely a real bug.
+			return nil, err
+		}
+
+		// for backwards compatibility check if boltdb exists, if it does not we also use sqlite
 		if err := fileutils.Exists(boltDBPath); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				// need to set DBBackend string so podman info will show the backend name correctly
@@ -371,6 +384,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.VolumePath, 0o700); err != nil {
 		return fmt.Errorf("creating runtime volume path directory: %w", err)
 	}
+
+	// Must be set before getDBState() as this will override it otherwise.
+	originalDBConfig := runtime.config.Engine.DBBackend
 
 	// Set up the state.
 	runtime.state, err = getDBState(runtime)
@@ -642,10 +658,20 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		if err2 := runtime.refresh(ctx, runtimeAliveFile); err2 != nil {
 			return err2
 		}
-	} else if os.Getenv("SUPPRESS_BOLTDB_WARNING") == "" && os.Getenv("CI_DESIRED_DATABASE") != "boltdb" && runtime.state.Type() == "boltdb" {
-		// Only warn about the database if we're not refreshing the state.
-		// Refresh will attempt an automatic migration.
-		logrus.Warnf("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs using the `podman system migrate --migrate-db` command. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
+	} else if runtime.state.Type() == "boltdb" {
+		if originalDBConfig == "" && fileutils.Exists(sqliteStatePath(runtime)) == nil {
+			// Another process must have migrated to sqlite in parallel, boltdb is now invalid so switch the state to sqlite.
+			// Ignore errors as there is nothing we can do about them at this point.
+			_ = runtime.state.Close()
+			runtime.state, err = NewSqliteState(runtime)
+			if err != nil {
+				return fmt.Errorf("failed to load sqlite state after detecting database migration: %w", err)
+			}
+		} else if os.Getenv("SUPPRESS_BOLTDB_WARNING") == "" && os.Getenv("CI_DESIRED_DATABASE") != "boltdb" {
+			// Only warn about the database if we're not refreshing the state.
+			// Refresh will attempt an automatic migration.
+			logrus.Warnf("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs using the `podman system migrate --migrate-db` command. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
+		}
 	}
 
 	// Check current boot ID - will be written to the alive file.

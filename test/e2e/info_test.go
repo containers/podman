@@ -196,12 +196,9 @@ var _ = Describe("Podman Info", func() {
 			// default should be sqlite
 			{arg: "", want: "sqlite"},
 			{arg: "boltdb", want: "boltdb"},
-			// now because a boltdb exists it should use boltdb when default is requested
-			{arg: "", want: "boltdb"},
+			// now when both boltdb and sqlite exists it should use sqlite when default is requested
+			{arg: "", want: "sqlite"},
 			{arg: "sqlite", want: "sqlite"},
-			// just because we requested sqlite doesn't mean it stays that way.
-			// once a boltdb exists, podman will forevermore stick with it
-			{arg: "", want: "boltdb"},
 		}
 
 		for _, tt := range backends {
