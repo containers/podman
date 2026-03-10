@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/containers/podman/v6/pkg/util"
+	"github.com/jinzhu/copier"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
@@ -740,12 +741,7 @@ func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runti
 	compatibleOptions.SelinuxOpts = append(compatibleOptions.SelinuxOpts, s.SelinuxOpts...)
 	compatibleOptions.Volumes = append(compatibleOptions.Volumes, s.Volumes...)
 
-	compatByte, err := json.Marshal(compatibleOptions)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	err = json.Unmarshal(compatByte, s)
-	if err != nil {
+	if err := applyInfraInherit(compatibleOptions, s); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -759,4 +755,9 @@ func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runti
 		s.ShmSize = nil
 	}
 	return options, infraSpec, compatibleOptions, nil
+}
+
+// applyInfraInherit copies the InfraInherit fields into the SpecGenerator.
+func applyInfraInherit(compatibleOptions *libpod.InfraInherit, s *specgen.SpecGenerator) error {
+	return copier.CopyWithOption(s, compatibleOptions, copier.Option{IgnoreEmpty: true})
 }
