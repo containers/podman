@@ -670,7 +670,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		} else if os.Getenv("SUPPRESS_BOLTDB_WARNING") == "" && os.Getenv("CI_DESIRED_DATABASE") != "boltdb" {
 			// Only warn about the database if we're not refreshing the state.
 			// Refresh will attempt an automatic migration.
-			logrus.Warnf("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs using the `podman system migrate --migrate-db` command. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
+			logrus.Warnf("The deprecated BoltDB database driver is in use. This driver will be removed in the upcoming Podman 6.0 release in mid 2026. It is advised that you migrate to SQLite to avoid issues when this occurs by rebooting and running podman again or using the `podman system migrate --migrate-db` command. IMPORTANT, only use that command when you can ensure they will be no parallel podman processes running, if you are unsure do the reboot. Set SUPPRESS_BOLTDB_WARNING environment variable to remove this message.")
 		}
 	}
 
