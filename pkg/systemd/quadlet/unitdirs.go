@@ -38,7 +38,7 @@ func GetInstallUnitDirPath(rootless bool) string {
 // This returns the directories where we read quadlet .container and .volumes from
 // For system generators these are in /usr/share/containers/systemd (for distro files)
 // and /etc/containers/systemd (for sysadmin files).
-// For user generators these can live in $XDG_RUNTIME_DIR/containers/systemd, /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, and $XDG_CONFIG_HOME/containers/systemd
+// For user generators these can live in $XDG_RUNTIME_DIR/containers/systemd, /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, /usr/share/containers/systemd/users/${UID}, /usr/share/containers/systemd/users/ and $XDG_CONFIG_HOME/containers/systemd
 func GetUnitDirs(rootless bool) []string {
 	paths := NewSearchPaths()
 
@@ -229,19 +229,24 @@ func getRootlessDirs(paths *searchPaths, nonNumericFilter, userLevelFilter func(
 	}
 	AppendSubPaths(paths, path.Join(configDir, "containers/systemd"), false, nil)
 
+	basePaths := []string{UnitDirAdmin, UnitDirDistro}
 	u, err := user.Current()
 	if err == nil {
-		AppendSubPaths(paths, filepath.Join(UnitDirAdmin, "users"), true, nonNumericFilter)
-		AppendSubPaths(paths, filepath.Join(UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		for _, basePath := range basePaths {
+			AppendSubPaths(paths, filepath.Join(basePath, "users"), true, nonNumericFilter)
+			AppendSubPaths(paths, filepath.Join(basePath, "users", u.Uid), true, userLevelFilter)
+		}
 	} else {
 		logiface.Errorf("Warning: %v", err)
-		// Add the base directory even if the UID was not found
-		paths.Add(filepath.Join(UnitDirAdmin, "users"))
+		// Add the base directories even if the UID was not found
+		for _, basePath := range basePaths {
+			paths.Add(filepath.Join(basePath, "users"))
+		}
 	}
 }
 
 func getRootDirs(paths *searchPaths, userLevelFilter func(string, bool) bool) {
 	AppendSubPaths(paths, UnitDirTemp, false, userLevelFilter)
 	AppendSubPaths(paths, UnitDirAdmin, false, userLevelFilter)
-	AppendSubPaths(paths, UnitDirDistro, false, nil)
+	AppendSubPaths(paths, UnitDirDistro, false, userLevelFilter)
 }
