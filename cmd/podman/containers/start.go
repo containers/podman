@@ -141,8 +141,6 @@ func start(cmd *cobra.Command, args []string) error {
 		case startOptions.Attach:
 			// Implement the exitcode when the only one container is enabled attach
 			registry.SetExitCode(r.ExitCode)
-		case r.RawInput != "":
-			fmt.Println(r.RawInput)
 		default:
 			fmt.Println(r.Id)
 		}

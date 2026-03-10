@@ -84,10 +84,11 @@ var _ = Describe("Podman start", func() {
 		session := podmanTest.Podman([]string{"create", "--name", name, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"start", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal(name))
+		Expect(session.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman start single container with attach and test the signal", func() {

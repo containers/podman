@@ -39,7 +39,7 @@ var _ = Describe("Podman kill", func() {
 		result := podmanTest.Podman([]string{"container", "kill", cid[:5]})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal(cid[:5]))
+		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 

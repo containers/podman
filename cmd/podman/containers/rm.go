@@ -162,10 +162,6 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 				setExitCode(r.Err)
 			}
 			errs = append(errs, r.Err)
-		case r.RawInput != "":
-			if !quiet {
-				fmt.Println(r.RawInput)
-			}
 		default:
 			if !quiet {
 				fmt.Println(r.Id)

@@ -101,11 +101,12 @@ load helpers
     run_podman start --all
     is "$output" "$ctrID"
 
-    # start $input must print $input
+    # start $input must print the id of $input
     cname=$(random_string)
     run_podman create --name $cname $IMAGE top
+    ctrID="$output"
     run_podman start $cname
-    is "$output" $cname
+    is "$output" "$ctrID"
 
     run_podman rm -t 0 -f $ctrID $cname
 }

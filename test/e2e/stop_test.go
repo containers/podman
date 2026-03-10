@@ -58,7 +58,7 @@ var _ = Describe("Podman stop", func() {
 		session = podmanTest.Podman([]string{"stop", shortID})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal(shortID))
+		Expect(session.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman stop container by name", func() {
