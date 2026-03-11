@@ -334,7 +334,7 @@ func PathExists(filename string) bool {
 
 // PathExistsWithContents returns the filename exists and it is not empty
 func PathExistsWithContents(filename string) bool {
-	info, err := os.Stat(filename)
+	info, err := os.Stat(filename) //nolint:gosec // filename is constructed from system paths, not user input
 	if err != nil {
 		return false
 	}
@@ -466,6 +466,10 @@ func Round(val float64, n int) float64 {
 	return math.Round(val*pow10) / pow10
 }
 
-func timeSince(ts uint64) uint64 {
+func TimeSince(ts uint64) uint64 {
 	return uint64(time.Now().Unix()) - ts
+}
+
+func TimeSinceMillis(ts uint64) uint64 {
+	return uint64(time.Now().UnixMilli()) - ts
 }

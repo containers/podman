@@ -20,7 +20,7 @@ func BootTimeWithContext(ctx context.Context, invoke Invoker) (btime uint64, err
 		return 0, errors.New("uptime was not set, so cannot calculate boot time from it")
 	}
 
-	return timeSince(ut), nil
+	return TimeSince(ut), nil
 }
 
 // Uses ps to get the elapsed time for PID 1 in DAYS-HOURS:MINUTES:SECONDS format.

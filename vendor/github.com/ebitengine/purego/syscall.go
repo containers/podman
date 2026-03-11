@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || netbsd || windows
+//go:build !386 && !arm && (darwin || freebsd || linux || netbsd || windows)
 
 package purego
 
@@ -13,14 +13,41 @@ package purego
 type CDecl struct{}
 
 const (
-	maxArgs             = 15
-	numOfFloatRegisters = 8 // arm64 and amd64 both have 8 float registers
+	maxArgs = 15
 )
 
 type syscall15Args struct {
 	fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15 uintptr
 	f1, f2, f3, f4, f5, f6, f7, f8                                       uintptr
 	arm64_r8                                                             uintptr
+}
+
+func (s *syscall15Args) Set(fn uintptr, ints []uintptr, floats []uintptr, r8 uintptr) {
+	s.fn = fn
+	s.a1 = ints[0]
+	s.a2 = ints[1]
+	s.a3 = ints[2]
+	s.a4 = ints[3]
+	s.a5 = ints[4]
+	s.a6 = ints[5]
+	s.a7 = ints[6]
+	s.a8 = ints[7]
+	s.a9 = ints[8]
+	s.a10 = ints[9]
+	s.a11 = ints[10]
+	s.a12 = ints[11]
+	s.a13 = ints[12]
+	s.a14 = ints[13]
+	s.a15 = ints[14]
+	s.f1 = floats[0]
+	s.f2 = floats[1]
+	s.f3 = floats[2]
+	s.f4 = floats[3]
+	s.f5 = floats[4]
+	s.f6 = floats[5]
+	s.f7 = floats[6]
+	s.f8 = floats[7]
+	s.arm64_r8 = r8
 }
 
 // SyscallN takes fn, a C function pointer and a list of arguments as uintptr.
