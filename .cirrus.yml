@@ -661,7 +661,9 @@ compose_test_task:
         changesInclude('test/compose/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        zone: "us-east1-a"
     matrix:
       - env:
             PRIV_NAME: root
@@ -716,6 +718,9 @@ local_integration_test_task: &local_integration_test_task
 remote_integration_test_task:
     <<: *local_integration_test_task
     alias: remote_integration_test
+    gce_instance:
+        <<: *fastvm
+        zone: "us-east1-a"
     env:
         TEST_FLAVOR: int
         PODBIN_NAME: remote
@@ -753,7 +758,9 @@ rootless_integration_test_task:
     only_if: *only_if_int_test
     depends_on: *build
     matrix: *platform_axis
-    gce_instance: *fastvm
+    gce_instance:
+        <<: *fastvm
+        zone: "us-west1-a"
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
@@ -939,7 +946,9 @@ local_system_test_task: &local_system_test_task
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix: *platform_axis
-    gce_instance: *fastvm
+    gce_instance:
+        <<: *fastvm
+        zone: "us-east1-a"
     timeout_in: 25m
     env:
         TEST_FLAVOR: sys
@@ -971,6 +980,9 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
 remote_system_test_task:
     <<: *local_system_test_task
     alias: remote_system_test
+    gce_instance:
+        <<: *fastvm
+        zone: "us-west1-a"
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -994,7 +1006,9 @@ rootless_remote_system_test_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     <<: *local_system_test_task
     alias: rootless_remote_system_test
-    gce_instance: *fastvm
+    gce_instance:
+        <<: *fastvm
+        zone: "us-west1-a"
     timeout_in: 25m
     env:
         TEST_FLAVOR: sys
@@ -1009,7 +1023,9 @@ rootless_system_test_task:
     only_if: *only_if_system_test
     depends_on: *build
     matrix: *platform_axis
-    gce_instance: *fastvm
+    gce_instance:
+        <<: *fastvm
+        zone: "us-west1-a"
     timeout_in: 25m
     env:
         TEST_FLAVOR: sys
@@ -1034,7 +1050,9 @@ farm_test_task:
         changesInclude('test/farm/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        zone: "us-east1-a"
     env:
         <<: *stdenvars
         TEST_FLAVOR: farm
@@ -1067,7 +1085,9 @@ buildah_bud_test_task:
             PODBIN_NAME: podman
         - env:
             PODBIN_NAME: remote
-    gce_instance: *fastvm
+    gce_instance:
+        <<: *fastvm
+        zone: "us-west1-a"
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -1092,7 +1112,9 @@ upgrade_test_task:
               PODMAN_UPGRADE_FROM: v5.3.1
         - env:
               PODMAN_UPGRADE_FROM: v5.6.2
-    gce_instance: *standardvm
+    gce_instance:
+        <<: *standardvm
+        zone: "us-west1-a"
     env:
         TEST_FLAVOR: upgrade_test
         TEST_BUILD_TAGS: ""
