@@ -41,7 +41,7 @@ func GetFreeDeviceName(n NetUtil) (string, error) {
 	netNames := GetUsedNetworkNames(n)
 	liveInterfaces, err := GetLiveNetworkNames()
 	if err != nil {
-		return "", err
+		return "", nil
 	}
 	names := make([]string, 0, len(bridgeNames)+len(netNames)+len(liveInterfaces))
 	names = append(names, bridgeNames...)

@@ -2,12 +2,11 @@
 package hooks
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"os"
-	"slices"
+	"sort"
 	"strings"
 	"sync"
 
@@ -98,9 +97,7 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 // will not insert them into config.Hooks.Poststop.
 func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (extensionStageHooks map[string][]rspec.Hook, err error) {
 	hooks := m.namedHooks()
-	slices.SortFunc(hooks, func(a, b *namedHook) int {
-		return cmp.Compare(strings.ToLower(a.name), strings.ToLower(b.name))
-	})
+	sort.Slice(hooks, func(i, j int) bool { return strings.ToLower(hooks[i].name) < strings.ToLower(hooks[j].name) })
 	localStages := map[string]bool{} // stages destined for extensionStageHooks
 	for _, stage := range m.extensionStages {
 		localStages[stage] = true

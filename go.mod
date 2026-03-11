@@ -190,3 +190,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace go.podman.io/common => github.com/mheon/container-libs/common v0.0.0-20260310180655-02c3c863416b
+
+replace github.com/containers/buildah => github.com/mheon/buildah v0.0.0-20260311175914-00ad383cd4e5

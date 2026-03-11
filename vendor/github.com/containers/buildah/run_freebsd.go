@@ -276,10 +276,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if err != nil {
 		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}
-	if runArtifacts.SSHAuthSock != "" {
-		sshenv := "SSH_AUTH_SOCK=" + runArtifacts.SSHAuthSock
-		spec.Process.Env = append(spec.Process.Env, sshenv)
-	}
 
 	// following run was called from `buildah run`
 	// and some images were mounted for this run
@@ -508,11 +504,14 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 		mynetns = containerName
 	}
 
-	networks := make(map[string]nettypes.PerNetworkOptions, len(configureNetworks))
+	networks := make([]nettypes.NamedPerNetworkOptions, 0, len(configureNetworks))
 	for i, network := range configureNetworks {
-		networks[network] = nettypes.PerNetworkOptions{
-			InterfaceName: fmt.Sprintf("eth%d", i),
-		}
+		networks = append(networks, nettypes.NamedPerNetworkOptions{
+			Name: network,
+			PerNetworkOptions: nettypes.PerNetworkOptions{
+				InterfaceName: fmt.Sprintf("eth%d", i),
+			},
+		})
 	}
 
 	opts := nettypes.NetworkOptions{
