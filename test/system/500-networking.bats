@@ -1135,4 +1135,15 @@ EOF
     is "$output" ".*${pasta_iface}.*"
 }
 
+@test "Podman run --network net1,net2 setup order is deterministic" {
+    local netname1=net-$(safename)
+    local netname2=net-$(safename)
+    run_podman network create $netname1
+    run_podman network create $netname2
+
+    # Absurd sed oneliner provided by Google Gemini
+    run_podman run -t -i --net "$netname1\:interface_name=first" --net "$netname2\:interface_name=second" $IMAGE sh -c "ip link | sed -nE 's/^([0-9]+): ([^:]+):.*/\1 \2/p'"
+    assert "$output" =~ "1 lo\n2 first\n3 second"
+}
+
 # vim: filetype=sh

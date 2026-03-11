@@ -297,9 +297,12 @@ type ContainerNetworkConfig struct {
 	// Please note that these can be altered at runtime. The actual list is
 	// stored in the DB and should be retrieved from there via c.networks()
 	// this value is only used for container create.
-	// Added in podman 4.0, previously NetworksDeprecated was used. Make
+	// Added in podman 6.0, previously LegacyNetworks was used. Make
 	// sure to not change the json tags.
-	Networks map[string]types.PerNetworkOptions `json:"newNetworks,omitempty"`
+	Networks []types.NamedPerNetworkOptions `json:"orderedNetworks,omitempty"`
+	// LegacyNetworks is deprecated and should not be used.
+	// It is identify to Networks aside from being unordered.
+	LegacyNetworks map[string]types.PerNetworkOptions `json:"newNetworks,omitempty"`
 	// Network names to add container to. Empty to use default network.
 	// Please note that these can be altered at runtime. The actual list is
 	// stored in the DB and should be retrieved from there; this is only the
