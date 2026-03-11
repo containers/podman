@@ -283,7 +283,7 @@ pids_limit=0
 	if uid >= subUID && uid < (subUID+subUIDs) {
 		subUID = uid + 1
 	}
-	etcSubUID := fmt.Sprintf(`%s:%d:%d`, usrName, subUID, subUIDs)
+	etcSubUID := fmt.Sprintf("%s:%d:%d\n", usrName, subUID, subUIDs)
 
 	// Set containers.conf up for core user to use networks
 	// by default
