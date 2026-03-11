@@ -16,7 +16,7 @@ func _cgo_sys_thread_start(ts *ThreadStart) {
 	var size size_t
 	var err int
 
-	//fprintf(stderr, "runtime/cgo: _cgo_sys_thread_start: fn=%p, g=%p\n", ts->fn, ts->g); // debug
+	// fprintf(stderr, "runtime/cgo: _cgo_sys_thread_start: fn=%p, g=%p\n", ts->fn, ts->g); // debug
 	sigfillset(&ign)
 	pthread_sigmask(SIG_SETMASK, &ign, &oset)
 
@@ -92,6 +92,8 @@ func x_cgo_init(g *G, setg uintptr) {
 	}
 	pthread_attr_init(attr)
 	pthread_attr_getstacksize(attr, &size)
+	// runtime/cgo uses __builtin_frame_address(0) instead of `uintptr(unsafe.Pointer(&size))`
+	// but this should be OK since we are taking the address of the first variable in this function.
 	g.stacklo = uintptr(unsafe.Pointer(&size)) - uintptr(size) + 4096
 	pthread_attr_destroy(attr)
 	free(unsafe.Pointer(attr))

@@ -12,12 +12,6 @@ import (
 	"unsafe"
 )
 
-// setg_trampoline calls setg with the G provided
-func setg_trampoline(setg uintptr, G uintptr)
-
-// call5 takes fn the C function and 5 arguments and calls the function with those arguments
-func call5(fn, a1, a2, a3, a4, a5 uintptr) uintptr
-
 //go:nosplit
 //go:norace
 func malloc(size uintptr) unsafe.Pointer {
@@ -64,12 +58,6 @@ func abort() {
 
 //go:nosplit
 //go:norace
-func sigaltstack(ss *stack_t, old_ss *stack_t) int32 {
-	return int32(call5(sigaltstackABI0, uintptr(unsafe.Pointer(ss)), uintptr(unsafe.Pointer(old_ss)), 0, 0, 0))
-}
-
-//go:nosplit
-//go:norace
 func pthread_attr_init(attr *pthread_attr_t) int32 {
 	return int32(call5(pthread_attr_initABI0, uintptr(unsafe.Pointer(attr)), 0, 0, 0, 0))
 }
@@ -90,36 +78,6 @@ func pthread_detach(thread pthread_t) int32 {
 //go:norace
 func pthread_sigmask(how sighow, ign *sigset_t, oset *sigset_t) int32 {
 	return int32(call5(pthread_sigmaskABI0, uintptr(how), uintptr(unsafe.Pointer(ign)), uintptr(unsafe.Pointer(oset)), 0, 0))
-}
-
-//go:nosplit
-//go:norace
-func pthread_self() pthread_t {
-	return pthread_t(call5(pthread_selfABI0, 0, 0, 0, 0, 0))
-}
-
-//go:nosplit
-//go:norace
-func pthread_get_stacksize_np(thread pthread_t) size_t {
-	return size_t(call5(pthread_get_stacksize_npABI0, uintptr(thread), 0, 0, 0, 0))
-}
-
-//go:nosplit
-//go:norace
-func pthread_attr_getstacksize(attr *pthread_attr_t, stacksize *size_t) int32 {
-	return int32(call5(pthread_attr_getstacksizeABI0, uintptr(unsafe.Pointer(attr)), uintptr(unsafe.Pointer(stacksize)), 0, 0, 0))
-}
-
-//go:nosplit
-//go:norace
-func pthread_attr_setstacksize(attr *pthread_attr_t, size size_t) int32 {
-	return int32(call5(pthread_attr_setstacksizeABI0, uintptr(unsafe.Pointer(attr)), uintptr(size), 0, 0, 0))
-}
-
-//go:nosplit
-//go:norace
-func pthread_attr_destroy(attr *pthread_attr_t) int32 {
-	return int32(call5(pthread_attr_destroyABI0, uintptr(unsafe.Pointer(attr)), 0, 0, 0, 0))
 }
 
 //go:nosplit
@@ -174,10 +132,6 @@ var nanosleepABI0 = uintptr(unsafe.Pointer(&_nanosleep))
 var _abort uint8
 var abortABI0 = uintptr(unsafe.Pointer(&_abort))
 
-//go:linkname _sigaltstack _sigaltstack
-var _sigaltstack uint8
-var sigaltstackABI0 = uintptr(unsafe.Pointer(&_sigaltstack))
-
 //go:linkname _pthread_attr_init _pthread_attr_init
 var _pthread_attr_init uint8
 var pthread_attr_initABI0 = uintptr(unsafe.Pointer(&_pthread_attr_init))
@@ -193,26 +147,6 @@ var pthread_detachABI0 = uintptr(unsafe.Pointer(&_pthread_detach))
 //go:linkname _pthread_sigmask _pthread_sigmask
 var _pthread_sigmask uint8
 var pthread_sigmaskABI0 = uintptr(unsafe.Pointer(&_pthread_sigmask))
-
-//go:linkname _pthread_self _pthread_self
-var _pthread_self uint8
-var pthread_selfABI0 = uintptr(unsafe.Pointer(&_pthread_self))
-
-//go:linkname _pthread_get_stacksize_np _pthread_get_stacksize_np
-var _pthread_get_stacksize_np uint8
-var pthread_get_stacksize_npABI0 = uintptr(unsafe.Pointer(&_pthread_get_stacksize_np))
-
-//go:linkname _pthread_attr_getstacksize _pthread_attr_getstacksize
-var _pthread_attr_getstacksize uint8
-var pthread_attr_getstacksizeABI0 = uintptr(unsafe.Pointer(&_pthread_attr_getstacksize))
-
-//go:linkname _pthread_attr_setstacksize _pthread_attr_setstacksize
-var _pthread_attr_setstacksize uint8
-var pthread_attr_setstacksizeABI0 = uintptr(unsafe.Pointer(&_pthread_attr_setstacksize))
-
-//go:linkname _pthread_attr_destroy _pthread_attr_destroy
-var _pthread_attr_destroy uint8
-var pthread_attr_destroyABI0 = uintptr(unsafe.Pointer(&_pthread_attr_destroy))
 
 //go:linkname _pthread_mutex_lock _pthread_mutex_lock
 var _pthread_mutex_lock uint8

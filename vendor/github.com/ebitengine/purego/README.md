@@ -30,8 +30,8 @@ except for float arguments and return values.
 
 Tier 1 platforms are the primary targets officially supported by PureGo. When a new version of PureGo is released, any critical bugs found on Tier 1 platforms are treated as release blockers. The release will be postponed until such issues are resolved.
 
-- **Android**: amd64, arm64
-- **iOS**: amd64, arm64
+- **Android**: amd64<sup>1</sup>, arm64<sup>1</sup>
+- **iOS**: amd64<sup>1</sup>, arm64<sup>1</sup>
 - **Linux**: amd64, arm64
 - **macOS**: amd64, arm64
 - **Windows**: amd64, arm64
@@ -40,12 +40,17 @@ Tier 1 platforms are the primary targets officially supported by PureGo. When a 
 
 Tier 2 platforms are supported by PureGo on a best-effort basis. Critical bugs on Tier 2 platforms do not block new PureGo releases. However, fixes contributed by external contributors are very welcome and encouraged.
 
-- **Android**: 386, arm
-- **FreeBSD**: amd64, arm64
-- **Linux**: 386, arm, loong64
-- **Windows**: 386*, arm*
+- **Android**: 386<sup>1</sup>, arm<sup>1</sup>
+- **FreeBSD**: amd64<sup>2</sup>, arm64<sup>2</sup>
+- **Linux**: 386, arm, loong64, ppc64le, riscv64, s390x<sup>1</sup>
+- **Windows**: 386<sup>3</sup>, arm<sup>3,4</sup>
 
-`*` These architectures only support `SyscallN` and `NewCallback`
+#### Support Notes
+
+1. These architectures require CGO_ENABLED=1 to compile
+2. These architectures require the special flag `-gcflags="github.com/ebitengine/purego/internal/fakecgo=-std"` to compile with CGO_ENABLED=0
+3. These architectures only support `SyscallN` and `NewCallback`
+4. These architectures are no longer supported as of Go 1.26
 
 ## Example
 
@@ -103,11 +108,12 @@ This is a list of the copied files:
 * `internal/fakecgo/abi_*.h` from package `runtime/cgo`
 * `internal/fakecgo/asm_GOARCH.s` from package `runtime/cgo`
 * `internal/fakecgo/callbacks.go` from package `runtime/cgo`
-* `internal/fakecgo/go_GOOS_GOARCH.go` from package `runtime/cgo`
 * `internal/fakecgo/iscgo.go` from package `runtime/cgo`
 * `internal/fakecgo/setenv.go` from package `runtime/cgo`
 * `internal/fakecgo/freebsd.go` from package `runtime/cgo`
 * `internal/fakecgo/netbsd.go` from package `runtime/cgo`
+
+The `internal/fakecgo/go_GOOS.go` files were modified from `runtime/cgo/gcc_GOOS_GOARCH.go`.
 
 The files `abi_*.h` and `internal/fakecgo/abi_*.h` are the same because Bazel does not support cross-package use of
 `#include` so we need each one once per package. (cf. [issue](https://github.com/bazelbuild/rules_go/issues/3636))

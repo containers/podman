@@ -169,9 +169,10 @@ func tryPlaceRegister(v reflect.Value, addFloat func(uintptr), addInt func(uintp
 				}
 				shift += 8
 				class |= _INTEGER
-			case reflect.Pointer:
-				ok = false
-				return
+			case reflect.Pointer, reflect.UnsafePointer:
+				val = uint64(f.Pointer())
+				shift = 64
+				class = _INTEGER
 			case reflect.Int8:
 				val |= uint64(f.Int()&0xFF) << shift
 				shift += 8
@@ -238,27 +239,48 @@ func tryPlaceRegister(v reflect.Value, addFloat func(uintptr), addInt func(uintp
 }
 
 func placeStack(v reflect.Value, addStack func(uintptr)) {
-	for i := 0; i < v.Type().NumField(); i++ {
-		f := v.Field(i)
-		switch f.Kind() {
-		case reflect.Pointer:
-			addStack(f.Pointer())
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			addStack(uintptr(f.Int()))
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			addStack(uintptr(f.Uint()))
-		case reflect.Float32:
-			addStack(uintptr(math.Float32bits(float32(f.Float()))))
-		case reflect.Float64:
-			addStack(uintptr(math.Float64bits(f.Float())))
-		case reflect.Struct:
-			placeStack(f, addStack)
-		default:
-			panic("purego: unsupported kind " + f.Kind().String())
-		}
+	// Copy the struct as a contiguous block of memory in eightbyte (8-byte)
+	// chunks. The x86-64 ABI requires structs passed on the stack to be
+	// laid out exactly as in memory, including padding and field packing
+	// within eightbytes. Decomposing field-by-field would place each field
+	// as a separate stack slot, breaking structs with mixed-type fields
+	// that share an eightbyte (e.g. int32 + float32).
+	if !v.CanAddr() {
+		tmp := reflect.New(v.Type()).Elem()
+		tmp.Set(v)
+		v = tmp
+	}
+	ptr := v.Addr().UnsafePointer()
+	size := v.Type().Size()
+	for off := uintptr(0); off < size; off += 8 {
+		chunk := *(*uintptr)(unsafe.Add(ptr, off))
+		addStack(chunk)
 	}
 }
 
 func placeRegisters(v reflect.Value, addFloat func(uintptr), addInt func(uintptr)) {
-	panic("purego: not needed on amd64")
+	panic("purego: placeRegisters not implemented on amd64")
+}
+
+// shouldBundleStackArgs always returns false on non-Darwin platforms
+// since C-style stack argument bundling is only needed on Darwin ARM64.
+func shouldBundleStackArgs(v reflect.Value, numInts, numFloats int) bool {
+	return false
+}
+
+// structFitsInRegisters is not used on amd64.
+func structFitsInRegisters(val reflect.Value, tempNumInts, tempNumFloats int) (bool, int, int) {
+	panic("purego: structFitsInRegisters should not be called on amd64")
+}
+
+// collectStackArgs is not used on amd64.
+func collectStackArgs(args []reflect.Value, startIdx int, numInts, numFloats int,
+	keepAlive []any, addInt, addFloat, addStack func(uintptr),
+	pNumInts, pNumFloats, pNumStack *int) ([]reflect.Value, []any) {
+	panic("purego: collectStackArgs should not be called on amd64")
+}
+
+// bundleStackArgs is not used on amd64.
+func bundleStackArgs(stackArgs []reflect.Value, addStack func(uintptr)) {
+	panic("purego: bundleStackArgs should not be called on amd64")
 }

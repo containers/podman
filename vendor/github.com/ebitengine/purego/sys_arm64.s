@@ -89,4 +89,9 @@ TEXT syscall15X(SB), NOSPLIT, $0
 	FMOVD F2, syscall15Args_f3(R2) // save f2
 	FMOVD F3, syscall15Args_f4(R2) // save f3
 
+#ifdef GOOS_darwin
+	BL purego_error(SB)
+	MOVD (R0), R0
+	MOVD R0, syscall15Args_a3(R2) // save errno
+#endif
 	RET

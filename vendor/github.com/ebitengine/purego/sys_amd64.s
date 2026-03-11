@@ -91,6 +91,12 @@ TEXT syscall15X(SB), NOSPLIT|NOFRAME, $0
 	MOVQ X0, syscall15Args_f1(DI) // f1
 	MOVQ X1, syscall15Args_f2(DI) // f2
 
+#ifdef GOOS_darwin
+    CALL purego_error(SB)
+    MOVD (AX), AX
+    MOVD AX, syscall15Args_a3(DI) // save errno
+#endif
+
 	XORL AX, AX          // no error (it's ignored anyway)
 	ADDQ $STACK_SIZE, SP
 	MOVQ BP, SP
