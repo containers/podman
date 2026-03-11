@@ -113,6 +113,9 @@ type executor struct {
 	layerLabels                             []string
 	annotations                             []string
 	layers                                  bool
+	saveStages                              bool
+	stageLabels                             bool
+	stageImageIDs                           map[string]string // Tracks image IDs for each stage (by name and position) for label references
 	noHostname                              bool
 	noHosts                                 bool
 	useCache                                bool
@@ -313,6 +316,9 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		mountLabel:                              mountLabel,
 		annotations:                             slices.Clone(options.Annotations),
 		layers:                                  options.Layers,
+		saveStages:                              options.SaveStages,
+		stageLabels:                             options.StageLabels,
+		stageImageIDs:                           make(map[string]string),
 		noHostname:                              options.CommonBuildOpts.NoHostname,
 		noHosts:                                 options.CommonBuildOpts.NoHosts,
 		useCache:                                !options.NoCache,
@@ -395,12 +401,12 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		for node != nil { // tokens on this line, though we only care about the first
 			switch strings.ToUpper(node.Value) { // first token - instruction
 			case "ARG":
-				arg := node.Next
-				if arg != nil {
-					// We have to be careful here - it's either an argument
-					// and value, or just an argument, since they can be
-					// separated by either "=" or whitespace.
+				for arg := node.Next; arg != nil; arg = arg.Next {
+					// Each token is name=value or name (multiple ARGs in one instruction, see imagebuilder PR #210)
 					argName, argValue, hasValue := strings.Cut(arg.Value, "=")
+					if argName == "" {
+						continue
+					}
 					if !foundFirstStage {
 						if hasValue {
 							globalArgs[argName] = argValue
@@ -600,6 +606,19 @@ func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageE
 		prependInstructions = slices.Concat([]string{envLine}, prependInstructions)
 	}
 
+	// Create stage labels for all stage images including final stage
+	// Skip if stage has no instructions
+	if b.saveStages && b.stageLabels && len(stage.Node.Children) > 0 {
+		// Wait for base stage if it references a previous stage
+		// This ensures stageImageIDs map is populated before buildStageLabelLine reads it
+		if isStage, err := b.waitForStage(ctx, base, stages[:stageIndex]); isStage && err != nil {
+			return "", nil, false, fmt.Errorf("waiting for base stage %s: %w", base, err)
+		}
+
+		labelLine := b.buildStageLabelLine(&stage, base, stages[:stageIndex])
+		prependInstructions = slices.Concat([]string{labelLine}, prependInstructions)
+	}
+
 	// If we're supposed to be appending or prepending instructions to this stage, add them now.
 	if len(prependInstructions) > 0 {
 		addLines := strings.Join(prependInstructions, "\n")
@@ -656,6 +675,16 @@ func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageE
 		return "", nil, onlyBaseImage, err
 	}
 
+	// Store image ID for this stage so subsequent stages can reference it in labels
+	if imageID != "" {
+		b.stagesLock.Lock()
+		if stage.Name != "" {
+			b.stageImageIDs[stage.Name] = imageID
+		}
+		b.stageImageIDs[strconv.Itoa(stageIndex)] = imageID
+		b.stagesLock.Unlock()
+	}
+
 	// The stage succeeded, so remove its build container if we're
 	// told to delete successful intermediate/build containers for
 	// multi-layered builds.
@@ -688,6 +717,29 @@ func markDependencyStagesForTarget(dependencyMap map[string]*stageDependencyInfo
 	}
 }
 
+// buildStageLabelLine creates a LABEL instruction line for stage metadata
+func (b *executor) buildStageLabelLine(stage *imagebuilder.Stage, base string, stages imagebuilder.Stages) string {
+	labelLine := "LABEL"
+	labelLine += fmt.Sprintf(" %q=%q", "io.buildah.stage.name", stage.Name)
+	// Check if base of the stage is another (previous) stage.
+	// If yes, base is set as image ID of this stage.
+	// If not original base name is set (pullspec).
+	for i, st := range stages {
+		if st.Name == base || strconv.Itoa(st.Position) == base {
+			b.stagesLock.Lock()
+			if imgID, ok := b.stageImageIDs[base]; ok {
+				base = imgID
+			} else if imgID, ok := b.stageImageIDs[strconv.Itoa(i)]; ok {
+				base = imgID
+			}
+			b.stagesLock.Unlock()
+			break
+		}
+	}
+	labelLine += fmt.Sprintf(" %q=%q", "io.buildah.stage.base", base)
+	return labelLine
+}
+
 func (b *executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMap map[string]*stageDependencyInfo, args map[string]string) {
 	argFound := make(map[string]struct{})
 	for _, stage := range stages {
@@ -696,32 +748,32 @@ func (b *executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMa
 			for _, child := range node.Children {
 				switch strings.ToUpper(child.Value) {
 				case "ARG":
-					argName := child.Next.Value
-					if strings.Contains(argName, "=") {
-						res := strings.Split(argName, "=")
-						if res[1] != "" {
-							argFound[res[0]] = struct{}{}
+					for arg := child.Next; arg != nil; arg = arg.Next {
+						argToken := arg.Value
+						argName, argValue, hasEqual := strings.Cut(argToken, "=")
+						if argName == "" {
+							continue
 						}
-					}
-					argHasValue := true
-					if !strings.Contains(argName, "=") {
-						argHasValue = internalUtil.SetHas(argFound, argName)
-					}
-					if _, ok := args[argName]; !argHasValue && !ok {
-						shouldWarn := true
-						if stageDependencyInfo, ok := dependencyMap[stage.Name]; ok {
-							if !stageDependencyInfo.NeededByTarget && b.skipUnusedStages != types.OptionalBoolFalse {
+						if hasEqual && argValue != "" {
+							argFound[argName] = struct{}{}
+						}
+						argHasValue := internalUtil.SetHas(argFound, argName)
+						if _, ok := args[argName]; !argHasValue && !ok {
+							shouldWarn := true
+							if stageDependencyInfo, ok := dependencyMap[stage.Name]; ok {
+								if !stageDependencyInfo.NeededByTarget && b.skipUnusedStages != types.OptionalBoolFalse {
+									shouldWarn = false
+								}
+							}
+							if _, isBuiltIn := builtinAllowedBuildArgs[argName]; isBuiltIn {
 								shouldWarn = false
 							}
-						}
-						if _, isBuiltIn := builtinAllowedBuildArgs[argName]; isBuiltIn {
-							shouldWarn = false
-						}
-						if _, isGlobalArg := b.globalArgs[argName]; isGlobalArg {
-							shouldWarn = false
-						}
-						if shouldWarn {
-							b.logger.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
+							if _, isGlobalArg := b.globalArgs[argName]; isGlobalArg {
+								shouldWarn = false
+							}
+							if shouldWarn {
+								b.logger.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
+							}
 						}
 					}
 				default:
@@ -827,6 +879,7 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	// not they can skip certain steps near the end of their stages.
 	for stageIndex, stage := range stages {
 		dependencyMap[stage.Name] = &stageDependencyInfo{Name: stage.Name, Position: stage.Position}
+		stageLocalScopeArgs := make(map[string]string)
 		node := stage.Node // first line
 		for node != nil {  // each line
 			for _, child := range node.Children { // tokens on this line, though we only care about the first
@@ -850,10 +903,10 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
-							// append heading args so if --build-arg key=value is not
-							// specified but default value is set in Containerfile
-							// via `ARG key=value` so default value can be used.
-							userArgs = slices.Concat(builtinArgs, userArgs, headingArgs)
+							localScopeArgs := argsMapToSlice(stageLocalScopeArgs)
+							// ProcessWord uses first match; put highest priority first so
+							// --build-arg overrides stage ARG overrides header ARG overrides builtin.
+							userArgs = slices.Concat(userArgs, localScopeArgs, headingArgs, builtinArgs)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
@@ -884,7 +937,10 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
-							userArgs = slices.Concat(builtinArgs, userArgs, headingArgs)
+							localScopeArgs := argsMapToSlice(stageLocalScopeArgs)
+							// ProcessWord uses first match; put highest priority first so
+							// --build-arg overrides stage ARG overrides header ARG overrides builtin.
+							userArgs = slices.Concat(userArgs, localScopeArgs, headingArgs, builtinArgs)
 							afterResolved, err := imagebuilder.ProcessWord(after, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for --after=%q: %w", after, err)
@@ -909,27 +965,23 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				case "ADD", "COPY":
 					for _, flag := range child.Flags { // flags for this instruction
 						if after, ok := strings.CutPrefix(flag, "--from="); ok {
-							// TODO: this didn't undergo variable and
-							// arg expansion, so if the previous stage
-							// was named using argument values, we might
-							// not record the right value here.
-							rootfs := after
-							b.rootfsMap[rootfs] = struct{}{}
-							logrus.Debugf("rootfs needed for COPY in stage %d: %q", stageIndex, rootfs)
 							// Populate dependency tree and check
 							// if following ADD or COPY needs any other
 							// stage.
-							stageName := rootfs
+							stageName := after
 							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
-							// append heading args so if --build-arg key=value is not
-							// specified but default value is set in Containerfile
-							// via `ARG key=value` so default value can be used.
-							userArgs = slices.Concat(builtinArgs, userArgs, headingArgs)
+							localScopeArgs := argsMapToSlice(stageLocalScopeArgs)
+							// ProcessWord uses first match; put highest priority first so
+							// --build-arg overrides stage ARG overrides header ARG overrides builtin.
+							userArgs = slices.Concat(userArgs, localScopeArgs, headingArgs, builtinArgs)
 							baseWithArg, err := imagebuilder.ProcessWord(stageName, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", stageName, err)
+							}
+							if baseWithArg != "" {
+								b.rootfsMap[baseWithArg] = struct{}{}
 							}
 							logrus.Debugf("stage %d name: %q resolves to %q", stageIndex, stageName, baseWithArg)
 							stageName = baseWithArg
@@ -947,6 +999,17 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 									currentStageInfo.Needs = append(currentStageInfo.Needs, stageName)
 								}
 							}
+						}
+					}
+				case "ARG":
+					for arg := child.Next; arg != nil; arg = arg.Next {
+						argName, argValue, hasValue := strings.Cut(arg.Value, "=")
+						if hasValue && argName != "" {
+							argValue, err := imagebuilder.ProcessWord(argValue, argsMapToSlice(stage.Builder.BuiltinArgDefaults))
+							if err != nil {
+								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", arg.Value, err)
+							}
+							stageLocalScopeArgs[argName] = argValue
 						}
 					}
 				case "RUN":
@@ -1102,9 +1165,10 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			// We're not populating the cache with intermediate
 			// images, so add this one to the list of images that
 			// we'll remove later.
-			// Only remove intermediate image is `--layers` is not provided
-			// or following stage was not only a base image ( i.e a different image ).
-			if !b.layers && !r.OnlyBaseImage {
+			// Only remove intermediate image if `--layers` is not provided,
+			// `--save-stages` is not enabled, or following stage was not
+			// only a base image (i.e. a different image).
+			if !b.layers && !b.saveStages && !r.OnlyBaseImage {
 				cleanupImages = append(cleanupImages, r.ImageID)
 			}
 		}

@@ -320,14 +320,14 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 
 // ParseNetworkFlag parses a network string slice into the network options
 // If the input is nil or empty it will use the default setting from containers.conf
-func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
+func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, []string, map[string][]string, error) {
 	var networkOptions map[string][]string
 	toReturn := Namespace{}
 	// by default we try to use the containers.conf setting
 	// if we get at least one value use this instead
 	cfg, err := config.Default()
 	if err != nil {
-		return toReturn, nil, nil, err
+		return toReturn, nil, nil, nil, err
 	}
 	ns := cfg.Containers.NetNS
 	if len(networks) > 0 {
@@ -335,6 +335,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 	}
 
 	podmanNetworks := make(map[string]types.PerNetworkOptions)
+	networkOrder := []string{}
 
 	switch {
 	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
@@ -356,7 +357,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 			var err error
 			netOpts, err = parseBridgeNetworkOptions(options)
 			if err != nil {
-				return toReturn, nil, nil, err
+				return toReturn, nil, nil, nil, err
 			}
 		}
 		// we have to set the special default network name here
@@ -386,17 +387,19 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 		name, options, hasOptions := strings.Cut(ns, ":")
 		if hasOptions {
 			if name == "" {
-				return toReturn, nil, nil, errors.New("network name cannot be empty")
+				return toReturn, nil, nil, nil, errors.New("network name cannot be empty")
 			}
 			netOpts, err := parseBridgeNetworkOptions(options)
 			if err != nil {
-				return toReturn, nil, nil, fmt.Errorf("invalid option for network %s: %w", name, err)
+				return toReturn, nil, nil, nil, fmt.Errorf("invalid option for network %s: %w", name, err)
 			}
+			networkOrder = append(networkOrder, name)
 			podmanNetworks[name] = netOpts
 		} else {
 			// Assume we have been given a comma separated list of networks for backwards compat.
 			networkList := strings.SplitSeq(ns, ",")
 			for net := range networkList {
+				networkOrder = append(networkOrder, net)
 				podmanNetworks[net] = types.PerNetworkOptions{}
 			}
 		}
@@ -407,33 +410,39 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 
 	if len(networks) > 1 {
 		if !toReturn.IsBridge() {
-			return toReturn, nil, nil, fmt.Errorf("cannot set multiple networks without bridge network mode, selected mode %s: %w", toReturn.NSMode, define.ErrInvalidArg)
+			return toReturn, nil, nil, nil, fmt.Errorf("cannot set multiple networks without bridge network mode, selected mode %s: %w", toReturn.NSMode, define.ErrInvalidArg)
 		}
 
 		for _, network := range networks[1:] {
 			name, options, hasOptions := strings.Cut(network, ":")
 			if name == "" {
-				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
+				return toReturn, nil, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
 			if slices.Contains([]string{
 				string(Bridge), string(Slirp), string(Pasta), string(FromPod), string(NoNetwork),
 				string(Default), string(Private), string(Path), string(FromContainer), string(Host),
 			}, name) {
-				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", name, define.ErrInvalidArg)
+				return toReturn, nil, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", name, define.ErrInvalidArg)
 			}
 			netOpts := types.PerNetworkOptions{}
 			if hasOptions {
 				var err error
 				netOpts, err = parseBridgeNetworkOptions(options)
 				if err != nil {
-					return toReturn, nil, nil, fmt.Errorf("invalid option for network %s: %w", name, err)
+					return toReturn, nil, nil, nil, fmt.Errorf("invalid option for network %s: %w", name, err)
 				}
 			}
+			networkOrder = append(networkOrder, name)
 			podmanNetworks[name] = netOpts
 		}
 	}
 
-	return toReturn, podmanNetworks, networkOptions, nil
+	// Handle default network cases
+	if len(podmanNetworks) == 1 && len(networkOrder) == 0 {
+		networkOrder = nil
+	}
+
+	return toReturn, podmanNetworks, networkOrder, networkOptions, nil
 }
 
 func parseBridgeNetworkOptions(opts string) (types.PerNetworkOptions, error) {

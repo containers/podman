@@ -43,6 +43,7 @@ type NetOptions struct {
 	AddHosts           []string                           `json:"hostadd,omitempty"`
 	Aliases            []string                           `json:"network_alias,omitempty"`
 	Networks           map[string]types.PerNetworkOptions `json:"networks,omitempty"`
+	NetworkOrder       []string                           `json:"network_order,omitempty"`
 	UseImageResolvConf bool                               `json:"no_manage_resolv_conf,omitempty"`
 	DNSOptions         []string                           `json:"dns_option,omitempty"`
 	DNSSearch          []string                           `json:"dns_search,omitempty"`

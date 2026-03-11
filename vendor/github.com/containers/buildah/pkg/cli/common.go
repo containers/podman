@@ -26,8 +26,10 @@ import (
 
 // LayerResults represents the results of the layer flags
 type LayerResults struct {
-	ForceRm bool
-	Layers  bool
+	ForceRm     bool
+	Layers      bool
+	SaveStages  bool
+	StageLabels bool
 }
 
 // UserNSResults represents the results for the UserNS flags
@@ -218,6 +220,8 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.BoolVar(&flags.ForceRm, "force-rm", false, "always remove intermediate containers after a build, even if the build is unsuccessful.")
 	fs.BoolVar(&flags.Layers, "layers", UseLayers(), "use intermediate layers during build. Use BUILDAH_LAYERS environment variable to override.")
+	fs.BoolVar(&flags.SaveStages, "save-stages", false, "save intermediate stage images.")
+	fs.BoolVar(&flags.StageLabels, "stage-labels", false, "add metadata labels to intermediate stage images (requires --save-stages).")
 	return fs
 }
 

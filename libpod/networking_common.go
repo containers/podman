@@ -47,7 +47,7 @@ func (c *Container) convertPortMappings() []types.PortMapping {
 	return newPorts
 }
 
-func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOptions) types.NetworkOptions {
+func (c *Container) getNetworkOptions(networkOpts []types.NamedPerNetworkOptions) types.NetworkOptions {
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers.Get())+len(c.config.DNSServer))
 	nameservers = append(nameservers, c.runtime.config.Containers.DNSServers.Get()...)
 	for _, ip := range c.config.DNSServer {
@@ -155,20 +155,21 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 
 	// Set the same network settings as before..
 	netStatus := ctr.getNetworkStatus()
-	for network, perNetOpts := range networkOpts {
-		for name, netInt := range netStatus[network].Interfaces {
-			perNetOpts.InterfaceName = name
-			perNetOpts.StaticMAC = netInt.MacAddress
+	newNetworkOpts := make([]types.NamedPerNetworkOptions, 0, len(networkOpts))
+	for _, network := range networkOpts {
+		for name, netInt := range netStatus[network.Name].Interfaces {
+			network.InterfaceName = name
+			network.StaticMAC = netInt.MacAddress
 			for _, netAddress := range netInt.Subnets {
-				perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
+				network.StaticIPs = append(network.StaticIPs, netAddress.IPNet.IP)
 			}
 			// Normally interfaces have a length of 1, only for some special network configs we could get more.
 			// For now just use the first interface to get the ips this should be good enough for most cases.
 			break
 		}
-		networkOpts[network] = perNetOpts
+		newNetworkOpts = append(newNetworkOpts, network)
 	}
-	ctr.perNetworkOpts = networkOpts
+	ctr.perNetworkOpts = newNetworkOpts
 
 	return r.configureNetNS(ctr, ctr.state.NetNS)
 }
@@ -240,11 +241,11 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		// the container joined.
 		if len(networks) > 0 {
 			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
-			for net, opts := range networks {
+			for _, net := range networks {
 				netInfo := new(define.InspectAdditionalNetwork)
-				netInfo.NetworkID = getNetworkID(net)
-				netInfo.Aliases = opts.Aliases
-				settings.Networks[net] = netInfo
+				netInfo.NetworkID = getNetworkID(net.Name)
+				netInfo.Aliases = net.Aliases
+				settings.Networks[net.Name] = netInfo
 			}
 		} else {
 			setDefaultNetworks()
@@ -270,19 +271,23 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 
 		settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
 
-		for name, opts := range networks {
-			result := netStatus[name]
+		isDefaultNet := false
+		for _, network := range networks {
+			result := netStatus[network.Name]
 			addedNet := new(define.InspectAdditionalNetwork)
-			addedNet.NetworkID = getNetworkID(name)
-			addedNet.Aliases = opts.Aliases
+			addedNet.NetworkID = getNetworkID(network.Name)
+			addedNet.Aliases = network.Aliases
 			addedNet.InspectBasicNetworkConfig = resultToBasicNetworkConfig(result)
 
-			settings.Networks[name] = addedNet
+			settings.Networks[network.Name] = addedNet
+
+			if network.Name == c.runtime.config.Network.DefaultNetwork {
+				isDefaultNet = true
+			}
 		}
 
 		// if not only the default network is connected we can return here
 		// otherwise we have to populate the InspectBasicNetworkConfig settings
-		_, isDefaultNet := networks[c.runtime.config.Network.DefaultNetwork]
 		if len(networks) != 1 || !isDefaultNet {
 			return settings, nil
 		}
@@ -368,7 +373,15 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 		return err
 	}
 
-	netOpts, nameExists := networks[netName]
+	nameExists := false
+	var network types.NamedPerNetworkOptions
+	for _, net := range networks {
+		if net.Name == netName {
+			nameExists = true
+			network = net
+			break
+		}
+	}
 	if !nameExists && len(networks) > 0 {
 		return fmt.Errorf("container %s is not connected to network %s", nameOrID, netName)
 	}
@@ -385,7 +398,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 
 	// Since we removed the new network from the container db we must have to add it back during partial setup errors
 	addContainerNetworkToDB := func() {
-		if err := c.runtime.state.NetworkConnect(c, netName, netOpts); err != nil {
+		if err := c.runtime.state.NetworkConnect(c, network); err != nil {
 			logrus.Errorf("Failed to add network %s for container %s to DB after failed network disconnect", netName, nameOrID)
 		}
 	}
@@ -405,8 +418,12 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 		ContainerName: getNetworkPodName(c),
 	}
 	opts.PortMappings = c.convertPortMappings()
-	opts.Networks = map[string]types.PerNetworkOptions{
-		netName: networks[netName],
+
+	for _, net := range networks {
+		if net.Name == netName {
+			opts.Networks = []types.NamedPerNetworkOptions{net}
+			break
+		}
 	}
 
 	if err := c.runtime.teardownNetworkBackend(c.state.NetNS, opts); err != nil {
@@ -514,8 +531,12 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 			return errors.New("could not find free network interface name")
 		}
 	}
+	namedOpts := types.NamedPerNetworkOptions{
+		Name:              netName,
+		PerNetworkOptions: netOpts,
+	}
 
-	if err := c.runtime.state.NetworkConnect(c, netName, netOpts); err != nil {
+	if err := c.runtime.state.NetworkConnect(c, namedOpts); err != nil {
 		// Docker compat: treat requests to attach already attached networks as a no-op, ignoring opts
 		if errors.Is(err, define.ErrNetworkConnected) && !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 			return nil
@@ -545,9 +566,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		ContainerName: getNetworkPodName(c),
 	}
 	opts.PortMappings = c.convertPortMappings()
-	opts.Networks = map[string]types.PerNetworkOptions{
-		netName: netOpts,
-	}
+	opts.Networks = []types.NamedPerNetworkOptions{namedOpts}
 
 	results, err := c.runtime.setUpNetwork(c.state.NetNS, opts)
 	if err != nil {
@@ -627,7 +646,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 // get a free interface name for a new network
 // return an empty string if no free name was found
-func getFreeInterfaceName(networks map[string]types.PerNetworkOptions) string {
+func getFreeInterfaceName(networks []types.NamedPerNetworkOptions) string {
 	ifNames := make([]string, 0, len(networks))
 	for _, opts := range networks {
 		ifNames = append(ifNames, opts.InterfaceName)

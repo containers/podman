@@ -513,6 +513,11 @@ type ContainerNetworkConfig struct {
 	// will be joined to the default network.
 	// Optional.
 	Networks map[string]nettypes.PerNetworkOptions
+	// The order that networks will be configured in.
+	// If not set, alphabetical order based on network name will be used.
+	// If set: Must be the same length as Networks and its contents must be every key in the Networks map.
+	// Optional.
+	NetworkOrder []string `json:"networkOrder,omitempty"`
 	// UseImageResolvConf indicates that resolv.conf should not be managed
 	// by Podman, but instead sourced from the image.
 	// Conflicts with DNSServer, DNSSearch, DNSOption.
