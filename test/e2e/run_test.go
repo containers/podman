@@ -2262,6 +2262,9 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run check personality support", func() {
+		if podmanTest.Host.Arch != "amd64" {
+			Skip("test only valid on amd64")
+		}
 		session := podmanTest.Podman([]string{"run", "--personality=LINUX32", "--name=testpersonality", ALPINE, "uname", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
