@@ -253,6 +253,12 @@ type NetAddress struct {
 	Gateway net.IP `json:"gateway,omitempty"`
 }
 
+// NamedPerNetworkOptions includes both options to apply to a network and the name of the network.
+type NamedPerNetworkOptions struct {
+	Name string `json:"name"`
+	PerNetworkOptions
+}
+
 // PerNetworkOptions are options which should be set on a per network basis.
 type PerNetworkOptions struct {
 	// StaticIPs for this container. Optional.
@@ -284,7 +290,7 @@ type NetworkOptions struct {
 	PortMappings []PortMapping `json:"port_mappings,omitempty"`
 	// Networks contains all networks with the PerNetworkOptions.
 	// The map should contain at least one element.
-	Networks map[string]PerNetworkOptions `json:"networks"`
+	Networks []NamedPerNetworkOptions `json:"networks"`
 	// List of custom DNS server for podman's DNS resolver.
 	// Priority order will be kept as defined by user in the configuration.
 	DNSServers []string `json:"dns_servers,omitempty"`

@@ -213,7 +213,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 			return nil, err
 		}
 
-		ns, networks, options, err := specgen.ParseNetworkFlag(network)
+		ns, networks, networkOrder, options, err := specgen.ParseNetworkFlag(network)
 		if err != nil {
 			return nil, err
 		}
@@ -221,6 +221,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		opts.NetworkOptions = options
 		opts.Network = ns
 		opts.Networks = networks
+		opts.NetworkOrder = networkOrder
 	}
 
 	if flags.Changed("ip") || flags.Changed("ip6") || flags.Changed("mac-address") || flags.Changed("network-alias") {

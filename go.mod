@@ -65,8 +65,8 @@ require (
 	github.com/vbauerster/mpb/v8 v8.12.0
 	github.com/vishvananda/netlink v1.3.1
 	go.podman.io/common v0.67.1-0.20260323194312-7e1f14c29cb4
-	go.podman.io/image/v5 v5.39.2-0.20260323194312-7e1f14c29cb4
-	go.podman.io/storage v1.62.1-0.20260323194312-7e1f14c29cb4
+	go.podman.io/image/v5 v5.39.2-0.20260324131108-94ad0236ccd0
+	go.podman.io/storage v1.62.1-0.20260324131108-94ad0236ccd0
 	golang.org/x/crypto v0.49.0
 	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.20.0
@@ -95,7 +95,7 @@ require (
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/platforms v1.0.0-rc.2 // indirect
+	github.com/containerd/platforms v1.0.0-rc.3 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/plugins v1.9.0 // indirect
@@ -129,7 +129,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
@@ -188,3 +188,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace go.podman.io/common => github.com/mheon/container-libs/common v0.0.0-20260325081802-c0ad2cdf6ef2
+
+replace github.com/containers/buildah => github.com/mheon/buildah v0.0.0-20260325082235-ebc57bfe9d49

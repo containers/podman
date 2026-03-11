@@ -704,8 +704,8 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			return nil, err
 		}
 		netNames := make([]string, 0, len(networks))
-		for name := range networks {
-			netNames = append(netNames, name)
+		for _, network := range networks {
+			netNames = append(netNames, network.Name)
 		}
 		if len(netNames) > 0 {
 			infraConfig.Networks = netNames

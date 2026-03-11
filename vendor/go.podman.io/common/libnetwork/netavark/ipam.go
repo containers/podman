@@ -77,10 +77,10 @@ func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bbolt.Tx) error {
-		for netName, netOpts := range opts.Networks {
-			network := n.networks[netName]
+		for index, namedNet := range opts.Networks {
+			network := n.networks[namedNet.Name]
 			if network == nil {
-				return newIPAMError(nil, "could not find network %q", netName)
+				return newIPAMError(nil, "could not find network %q", namedNet.Name)
 			}
 
 			// check if we have to alloc ips
@@ -89,23 +89,23 @@ func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {
 			}
 
 			// create/get network bucket
-			netBkt, err := tx.CreateBucketIfNotExists([]byte(netName))
+			netBkt, err := tx.CreateBucketIfNotExists([]byte(namedNet.Name))
 			if err != nil {
-				return newIPAMError(err, "failed to create/get network bucket for network %s", netName)
+				return newIPAMError(err, "failed to create/get network bucket for network %s", namedNet.Name)
 			}
 
 			// requestIPs is the list of ips which should be used for this container
-			requestIPs := make([]net.IP, 0, len(netOpts.StaticIPs))
+			requestIPs := make([]net.IP, 0, len(namedNet.PerNetworkOptions.StaticIPs))
 
 			for i, subnet := range network.Subnets {
 				subnetBkt, err := netBkt.CreateBucketIfNotExists([]byte(subnet.Subnet.String()))
 				if err != nil {
-					return newIPAMError(err, "failed to create/get subnet bucket for network %s", netName)
+					return newIPAMError(err, "failed to create/get subnet bucket for network %s", namedNet.Name)
 				}
 
 				// check for static ips requested for this subnet and allocate them if available
 				hasSubnetStaticIP := false
-				for _, staticIP := range netOpts.StaticIPs {
+				for _, staticIP := range namedNet.PerNetworkOptions.StaticIPs {
 					if subnet.Subnet.Contains(staticIP) {
 						hasSubnetStaticIP = true
 
@@ -146,7 +146,7 @@ func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {
 
 			idsBucket, err := netBkt.CreateBucketIfNotExists(idBucketKey)
 			if err != nil {
-				return newIPAMError(err, "failed to create/get id bucket for network %s", netName)
+				return newIPAMError(err, "failed to create/get id bucket for network %s", namedNet.Name)
 			}
 
 			ipsBytes, err := json.Marshal(requestIPs)
@@ -159,8 +159,8 @@ func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {
 				return newIPAMError(err, "failed to store ips in database")
 			}
 
-			netOpts.StaticIPs = requestIPs
-			opts.Networks[netName] = netOpts
+			namedNet.PerNetworkOptions.StaticIPs = requestIPs
+			opts.Networks[index].PerNetworkOptions = namedNet.PerNetworkOptions
 		}
 		return nil
 	})
@@ -249,10 +249,10 @@ func (n *netavarkNetwork) getAssignedIPs(opts *types.NetworkOptions) error {
 	defer db.Close()
 
 	err = db.View(func(tx *bbolt.Tx) error {
-		for netName, netOpts := range opts.Networks {
-			network := n.networks[netName]
+		for index, namedNet := range opts.Networks {
+			network := n.networks[namedNet.Name]
 			if network == nil {
-				return newIPAMError(nil, "could not find network %q", netName)
+				return newIPAMError(nil, "could not find network %q", namedNet.Name)
 			}
 
 			// check if we have to alloc ips
@@ -260,19 +260,19 @@ func (n *netavarkNetwork) getAssignedIPs(opts *types.NetworkOptions) error {
 				continue
 			}
 			// get network bucket
-			netBkt := tx.Bucket([]byte(netName))
+			netBkt := tx.Bucket([]byte(namedNet.Name))
 			if netBkt == nil {
-				return newIPAMError(nil, "failed to get network bucket for network %s", netName)
+				return newIPAMError(nil, "failed to get network bucket for network %s", namedNet.Name)
 			}
 
 			idBkt := netBkt.Bucket(idBucketKey)
 			if idBkt == nil {
-				return newIPAMError(nil, "failed to get id bucket for network %s", netName)
+				return newIPAMError(nil, "failed to get id bucket for network %s", namedNet.Name)
 			}
 
 			ipJSON := idBkt.Get([]byte(opts.ContainerID))
 			if ipJSON == nil {
-				return newIPAMError(nil, "failed to get ips for container ID %s on network %s", opts.ContainerID, netName)
+				return newIPAMError(nil, "failed to get ips for container ID %s on network %s", opts.ContainerID, namedNet.Name)
 			}
 
 			// assignedIPs is the list of ips which should be used for this container
@@ -287,8 +287,8 @@ func (n *netavarkNetwork) getAssignedIPs(opts *types.NetworkOptions) error {
 				util.NormalizeIP(&assignedIPs[i])
 			}
 
-			netOpts.StaticIPs = assignedIPs
-			opts.Networks[netName] = netOpts
+			namedNet.PerNetworkOptions.StaticIPs = assignedIPs
+			opts.Networks[index].PerNetworkOptions = namedNet.PerNetworkOptions
 		}
 		return nil
 	})
@@ -306,10 +306,10 @@ func (n *netavarkNetwork) deallocIPs(opts *types.NetworkOptions) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bbolt.Tx) error {
-		for netName, netOpts := range opts.Networks {
-			network := n.networks[netName]
+		for _, namedNet := range opts.Networks {
+			network := n.networks[namedNet.Name]
 			if network == nil {
-				return newIPAMError(nil, "could not find network %q", netName)
+				return newIPAMError(nil, "could not find network %q", namedNet.Name)
 			}
 
 			// check if we have to alloc ips
@@ -317,45 +317,45 @@ func (n *netavarkNetwork) deallocIPs(opts *types.NetworkOptions) error {
 				continue
 			}
 			// get network bucket
-			netBkt := tx.Bucket([]byte(netName))
+			netBkt := tx.Bucket([]byte(namedNet.Name))
 			if netBkt == nil {
-				return newIPAMError(nil, "failed to get network bucket for network %s", netName)
+				return newIPAMError(nil, "failed to get network bucket for network %s", namedNet.Name)
 			}
 
 			for _, subnet := range network.Subnets {
 				subnetBkt := netBkt.Bucket([]byte(subnet.Subnet.String()))
 				if subnetBkt == nil {
-					return newIPAMError(nil, "failed to get subnet bucket for network %s", netName)
+					return newIPAMError(nil, "failed to get subnet bucket for network %s", namedNet.Name)
 				}
 
 				// search for a static ip which matches the current subnet
 				// in this case the user wants this one and we should not assign a free one
 				removed := false
-				for _, assignedIP := range netOpts.StaticIPs {
+				for _, assignedIP := range namedNet.PerNetworkOptions.StaticIPs {
 					if subnet.Subnet.Contains(assignedIP) {
 						removed = true
 						util.NormalizeIP(&assignedIP)
 
 						err = subnetBkt.Delete(assignedIP)
 						if err != nil {
-							return newIPAMError(err, "failed to remove ip %s from subnet bucket for network %s", assignedIP.String(), netName)
+							return newIPAMError(err, "failed to remove ip %s from subnet bucket for network %s", assignedIP.String(), namedNet.Name)
 						}
 					}
 				}
 
 				if !removed {
-					return newIPAMError(nil, "failed to find ip for subnet %s on network %s", subnet.Subnet.String(), netName)
+					return newIPAMError(nil, "failed to find ip for subnet %s on network %s", subnet.Subnet.String(), namedNet.Name)
 				}
 			}
 
 			idBkt := netBkt.Bucket(idBucketKey)
 			if idBkt == nil {
-				return newIPAMError(nil, "failed to get id bucket for network %s", netName)
+				return newIPAMError(nil, "failed to get id bucket for network %s", namedNet.Name)
 			}
 
 			err = idBkt.Delete([]byte(opts.ContainerID))
 			if err != nil {
-				return newIPAMError(err, "failed to remove allocated ips for container ID %s on network %s", opts.ContainerID, netName)
+				return newIPAMError(err, "failed to remove allocated ips for container ID %s on network %s", opts.ContainerID, namedNet.Name)
 			}
 		}
 		return nil

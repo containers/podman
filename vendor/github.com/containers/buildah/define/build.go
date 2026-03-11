@@ -286,6 +286,12 @@ type BuildOptions struct {
 	OnBuild []string
 	// Layers tells the builder to commit an image for each step in the Dockerfile.
 	Layers bool
+	// SaveStages tells the builder to save intermediate stage images instead of removing them.
+	SaveStages bool
+	// StageLabels tells the builder to add metadata labels to all stage images (including the final image).
+	// These labels include stage name (stage alias or position) and base image (pullspec or image ID if
+	// stage uses another stage as base). This option requires SaveStages to be enabled.
+	StageLabels bool
 	// NoCache tells the builder to build the image from scratch without checking for a cache.
 	// It creates a new set of cached images for the build.
 	NoCache bool

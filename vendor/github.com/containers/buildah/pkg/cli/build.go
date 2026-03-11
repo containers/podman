@@ -223,6 +223,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
 	}
 
+	if iopts.StageLabels && !iopts.SaveStages {
+		return options, nil, nil, errors.New(`"--stage-labels" requires "--save-stages"`)
+	}
+
 	if c.Flag("compress").Changed {
 		logrus.Debugf("--compress option specified but is ignored")
 	}
@@ -441,6 +445,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Runtime:                 iopts.Runtime,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           iopts.RusageLogFile,
+		SaveStages:              iopts.SaveStages,
 		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
@@ -448,6 +453,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		SkipUnusedStages:        skipUnusedStages,
 		SourceDateEpoch:         sourceDateEpoch,
 		Squash:                  iopts.Squash,
+		StageLabels:             iopts.StageLabels,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,
 		Timestamp:               timestamp,
