@@ -400,7 +400,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	forbidLinkSeccompProfile := func() string {
-		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"link","action":"SCMP_ACT_ERRNO"}]}`)
+		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"names":["link","linkat"],"action":"SCMP_ACT_ERRNO"}]}`)
 		jsonFile, err := podmanTest.CreateSeccompJSON(in)
 		if err != nil {
 			GinkgoWriter.Println(err)
