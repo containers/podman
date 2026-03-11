@@ -30,14 +30,14 @@ var Default = NewHTTPClient(nil)
 const (
     // DefaultHost is the default Host
     // found in Meta (info) section of spec file
-    DefaultHost string = {{ printf "%#v" .Host }}
+    DefaultHost string = {{ printGoLiteral .Host }}
     // DefaultBasePath is the default BasePath
     // found in Meta (info) section of spec file
-    DefaultBasePath string = {{ printf "%#v" .BasePath }}
+    DefaultBasePath string = {{ printGoLiteral .BasePath }}
 )
 
 // DefaultSchemes are the default schemes found in Meta (info) section of spec file
-var DefaultSchemes = {{ printf "%#v" .Schemes }}
+var DefaultSchemes = {{ printGoLiteral .Schemes }}
 
 // NewHTTPClient creates a new {{ humanize .Name }} HTTP client.
 func NewHTTPClient(formats strfmt.Registry) *{{ pascalize .Name }} {

@@ -28,14 +28,14 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}) UnmarshalJSON(raw []byte) error 
   var allOf{{ pascalize .Name }} {{ if .IsArray }}[]{{ pascalize .Items.GoType }}{{ else }}{{ pascalize .GoType }}{{ end }}
   if string(data.{{ pascalize .Name }}) != "null" {
     {{ camelize .Name }}, err := Unmarshal{{ if .IsArray }}{{ pascalize .Items.GoType }}Slice{{ else }}{{ pascalize .GoType }}{{ end }}(bytes.NewBuffer(data.{{ pascalize .Name }}), runtime.JSONConsumer())
-    if err != nil && err != io.EOF {
+    if err != nil && !stderrors.Is(err, io.EOF) {
       return err
     }
     allOf{{ pascalize .Name }} = {{ camelize .Name }}
   }
           {{- else }}
   allOf{{ pascalize .Name }}, err := Unmarshal{{ if .IsArray }}{{ pascalize .Items.GoType }}Slice{{ else }}{{ pascalize .GoType }}{{ end }}(bytes.NewBuffer(data.{{ pascalize .Name }}), runtime.JSONConsumer())
-  if err != nil && err != io.EOF {
+  if err != nil && !stderrors.Is(err, io.EOF) {
     return err
   }
           {{- end }}
@@ -49,14 +49,14 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}) UnmarshalJSON(raw []byte) error 
   var prop{{ pascalize .Name }} {{ if .IsArray }}[]{{ pascalize .Items.GoType }}{{ else }}{{ pascalize .GoType }}{{ end }}
   if string(data.{{ pascalize .Name }}) != "null" {
     {{ camelize .Name }}, err := Unmarshal{{ if .IsArray }}{{ pascalize .Items.GoType }}Slice{{ else }}{{ pascalize .GoType }}{{ end }}(bytes.NewBuffer(data.{{ pascalize .Name }}), runtime.JSONConsumer())
-    if err != nil && err != io.EOF {
+    if err != nil && !stderrors.Is(err, io.EOF) {
       return err
     }
     prop{{ pascalize .Name }} = {{ camelize .Name }}
   }
       {{- else }}
   prop{{ pascalize .Name }}, err := Unmarshal{{ if .IsArray }}{{ pascalize .Items.GoType }}Slice{{ else }}{{ pascalize .GoType }}{{ end }}(bytes.NewBuffer(data.{{ pascalize .Name }}), runtime.JSONConsumer())
-  if err != nil && err != io.EOF {
+  if err != nil && !stderrors.Is(err, io.EOF) {
     return err
   }
       {{- end }}
@@ -119,7 +119,7 @@ func ({{.ReceiverName}} *{{ pascalize .Name }}) UnmarshalJSON(raw []byte) error 
 
   {{ if .IsAdditionalProperties }}
   // Additional Properties: read raw, remove named properties, and add to map
-  rawProps := make(map[string]{{ if .AdditionalProperties }}json.RawMessage{{ else }}interface{}{{ end }})
+  rawProps := make(map[string]{{ if .AdditionalProperties }}json.RawMessage{{ else }}any{{ end }})
   if err := json.Unmarshal(raw, &rawProps); err != nil {
     return err
   }
