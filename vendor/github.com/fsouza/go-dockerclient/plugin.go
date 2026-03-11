@@ -136,16 +136,16 @@ type PluginUser struct {
 type PluginConfig struct {
 	Description     string `json:"Description,omitempty" yaml:"Description,omitempty" toml:"Description,omitempty"`
 	Documentation   string
-	Interface       PluginInterface `json:"Interface,omitempty" yaml:"Interface,omitempty" toml:"Interface,omitempty"`
+	Interface       PluginInterface `json:"Interface" yaml:"Interface,omitempty" toml:"Interface,omitempty"`
 	Entrypoint      []string        `json:"Entrypoint,omitempty" yaml:"Entrypoint,omitempty" toml:"Entrypoint,omitempty"`
 	WorkDir         string          `json:"WorkDir,omitempty" yaml:"WorkDir,omitempty" toml:"WorkDir,omitempty"`
-	User            PluginUser      `json:"User,omitempty" yaml:"User,omitempty" toml:"User,omitempty"`
-	Network         PluginNetwork   `json:"Network,omitempty" yaml:"Network,omitempty" toml:"Network,omitempty"`
-	Linux           PluginLinux     `json:"Linux,omitempty" yaml:"Linux,omitempty" toml:"Linux,omitempty"`
+	User            PluginUser      `json:"User" yaml:"User,omitempty" toml:"User,omitempty"`
+	Network         PluginNetwork   `json:"Network" yaml:"Network,omitempty" toml:"Network,omitempty"`
+	Linux           PluginLinux     `json:"Linux" yaml:"Linux,omitempty" toml:"Linux,omitempty"`
 	PropagatedMount string          `json:"PropagatedMount,omitempty" yaml:"PropagatedMount,omitempty" toml:"PropagatedMount,omitempty"`
 	Mounts          []Mount         `json:"Mounts,omitempty" yaml:"Mounts,omitempty" toml:"Mounts,omitempty"`
 	Env             []PluginEnv     `json:"Env,omitempty" yaml:"Env,omitempty" toml:"Env,omitempty"`
-	Args            PluginArgs      `json:"Args,omitempty" yaml:"Args,omitempty" toml:"Args,omitempty"`
+	Args            PluginArgs      `json:"Args" yaml:"Args,omitempty" toml:"Args,omitempty"`
 }
 
 // PluginDetail specify results from the ListPlugins function.
@@ -156,8 +156,8 @@ type PluginDetail struct {
 	Name     string         `json:"Name,omitempty" yaml:"Name,omitempty" toml:"Name,omitempty"`
 	Tag      string         `json:"Tag,omitempty" yaml:"Tag,omitempty" toml:"Tag,omitempty"`
 	Active   bool           `json:"Enabled,omitempty" yaml:"Active,omitempty" toml:"Active,omitempty"`
-	Settings PluginSettings `json:"Settings,omitempty" yaml:"Settings,omitempty" toml:"Settings,omitempty"`
-	Config   PluginConfig   `json:"Config,omitempty" yaml:"Config,omitempty" toml:"Config,omitempty"`
+	Settings PluginSettings `json:"Settings" yaml:"Settings,omitempty" toml:"Settings,omitempty"`
+	Config   PluginConfig   `json:"Config" yaml:"Config,omitempty" toml:"Config,omitempty"`
 }
 
 // ListPlugins returns pluginDetails or an error.

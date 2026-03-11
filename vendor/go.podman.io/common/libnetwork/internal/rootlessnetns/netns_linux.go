@@ -52,7 +52,7 @@ type Netns struct {
 	// config contains containers.conf options.
 	config *config.Config
 
-	// info contain information about ip addresses used in the netns.
+	// info contains information about ip addresses used in the netns.
 	// A caller can get this info via Info().
 	info *types.RootlessNetnsInfo
 }
@@ -172,7 +172,7 @@ func (n *Netns) getOrCreateNetns() (netns.NetNS, bool, error) {
 func (n *Netns) cleanup() error {
 	if err := fileutils.Exists(n.dir); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			// dir does not exists no need for cleanup
+			// dir does not exist no need for cleanup
 			return nil
 		}
 		return err
@@ -311,9 +311,9 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 func (n *Netns) cleanupRootlessNetns() error {
 	pidFile := n.getPath(rootlessNetNsConnPidFile)
 	pid, err := readPidFile(pidFile)
-	// do not hard error if the file dos not exists, cleanup should be idempotent
+	// do not hard error if the file does not exist, cleanup should be idempotent
 	if errors.Is(err, fs.ErrNotExist) {
-		logrus.Debugf("Rootless netns conn pid file does not exists %s", pidFile)
+		logrus.Debugf("Rootless netns conn pid file does not exist %s", pidFile)
 		return nil
 	}
 	if err == nil {

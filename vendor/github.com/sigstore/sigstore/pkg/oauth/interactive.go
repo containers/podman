@@ -16,15 +16,14 @@
 package oauth
 
 import (
-	"bytes"
 	"fmt"
-	"text/template"
+	"strings"
 )
 
 // GetInteractiveSuccessHTML is the page displayed upon success when using a web browser during an interactive Oauth token flow.
 // The page will close automatically if autoclose is true with the timeout specified.
 func GetInteractiveSuccessHTML(autoclose bool, timeout int) (string, error) {
-	const successTemplate = `<!DOCTYPE html>
+	const successTemplateHead = `<!DOCTYPE html>
 <html>
 	<head>
 		<title>Sigstore Authentication</title>
@@ -90,10 +89,11 @@ func GetInteractiveSuccessHTML(autoclose bool, timeout int) (string, error) {
 		<script>
 			document.getElementById("favicon").setAttribute("href", "data:image/svg+xml," + encodeURIComponent(document.getElementById("logo").outerHTML));
 		</script>
+`
 
-		{{ if .Autoclose -}}
+	const autocloseScript = `
 		<script>
-			var timeout = {{ .Timeout }};
+			var timeout = %d;
 			setTimeout(function() { this.close(); }, timeout*1000);
 			setInterval(function() {
 				timeout--;
@@ -102,29 +102,26 @@ func GetInteractiveSuccessHTML(autoclose bool, timeout int) (string, error) {
 					document.getElementsByName("autoclose")[0].innerHTML = "This page will close now, thank you!";
 				}
 			}, 1000);
-		</script>
-		{{- end }}
+
+			</script>
+`
+
+	const successTemplateTail = `
 	</body>
 </html>
 `
-	// Parse the template
-	tmpl, err := template.New("success").Parse(successTemplate)
-	if err != nil {
-		return "", fmt.Errorf("error parsing success template: %w", err)
+
+	var sb strings.Builder
+
+	sb.WriteString(successTemplateHead)
+
+	if autoclose {
+		fmt.Fprintf(&sb, autocloseScript, timeout)
 	}
-	// Pass autoclose and timeout to the template
-	data := struct {
-		Autoclose bool
-		Timeout   int
-	}{
-		autoclose,
-		timeout,
-	}
-	var htmlPage bytes.Buffer
-	if err := tmpl.Execute(&htmlPage, data); err != nil {
-		return "", fmt.Errorf("error executing template: %w", err)
-	}
-	return htmlPage.String(), nil
+
+	sb.WriteString(successTemplateTail)
+
+	return sb.String(), nil
 }
 
 const (

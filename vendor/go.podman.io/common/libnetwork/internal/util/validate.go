@@ -145,12 +145,12 @@ func ValidateSetupOptions(n NetUtil, namespacePath string, options types.SetupOp
 	if len(options.Networks) == 0 {
 		return errors.New("must specify at least one network")
 	}
-	for name, netOpts := range options.Networks {
-		network, err := n.Network(name)
+	for _, net := range options.Networks {
+		network, err := n.Network(net.Name)
 		if err != nil {
 			return err
 		}
-		err = validatePerNetworkOpts(network, &netOpts)
+		err = validatePerNetworkOpts(network, &net.PerNetworkOptions)
 		if err != nil {
 			return err
 		}

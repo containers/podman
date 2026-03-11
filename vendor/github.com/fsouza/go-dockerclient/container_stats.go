@@ -14,13 +14,13 @@ import (
 //
 // See https://goo.gl/Dk3Xio for more details.
 type Stats struct {
-	Read      time.Time `json:"read,omitempty" yaml:"read,omitempty" toml:"read,omitempty"`
-	PreRead   time.Time `json:"preread,omitempty" yaml:"preread,omitempty" toml:"preread,omitempty"`
+	Read      time.Time `json:"read" yaml:"read,omitempty" toml:"read,omitempty"`
+	PreRead   time.Time `json:"preread" yaml:"preread,omitempty" toml:"preread,omitempty"`
 	NumProcs  uint32    `json:"num_procs" yaml:"num_procs" toml:"num_procs"`
 	PidsStats struct {
 		Current uint64 `json:"current,omitempty" yaml:"current,omitempty"`
-	} `json:"pids_stats,omitempty" yaml:"pids_stats,omitempty" toml:"pids_stats,omitempty"`
-	Network     NetworkStats            `json:"network,omitempty" yaml:"network,omitempty" toml:"network,omitempty"`
+	} `json:"pids_stats" yaml:"pids_stats,omitempty" toml:"pids_stats,omitempty"`
+	Network     NetworkStats            `json:"network" yaml:"network,omitempty" toml:"network,omitempty"`
 	Networks    map[string]NetworkStats `json:"networks,omitempty" yaml:"networks,omitempty" toml:"networks,omitempty"`
 	MemoryStats struct {
 		Stats struct {
@@ -79,7 +79,7 @@ type Stats struct {
 			WorkingsetActivate      uint64 `json:"workingset_activate,omitempty" yaml:"workingset_activate,omitempty" toml:"workingset_activate,omitempty"`
 			WorkingsetNodereclaim   uint64 `json:"workingset_nodereclaim,omitempty" yaml:"workingset_nodereclaim,omitempty" toml:"workingset_nodereclaim,omitempty"`
 			WorkingsetRefault       uint64 `json:"workingset_refault,omitempty" yaml:"workingset_refault,omitempty" toml:"workingset_refault,omitempty"`
-		} `json:"stats,omitempty" yaml:"stats,omitempty" toml:"stats,omitempty"`
+		} `json:"stats" yaml:"stats,omitempty" toml:"stats,omitempty"`
 		MaxUsage          uint64 `json:"max_usage,omitempty" yaml:"max_usage,omitempty" toml:"max_usage,omitempty"`
 		Usage             uint64 `json:"usage,omitempty" yaml:"usage,omitempty" toml:"usage,omitempty"`
 		Failcnt           uint64 `json:"failcnt,omitempty" yaml:"failcnt,omitempty" toml:"failcnt,omitempty"`
@@ -87,7 +87,7 @@ type Stats struct {
 		Commit            uint64 `json:"commitbytes,omitempty" yaml:"commitbytes,omitempty" toml:"privateworkingset,omitempty"`
 		CommitPeak        uint64 `json:"commitpeakbytes,omitempty" yaml:"commitpeakbytes,omitempty" toml:"commitpeakbytes,omitempty"`
 		PrivateWorkingSet uint64 `json:"privateworkingset,omitempty" yaml:"privateworkingset,omitempty" toml:"privateworkingset,omitempty"`
-	} `json:"memory_stats,omitempty" yaml:"memory_stats,omitempty" toml:"memory_stats,omitempty"`
+	} `json:"memory_stats" yaml:"memory_stats,omitempty" toml:"memory_stats,omitempty"`
 	BlkioStats struct {
 		IOServiceBytesRecursive []BlkioStatsEntry `json:"io_service_bytes_recursive,omitempty" yaml:"io_service_bytes_recursive,omitempty" toml:"io_service_bytes_recursive,omitempty"`
 		IOServicedRecursive     []BlkioStatsEntry `json:"io_serviced_recursive,omitempty" yaml:"io_serviced_recursive,omitempty" toml:"io_serviced_recursive,omitempty"`
@@ -97,15 +97,15 @@ type Stats struct {
 		IOMergedRecursive       []BlkioStatsEntry `json:"io_merged_recursive,omitempty" yaml:"io_merged_recursive,omitempty" toml:"io_merged_recursive,omitempty"`
 		IOTimeRecursive         []BlkioStatsEntry `json:"io_time_recursive,omitempty" yaml:"io_time_recursive,omitempty" toml:"io_time_recursive,omitempty"`
 		SectorsRecursive        []BlkioStatsEntry `json:"sectors_recursive,omitempty" yaml:"sectors_recursive,omitempty" toml:"sectors_recursive,omitempty"`
-	} `json:"blkio_stats,omitempty" yaml:"blkio_stats,omitempty" toml:"blkio_stats,omitempty"`
-	CPUStats     CPUStats `json:"cpu_stats,omitempty" yaml:"cpu_stats,omitempty" toml:"cpu_stats,omitempty"`
-	PreCPUStats  CPUStats `json:"precpu_stats,omitempty"`
+	} `json:"blkio_stats" yaml:"blkio_stats,omitempty" toml:"blkio_stats,omitempty"`
+	CPUStats     CPUStats `json:"cpu_stats" yaml:"cpu_stats,omitempty" toml:"cpu_stats,omitempty"`
+	PreCPUStats  CPUStats `json:"precpu_stats"`
 	StorageStats struct {
 		ReadCountNormalized  uint64 `json:"read_count_normalized,omitempty" yaml:"read_count_normalized,omitempty" toml:"read_count_normalized,omitempty"`
 		ReadSizeBytes        uint64 `json:"read_size_bytes,omitempty" yaml:"read_size_bytes,omitempty" toml:"read_size_bytes,omitempty"`
 		WriteCountNormalized uint64 `json:"write_count_normalized,omitempty" yaml:"write_count_normalized,omitempty" toml:"write_count_normalized,omitempty"`
 		WriteSizeBytes       uint64 `json:"write_size_bytes,omitempty" yaml:"write_size_bytes,omitempty" toml:"write_size_bytes,omitempty"`
-	} `json:"storage_stats,omitempty" yaml:"storage_stats,omitempty" toml:"storage_stats,omitempty"`
+	} `json:"storage_stats" yaml:"storage_stats,omitempty" toml:"storage_stats,omitempty"`
 }
 
 // NetworkStats is a stats entry for network stats
@@ -127,14 +127,14 @@ type CPUStats struct {
 		UsageInUsermode   uint64   `json:"usage_in_usermode,omitempty" yaml:"usage_in_usermode,omitempty" toml:"usage_in_usermode,omitempty"`
 		TotalUsage        uint64   `json:"total_usage,omitempty" yaml:"total_usage,omitempty" toml:"total_usage,omitempty"`
 		UsageInKernelmode uint64   `json:"usage_in_kernelmode,omitempty" yaml:"usage_in_kernelmode,omitempty" toml:"usage_in_kernelmode,omitempty"`
-	} `json:"cpu_usage,omitempty" yaml:"cpu_usage,omitempty" toml:"cpu_usage,omitempty"`
+	} `json:"cpu_usage" yaml:"cpu_usage,omitempty" toml:"cpu_usage,omitempty"`
 	SystemCPUUsage uint64 `json:"system_cpu_usage,omitempty" yaml:"system_cpu_usage,omitempty" toml:"system_cpu_usage,omitempty"`
 	OnlineCPUs     uint64 `json:"online_cpus,omitempty" yaml:"online_cpus,omitempty" toml:"online_cpus,omitempty"`
 	ThrottlingData struct {
 		Periods          uint64 `json:"periods,omitempty"`
 		ThrottledPeriods uint64 `json:"throttled_periods,omitempty"`
 		ThrottledTime    uint64 `json:"throttled_time,omitempty"`
-	} `json:"throttling_data,omitempty" yaml:"throttling_data,omitempty" toml:"throttling_data,omitempty"`
+	} `json:"throttling_data" yaml:"throttling_data,omitempty" toml:"throttling_data,omitempty"`
 }
 
 // BlkioStatsEntry is a stats entry for blkio_stats

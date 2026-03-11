@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
+	"sort"
 	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
@@ -555,7 +557,7 @@ func (s *SQLiteState) removeContainerWithTx(id string, tx *sql.Tx) error {
 }
 
 // networkModify allows you to modify or add a new network, to add a new network use the new bool
-func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new, disconnect bool) error {
+func (s *SQLiteState) networkModify(ctr *Container, network types.NamedPerNetworkOptions, new, disconnect bool) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -564,7 +566,7 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 		return define.ErrCtrRemoved
 	}
 
-	if network == "" {
+	if network.Name == "" {
 		return fmt.Errorf("network names must not be empty: %w", define.ErrInvalidArg)
 	}
 
@@ -579,21 +581,34 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 		return define.ErrNoSuchCtr
 	}
 
-	_, ok := newCfg.Networks[network]
-	if new && ok {
-		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrNetworkConnected)
-	}
-	if !ok && (!new || disconnect) {
-		return fmt.Errorf("container %s is not connected to network %s: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
+	// If we have old-style networks: convert them to new format.
+	if newCfg.Networks == nil && newCfg.LegacyNetworks != nil {
+		newCfg.Networks = convertLegacyNetworks(newCfg.LegacyNetworks)
+		newCfg.LegacyNetworks = nil
 	}
 
-	if !disconnect {
-		if newCfg.Networks == nil {
-			newCfg.Networks = make(map[string]types.PerNetworkOptions)
-		}
-		newCfg.Networks[network] = opts
-	} else {
-		delete(newCfg.Networks, network)
+	finderFunc := func(testNet types.NamedPerNetworkOptions) bool { return testNet.Name == network.Name }
+
+	index := slices.IndexFunc(newCfg.Networks, finderFunc)
+	ok := index >= 0
+	if new && ok {
+		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network.Name, define.ErrNetworkConnected)
+	}
+	if !ok && (!new || disconnect) {
+		return fmt.Errorf("container %s is not connected to network %s: %w", ctr.ID(), network.Name, define.ErrNoSuchNetwork)
+	}
+
+	switch {
+	case new:
+		// If we're adding a network, just throw it on the back, it will be configured last.
+		newCfg.Networks = append(newCfg.Networks, network)
+	case disconnect:
+		// Removing an existing network is easy, just delete the element
+		newCfg.Networks = slices.DeleteFunc(newCfg.Networks, finderFunc)
+	default:
+		// Modifying an existing network, modify existing array in place.
+		// We have a guarantee that index is valid from the conditionals above.
+		newCfg.Networks[index] = network
 	}
 
 	if err := s.rewriteContainerConfig(ctr, newCfg); err != nil {
@@ -636,4 +651,20 @@ func hasPodBody(id string, row *sql.Row) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func convertLegacyNetworks(legacyNetworks map[string]types.PerNetworkOptions) []types.NamedPerNetworkOptions {
+	keys := make([]string, 0, len(legacyNetworks))
+	for k := range legacyNetworks {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	networks := make([]types.NamedPerNetworkOptions, 0, len(legacyNetworks))
+	for _, k := range keys {
+		networks = append(networks, types.NamedPerNetworkOptions{
+			Name:              k,
+			PerNetworkOptions: legacyNetworks[k],
+		})
+	}
+	return networks
 }

@@ -23,7 +23,7 @@ type UpdateContainerOptions struct {
 	MemoryReservation  int    `json:"MemoryReservation"`
 	// Deprecated: KernelMemory is deprecated as of API 1.42 and removed in API 1.52.
 	KernelMemory  int           `json:"KernelMemory"`
-	RestartPolicy RestartPolicy `json:"RestartPolicy,omitempty"`
+	RestartPolicy RestartPolicy `json:"RestartPolicy"`
 	Context       context.Context
 }
 

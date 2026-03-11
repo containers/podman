@@ -32,12 +32,14 @@ import (
 
 const (
 	// SigstoreDeviceURL specifies the Device Code endpoint for the public good Sigstore service
-	/* #nosec */
+	//
 	// Deprecated: this constant (while correct) should not be used
+	/* #nosec */
 	SigstoreDeviceURL = "https://oauth2.sigstore.dev/auth/device/code"
 	// SigstoreTokenURL specifies the Token endpoint for the public good Sigstore service
-	/* #nosec */
+	//
 	// Deprecated: this constant (while correct) should not be used
+	/* #nosec */
 	SigstoreTokenURL = "https://oauth2.sigstore.dev/auth/device/token"
 )
 
@@ -64,6 +66,7 @@ type DeviceFlowTokenGetter struct {
 }
 
 // NewDeviceFlowTokenGetter creates a new DeviceFlowTokenGetter that retrieves an OIDC Identity Token using a Device Code Grant
+//
 // Deprecated: NewDeviceFlowTokenGetter is deprecated; use NewDeviceFlowTokenGetterForIssuer() instead
 func NewDeviceFlowTokenGetter(issuer, codeURL, _ string) *DeviceFlowTokenGetter {
 	return &DeviceFlowTokenGetter{

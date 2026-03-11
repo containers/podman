@@ -114,6 +114,13 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 			}
 			userDiskQuota = true
 			options.minSpace = uint64(minSpace)
+		case "size":
+			size, err := units.RAMInBytes(val)
+			if err != nil {
+				return options, userDiskQuota, err
+			}
+			userDiskQuota = true
+			options.size = uint64(size)
 		case "mountopt":
 			return options, userDiskQuota, fmt.Errorf("btrfs driver does not support mount options")
 		default:
@@ -476,11 +483,15 @@ func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idt
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
-	return d.Create(id, parent, opts)
+	return d.create(id, parent, opts, true)
 }
 
 // Create the filesystem with given id.
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
+	return d.create(id, parent, opts, false)
+}
+
+func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, applyDriverDefaultQuota bool) error {
 	quotas := d.quotasDir()
 	subvolumes := d.subvolumesDir()
 	if err := os.MkdirAll(subvolumes, 0o700); err != nil {
@@ -512,19 +523,29 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 		storageOpt = opts.StorageOpt
 	}
 
+	var quotaSize uint64
+	var needQuota bool
 	if _, ok := storageOpt["size"]; ok {
 		driver := &Driver{}
 		if err := d.parseStorageOpt(storageOpt, driver); err != nil {
 			return err
 		}
-
-		if err := d.setStorageSize(path.Join(subvolumes, id), driver); err != nil {
+		quotaSize = driver.options.size
+		needQuota = true
+	}
+	if !needQuota && applyDriverDefaultQuota && d.options.size > 0 {
+		quotaSize = d.options.size
+		needQuota = true
+	}
+	if needQuota {
+		layerDriver := &Driver{options: btrfsOptions{size: quotaSize}}
+		if err := d.setStorageSize(path.Join(subvolumes, id), layerDriver); err != nil {
 			return err
 		}
 		if err := os.MkdirAll(quotas, 0o700); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(driver.options.size)), 0o644); err != nil {
+		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(quotaSize)), 0o644); err != nil {
 			return err
 		}
 	}

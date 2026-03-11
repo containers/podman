@@ -85,7 +85,8 @@ function validate_instance_compression {
 @test "podman manifest --tls-verify and --authfile" {
     skip_if_remote "running a local registry doesn't work with podman-remote"
 
-    manifest1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/m-$(safename):1.0"
+    manifest1_notag="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/m-$(safename)"
+    manifest1="$manifest1_notag:1.0"
     run_podman manifest create $manifest1
     mid=$output
 
@@ -102,7 +103,7 @@ function validate_instance_compression {
     # Default is to require TLS; also test explicit opts
     for opt in '' '--insecure=false' '--tls-verify=true' "--authfile=$authfile"; do
         run_podman 125 manifest inspect $opt $manifest1
-        assert "$output" =~ "Error: reading image \"docker://$manifest1\": pinging container registry localhost:${PODMAN_LOGIN_REGISTRY_PORT}:.*x509" \
+        assert "$output" =~ "Error: reading image \"docker://$manifest1\": fetching manifest 1.0 in $manifest1_notag: pinging container registry localhost:${PODMAN_LOGIN_REGISTRY_PORT}:.*x509" \
                "TLE check: fails (as expected) with ${opt:-default}"
     done
 

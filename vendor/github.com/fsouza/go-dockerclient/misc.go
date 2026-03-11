@@ -110,7 +110,7 @@ type ContainerdInfo struct {
 	Namespaces struct {
 		Containers string `json:"Containers,omitempty"`
 		Plugins    string `json:"Plugins,omitempty"`
-	} `json:"Namespaces,omitempty"`
+	} `json:"Namespaces"`
 }
 
 // SwarmInfo contains basic swarm information from docker info.

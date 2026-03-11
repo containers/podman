@@ -32,7 +32,6 @@ import (
 
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/client/pkg/jsonmessage"
-	"github.com/moby/moby/v2/pkg/homedir"
 )
 
 const (
@@ -1001,7 +1000,7 @@ func addQueryStringValue(items url.Values, key string, v reflect.Value) bool {
 		vLen := v.Len()
 		var valuesAdded int
 		if vLen > 0 {
-			for i := 0; i < vLen; i++ {
+			for i := range vLen {
 				if addQueryStringValue(items, key, v.Index(i)) {
 					valuesAdded++
 				}
@@ -1098,7 +1097,7 @@ func getDockerEnv() (*dockerEnv, error) {
 	if dockerTLSVerify {
 		dockerCertPath = os.Getenv("DOCKER_CERT_PATH")
 		if dockerCertPath == "" {
-			home := homedir.Get()
+			home, _ := os.UserHomeDir()
 			if home == "" {
 				return nil, errors.New("environment variable HOME must be set if DOCKER_CERT_PATH is not set")
 			}

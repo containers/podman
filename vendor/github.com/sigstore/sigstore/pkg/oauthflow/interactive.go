@@ -201,6 +201,7 @@ func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan stri
 	}
 
 	m.HandleFunc(urlListener.Path, func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		// even though these are fetched from the FormValue method,
 		// these are supplied as query parameters
 		if r.FormValue("state") != state {

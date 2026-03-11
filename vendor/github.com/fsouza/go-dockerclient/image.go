@@ -43,9 +43,9 @@ type Image struct {
 	RepoTags        []string  `json:"RepoTags,omitempty" yaml:"RepoTags,omitempty" toml:"RepoTags,omitempty"`
 	Parent          string    `json:"Parent,omitempty" yaml:"Parent,omitempty" toml:"Parent,omitempty"`
 	Comment         string    `json:"Comment,omitempty" yaml:"Comment,omitempty" toml:"Comment,omitempty"`
-	Created         time.Time `json:"Created,omitempty" yaml:"Created,omitempty" toml:"Created,omitempty"`
+	Created         time.Time `json:"Created" yaml:"Created,omitempty" toml:"Created,omitempty"`
 	Container       string    `json:"Container,omitempty" yaml:"Container,omitempty" toml:"Container,omitempty"`
-	ContainerConfig Config    `json:"ContainerConfig,omitempty" yaml:"ContainerConfig,omitempty" toml:"ContainerConfig,omitempty"`
+	ContainerConfig Config    `json:"ContainerConfig" yaml:"ContainerConfig,omitempty" toml:"ContainerConfig,omitempty"`
 	DockerVersion   string    `json:"DockerVersion,omitempty" yaml:"DockerVersion,omitempty" toml:"DockerVersion,omitempty"`
 	Author          string    `json:"Author,omitempty" yaml:"Author,omitempty" toml:"Author,omitempty"`
 	Config          *Config   `json:"Config,omitempty" yaml:"Config,omitempty" toml:"Config,omitempty"`
@@ -66,7 +66,7 @@ type ImagePre012 struct {
 	Comment         string    `json:"comment,omitempty"`
 	Created         time.Time `json:"created"`
 	Container       string    `json:"container,omitempty"`
-	ContainerConfig Config    `json:"container_config,omitempty"`
+	ContainerConfig Config    `json:"container_config"`
 	DockerVersion   string    `json:"docker_version,omitempty"`
 	Author          string    `json:"author,omitempty"`
 	Config          *Config   `json:"config,omitempty"`
@@ -411,12 +411,13 @@ func (c *Client) ExportImages(opts ExportImagesOptions) error {
 	var err error
 	var exporturl string
 	if c.requestedAPIVersion.GreaterThanOrEqualTo(apiVersion125) {
-		str := opts.Names[0]
+		var str strings.Builder
+		str.WriteString(opts.Names[0])
 		for _, val := range opts.Names[1:] {
-			str += "," + val
+			str.WriteString("," + val)
 		}
 		exporturl, err = c.getPath("/images/get", ExportImagesOptions{
-			Names:             []string{str},
+			Names:             []string{str.String()},
 			OutputStream:      opts.OutputStream,
 			InactivityTimeout: opts.InactivityTimeout,
 			Context:           opts.Context,

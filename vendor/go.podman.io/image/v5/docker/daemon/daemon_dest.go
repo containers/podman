@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/moby/moby/client"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/docker/internal/tarfile"
@@ -95,18 +96,9 @@ func imageLoad(ctx context.Context, c *client.Client, reader *io.PipeReader) err
 	}
 	defer res.Close()
 
-	// jsonError and jsonMessage are small subsets of docker/docker/pkg/jsonmessage.JSONError and JSONMessage,
-	// copied here to minimize dependencies.
-	type jsonError struct {
-		Message string `json:"message,omitempty"`
-	}
-	type jsonMessage struct {
-		Error *jsonError `json:"errorDetail,omitempty"`
-	}
-
 	dec := json.NewDecoder(res)
 	for {
-		var msg jsonMessage
+		var msg jsonstream.Message
 		if err := dec.Decode(&msg); err != nil {
 			if err == io.EOF {
 				break

@@ -1273,6 +1273,26 @@ func readAllLayerStores[T any](s *store, fn func(store roLayerStore) (T, bool, e
 	return zeroRes, false, nil
 }
 
+// readPrimaryLayerStore is a helper for working with store.getLayerStore():
+// It locks the store for reading, checks for updates, and calls fn()
+// It returns the return value of fn, or its own error initializing the store.
+//
+// Most callers should call readAllLayerStores instead.
+func readPrimaryLayerStore[T any](s *store, fn func(store rwLayerStore) (T, error)) (T, error) {
+	var zeroRes T // A zero value of T
+
+	store, err := s.getLayerStore()
+	if err != nil {
+		return zeroRes, err
+	}
+
+	if err := store.startReading(); err != nil {
+		return zeroRes, err
+	}
+	defer store.stopReading()
+	return fn(store)
+}
+
 // writeToLayerStore is a helper for working with store.getLayerStore():
 // It locks the store for writing, checks for updates, and calls fn()
 // It returns the return value of fn, or its own error initializing the store.
@@ -3085,16 +3105,9 @@ func (s *store) Mounted(id string) (int, error) {
 	if layerID, err := s.ContainerLayerID(id); err == nil {
 		id = layerID
 	}
-	rlstore, err := s.getLayerStore()
-	if err != nil {
-		return 0, err
-	}
-	if err := rlstore.startReading(); err != nil {
-		return 0, err
-	}
-	defer rlstore.stopReading()
-
-	return rlstore.Mounted(id)
+	return readPrimaryLayerStore(s, func(store rwLayerStore) (int, error) {
+		return store.Mounted(id)
+	})
 }
 
 func (s *store) UnmountImage(id string, force bool) (bool, error) {
@@ -3389,41 +3402,48 @@ func (s *store) LayerSize(id string) (int64, error) {
 }
 
 func (s *store) LayerParentOwners(id string) ([]int, []int, error) {
-	rlstore, err := s.getLayerStore()
-	if err != nil {
+	var parentUIDs, parentGIDs []int
+	if _, err := readPrimaryLayerStore(s, func(store rwLayerStore) (struct{}, error) {
+		if store.Exists(id) {
+			u, g, err := store.ParentOwners(id)
+			if err != nil {
+				return struct{}{}, err
+			}
+			parentUIDs = u
+			parentGIDs = g
+			return struct{}{}, nil
+		}
+		return struct{}{}, ErrLayerUnknown
+	}); err != nil {
 		return nil, nil, err
 	}
-	if err := rlstore.startReading(); err != nil {
-		return nil, nil, err
-	}
-	defer rlstore.stopReading()
-	if rlstore.Exists(id) {
-		return rlstore.ParentOwners(id)
-	}
-	return nil, nil, ErrLayerUnknown
+	return parentUIDs, parentGIDs, nil
 }
 
 func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
-	rlstore, err := s.getLayerStore()
-	if err != nil {
+	var parentUIDs, parentGIDs []int
+	if _, err := readPrimaryLayerStore(s, func(store rwLayerStore) (struct{}, error) {
+		_, _, err := readContainerStore(s, func() (struct{}, bool, error) {
+			container, err := s.containerStore.Get(id)
+			if err != nil {
+				return struct{}{}, true, err
+			}
+			if store.Exists(container.LayerID) {
+				u, g, err := store.ParentOwners(container.LayerID)
+				if err != nil {
+					return struct{}{}, true, err
+				}
+				parentUIDs = u
+				parentGIDs = g
+				return struct{}{}, true, nil
+			}
+			return struct{}{}, true, ErrLayerUnknown
+		})
+		return struct{}{}, err
+	}); err != nil {
 		return nil, nil, err
 	}
-	if err := rlstore.startReading(); err != nil {
-		return nil, nil, err
-	}
-	defer rlstore.stopReading()
-	if err := s.containerStore.startReading(); err != nil {
-		return nil, nil, err
-	}
-	defer s.containerStore.stopReading()
-	container, err := s.containerStore.Get(id)
-	if err != nil {
-		return nil, nil, err
-	}
-	if rlstore.Exists(container.LayerID) {
-		return rlstore.ParentOwners(container.LayerID)
-	}
-	return nil, nil, ErrLayerUnknown
+	return parentUIDs, parentGIDs, nil
 }
 
 func (s *store) Layers() ([]Layer, error) {

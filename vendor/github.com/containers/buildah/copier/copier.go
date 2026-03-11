@@ -24,6 +24,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/pkg/compression"
+	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
@@ -481,10 +482,11 @@ func Put(root string, directory string, options PutOptions, bulkReader io.Reader
 
 // MkdirOptions controls parts of Mkdir()'s behavior.
 type MkdirOptions struct {
-	UIDMap, GIDMap []idtools.IDMap // map from containerIDs to hostIDs when creating directories
-	ModTimeNew     *time.Time      // set mtime and atime of newly-created directories
-	ChownNew       *idtools.IDPair // set ownership of newly-created directories
-	ChmodNew       *os.FileMode    // set permissions on newly-created directories
+	UIDMap, GIDMap []idtools.IDMap    // map from containerIDs to hostIDs when creating directories
+	MakeParents    types.OptionalBool // create parent directories as needed, default is true
+	ModTimeNew     *time.Time         // set mtime and atime of newly-created directories
+	ChownNew       *idtools.IDPair    // set ownership of newly-created directories
+	ChmodNew       *os.FileMode       // set permissions on newly-created directories
 }
 
 // Mkdir ensures that the specified directory exists.  Any directories which
@@ -516,7 +518,8 @@ func Mkdir(root string, directory string, options MkdirOptions) error {
 
 // RemoveOptions controls parts of Remove()'s behavior.
 type RemoveOptions struct {
-	All bool // if Directory is a directory, remove its contents as well
+	All           bool // if Directory is a directory, remove its contents as well
+	AllowNotFound bool // don't return an error if the item is already not present
 }
 
 // Remove removes the specified directory or item, traversing any intermediate
@@ -2196,7 +2199,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 }
 
 func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response, func() error, error) {
-	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) { //nolint:unparam
+	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Mkdir: mkdirResponse{}}, nil, nil
 	}
 	dirUID, dirGID := 0, 0
@@ -2226,10 +2229,19 @@ func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response,
 		return errorResponse("copier: mkdir: error computing path of %q relative to %q: %v", directory, req.Root, err)
 	}
 
-	subdir := ""
+	var subdirs []string
+	if req.MkdirOptions.MakeParents == types.OptionalBoolFalse {
+		subdirs = []string{rel}
+	} else {
+		subdir := ""
+		for component := range strings.SplitSeq(rel, string(os.PathSeparator)) {
+			subdir = filepath.Join(subdir, component)
+			subdirs = append(subdirs, subdir)
+		}
+	}
+
 	var created []string
-	for component := range strings.SplitSeq(rel, string(os.PathSeparator)) {
-		subdir = filepath.Join(subdir, component)
+	for _, subdir := range subdirs {
 		path := filepath.Join(req.Root, subdir)
 		if err := os.Mkdir(path, 0o700); err == nil {
 			if err = chown(path, dirUID, dirGID); err != nil {
@@ -2274,6 +2286,9 @@ func copierHandlerRemove(req request) *response {
 		err = os.RemoveAll(resolvedTarget)
 	} else {
 		err = os.Remove(resolvedTarget)
+		if req.RemoveOptions.AllowNotFound && errors.Is(err, os.ErrNotExist) {
+			err = nil
+		}
 	}
 	if err != nil {
 		return errorResponse("copier: remove %q: %v", req.Directory, err)
