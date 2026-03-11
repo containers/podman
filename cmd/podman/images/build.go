@@ -561,7 +561,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
 		CPPFlags:                flags.CPPFlags,
-		DefaultMountsFilePath:   containerConfig.ContainersConfDefaultsRO.Containers.DefaultMountsFile,
+		DefaultMountsFilePath:   containerConfig.ContainersConf.Containers.DefaultMountsFile,
 		Devices:                 flags.Devices,
 		DropCapabilities:        flags.CapDrop,
 		Envs:                    flags.Envs,
