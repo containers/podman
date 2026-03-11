@@ -148,8 +148,6 @@ func stringMaptoArray(m map[string]string) []string {
 // cliOpts converts a compat input struct to cliopts
 func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.ContainerCreateOptions, []string, error) {
 	var (
-		capAdd     []string
-		cappDrop   []string
 		entrypoint *string
 		init       bool
 		specPorts  []types.PortMapping
@@ -416,8 +414,8 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	cliOpts := entities.ContainerCreateOptions{
 		// Attach:            nil, // don't need?
 		Authfile:     "",
-		CapAdd:       append(capAdd, cc.HostConfig.CapAdd...),
-		CapDrop:      append(cappDrop, cc.HostConfig.CapDrop...),
+		CapAdd:       cc.HostConfig.CapAdd,
+		CapDrop:      cc.HostConfig.CapDrop,
 		CgroupParent: cc.HostConfig.CgroupParent,
 		CIDFile:      cc.HostConfig.ContainerIDFile,
 		CPUPeriod:    uint64(cc.HostConfig.CPUPeriod),

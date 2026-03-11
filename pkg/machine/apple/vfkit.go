@@ -62,7 +62,6 @@ func GetDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *d
 }
 
 func GetDebugDevices() ([]vfConfig.VirtioDevice, error) {
-	var devices []vfConfig.VirtioDevice
 	gpu, err := vfConfig.VirtioGPUNew()
 	if err != nil {
 		return nil, err
@@ -75,7 +74,7 @@ func GetDebugDevices() ([]vfConfig.VirtioDevice, error) {
 	if err != nil {
 		return nil, err
 	}
-	return append(devices, gpu, mouse, kb), nil
+	return []vfConfig.VirtioDevice{gpu, mouse, kb}, nil
 }
 
 func GetIgnitionVsockDevice(path string) (vfConfig.VirtioDevice, error) {
