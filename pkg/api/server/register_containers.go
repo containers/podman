@@ -1128,7 +1128,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: t
 	//    type: integer
-	//    default: 10
+	//    description: number of seconds to wait before killing container (Docker compatibility)
+	//  - in: query
+	//    name: timeout
+	//    type: integer
 	//    description: number of seconds to wait before killing container
 	// produces:
 	// - application/json
@@ -1220,6 +1223,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: integer
 	//    default: 5
 	//    description: Time in seconds between stats reports
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Provide statistics for all running containers
 	// produces:
 	// - application/json
 	// responses:
@@ -1560,6 +1568,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: integer
 	//    required: false
 	//    description: Width to set for the terminal, in characters
+	//  - in: query
+	//    name: running
+	//    type: boolean
+	//    required: false
+	//    description: Ignore containers not running errors
 	// produces:
 	// - application/json
 	// responses:

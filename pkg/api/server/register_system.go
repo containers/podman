@@ -65,6 +65,31 @@ func (s *APIServer) registerSystemHandlers(r *mux.Router) error {
 	// tags:
 	//   - system
 	// summary: Prune unused data
+	// parameters:
+	//   - in: query
+	//     name: all
+	//     type: boolean
+	//     description: Remove all unused data, not just dangling data
+	//   - in: query
+	//     name: volumes
+	//     type: boolean
+	//     description: Prune volumes
+	//   - in: query
+	//     name: external
+	//     type: boolean
+	//     description: Remove images used by external containers (e.g., build containers)
+	//   - in: query
+	//     name: build
+	//     type: boolean
+	//     description: Remove build cache
+	//   - in: query
+	//     name: filters
+	//     type: string
+	//     description: |
+	//       JSON encoded value of filters (a map[string][]string) to match data against before pruning.
+	//       Available filters:
+	//         - `until=<timestamp>` Prune data created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine's time.
+	//         - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune data with (or without, in case `label!=...` is used) the specified labels.
 	// produces:
 	// - application/json
 	// responses:

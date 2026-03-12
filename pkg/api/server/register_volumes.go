@@ -135,6 +135,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    name: force
 	//    type: boolean
 	//    description: force removal
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    description: timeout before forcibly killing any containers using the volume
 	// produces:
 	// - application/json
 	// responses:
@@ -299,6 +303,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//      Force removal of the volume. This actually only causes errors due
 	//      to the names volume not being found to be suppressed, which is the
 	//      behaviour Docker implements.
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    description: timeout before forcibly killing any containers using the volume
 	// produces:
 	// - application/json
 	// responses:
