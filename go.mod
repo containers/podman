@@ -70,7 +70,7 @@ require (
 	go.podman.io/storage v1.62.1-0.20260304132626-c0ec6c1ad7ea
 	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
-	golang.org/x/sync v0.19.0
+	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.41.0
 	golang.org/x/term v0.40.0
 	google.golang.org/grpc v1.79.0
