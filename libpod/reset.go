@@ -92,7 +92,7 @@ func (r *Runtime) removeAllDirs() error {
 // Reset removes all Libpod files.
 // All containers, images, volumes, pods, and networks will be removed.
 // Calls Shutdown(), rendering the runtime unusable after this is run.
-func (r *Runtime) Reset(ctx context.Context) error {
+func (r *Runtime) Reset(ctx context.Context, includePinned bool) error {
 	// Acquire the alive lock and hold it.
 	// Ensures that we don't let other Podman commands run while we are
 	// removing everything.
@@ -162,7 +162,17 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		return err
 	}
 	for _, v := range volumes {
-		if err := r.RemoveVolume(ctx, v, true, &timeout); err != nil {
+		// Skip pinned volumes - they should not be removed during reset
+		if !includePinned {
+			isPinned, err := v.IsPinnedWithError()
+			if err != nil {
+				return fmt.Errorf("checking pinned status for volume %s: %w", v.Name(), err)
+			}
+			if isPinned {
+				continue
+			}
+		}
+		if err := r.RemoveVolumeWithOptions(ctx, v, true, &timeout, includePinned); err != nil {
 			if errors.Is(err, define.ErrNoSuchVolume) {
 				continue
 			}

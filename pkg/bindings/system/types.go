@@ -14,11 +14,12 @@ type EventsOptions struct {
 //
 //go:generate go run ../generator/generator.go PruneOptions
 type PruneOptions struct {
-	All      *bool
-	Filters  map[string][]string
-	Volumes  *bool
-	External *bool
-	Build    *bool
+	All           *bool
+	Filters       map[string][]string
+	Volumes       *bool
+	External      *bool
+	Build         *bool
+	IncludePinned *bool `schema:"includePinned"`
 }
 
 // VersionOptions are optional options for getting version info

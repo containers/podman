@@ -37,6 +37,7 @@ Valid placeholders for the Go template are listed below:
 | .NeedsChown               | Indicates whether volume needs to be chowned |
 | .NeedsCopyUp              | Indicates if volume needs to be copied up to |
 | .Options ...              | Volume options                               |
+| .Pinned                   | Whether the volume is pinned                 |
 | .Scope                    | Volume scope                                 |
 | .Status ...               | Status of the volume                         |
 | .StorageID                | StorageID of the volume                      |
@@ -79,6 +80,16 @@ $ podman volume ls --filter name=foo,label=blue
 List volumes with the label key=value.
 ```
 $ podman volume ls --filter label=key=value
+```
+
+List all pinned volumes.
+```
+$ podman volume ls --filter pinned=true
+```
+
+List all non-pinned volumes.
+```
+$ podman volume ls --filter pinned=false
 ```
 
 ## SEE ALSO

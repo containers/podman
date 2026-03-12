@@ -40,6 +40,7 @@ Valid placeholders for the Go template are listed below:
 | .NeedsChown         | Indicates volume will be chowned on next use                                |
 | .NeedsCopyUp        | Indicates data at the destination will be copied into the volume on next use|
 | .Options ...        | Volume options                                                              |
+| .Pinned             | Whether the volume is pinned                                                |
 | .Scope              | Volume scope                                                                |
 | .Status ...         | Status of the volume                                                        |
 | .StorageID          | StorageID of the volume                                                     |

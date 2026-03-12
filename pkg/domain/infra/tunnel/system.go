@@ -19,7 +19,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, _ bool, _ string) er
 
 // SystemPrune prunes unused data from the system.
 func (ic *ContainerEngine) SystemPrune(_ context.Context, opts entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
-	options := new(system.PruneOptions).WithAll(opts.All).WithVolumes(opts.Volume).WithFilters(opts.Filters).WithExternal(opts.External).WithBuild(opts.Build)
+	options := new(system.PruneOptions).WithAll(opts.All).WithVolumes(opts.Volume).WithFilters(opts.Filters).WithExternal(opts.External).WithBuild(opts.Build).WithIncludePinned(opts.VolumePruneOptions.IncludePinned)
 	return system.Prune(ic.ClientCtx, options)
 }
 
@@ -40,7 +40,7 @@ func (ic *ContainerEngine) Renumber(_ context.Context) error {
 	return errors.New("lock renumbering is not supported on remote clients")
 }
 
-func (ic *ContainerEngine) Reset(_ context.Context) error {
+func (ic *ContainerEngine) Reset(_ context.Context, _ entities.SystemResetOptions) error {
 	return errors.New("system reset is not supported on remote clients")
 }
 

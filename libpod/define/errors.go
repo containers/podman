@@ -73,6 +73,8 @@ var (
 	ErrExecSessionStateInvalid = errors.New("exec session state improper")
 	// ErrVolumeBeingUsed indicates that a volume is being used by at least one container
 	ErrVolumeBeingUsed = errors.New("volume is being used")
+	// ErrVolumePinned indicates that a volume is pinned and protected from removal
+	ErrVolumePinned = errors.New("volume is pinned")
 
 	// ErrRuntimeFinalized indicates that the runtime has already been
 	// created and cannot be modified

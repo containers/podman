@@ -105,6 +105,7 @@
 | [podman-volume-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-create.1.html)               | Create a new volume                                                        |
 | [podman-volume-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-inspect.1.html)             | Get detailed information on one or more volumes                            |
 | [podman-volume-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-ls.1.html)                       | List all the available volumes                                             |
+| [podman-volume-pin(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-pin.1.html)                     | Mark or unmark one or more volumes as pinned                               |
 | [podman-volume-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-prune.1.html)                 | Remove all unused volumes                                                  |
 | [podman-volume-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-volume-rm.1.html)                       | Remove one or more volumes                                                 |
 | [podman-wait(1)](https://podman.readthedocs.io/en/latest/markdown/podman-wait.1.html)                                 | Wait on one or more containers to stop and print their exit codes          |
