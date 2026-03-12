@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/opencontainers/runtime-tools/generate"
@@ -94,13 +95,7 @@ func TestInjectEnvSecrets(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				for key, val := range tt.expectedEnv {
-					found := false
-					for _, env := range g.Config.Process.Env {
-						if env == key+"="+val {
-							found = true
-							break
-						}
-					}
+					found := slices.Contains(g.Config.Process.Env, key+"="+val)
 					assert.True(t, found, "Expected env %s=%s not found", key, val)
 				}
 			}

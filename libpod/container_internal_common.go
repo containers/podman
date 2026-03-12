@@ -2583,7 +2583,7 @@ func (c *Container) groupEntry(groupname, gid string, list []string) string {
 // Returns password entry (as a string that can be appended to /etc/passwd) and
 // any error that occurred.
 func (c *Container) generatePasswdEntry() (string, error) {
-	passwdString := ""
+	var passwdString strings.Builder
 
 	addedUID := 0
 	for _, userid := range c.config.HostUsers {
@@ -2596,14 +2596,14 @@ func (c *Container) generatePasswdEntry() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		passwdString += entry
+		passwdString.WriteString(entry)
 	}
 	if c.config.AddCurrentUserPasswdEntry {
 		entry, uid, _, err := c.generateCurrentUserPasswdEntry()
 		if err != nil {
 			return "", err
 		}
-		passwdString += entry
+		passwdString.WriteString(entry)
 		addedUID = uid
 	}
 	if c.config.User != "" {
@@ -2611,10 +2611,10 @@ func (c *Container) generatePasswdEntry() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		passwdString += entry
+		passwdString.WriteString(entry)
 	}
 
-	return passwdString, nil
+	return passwdString.String(), nil
 }
 
 // generateCurrentUserPasswdEntry generates an /etc/passwd entry for the user

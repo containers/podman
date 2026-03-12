@@ -21,13 +21,13 @@ func TestPodOptions(t *testing.T) {
 	cc := reflect.ValueOf(&exampleOptions).Elem()
 	pc := reflect.ValueOf(&podOptions).Elem()
 
-	pcType := reflect.TypeOf(podOptions)
+	pcType := reflect.TypeFor[entities.PodCreateOptions]()
 	for i := 0; i < pc.NumField(); i++ {
 		podField := pc.FieldByIndex([]int{i})
 		podType := pcType.Field(i)
 		for j := 0; j < cc.NumField(); j++ {
 			containerField := cc.FieldByIndex([]int{j})
-			containerType := reflect.TypeOf(exampleOptions).Field(j)
+			containerType := reflect.TypeFor[entities.ContainerCreateOptions]().Field(j)
 			tagPod := strings.Split(podType.Tag.Get("json"), ",")[0]
 			tagContainer := strings.Split(containerType.Tag.Get("json"), ",")[0]
 			if tagPod == tagContainer && (tagPod != "" && tagContainer != "") {
