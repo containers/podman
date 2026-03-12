@@ -912,6 +912,7 @@ BOGUS=foo
 		Entry("env-host.container", "env-host.container"),
 		Entry("env.container", "env.container"),
 		Entry("entrypoint.container", "entrypoint.container"),
+		Entry("entrypoint-empty.container", "entrypoint-empty.container"),
 		Entry("escapes.container", "escapes.container"),
 		Entry("exec.container", "exec.container"),
 		Entry("group-add.container", "group-add.container"),
