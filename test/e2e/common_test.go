@@ -1788,3 +1788,9 @@ func makeTempDirInDir(dir string) string {
 func skipWithoutDevNullb0() {
 	SkipIfNotExist("use modprobe null_blk nr_devices=1 to create it", "/dev/nullb0")
 }
+
+func SkipIfNotAMD64() {
+	if podmanTest.Host.Arch != "amd64" {
+		Skip("test only valid on amd64")
+	}
+}
