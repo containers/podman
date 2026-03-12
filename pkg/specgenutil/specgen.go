@@ -587,6 +587,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	if c.Net != nil {
 		s.Networks = c.Net.Networks
+		s.NetworkOrder = c.Net.NetworkOrder
 	}
 
 	if c.Net != nil {

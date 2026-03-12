@@ -1552,14 +1552,14 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			return nil, 0, err
 		}
 
-		for net, opts := range networks {
+		for _, net := range networks {
 			if options.IgnoreStaticIP {
-				opts.StaticIPs = nil
+				net.StaticIPs = nil
 			}
 			if options.IgnoreStaticMAC {
-				opts.StaticMAC = nil
+				net.StaticMAC = nil
 			}
-			if err := c.runtime.state.NetworkModify(c, net, opts); err != nil {
+			if err := c.runtime.state.NetworkModify(c, net); err != nil {
 				return nil, 0, fmt.Errorf("failed to rewrite network config: %w", err)
 			}
 		}
@@ -1585,26 +1585,26 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			return nil, 0, err
 		}
 
-		netOpts := make(map[string]types.PerNetworkOptions, len(netStatus))
-		for network, perNetOpts := range networkOpts {
+		netOpts := make([]types.NamedPerNetworkOptions, 0, len(netStatus))
+		for _, network := range networkOpts {
 			// unset mac and ips before we start adding the ones from the status
-			perNetOpts.StaticMAC = nil
-			perNetOpts.StaticIPs = nil
-			for name, netInt := range netStatus[network].Interfaces {
-				perNetOpts.InterfaceName = name
+			network.StaticMAC = nil
+			network.StaticIPs = nil
+			for name, netInt := range netStatus[network.Name].Interfaces {
+				network.InterfaceName = name
 				if !options.IgnoreStaticMAC {
-					perNetOpts.StaticMAC = netInt.MacAddress
+					network.StaticMAC = netInt.MacAddress
 				}
 				if !options.IgnoreStaticIP {
 					for _, netAddress := range netInt.Subnets {
-						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
+						network.StaticIPs = append(network.StaticIPs, netAddress.IPNet.IP)
 					}
 				}
 				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
 				// For now just use the first interface to get the ips this should be good enough for most cases.
 				break
 			}
-			netOpts[network] = perNetOpts
+			netOpts = append(netOpts, network)
 		}
 		c.perNetworkOpts = netOpts
 	}

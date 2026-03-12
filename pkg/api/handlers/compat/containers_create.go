@@ -309,7 +309,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		}
 	}
 
-	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{netmode})
+	nsmode, networks, _, netOpts, err := specgen.ParseNetworkFlag([]string{netmode})
 	if err != nil {
 		return nil, nil, err
 	}

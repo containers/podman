@@ -143,6 +143,29 @@ case "$OS_RELEASE_ID" in
     *) die_unknown OS_RELEASE_ID
 esac
 
+### HACK HACK HACK: We need to build netavark from source.
+case "$OS_RELEASE_ID" in
+    fedora)
+        dnf -y install rust cargo
+        ;;
+    debian)
+        DEBIAN_FRONTEND=noninteractive apt install -y rustc cargo
+        ;;
+    *)
+        bad_os_id_ver
+        ;;
+esac
+mkdir /usr/local/libexec/podman
+cwd=$(pwd)
+cd /usr/local/libexec/podman
+git clone https://github.com/containers/netavark.git nv
+cd nv
+make
+cp bin/netavark /usr/local/libexec/podman
+cd $cwd
+rm -rf /usr/local/libexec/nv
+### END HACK
+
 # Force the requested storage driver for both system and e2e tests.
 # This is (sigh) different because e2e tests have their own special way
 # of ignoring system defaults.

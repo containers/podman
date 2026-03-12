@@ -258,7 +258,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	// the db backend only knows about network names so we have to make
 	// sure we do not use ids internally
 	if len(ctr.config.Networks) > 0 {
-		normalizeNetworks := make(map[string]types.PerNetworkOptions, len(ctr.config.Networks))
+		normalizeNetworks := make([]types.NamedPerNetworkOptions, 0, len(ctr.config.Networks))
 		// first get the already used interface names so we do not conflict
 		usedIfNames := make([]string, 0, len(ctr.config.Networks))
 		for _, opts := range ctr.config.Networks {
@@ -271,37 +271,38 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			}
 		}
 		i := 0
-		for nameOrID, opts := range ctr.config.Networks {
-			netName, nicName, err := r.normalizeNetworkName(nameOrID)
+		for _, network := range ctr.config.Networks {
+			netName, nicName, err := r.normalizeNetworkName(network.Name)
 			if err != nil {
 				return nil, err
 			}
 
 			// check whether interface is to be named as the network_interface
 			// when name left unspecified
-			if opts.InterfaceName == "" {
-				opts.InterfaceName = nicName
+			if network.InterfaceName == "" {
+				network.InterfaceName = nicName
 			}
 
 			// assign default interface name if empty
-			if opts.InterfaceName == "" {
+			if network.InterfaceName == "" {
 				for i < 100000 {
 					ifName := fmt.Sprintf("eth%d", i)
 					if !slices.Contains(usedIfNames, ifName) {
-						opts.InterfaceName = ifName
+						network.InterfaceName = ifName
 						usedIfNames = append(usedIfNames, ifName)
 						break
 					}
 					i++
 				}
 				// if still empty we did not find a free name
-				if opts.InterfaceName == "" {
+				if network.InterfaceName == "" {
 					return nil, errors.New("failed to find free network interface name")
 				}
 			}
-			opts.Aliases = append(opts.Aliases, getExtraNetworkAliases(ctr)...)
+			network.Aliases = append(network.Aliases, getExtraNetworkAliases(ctr)...)
 
-			normalizeNetworks[netName] = opts
+			network.Name = netName
+			normalizeNetworks = append(normalizeNetworks, network)
 		}
 		ctr.config.Networks = normalizeNetworks
 	}

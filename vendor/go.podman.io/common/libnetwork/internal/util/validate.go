@@ -68,14 +68,29 @@ func ValidateSubnet(s *types.Subnet, addGateway bool, usedNetworks []*net.IPNet)
 }
 
 // ValidateSubnets will validate the subnets for this network.
+// Will check that no subnets are overlapping or duplicated.
 // It also sets the gateway if the gateway is empty and addGateway is set to true
 // IPv6Enabled to true if at least one subnet is ipv6.
 func ValidateSubnets(network *types.Network, addGateway bool, usedNetworks []*net.IPNet) error {
 	for i := range network.Subnets {
+		for j := i + 1; j < len(network.Subnets); j++ {
+			subnetA := network.Subnets[i].Subnet
+			subnetB := network.Subnets[j].Subnet
+
+			if subnetA.String() == subnetB.String() {
+				return fmt.Errorf("duplicate subnets detected: %s", subnetA.String())
+			}
+
+			if networkIntersect(&subnetA.IPNet, &subnetB.IPNet) {
+				return fmt.Errorf("overlapping subnets detected: %s and %s", subnetA.String(), subnetB.String())
+			}
+		}
+
 		err := ValidateSubnet(&network.Subnets[i], addGateway, usedNetworks)
 		if err != nil {
 			return err
 		}
+
 		if util.IsIPv6(network.Subnets[i].Subnet.IP) {
 			network.IPv6Enabled = true
 		}
@@ -130,12 +145,12 @@ func ValidateSetupOptions(n NetUtil, namespacePath string, options types.SetupOp
 	if len(options.Networks) == 0 {
 		return errors.New("must specify at least one network")
 	}
-	for name, netOpts := range options.Networks {
-		network, err := n.Network(name)
+	for _, net := range options.Networks {
+		network, err := n.Network(net.Name)
 		if err != nil {
 			return err
 		}
-		err = validatePerNetworkOpts(network, &netOpts)
+		err = validatePerNetworkOpts(network, &net.PerNetworkOptions)
 		if err != nil {
 			return err
 		}

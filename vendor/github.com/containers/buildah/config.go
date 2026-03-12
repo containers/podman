@@ -383,10 +383,11 @@ func (b *Builder) Shell() []string {
 // commands in the container, or in a container built using an image built from
 // this container.
 // Note: this setting is not present in the OCIv1 image format, so it is
-// discarded when writing images using OCIv1 formats.
+// discarded when writing images using OCIv1 formats, even though it is used
+// for subsequent RUN instructions while building this image.
 func (b *Builder) SetShell(shell []string) {
 	if len(shell) > 0 && b.Format != define.Dockerv2ImageManifest {
-		b.Logger.Warnf("SHELL is not supported for OCI image format, %s will be ignored. Must use `docker` format", shell)
+		b.Logger.Warnf("SHELL is not persisted in the OCI image format, %s will be used for RUN subsequent instructions to build this image but will not be present in saved image which may affect any images that use this as a base. Must use `docker` format to persist in saved image", shell)
 	}
 
 	b.Docker.Config.Shell = slices.Clone(shell)
