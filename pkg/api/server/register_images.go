@@ -55,6 +55,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: platform
 	//    type: string
 	//    description: Platform in the format os[/arch[/variant]]
+	//  - in: query
+	//    name: retry
+	//    type: integer
+	//    description: Number of times to retry in case of failure when performing pull.
+	//  - in: query
+	//    name: retryDelay
+	//    type: string
+	//    description: Delay between retries in case of pull failures.
 	//  - in: body
 	//    name: inputImage
 	//    schema:
@@ -102,6 +110,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - name: digests
 	//     in: query
 	//     description: Not supported
+	//     type: boolean
+	//     default: false
+	//   - name: shared-size
+	//     in: query
+	//     description: Compute and show shared size as a SharedSize field on each image.
 	//     type: boolean
 	//     default: false
 	// produces:

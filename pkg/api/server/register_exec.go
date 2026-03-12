@@ -316,6 +316,10 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//    name: w
 	//    type: integer
 	//    description: Width of the TTY session in characters
+	//  - in: query
+	//    name: running
+	//    type: boolean
+	//    description: Ignore containers not running errors
 	// produces:
 	// - application/json
 	// responses:
