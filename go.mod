@@ -71,7 +71,7 @@ require (
 	golang.org/x/crypto v0.48.0
 	golang.org/x/net v0.50.0
 	golang.org/x/sync v0.19.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 	golang.org/x/term v0.40.0
 	google.golang.org/grpc v1.79.0
 	google.golang.org/protobuf v1.36.11
