@@ -27,6 +27,11 @@ function check_label() {
         # Containers that run automatically without SELinux transitions, run
         # with the current role.
         *--privileged*| *--pid=host* | *--ipc=host* | *"--security-opt label=disable"*)
+                # Workaround RHEL specific, environmental behavior (from container-selinux?)
+                # where the role is not set based on the callers role despite podman (correctly) passing
+                # an empty string to runc|crun as the process label.  This problem pre-existed PR 27933
+                # in podman-v4.2.0-rhel and the codepath exactly matches v4.4.1-rhel -- only the environment differs.
+                role=system_r
                 is "$context" "$user:$role:.*" "Non SELinux separated containers role should always be the current user and role"
                 ;;
         # Containers that are confined or force the spc_t type default
