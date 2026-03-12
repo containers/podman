@@ -240,11 +240,12 @@ func supportsIdmappedLowerLayers(home string) (bool, error) {
 	upperDir := filepath.Join(layerDir, "upper")
 	workDir := filepath.Join(layerDir, "work")
 
-	_ = idtools.MkdirAs(mergedDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(lowerDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(lowerMappedDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(upperDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(workDir, 0o700, 0, 0)
+	idPair := idtools.IDPair{UID: 0, GID: 0}
+	_ = idtools.MkdirAndChown(mergedDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(lowerDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(lowerMappedDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(upperDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(workDir, 0o700, idPair)
 
 	mapping := []idtools.IDMap{
 		{
@@ -296,11 +297,12 @@ func supportsDataOnlyLayers(home string) (bool, error) {
 	upperDir := filepath.Join(layerDir, "upper")
 	workDir := filepath.Join(layerDir, "work")
 
-	_ = idtools.MkdirAs(mergedDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(lowerDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(lowerDirDataOnly, 0o700, 0, 0)
-	_ = idtools.MkdirAs(upperDir, 0o700, 0, 0)
-	_ = idtools.MkdirAs(workDir, 0o700, 0, 0)
+	idPair := idtools.IDPair{UID: 0, GID: 0}
+	_ = idtools.MkdirAndChown(mergedDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(lowerDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(lowerDirDataOnly, 0o700, idPair)
+	_ = idtools.MkdirAndChown(upperDir, 0o700, idPair)
+	_ = idtools.MkdirAndChown(workDir, 0o700, idPair)
 
 	opts := fmt.Sprintf("lowerdir=%s::%s,upperdir=%s,workdir=%s,metacopy=on", lowerDir, lowerDirDataOnly, upperDir, workDir)
 	flags := uintptr(0)

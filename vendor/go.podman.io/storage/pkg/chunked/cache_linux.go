@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -410,9 +411,7 @@ func bloomFilterFromTags(tags [][]byte, digestLen int) *bloomFilter {
 }
 
 func writeCacheFileToWriter(writer io.Writer, bloomFilter *bloomFilter, tags [][]byte, tagLen, digestLen int, vdata, fnames bytes.Buffer, tagsBuffer *bytes.Buffer) error {
-	sort.Slice(tags, func(i, j int) bool {
-		return bytes.Compare(tags[i], tags[j]) == -1
-	})
+	slices.SortFunc(tags, bytes.Compare)
 	for _, t := range tags {
 		if _, err := tagsBuffer.Write(t); err != nil {
 			return err

@@ -34,8 +34,8 @@ type ConnectionConfig struct {
 }
 
 type ConnectionsFile struct {
-	Connection ConnectionConfig `json:",omitempty"`
-	Farm       FarmConfig       `json:",omitempty"`
+	Connection ConnectionConfig
+	Farm       FarmConfig
 }
 
 type Connection struct {
