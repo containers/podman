@@ -3121,6 +3121,10 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 		logrus.Debugf("Labeling not supported on %q", src)
 		return nil
 	}
+
+	if errors.Is(err, unix.EPERM) {
+		return fmt.Errorf("failed to change selinux label: insufficient permissions, possibly due to a file owned by another user (current user: uid %d): %w", rootless.GetRootlessUID(), err)
+	}
 	return err
 }
 
