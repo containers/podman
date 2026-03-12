@@ -419,11 +419,16 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 func readerFromArg(fileOrURL string) (io.ReadCloser, error) {
 	switch {
 	case parse.ValidWebURL(fileOrURL) == nil:
-		response, err := http.Get(fileOrURL)
+		response, err := http.Get(fileOrURL) //nolint:noctx
 		if err != nil {
 			return nil, err
 		}
-		return response.Body, nil
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return io.NopCloser(bytes.NewReader(body)), nil
 	default:
 		f, err := os.Open(fileOrURL)
 		if err != nil {
@@ -486,11 +491,11 @@ func resolveRelativeHostPaths(content []byte, baseDir string) ([]byte, error) {
 	encoder.SetIndent(2)
 	for _, doc := range documents {
 		if err := encoder.Encode(doc); err != nil {
-			return content, nil
+			return content, err
 		}
 	}
 	if err := encoder.Close(); err != nil {
-		return content, nil
+		return content, err
 	}
 	return buf.Bytes(), nil
 }
@@ -530,10 +535,8 @@ func resolveHostPathsInNode(node *yamlv3.Node, baseDir string) bool {
 						}
 					}
 				}
-			} else {
-				if resolveHostPathsInNode(value, baseDir) {
-					modified = true
-				}
+			} else if resolveHostPathsInNode(value, baseDir) {
+				modified = true
 			}
 		}
 	case yamlv3.SequenceNode:
