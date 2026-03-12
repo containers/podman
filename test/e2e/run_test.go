@@ -400,7 +400,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	forbidLinkSeccompProfile := func() string {
-		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"link","action":"SCMP_ACT_ERRNO"}]}`)
+		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"names":["link","linkat"],"action":"SCMP_ACT_ERRNO"}]}`)
 		jsonFile, err := podmanTest.CreateSeccompJSON(in)
 		if err != nil {
 			GinkgoWriter.Println(err)
@@ -459,10 +459,12 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(BeEmpty()))
 		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(Not(BeEmpty()))
-		Expect(session).Should(ExitCleanly())
+		if podmanTest.Host.Arch == "amd64" {
+			session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.OutputToString()).To(Not(BeEmpty()))
+			Expect(session).Should(ExitCleanly())
+		}
 		session = podmanTest.Podman([]string{"exec", "maskCtr2", "sh", "-c", "awk '$5 ~ /\\/sys\\/fs\\/cgroup/ && $6 ~ /^rw,|,rw,|,rw$|^rw$/ { print }' /proc/self/mountinfo | grep ."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -2262,6 +2264,9 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run check personality support", func() {
+		if podmanTest.Host.Arch != "amd64" {
+			Skip("test only valid on amd64")
+		}
 		session := podmanTest.Podman([]string{"run", "--personality=LINUX32", "--name=testpersonality", ALPINE, "uname", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

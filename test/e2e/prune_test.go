@@ -180,6 +180,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune unused images", func() {
+		SkipIfNotAMD64() // List of images is different
 		podmanTest.AddImageToRWStore(ALPINE)
 		podmanTest.AddImageToRWStore(BB)
 
@@ -199,6 +200,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system image prune unused images", func() {
+		SkipIfNotAMD64() // List of images is different
 		useCustomNetworkDir(podmanTest, tempdir)
 		podmanTest.AddImageToRWStore(ALPINE)
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
@@ -392,6 +394,7 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune - with dangling images true", func() {
+		SkipIfNotAMD64() // List of images is different
 		useCustomNetworkDir(podmanTest, tempdir)
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()

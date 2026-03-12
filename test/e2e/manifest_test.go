@@ -680,6 +680,7 @@ RUN touch /file
 	})
 
 	It("push --rm to local directory", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		SkipIfRemote("manifest push to dir not supported in remote mode")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()

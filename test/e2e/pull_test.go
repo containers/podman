@@ -16,6 +16,7 @@ import (
 
 var _ = Describe("Podman pull", func() {
 	It("podman pull multiple images with/without tag/digest", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		session := podmanTest.Podman([]string{"pull", "-q", "busybox:musl", "alpine", "alpine:latest", "quay.io/libpod/cirros", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -38,6 +39,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull with tag --quiet", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		session := podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -54,6 +56,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull without tag", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		session := podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -135,6 +138,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by digest", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		session := podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -150,6 +154,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull check all tags", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		session := podmanTest.Podman([]string{"pull", "-q", "--all-tags", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -176,6 +181,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by digest (image list)", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		session := podmanTest.Podman([]string{"pull", "-q", "--arch=arm64", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -219,6 +225,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by instance digest (image list)", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		SkipIfRemote("podman-remote does not support disabling external imagestore")
 
 		session := podmanTest.Podman([]string{"pull", "-q", "--arch=arm64", ALPINEARM64DIGEST})
@@ -263,6 +270,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull by tag (image list)", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		SkipIfRemote("podman-remote does not support disabling external imagestore")
 
 		session := podmanTest.Podman([]string{"pull", "-q", "--arch=arm64", ALPINELISTTAG})
@@ -321,6 +329,7 @@ var _ = Describe("Podman pull", func() {
 	pullChunkedTests()
 
 	It("podman pull from docker-archive", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28273
 		SkipIfRemote("podman-remote does not support pulling from docker-archive")
 
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)

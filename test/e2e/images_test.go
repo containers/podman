@@ -35,6 +35,7 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images with multiple tags", func() {
+		SkipIfNotAMD64() // List of images is different
 		// tag "docker.io/library/alpine:latest" to "foo:{a,b,c}"
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"tag", ALPINE, "foo:a", "foo:b", "foo:c"})
@@ -160,6 +161,7 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images filter reference", func() {
+		SkipIfNotAMD64() // List of images is different
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=quay.io/libpod/*"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
@@ -249,6 +251,7 @@ WORKDIR /test
 	})
 
 	It("podman pull by digest and list --all", func() {
+		SkipIfNotAMD64() // List of images is different
 		// Prevent regressing on issue #7651: error parsing name that includes a digest
 		// component as if were a name that includes tag component.
 		digestPullAndList := func(noneTag bool) {
@@ -352,6 +355,7 @@ WORKDIR /test
 	})
 
 	It("podman images --all flag", func() {
+		SkipIfNotAMD64() // List of images is different
 		dockerfile := `FROM quay.io/libpod/alpine:latest
 RUN mkdir hello
 RUN touch test.txt
