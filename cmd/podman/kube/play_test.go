@@ -6,7 +6,25 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/containers/podman/v6/pkg/specgen"
 )
+
+// expectedPath mirrors the exact decision tree of resolveHostPathsInNode:
+//   - if path is already absolute on this OS, return it unchanged;
+//   - otherwise join it with base and run ConvertWinMountPath so the result
+//     matches the actual output on every platform (e.g. C:\foo→/mnt/c/foo on
+//     Windows/WSL, no-op on Linux/macOS).
+func expectedPath(base, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	abs := filepath.Join(base, path)
+	if converted, err := specgen.ConvertWinMountPath(abs); err == nil {
+		return converted
+	}
+	return abs
+}
 
 var configMapYAML = strings.Join([]string{
 	"apiVersion: v1",
@@ -169,7 +187,7 @@ func TestResolveRelativeHostPaths(t *testing.T) {
 				"      path: ./html",
 				"      type: Directory",
 			}, "\n"),
-			wantPath: filepath.Join(baseDir, "html"),
+			wantPath: expectedPath(baseDir, "html"),
 		},
 		{
 			name: "relative bare path is resolved",
@@ -183,10 +201,10 @@ func TestResolveRelativeHostPaths(t *testing.T) {
 				"      path: data/subdir",
 				"      type: Directory",
 			}, "\n"),
-			wantPath: filepath.Join(baseDir, "data/subdir"),
+			wantPath: expectedPath(baseDir, "data/subdir"),
 		},
 		{
-			name: "absolute path is left unchanged",
+			name: "absolute path is passed through",
 			input: strings.Join([]string{
 				"apiVersion: v1",
 				"kind: Pod",
@@ -197,7 +215,11 @@ func TestResolveRelativeHostPaths(t *testing.T) {
 				"      path: /absolute/path",
 				"      type: Directory",
 			}, "\n"),
-			wantPath: "/absolute/path",
+			// On Linux/macOS filepath.IsAbs("/absolute/path") is true so the
+			// path is not modified. On Windows it is false (no drive letter),
+			// so ConvertWinMountPath converts it. expectedPath mirrors the
+			// exact IsAbs check the production code uses.
+			wantPath: expectedPath(baseDir, "/absolute/path"),
 		},
 		{
 			name: "no hostPath volumes — content passes through",
@@ -253,7 +275,7 @@ func TestResolveRelativeHostPaths_MultiDoc(t *testing.T) {
 		t.Fatalf("resolveRelativeHostPaths returned error: %v", err)
 	}
 	outStr := string(out)
-	for _, want := range []string{filepath.Join(baseDir, "vol1"), filepath.Join(baseDir, "vol2")} {
+	for _, want := range []string{expectedPath(baseDir, "vol1"), expectedPath(baseDir, "vol2")} {
 		if !strings.Contains(outStr, want) {
 			t.Errorf("expected output to contain %q\ngot:\n%s", want, outStr)
 		}
