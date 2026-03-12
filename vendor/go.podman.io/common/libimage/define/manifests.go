@@ -10,7 +10,7 @@ import (
 // the Docker spec, along with some which are unique to one or the other.
 type ManifestListDescriptor struct {
 	manifest.Schema2Descriptor
-	Platform     manifest.Schema2PlatformSpec `json:"platform,omitempty"`
+	Platform     manifest.Schema2PlatformSpec `json:"platform"`
 	Annotations  map[string]string            `json:"annotations,omitempty"`
 	ArtifactType string                       `json:"artifactType,omitempty"`
 	Data         []byte                       `json:"data,omitempty"`

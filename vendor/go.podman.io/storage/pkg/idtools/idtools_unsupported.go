@@ -2,10 +2,10 @@
 
 package idtools
 
-func readSubuid(username string) (ranges, error) {
+func readSubuid(username string) ([]subIDRange, error) {
 	return parseSubidFile(subuidFileName, username)
 }
 
-func readSubgid(username string) (ranges, error) {
+func readSubgid(username string) ([]subIDRange, error) {
 	return parseSubidFile(subgidFileName, username)
 }

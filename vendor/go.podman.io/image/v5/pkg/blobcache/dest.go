@@ -78,8 +78,7 @@ func (d *blobCacheDestination) IgnoresEmbeddedDockerReference() bool {
 // file.  If we successfully save all of the data, rename the file to match the digest of the data,
 // and make notes about the relationship between the file that holds a copy of the compressed data
 // and this new file.
-func (d *blobCacheDestination) saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os.File, compressedFilename string, compressedDigest digest.Digest, isConfig bool, alternateDigest *digest.Digest) {
-	defer wg.Done()
+func (d *blobCacheDestination) saveStream(decompressReader io.ReadCloser, tempFile *os.File, compressedFilename string, compressedDigest digest.Digest, isConfig bool, alternateDigest *digest.Digest) {
 	defer decompressReader.Close()
 
 	succeeded := false
@@ -161,7 +160,6 @@ func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io
 	var alternateDigest digest.Digest
 	var closer io.Closer
 	wg := new(sync.WaitGroup)
-	needToWait := false
 	compression := archive.Uncompressed
 	if inputInfo.Digest != "" {
 		filename, err2 := d.reference.blobPath(inputInfo.Digest, options.IsConfig)
@@ -213,9 +211,9 @@ func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io
 						closer = decompressWriter
 						stream = io.TeeReader(stream, decompressWriter)
 						// Let saveStream() close the reading end and handle the temporary file.
-						wg.Add(1)
-						needToWait = true
-						go d.saveStream(wg, decompressReader, decompressedTemp, filename, inputInfo.Digest, options.IsConfig, &alternateDigest)
+						wg.Go(func() {
+							d.saveStream(decompressReader, decompressedTemp, filename, inputInfo.Digest, options.IsConfig, &alternateDigest)
+						})
 					}
 				}
 			}
@@ -225,9 +223,7 @@ func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io
 	if closer != nil {
 		closer.Close()
 	}
-	if needToWait {
-		wg.Wait()
-	}
+	wg.Wait()
 	if err != nil {
 		return newBlobInfo, fmt.Errorf("error storing blob to image destination for cache %q: %w", transports.ImageName(d.reference), err)
 	}

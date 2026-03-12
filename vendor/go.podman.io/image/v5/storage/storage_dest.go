@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -836,7 +837,10 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) (string, error)
 	if err != nil {
 		return "", err
 	}
-	tocIDInput := ""
+	var tocIDInput strings.Builder
+	// ordinaryImageID is a digest of a config, which is a JSON value.
+	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
+	tocIDInput.WriteString("@With TOC:")
 	hasLayerPulledByTOC := false
 	for i, li := range layerInfos {
 		trusted, ok := s.trustedLayerIdentityDataLocked(i, li.Digest)
@@ -848,15 +852,14 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) (string, error)
 			hasLayerPulledByTOC = true
 			layerValue = trusted.tocDigest.String()
 		}
-		tocIDInput += layerValue + "|" // "|" can not be present in a TOC digest, so this is an unambiguous separator.
+		tocIDInput.WriteString(layerValue)
+		tocIDInput.WriteByte('|') // "|" can not be present in a TOC digest, so this is an unambiguous separator.
 	}
 
 	if !hasLayerPulledByTOC {
 		return ordinaryImageID, nil
 	}
-	// ordinaryImageID is a digest of a config, which is a JSON value.
-	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
-	tocImageID := digest.FromString("@With TOC:" + tocIDInput).Encoded()
+	tocImageID := digest.FromString(tocIDInput.String()).Encoded()
 	logrus.Debugf("Ordinary storage image ID %s; a layer was looked up by TOC, so using image ID %s", ordinaryImageID, tocImageID)
 	return tocImageID, nil
 }

@@ -304,13 +304,14 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
 		return err
 	}
 	if parent == "" {
-		var rootUID, rootGID int
+		rootIDs := idtools.IDPair{UID: 0, GID: 0}
 		var mountLabel string
 		if opts != nil {
-			rootUID, rootGID, err = idtools.GetRootUIDGID(opts.UIDs(), opts.GIDs())
+			rootUID, rootGID, err := idtools.GetRootUIDGID(opts.UIDs(), opts.GIDs())
 			if err != nil {
 				return fmt.Errorf("failed to get root uid/gid: %w", err)
 			}
+			rootIDs = idtools.IDPair{UID: rootUID, GID: rootGID}
 			mountLabel = opts.MountLabel
 		}
 		mountoptions := map[string]string{"mountpoint": "legacy"}
@@ -323,7 +324,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
 				d.Unlock()
 			}
 
-			if err := idtools.MkdirAllAs(mountpoint, defaultPerms, rootUID, rootGID); err != nil {
+			if err := idtools.MkdirAllAndChown(mountpoint, defaultPerms, rootIDs); err != nil {
 				return err
 			}
 			defer func() {
@@ -349,7 +350,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
 
 			// this is our first mount after creation of the filesystem, and the root dir may still have root
 			// permissions instead of the remapped root uid:gid (if user namespaces are enabled):
-			if err := os.Chown(mountpoint, rootUID, rootGID); err != nil {
+			if err := os.Chown(mountpoint, rootIDs.UID, rootIDs.GID); err != nil {
 				return fmt.Errorf("modifying zfs mountpoint (%s) ownership: %w", mountpoint, err)
 			}
 
