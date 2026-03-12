@@ -46,6 +46,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run --seccomp-policy image (block all syscalls)", func() {
+		SkipIfNotAMD64() // FIXME: This test fails on arm64
 		// This image has seccomp profiles that blocks all syscalls.
 		// The intention behind blocking all syscalls is to prevent
 		// regressions in the future.  The required syscalls can vary

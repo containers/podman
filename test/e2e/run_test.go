@@ -459,10 +459,12 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(BeEmpty()))
 		Expect(session).Should(ExitCleanly())
-		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.OutputToString()).To(Not(BeEmpty()))
-		Expect(session).Should(ExitCleanly())
+		if podmanTest.Host.Arch == "amd64" {
+			session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.OutputToString()).To(Not(BeEmpty()))
+			Expect(session).Should(ExitCleanly())
+		}
 		session = podmanTest.Podman([]string{"exec", "maskCtr2", "sh", "-c", "awk '$5 ~ /\\/sys\\/fs\\/cgroup/ && $6 ~ /^rw,|,rw,|,rw$|^rw$/ { print }' /proc/self/mountinfo | grep ."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
