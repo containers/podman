@@ -16,6 +16,10 @@ The steps required to set up rootless Podman are enumerated.
 
 Special setup for running the Podman remote client on a Mac or Windows PC and connecting to Podman running on a Linux VM are documented.
 
+**[Running Podman on macOS startup with launchd](macos_autostart.md)**
+
+How to automatically start a Podman machine at login on macOS using launchd LaunchAgents.
+
 **[Remote Client](remote_client.md)**
 
 A brief how-to on using the Podman remote-client.
