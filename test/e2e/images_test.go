@@ -86,7 +86,7 @@ var _ = Describe("Podman images", func() {
 		output := session.OutputToString()
 		Expect(output).To(BeValidJSON())
 
-		images := []map[string]interface{}{}
+		images := []map[string]any{}
 		err := json.Unmarshal([]byte(output), &images)
 
 		Expect(err).ToNot(HaveOccurred())

@@ -296,8 +296,8 @@ func getFileName(resp *http.Response, fileURL string) (string, error) {
 	cd := resp.Header.Get("Content-Disposition")
 	if cd != "" {
 		const prefix = "filename="
-		if idx := strings.Index(cd, prefix); idx != -1 {
-			filename := cd[idx+len(prefix):]
+		if _, after, ok := strings.Cut(cd, prefix); ok {
+			filename := after
 			filename = strings.Trim(filename, "\"'")
 			return filename, nil
 		}
@@ -471,8 +471,8 @@ func parseMultiQuadletFile(filePath string) ([]quadletSection, error) {
 // extractFileNameFromSection extracts the FileName from a comment in the quadlet section
 // The comment must be in the format: # FileName=my-name
 func extractFileNameFromSection(content string) (string, error) {
-	lines := strings.Split(content, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(content, "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		// Look for comment lines starting with #
 		if strings.HasPrefix(line, "#") {
@@ -499,8 +499,8 @@ func extractFileNameFromSection(content string) (string, error) {
 // Returns the appropriate file extension (.container, .volume, .network, etc.)
 func detectQuadletType(content string) (string, error) {
 	// Look for section headers like [Container], [Volume], [Network], etc.
-	lines := strings.Split(content, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(content, "\n")
+	for line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
 			sectionName := strings.ToLower(strings.Trim(line, "[]"))

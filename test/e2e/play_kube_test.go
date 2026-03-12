@@ -1573,14 +1573,14 @@ func generateKubeYaml(kind string, object any, pathname string) error {
 
 // generateMultiDocKubeYaml writes multiple kube objects in one Yaml document.
 func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
-	var multiKube string
+	var multiKube strings.Builder
 
 	for _, k := range kubeObjects {
-		multiKube += "---\n"
-		multiKube += k
+		multiKube.WriteString("---\n")
+		multiKube.WriteString(k)
 	}
 
-	return writeYaml(multiKube, pathname)
+	return writeYaml(multiKube.String(), pathname)
 }
 
 func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) { //nolint:unparam

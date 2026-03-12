@@ -70,7 +70,7 @@ func autocompleteMachineSSH(_ *cobra.Command, args []string, toComplete string) 
 // autocompleteMachineCp - Autocomplete machine cp command.
 func autocompleteMachineCp(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) < 2 {
-		if i := strings.IndexByte(toComplete, ':'); i > -1 {
+		if found := strings.Contains(toComplete, ":"); found {
 			// TODO: offer virtual machine path completion
 
 			// the user already set the machine name, so don't use the host file autocompletion
