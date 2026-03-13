@@ -807,7 +807,7 @@ type store struct {
 //	    return
 //	}
 func GetStore(options types.StoreOptions) (Store, error) {
-	defaultOpts, err := types.Options()
+	defaultOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -3923,27 +3923,9 @@ const AutoUserNsMaxSize = 65536
 // creating a user namespace.
 const RootAutoUserNsUser = "containers"
 
-// SetDefaultConfigFilePath sets the default configuration to the specified path, and loads the file.
-// Deprecated: Use types.SetDefaultConfigFilePath, which can return an error.
-func SetDefaultConfigFilePath(path string) {
-	_ = types.SetDefaultConfigFilePath(path)
-}
-
-// DefaultConfigFile returns the path to the storage config file used
-func DefaultConfigFile() (string, error) {
-	return types.DefaultConfigFile()
-}
-
-// ReloadConfigurationFile parses the specified configuration file and overrides
-// the configuration in storeOptions.
-// Deprecated: Use types.ReloadConfigurationFile, which can return an error.
-func ReloadConfigurationFile(configFile string, storeOptions *types.StoreOptions) {
-	_ = types.ReloadConfigurationFile(configFile, storeOptions)
-}
-
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
-	defaultStoreOptions, err := types.Options()
+	defaultStoreOptions, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}

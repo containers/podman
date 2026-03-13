@@ -102,18 +102,22 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 			return options, userDiskQuota, err
 		}
 		key = strings.ToLower(key)
+		key = strings.TrimPrefix(key, "btrfs.")
 		switch key {
-		case "btrfs.min_space":
+		case "min_space":
 			minSpace, err := units.RAMInBytes(val)
 			if err != nil {
 				return options, userDiskQuota, err
 			}
 			userDiskQuota = true
 			options.minSpace = uint64(minSpace)
-		case "btrfs.mountopt":
+		case "mountopt":
 			return options, userDiskQuota, fmt.Errorf("btrfs driver does not support mount options")
 		default:
-			return options, userDiskQuota, fmt.Errorf("unknown option %s (%q)", key, option)
+			// do not error for options meant for another storage driver
+			if !graphdriver.IsDriverPrefixedOption(key) {
+				return options, userDiskQuota, fmt.Errorf("unknown option %s (%q)", key, option)
+			}
 		}
 	}
 	return options, userDiskQuota, nil

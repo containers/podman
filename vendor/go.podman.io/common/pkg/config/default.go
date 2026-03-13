@@ -12,9 +12,9 @@ import (
 
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/internal/attributedstring"
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/apparmor"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/unshare"
@@ -232,20 +232,20 @@ func defaultConfig() (*Config, error) {
 
 	return &Config{
 		Containers: ContainersConfig{
-			Annotations:         attributedstring.Slice{},
+			Annotations:         configfile.Slice{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
 			CgroupNS:            "private",
 			Cgroups:             getDefaultCgroupsMode(),
-			DNSOptions:          attributedstring.Slice{},
-			DNSSearches:         attributedstring.Slice{},
-			DNSServers:          attributedstring.Slice{},
-			DefaultCapabilities: attributedstring.NewSlice(DefaultCapabilities),
-			DefaultSysctls:      attributedstring.Slice{},
-			Devices:             attributedstring.Slice{},
+			DNSOptions:          configfile.Slice{},
+			DNSSearches:         configfile.Slice{},
+			DNSServers:          configfile.Slice{},
+			DefaultCapabilities: configfile.NewSlice(DefaultCapabilities),
+			DefaultSysctls:      configfile.Slice{},
+			Devices:             configfile.Slice{},
 			EnableKeyring:       true,
 			EnableLabeling:      selinuxEnabled(),
-			Env:                 attributedstring.NewSlice(defaultContainerEnv),
+			Env:                 configfile.NewSlice(defaultContainerEnv),
 			EnvHost:             false,
 			HTTPProxy:           true,
 			IPCNS:               "shareable",
@@ -253,7 +253,7 @@ func defaultConfig() (*Config, error) {
 			InitPath:            "",
 			LogDriver:           defaultLogDriver(),
 			LogSizeMax:          DefaultLogSizeMax,
-			Mounts:              attributedstring.Slice{},
+			Mounts:              configfile.Slice{},
 			NetNS:               "private",
 			NoHosts:             false,
 			PidNS:               "private",
@@ -263,7 +263,7 @@ func defaultConfig() (*Config, error) {
 			UTSNS:               "private",
 			Umask:               "0022",
 			UserNSSize:          DefaultUserNSSize, // Deprecated
-			Volumes:             attributedstring.Slice{},
+			Volumes:             configfile.Slice{},
 		},
 		Network: NetworkConfig{
 			FirewallDriver:            "",
@@ -272,8 +272,8 @@ func defaultConfig() (*Config, error) {
 			DefaultSubnetPools:        DefaultSubnetPools,
 			DefaultRootlessNetworkCmd: "pasta",
 			DNSBindPort:               0,
-			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
-			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),
+			CNIPluginDirs:             configfile.NewSlice(DefaultCNIPluginDirs),
+			NetavarkPluginDirs:        configfile.NewSlice(DefaultNetavarkPluginDirs),
 		},
 		Engine:   *defaultEngineConfig,
 		Secrets:  defaultSecretConfig(),
@@ -303,7 +303,7 @@ func defaultMachineConfig() MachineConfig {
 		Image:    "docker://quay.io/podman/machine-os",
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
+		Volumes:  configfile.NewSlice(getDefaultMachineVolumes()),
 		Rosetta:  true,
 	}
 }

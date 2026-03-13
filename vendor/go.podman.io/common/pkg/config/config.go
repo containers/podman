@@ -13,8 +13,8 @@ import (
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/internal/attributedstring"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/unshare"
@@ -65,17 +65,17 @@ type Config struct {
 // containers global options for containers tools.
 type ContainersConfig struct {
 	// Devices to add to all containers
-	Devices attributedstring.Slice `toml:"devices,omitempty"`
+	Devices configfile.Slice `toml:"devices,omitempty"`
 
 	// Volumes to add to all containers
-	Volumes attributedstring.Slice `toml:"volumes,omitempty"`
+	Volumes configfile.Slice `toml:"volumes,omitempty"`
 
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile,omitempty"`
 
 	// Annotation to add to all containers
-	Annotations attributedstring.Slice `toml:"annotations,omitempty"`
+	Annotations configfile.Slice `toml:"annotations,omitempty"`
 
 	// BaseHostsFile is the path to a hosts file, the entries from this file
 	// are added to the containers hosts file. As special value "image" is
@@ -92,7 +92,7 @@ type ContainersConfig struct {
 
 	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
 	// "memory.high=1073741824" sets the memory.high limit to 1GB.
-	CgroupConf attributedstring.Slice `toml:"cgroup_conf,omitempty"`
+	CgroupConf configfile.Slice `toml:"cgroup_conf,omitempty"`
 
 	// When no hostname is set for a container, use the container's name, with
 	// characters not valid for a hostname removed, as the hostname instead of
@@ -102,25 +102,25 @@ type ContainersConfig struct {
 	ContainerNameAsHostName bool `toml:"container_name_as_hostname,omitempty"`
 
 	// Capabilities to add to all containers.
-	DefaultCapabilities attributedstring.Slice `toml:"default_capabilities,omitempty"`
+	DefaultCapabilities configfile.Slice `toml:"default_capabilities,omitempty"`
 
 	// Sysctls to add to all containers.
-	DefaultSysctls attributedstring.Slice `toml:"default_sysctls,omitempty"`
+	DefaultSysctls configfile.Slice `toml:"default_sysctls,omitempty"`
 
 	// DefaultUlimits specifies the default ulimits to apply to containers
-	DefaultUlimits attributedstring.Slice `toml:"default_ulimits,omitempty"`
+	DefaultUlimits configfile.Slice `toml:"default_ulimits,omitempty"`
 
 	// DefaultMountsFile is the path to the default mounts file for testing
 	DefaultMountsFile string `toml:"-"`
 
 	// DNSServers set default DNS servers.
-	DNSServers attributedstring.Slice `toml:"dns_servers,omitempty"`
+	DNSServers configfile.Slice `toml:"dns_servers,omitempty"`
 
 	// DNSOptions set default DNS options.
-	DNSOptions attributedstring.Slice `toml:"dns_options,omitempty"`
+	DNSOptions configfile.Slice `toml:"dns_options,omitempty"`
 
 	// DNSSearches set default DNS search domains.
-	DNSSearches attributedstring.Slice `toml:"dns_searches,omitempty"`
+	DNSSearches configfile.Slice `toml:"dns_searches,omitempty"`
 
 	// EnableKeyring tells the container engines whether to create
 	// a kernel keyring for use within the container
@@ -137,7 +137,7 @@ type ContainersConfig struct {
 	EnableLabeledUsers bool `toml:"label_users,omitempty"`
 
 	// Env is the environment variable list for container process.
-	Env attributedstring.Slice `toml:"env,omitempty"`
+	Env configfile.Slice `toml:"env,omitempty"`
 
 	// EnvHost Pass all host environment variables into the container.
 	EnvHost bool `toml:"env_host,omitempty"`
@@ -185,7 +185,7 @@ type ContainersConfig struct {
 	LogTag string `toml:"log_tag,omitempty"`
 
 	// Mount to add to all containers
-	Mounts attributedstring.Slice `toml:"mounts,omitempty"`
+	Mounts configfile.Slice `toml:"mounts,omitempty"`
 
 	// NetNS indicates how to create a network namespace for the container
 	NetNS string `toml:"netns,omitempty"`
@@ -263,15 +263,15 @@ type EngineConfig struct {
 
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
-	ConmonEnvVars attributedstring.Slice `toml:"conmon_env_vars,omitempty"`
+	ConmonEnvVars configfile.Slice `toml:"conmon_env_vars,omitempty"`
 
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonPath attributedstring.Slice `toml:"conmon_path,omitempty"`
+	ConmonPath configfile.Slice `toml:"conmon_path,omitempty"`
 
 	// ConmonRsPath is the path to the Conmon-rs binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonRsPath attributedstring.Slice `toml:"conmonrs_path,omitempty"`
+	ConmonRsPath configfile.Slice `toml:"conmonrs_path,omitempty"`
 
 	// CompatAPIEnforceDockerHub enforces using docker.io for completing
 	// short names in Podman's compatibility REST API.  Note that this will
@@ -283,7 +283,7 @@ type EngineConfig struct {
 	// compose command.  The first found provider is used for execution.
 	// Can be an absolute and relative path or a (file) name.  Make sure to
 	// expand the return items via `os.ExpandEnv`.
-	ComposeProviders attributedstring.Slice `toml:"compose_providers,omitempty"`
+	ComposeProviders configfile.Slice `toml:"compose_providers,omitempty"`
 
 	// ComposeWarningLogs emits logs on each invocation of the compose
 	// command indicating that an external compose provider is being
@@ -306,7 +306,7 @@ type EngineConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
 
 	// Environment variables to be used when running the container engine (e.g., Podman, Buildah). For example "http_proxy=internal.proxy.company.com"
-	Env attributedstring.Slice `toml:"env,omitempty"`
+	Env configfile.Slice `toml:"env,omitempty"`
 
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
@@ -335,17 +335,17 @@ type EngineConfig struct {
 
 	// HelperBinariesDir is a list of directories which are used to search for
 	// helper binaries.
-	HelperBinariesDir attributedstring.Slice `toml:"helper_binaries_dir,omitempty"`
+	HelperBinariesDir configfile.Slice `toml:"helper_binaries_dir,omitempty"`
 
 	// configuration files. When the same filename is present in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
-	HooksDir attributedstring.Slice `toml:"hooks_dir,omitempty"`
+	HooksDir configfile.Slice `toml:"hooks_dir,omitempty"`
 
 	// Location of CDI configuration files. These define mounts devices and
 	// other configs according to the CDI spec. In particular this is used
 	// for GPU passthrough.
-	CdiSpecDirs attributedstring.Slice `toml:"cdi_spec_dirs,omitempty"`
+	CdiSpecDirs configfile.Slice `toml:"cdi_spec_dirs,omitempty"`
 
 	// ImageBuildFormat (DEPRECATED) indicates the default image format to
 	// building container images. Should use ImageDefaultFormat
@@ -404,7 +404,7 @@ type EngineConfig struct {
 
 	// NetworkCmdOptions is the default options to pass to the slirp4netns binary.
 	// For example "allow_host_loopback=true"
-	NetworkCmdOptions attributedstring.Slice `toml:"network_cmd_options,omitempty"`
+	NetworkCmdOptions configfile.Slice `toml:"network_cmd_options,omitempty"`
 
 	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime.
 	NoPivotRoot bool `toml:"no_pivot_root,omitempty"`
@@ -455,7 +455,7 @@ type EngineConfig struct {
 	ActiveService string `toml:"active_service,omitempty"`
 
 	// Add existing instances with requested compression algorithms to manifest list
-	AddCompression attributedstring.Slice `toml:"add_compression,omitempty"`
+	AddCompression configfile.Slice `toml:"add_compression,omitempty"`
 
 	// ServiceDestinations mapped by service Names
 	ServiceDestinations map[string]Destination `toml:"service_destinations,omitempty"`
@@ -467,19 +467,19 @@ type EngineConfig struct {
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
 	// backward compatible with older versions of Podman.
-	RuntimePath attributedstring.Slice `toml:"runtime_path,omitempty"`
+	RuntimePath configfile.Slice `toml:"runtime_path,omitempty"`
 
 	// RuntimeSupportsJSON is the list of the OCI runtimes that support
 	// --format=json.
-	RuntimeSupportsJSON attributedstring.Slice `toml:"runtime_supports_json,omitempty"`
+	RuntimeSupportsJSON configfile.Slice `toml:"runtime_supports_json,omitempty"`
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups attributedstring.Slice `toml:"runtime_supports_nocgroup,omitempty"`
+	RuntimeSupportsNoCgroups configfile.Slice `toml:"runtime_supports_nocgroup,omitempty"`
 
 	// RuntimeSupportsKVM is a list of OCI runtimes that support
 	// KVM separation for containers.
-	RuntimeSupportsKVM attributedstring.Slice `toml:"runtime_supports_kvm,omitempty"`
+	RuntimeSupportsKVM configfile.Slice `toml:"runtime_supports_kvm,omitempty"`
 
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by the parsed
@@ -591,10 +591,10 @@ type NetworkConfig struct {
 	NetworkBackend string `toml:"network_backend,omitempty"`
 
 	// CNIPluginDirs is where CNI plugin binaries are stored.
-	CNIPluginDirs attributedstring.Slice `toml:"cni_plugin_dirs,omitempty"`
+	CNIPluginDirs configfile.Slice `toml:"cni_plugin_dirs,omitempty"`
 
 	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
-	NetavarkPluginDirs attributedstring.Slice `toml:"netavark_plugin_dirs,omitempty"`
+	NetavarkPluginDirs configfile.Slice `toml:"netavark_plugin_dirs,omitempty"`
 
 	// FirewallDriver is the firewall driver to be used
 	FirewallDriver string `toml:"firewall_driver,omitempty"`
@@ -630,14 +630,14 @@ type NetworkConfig struct {
 
 	// PastaOptions contains a default list of pasta(1) options that should
 	// be used when running pasta.
-	PastaOptions attributedstring.Slice `toml:"pasta_options,omitempty"`
+	PastaOptions configfile.Slice `toml:"pasta_options,omitempty"`
 
 	// DefaultHostIPs is the default host IPs to bind published container ports
 	// to when no host IP is explicitly specified in the -p flag (e.g., -p 80:80).
 	// If empty, the default behavior is to bind to all interfaces (0.0.0.0).
 	// If multiple IPs are specified, separate port mapping for each of the specified
 	// IP would be created.
-	DefaultHostIPs attributedstring.Slice `toml:"default_host_ips,omitempty"`
+	DefaultHostIPs configfile.Slice `toml:"default_host_ips,omitempty"`
 }
 
 type SubnetPool struct {
@@ -688,7 +688,7 @@ type MachineConfig struct {
 	// User to use for rootless podman when init-ing a podman machine VM
 	User string `toml:"user,omitempty"`
 	// Volumes are host directories mounted into the VM by default.
-	Volumes attributedstring.Slice `toml:"volumes,omitempty"`
+	Volumes configfile.Slice `toml:"volumes,omitempty"`
 	// Provider is the virtualization provider used to run podman-machine VM
 	Provider string `toml:"provider,omitempty"`
 	// Rosetta is the flag to enable Rosetta in the podman-machine VM on Apple Silicon
