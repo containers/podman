@@ -683,7 +683,6 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		KeyTimezone:    "--tz",
 		KeyPidsLimit:   "--pids-limit",
 		KeyShmSize:     "--shm-size",
-		KeyEntrypoint:  "--entrypoint",
 		KeyWorkingDir:  "--workdir",
 		KeyIP:          "--ip",
 		KeyIP6:         "--ip6",
@@ -696,6 +695,19 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		KeyRetryDelay:  "--retry-delay",
 	}
 	lookupAndAddString(container, ContainerGroup, stringKeys, podman)
+
+	// Handle Entrypoint separately from stringKeys to support empty values.
+	// An empty Entrypoint= means "clear the image's default entrypoint",
+	// but lookupAndAddString() skips empty values (len check).
+	if val, ok := container.Lookup(ContainerGroup, KeyEntrypoint); ok {
+		if val == "" {
+			// Use --entrypoint= form because the systemd parser
+			// discards empty string arguments (--entrypoint="").
+			podman.addf("--entrypoint=%s", val)
+		} else {
+			podman.add("--entrypoint", val)
+		}
+	}
 
 	allStringsKeys := map[string]string{
 		KeyNetworkAlias: "--network-alias",
