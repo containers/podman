@@ -2,11 +2,12 @@ package archive
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -234,12 +235,6 @@ type nameIno struct {
 	ino  uint64
 }
 
-type nameInoSlice []nameIno
-
-func (s nameInoSlice) Len() int           { return len(s) }
-func (s nameInoSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s nameInoSlice) Less(i, j int) bool { return s[i].name < s[j].name }
-
 // readdirnames is a hacked-apart version of the Go stdlib code, exposing inode
 // numbers further up the stack when reading directory contents. Unlike
 // os.Readdirnames, which returns a list of filenames, this function returns a
@@ -281,9 +276,10 @@ func readdirnames(dirname string) (names []nameIno, err error) {
 		bufp += nb
 	}
 
-	sl := nameInoSlice(names)
-	sort.Sort(sl)
-	return sl, nil
+	slices.SortFunc(names, func(a, b nameIno) int {
+		return cmp.Compare(a.name, b.name)
+	})
+	return names, nil
 }
 
 // parseDirent is a minor modification of unix.ParseDirent (linux version)

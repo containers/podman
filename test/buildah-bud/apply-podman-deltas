@@ -282,6 +282,9 @@ skip_if_remote "http_proxy env is not sent via remote API" \
 skip_if_remote "--metadata-file not supported in remote mode" \
                "bud cache by format"
 
+skip_if_remote "--isolation not supported via podman-remote" \
+               "build-conflicting-isolation-chroot-and-network"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
@@ -338,7 +341,9 @@ skip_if_remote "FIXME: 2025-04-01 git related errors returning wrong exit code" 
 skip "process substitution with overlay context not supported" \
      "build-with-timestamp-applies-to-oci-archive" \
      "build-with-timestamp-applies-to-oci-archive-with-base" \
-     "build-with-run-mount"
+     "build-with-run-mount" \
+     "use-secret-to-env-variable" \
+     "use-secret-to-env-variable-and-file-path"
 
 # END   temporary workarounds that must be reevaluated periodically
 ###############################################################################

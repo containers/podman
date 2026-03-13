@@ -9,6 +9,7 @@ import (
 	"io"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/opencontainers/go-digest"
@@ -42,7 +43,7 @@ func escaped(val []byte, escape int) string {
 		return c > 32 && c < 127
 	}
 
-	var result string
+	var result strings.Builder
 	for _, c := range val {
 		hexEscape := false
 		var special string
@@ -67,14 +68,14 @@ func escaped(val []byte, escape int) string {
 		}
 
 		if special != "" {
-			result += special
+			result.WriteString(special)
 		} else if hexEscape {
-			result += fmt.Sprintf("\\x%.2x", c)
+			fmt.Fprintf(&result, "\\x%.2x", c)
 		} else {
-			result += string(c)
+			result.WriteString(string(c))
 		}
 	}
-	return result
+	return result.String()
 }
 
 func escapedOptional(val []byte, escape int) string {

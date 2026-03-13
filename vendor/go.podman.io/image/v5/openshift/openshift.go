@@ -154,7 +154,7 @@ func (c *openshiftClient) convertDockerImageReference(ref string) (string, error
 
 // These structs are subsets of github.com/openshift/origin/pkg/image/api/v1 and its dependencies.
 type imageStream struct {
-	Status imageStreamStatus `json:"status,omitempty"`
+	Status imageStreamStatus `json:"status"`
 }
 type imageStreamStatus struct {
 	DockerImageRepository string              `json:"dockerImageRepository"`
@@ -172,7 +172,7 @@ type imageStreamImage struct {
 	Image image `json:"image"`
 }
 type image struct {
-	objectMeta           `json:"metadata,omitempty"`
+	objectMeta           `json:"metadata"`
 	DockerImageReference string `json:"dockerImageReference,omitempty"`
 	//	DockerImageMetadata        runtime.RawExtension `json:"dockerImageMetadata,omitempty"`
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty"`
@@ -185,7 +185,7 @@ const imageSignatureTypeAtomic string = "atomic"
 
 type imageSignature struct {
 	typeMeta   `json:",inline"`
-	objectMeta `json:"metadata,omitempty"`
+	objectMeta `json:"metadata"`
 	Type       string `json:"type"`
 	Content    []byte `json:"content"`
 	// Conditions []SignatureCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`

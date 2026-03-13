@@ -227,7 +227,7 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 		res[i] = knownLocationCandidates[i].candidate
 	}
 	// If candidates with unknown location are found, lets add them to final list
-	for i := 0; i < unknownLocationCandidatesUsed; i++ {
+	for i := range unknownLocationCandidatesUsed {
 		res = append(res, unknownLocationCandidates[i].candidate)
 	}
 	return res

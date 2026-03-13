@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -173,7 +172,7 @@ func getContainerNetIO(ctr *Container) (map[string]define.ContainerNetworkStats,
 		return nil, nil
 	}
 
-	err := ns.WithNetNSPath(netNSPath, func(_ ns.NetNS) error {
+	err := netns.WithNetNSPath(netNSPath, func(_ netns.NetNS) error {
 		links, err := netlink.LinkList()
 		if err != nil {
 			return fmt.Errorf("retrieving all network interfaces: %w", err)
@@ -218,7 +217,7 @@ func (c *Container) joinedNetworkNSPath() (string, bool) {
 
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {
 	var result types.StatusBlock
-	err := ns.WithNetNSPath(networkns, func(_ ns.NetNS) error {
+	err := netns.WithNetNSPath(networkns, func(_ netns.NetNS) error {
 		ifaces, err := net.Interfaces()
 		if err != nil {
 			return err

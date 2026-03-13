@@ -3,12 +3,13 @@ package archive
 import (
 	"archive/tar"
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
 	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -57,12 +58,9 @@ func (change *Change) String() string {
 	return fmt.Sprintf("%s %s", change.Kind, change.Path)
 }
 
-// changesByPath implements sort.Interface.
-type changesByPath []Change
-
-func (c changesByPath) Less(i, j int) bool { return c[i].Path < c[j].Path }
-func (c changesByPath) Len() int           { return len(c) }
-func (c changesByPath) Swap(i, j int)      { c[j], c[i] = c[i], c[j] }
+func compareChangesByPath(a, b Change) int {
+	return cmp.Compare(a.Path, b.Path)
+}
 
 // Gnu tar and the go tar writer don't have sub-second mtime
 // precision, which is problematic when we apply changes via tar
@@ -455,7 +453,7 @@ func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMa
 		// this buffer is needed for the duration of this piped stream
 		defer pools.BufioWriter32KPool.Put(ta.Buffer)
 
-		sort.Sort(changesByPath(changes))
+		slices.SortFunc(changes, compareChangesByPath)
 
 		// In general we log errors here but ignore them because
 		// during e.g. a diff operation the container can continue

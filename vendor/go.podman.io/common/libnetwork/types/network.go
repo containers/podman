@@ -60,7 +60,7 @@ type Network struct {
 	// NetworkInterface is the network interface name on the host.
 	NetworkInterface string `json:"network_interface,omitempty"`
 	// Created contains the timestamp when this network was created.
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 	// Subnets to use for this network.
 	Subnets []Subnet `json:"subnets,omitempty"`
 	// Routes to use for this network.
@@ -101,7 +101,7 @@ type NetworkInfo struct {
 	Version        string         `json:"version,omitempty"`
 	Package        string         `json:"package,omitempty"`
 	Path           string         `json:"path,omitempty"`
-	DNS            DNSNetworkInfo `json:"dns,omitempty"`
+	DNS            DNSNetworkInfo `json:"dns"`
 	DefaultNetwork string         `json:"defaultNetwork,omitempty"`
 }
 

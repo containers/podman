@@ -513,10 +513,6 @@ rootless=%d
 	if err != nil {
 		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}
-	if runArtifacts.SSHAuthSock != "" {
-		sshenv := "SSH_AUTH_SOCK=" + runArtifacts.SSHAuthSock
-		spec.Process.Env = append(spec.Process.Env, sshenv)
-	}
 
 	// Create any mount points that we need that aren't already present in
 	// the rootfs.

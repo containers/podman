@@ -13,13 +13,13 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/vishvananda/netlink"
+	"go.podman.io/common/pkg/netns"
 	"go.podman.io/storage/pkg/stringid"
 )
 
@@ -808,7 +808,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run --uidmap /etc/hosts contains --hostname", func() {
-		SkipIfRootless("uidmap population of cninetworks not supported for rootless users")
+		SkipIfRootless("uidmap population of networks not supported for rootless users")
 		session := podmanTest.Podman([]string{"run", "--uidmap", "0:100000:1000", "--rm", "--hostname", "foohostname", ALPINE, "grep", "foohostname", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -902,7 +902,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	}
 
 	setupNetworkNs := func(networkNSName string) {
-		_ = ns.WithNetNSPath("/run/netns/"+networkNSName, func(_ ns.NetNS) error {
+		_ = netns.WithNetNSPath("/run/netns/"+networkNSName, func(_ netns.NetNS) error {
 			loopbackup()
 			linkup("eth0", "46:7f:45:6e:4f:c8", []string{"10.25.40.0/24", "fd04:3e42:4a4e:3381::/64"})
 			linkup("eth1", "56:6e:35:5d:3e:a8", []string{"10.88.0.0/16"})

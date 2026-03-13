@@ -106,7 +106,7 @@ type Schema2V1Image struct {
 	// Container is the id of the container used to commit
 	Container string `json:"container,omitempty"`
 	// ContainerConfig is the configuration of the container that is committed into the image
-	ContainerConfig Schema2Config `json:"container_config,omitempty"`
+	ContainerConfig Schema2Config `json:"container_config"`
 	// DockerVersion specifies the version of Docker that was used to build the image
 	DockerVersion string `json:"docker_version,omitempty"`
 	// Author is the name of the author that was specified when committing the image
