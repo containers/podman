@@ -136,8 +136,6 @@ func checkpoint(cmd *cobra.Command, args []string) error {
 			errs = append(errs, r.Err)
 		case checkpointOptions.PrintStats:
 			statistics.ContainerStatistics = append(statistics.ContainerStatistics, r)
-		case r.RawInput != "":
-			fmt.Println(r.RawInput)
 		default:
 			fmt.Println(r.Id)
 		}

@@ -109,11 +109,12 @@ load helpers
     run_podman kill -a
     is "$output" "$ctrID"
 
-    # kill $input must print $input
+    # kill $input must print the id of $input
     cname=c-$(safename)
     run_podman run --rm -d --name $cname $IMAGE top
+    ctrID="$output"
     run_podman kill $cname
-    is "$output" $cname
+    is "$output" "$ctrID"
     # Wait for the container to get removed to avoid the leak check from triggering,
     # since it might have already been removed here ignore the exit code check.
     run_podman '?' wait --condition=removing $cname
