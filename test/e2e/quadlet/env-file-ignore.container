@@ -1,0 +1,6 @@
+[Container]
+Image=alpine
+EnvironmentFile=-/tmp/missing-quadlet-file.env
+
+## assert-podman-args "--env-file"
+## assert-podman-args "-/tmp/missing-quadlet-file.env"
