@@ -104,6 +104,10 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 		if !ok {
 			return fmt.Errorf("%q is an invalid artifact name", artifactName)
 		}
+		// Normalise the reference so that artifacts stored without an explicit
+		// tag (e.g. "quay.io/myimage/myartifact") display ":latest" instead of
+		// an empty tag, matching the behaviour of container images.
+		named = reference.TagNameOnly(named)
 		if tagged, ok := named.(reference.Tagged); ok {
 			tag = tagged.Tag()
 		}
