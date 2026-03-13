@@ -1,0 +1,106 @@
+name: Release Pipeline Validation
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to build (branch or tag, e.g. "main" or "v9.8.7")'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  get-latest-release:
+    name: Get branch for latest release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    outputs:
+      release_ref: ${{ steps.set.outputs.release_ref }}
+    steps:
+      - name: Get release branch from latest tag
+        id: set
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(gh api "repos/${{ github.repository }}/releases/latest" --jq '.tag_name' 2>/dev/null || echo '')
+          if [ -z "$tag" ]; then
+            echo "release_ref=main" >> "$GITHUB_OUTPUT"
+            echo "No releases found, using main"
+            exit 0
+          fi
+          # Release branch is vX.Y for tag vX.Y.Z (strip the .Z)
+          release_branch="${tag%.*}"
+          if [ "$release_branch" = "$tag" ]; then
+            release_branch='main'
+          fi
+          echo "release_ref=$release_branch" >> "$GITHUB_OUTPUT"
+          echo "Latest release $tag -> branch: $release_branch"
+
+  build-artifacts-main:
+    name: Build Artifacts (main)
+    uses: ./.github/workflows/build-artifacts.yml
+    if: github.event_name == 'schedule'
+    with:
+      version: 'main'
+    secrets: inherit
+
+  build-artifacts-latest-branch:
+    name: Build Artifacts (latest release branch)
+    uses: ./.github/workflows/build-artifacts.yml
+    if: github.event_name == 'schedule'
+    needs:  [get-latest-release]
+    with:
+      version: ${{ needs.get-latest-release.outputs.release_ref }}
+    secrets: inherit
+
+  build-artifacts-single:
+    name: Build Artifacts
+    uses: ./.github/workflows/build-artifacts.yml
+    if: github.event_name == 'workflow_dispatch'
+    with:
+      version: ${{ inputs.ref }}
+    secrets: inherit
+
+  validate-tokens:
+    name: Validate GitHub tokens
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PODMANBOT_TOKEN
+        env:
+          GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
+        run: |
+          gh api "/repos/${{ github.repository }}" --jq '.default_branch' > /dev/null
+          echo "PODMANBOT_TOKEN is valid and has repo access"
+
+  open-failure-issue:
+    name: Open issue on failure
+    runs-on: ubuntu-latest
+    needs: [validate-tokens, get-latest-release, build-artifacts-main, build-artifacts-latest-branch]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    steps:
+      - name: Create failure issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY="Release Pipeline Validation workflow failed.
+
+          @containers/podman-maintainers PTAL
+
+          **Workflow run:** $RUN_URL
+
+          **Failed jobs:**
+          - validate-tokens: ${{ needs.validate-tokens.result }}
+          - build-artifacts-main: ${{ needs.build-artifacts-main.result }}
+          - build-artifacts-latest-branch: ${{ needs.build-artifacts-latest-branch.result }}
+          "
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Release Pipeline Validation failed (${{ github.run_id }})" \
+            --body "$BODY"
