@@ -176,7 +176,7 @@ jobs:
         if: >-
           steps.check.outputs.buildartifacts == 'true' ||
           steps.actual_dryrun.outputs.dryrun == 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: artifacts
           path: |
