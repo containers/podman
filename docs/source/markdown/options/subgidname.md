@@ -4,6 +4,8 @@
 ####> are applicable to all of those.
 #### **--subgidname**=*name*
 
-Run the container in a new user namespace using the map with _name_ in the _/etc/subgid_ file.
-If running rootless, the user needs to have the right to use the mapping. See **subgid**(5).
-This flag conflicts with **--userns** and **--gidmap**.
+Run the container in a new user namespace using the map with _name_ in the
+_/etc/subgid_ file. If running rootless, the user needs to have the right to
+use the mapping. See **subgid**(5). This flag conflicts with **--userns**.
+Together with **--gidmap** it acts as if **--gidmap** was passed with all
+mappings of the _name_ group in _/etc/subgid_.
