@@ -53,7 +53,7 @@ load helpers
     run_podman image inspect --format "{{.ID}}" $IMAGE
     imageID="$output"
 
-    t0=$(date --iso-8601=seconds)
+    t0=$(date --iso-8601=ns)
     tag=registry.com/$(random_string 10 | tr A-Z a-z)
 
     # Force using the file backend since the journal backend is eating events
