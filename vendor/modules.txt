@@ -905,7 +905,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.62.1-0.20260304132626-c0ec6c1ad7ea
+# go.podman.io/storage v1.62.1-0.20260304132626-c0ec6c1ad7ea => github.com/giuseppe/container-libs/storage v0.0.0-20260304210837-171a0bc303d3
 ## explicit; go 1.24.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1207,3 +1207,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/storage => github.com/giuseppe/container-libs/storage v0.0.0-20260304210837-171a0bc303d3
