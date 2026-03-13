@@ -495,10 +495,12 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).Should(HaveLen(1))
 
-		session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/proc/a*", ALPINE, "ls", "/proc/acpi"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		if podmanTest.Host.Arch == "amd64" {
+			session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/proc/a*", ALPINE, "ls", "/proc/acpi"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(Not(BeEmpty()))
+		}
 	})
 
 	It("podman run powercap is masked", func() {
@@ -2264,9 +2266,7 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run check personality support", func() {
-		if podmanTest.Host.Arch != "amd64" {
-			Skip("test only valid on amd64")
-		}
+		SkipIfNotAMD64()
 		session := podmanTest.Podman([]string{"run", "--personality=LINUX32", "--name=testpersonality", ALPINE, "uname", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
