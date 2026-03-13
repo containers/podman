@@ -418,6 +418,15 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
+	var healthSummary *container.HealthSummary
+	if l.HasHealthCheck() {
+		healthSummary = &container.HealthSummary{}
+		if inspect.State.Health != nil {
+			healthSummary.Status = container.HealthStatus(inspect.State.Health.Status)
+			healthSummary.FailingStreak = inspect.State.Health.FailingStreak
+		}
+	}
+
 	return &handlers.Container{
 		Summary: container.Summary{
 			ID:         l.ID(),
@@ -432,6 +441,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			Labels:     l.Labels(),
 			State:      container.ContainerState(stateStr),
 			Status:     status,
+			Health:     healthSummary,
 			// FIXME: this seems broken, the field is never shown in the API output.
 			HostConfig: struct {
 				NetworkMode string            `json:",omitempty"`
