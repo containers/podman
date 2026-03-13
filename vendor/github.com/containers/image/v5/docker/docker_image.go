@@ -14,6 +14,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 // Image is a Docker-specific implementation of types.ImageCloser with a few extra methods
@@ -68,6 +69,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
+	defer client.Close()
 
 	tags := make([]string, 0)
 
@@ -77,8 +79,8 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			return nil, err
 		}
 		defer res.Body.Close()
-		if err := httpResponseToError(res, "fetching tags list"); err != nil {
-			return nil, err
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("fetching tags list: %w", registryHTTPResponseToError(res))
 		}
 
 		var tagsHolder struct {
@@ -87,15 +89,28 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 		if err = json.NewDecoder(res.Body).Decode(&tagsHolder); err != nil {
 			return nil, err
 		}
-		tags = append(tags, tagsHolder.Tags...)
+		for _, tag := range tagsHolder.Tags {
+			if _, err := reference.WithTag(dr.ref, tag); err != nil { // Ensure the tag does not contain unexpected values
+				// Per https://github.com/containers/skopeo/issues/2346 , unknown versions of JFrog Artifactory,
+				// contrary to the tag format specified in
+				// https://github.com/opencontainers/distribution-spec/blob/8a871c8234977df058f1a14e299fe0a673853da2/spec.md?plain=1#L160 ,
+				// include digests in the list.
+				if _, err := digest.Parse(tag); err == nil {
+					logrus.Debugf("Ignoring invalid tag %q matching a digest format", tag)
+					continue
+				}
+				return nil, fmt.Errorf("registry returned invalid tag %q: %w", tag, err)
+			}
+			tags = append(tags, tag)
+		}
 
 		link := res.Header.Get("Link")
 		if link == "" {
 			break
 		}
 
-		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
-		linkURL, err := url.Parse(linkURLStr)
+		linkURLPart, _, _ := strings.Cut(link, ";")
+		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
 		if err != nil {
 			return tags, err
 		}
@@ -122,6 +137,9 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 	if !ok {
 		return "", errors.New("ref must be a dockerReference")
 	}
+	if dr.isUnknownDigest {
+		return "", fmt.Errorf("docker: reference %q is for unknown digest case; cannot get digest", dr.StringWithinTransport())
+	}
 
 	tagOrDigest, err := dr.tagOrDigest()
 	if err != nil {
@@ -136,6 +154,7 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 	if err != nil {
 		return "", fmt.Errorf("failed to create client: %w", err)
 	}
+	defer client.Close()
 
 	path := fmt.Sprintf(manifestPath, reference.Path(dr.ref), tagOrDigest)
 	headers := map[string][]string{

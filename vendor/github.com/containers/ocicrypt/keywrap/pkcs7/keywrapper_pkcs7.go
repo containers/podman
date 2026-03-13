@@ -19,11 +19,12 @@ package pkcs7
 import (
 	"crypto"
 	"crypto/x509"
+	"errors"
+	"fmt"
 
 	"github.com/containers/ocicrypt/config"
 	"github.com/containers/ocicrypt/keywrap"
 	"github.com/containers/ocicrypt/utils"
-	"github.com/pkg/errors"
 	"go.mozilla.org/pkcs7"
 )
 
@@ -104,7 +105,7 @@ func (kw *pkcs7KeyWrapper) UnwrapKey(dc *config.DecryptConfig, pkcs7Packet []byt
 
 	p7, err := pkcs7.Parse(pkcs7Packet)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not parse PKCS7 packet")
+		return nil, fmt.Errorf("could not parse PKCS7 packet: %w", err)
 	}
 
 	for idx, privKey := range privKeys {

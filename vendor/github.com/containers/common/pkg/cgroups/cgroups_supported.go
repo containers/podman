@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/godbus/dbus/v5"
 	"golang.org/x/sys/unix"
 )
 
@@ -36,6 +37,13 @@ func IsCgroup2UnifiedMode() (bool, error) {
 		}
 	})
 	return isUnified, isUnifiedErr
+}
+
+// UserConnection returns an user connection to D-BUS
+func UserConnection(uid int) (*systemdDbus.Conn, error) {
+	return systemdDbus.NewConnection(func() (*dbus.Conn, error) {
+		return dbusAuthConnection(uid, dbus.SessionBusPrivateNoAutoStartup)
+	})
 }
 
 // UserOwnsCurrentSystemdCgroup checks whether the current EUID owns the
@@ -80,7 +88,7 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 		}
 		s := st.Sys()
 		if s == nil {
-			return false, fmt.Errorf("error stat cgroup path %s", cgroupPath)
+			return false, fmt.Errorf("stat cgroup path %s", cgroupPath)
 		}
 
 		if int(s.(*syscall.Stat_t).Uid) != uid {
@@ -99,12 +107,12 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 func rmDirRecursively(path string) error {
 	killProcesses := func(signal syscall.Signal) {
 		if signal == unix.SIGKILL {
-			if err := ioutil.WriteFile(filepath.Join(path, "cgroup.kill"), []byte("1"), 0o600); err == nil {
+			if err := os.WriteFile(filepath.Join(path, "cgroup.kill"), []byte("1"), 0o600); err == nil {
 				return
 			}
 		}
 		// kill all the processes that are still part of the cgroup
-		if procs, err := ioutil.ReadFile(filepath.Join(path, "cgroup.procs")); err == nil {
+		if procs, err := os.ReadFile(filepath.Join(path, "cgroup.procs")); err == nil {
 			for _, pidS := range strings.Split(string(procs), "\n") {
 				if pid, err := strconv.Atoi(pidS); err == nil {
 					_ = unix.Kill(pid, signal)
@@ -116,7 +124,7 @@ func rmDirRecursively(path string) error {
 	if err := os.Remove(path); err == nil || errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
-	entries, err := ioutil.ReadDir(path)
+	entries, err := os.ReadDir(path)
 	if err != nil {
 		return err
 	}

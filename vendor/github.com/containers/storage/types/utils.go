@@ -3,7 +3,6 @@ package types
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,7 +20,7 @@ func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
 		return "", err
 	}
 	path = filepath.Join(path, "containers")
-	if err := os.MkdirAll(path, 0700); err != nil {
+	if err := os.MkdirAll(path, 0o700); err != nil {
 		return "", fmt.Errorf("unable to make rootless runtime: %w", err)
 	}
 	return path, nil
@@ -46,25 +45,30 @@ type rootlessRuntimeDirEnvironmentImplementation struct {
 func (env rootlessRuntimeDirEnvironmentImplementation) getProcCommandFile() string {
 	return env.procCommandFile
 }
+
 func (env rootlessRuntimeDirEnvironmentImplementation) getRunUserDir() string {
 	return env.runUserDir
 }
+
 func (env rootlessRuntimeDirEnvironmentImplementation) getTmpPerUserDir() string {
 	return env.tmpPerUserDir
 }
+
 func (rootlessRuntimeDirEnvironmentImplementation) homeDirGetRuntimeDir() (string, error) {
 	return homedir.GetRuntimeDir()
 }
+
 func (rootlessRuntimeDirEnvironmentImplementation) systemLstat(path string) (*system.StatT, error) {
 	return system.Lstat(path)
 }
+
 func (rootlessRuntimeDirEnvironmentImplementation) homedirGet() string {
 	return homedir.Get()
 }
 
 func isRootlessRuntimeDirOwner(dir string, env rootlessRuntimeDirEnvironment) bool {
 	st, err := env.systemLstat(dir)
-	return err == nil && int(st.UID()) == os.Getuid() && st.Mode()&0700 == 0700 && st.Mode()&0066 == 0000
+	return err == nil && int(st.UID()) == os.Getuid() && st.Mode()&0o700 == 0o700 && st.Mode()&0o066 == 0o000
 }
 
 // getRootlessRuntimeDirIsolated is an internal implementation detail of getRootlessRuntimeDir to allow testing.
@@ -75,7 +79,7 @@ func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, e
 		return runtimeDir, nil
 	}
 
-	initCommand, err := ioutil.ReadFile(env.getProcCommandFile())
+	initCommand, err := os.ReadFile(env.getProcCommandFile())
 	if err != nil || string(initCommand) == "systemd" {
 		runUserDir := env.getRunUserDir()
 		if isRootlessRuntimeDirOwner(runUserDir, env) {
@@ -86,7 +90,7 @@ func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, e
 	tmpPerUserDir := env.getTmpPerUserDir()
 	if tmpPerUserDir != "" {
 		if _, err := env.systemLstat(tmpPerUserDir); os.IsNotExist(err) {
-			if err := os.Mkdir(tmpPerUserDir, 0700); err != nil {
+			if err := os.Mkdir(tmpPerUserDir, 0o700); err != nil {
 				logrus.Errorf("Failed to create temp directory for user: %v", err)
 			} else {
 				return tmpPerUserDir, nil
@@ -174,6 +178,9 @@ func DefaultConfigFile(rootless bool) (string, error) {
 		return path, nil
 	}
 	if !rootless {
+		if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+			return defaultOverrideConfigFile, nil
+		}
 		return defaultConfigFile, nil
 	}
 
@@ -194,7 +201,7 @@ func reloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 	fi, err := os.Stat(configFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
+			logrus.Warningf("Failed to read %s %v\n", configFile, err.Error())
 		}
 		return
 	}

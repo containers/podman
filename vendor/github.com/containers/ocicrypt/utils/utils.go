@@ -21,22 +21,21 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/containers/ocicrypt/crypto/pkcs11"
-
-	"github.com/pkg/errors"
+	"github.com/go-jose/go-jose/v3"
 	"golang.org/x/crypto/openpgp"
-	json "gopkg.in/square/go-jose.v2"
 )
 
 // parseJWKPrivateKey parses the input byte array as a JWK and makes sure it's a private key
 func parseJWKPrivateKey(privKey []byte, prefix string) (interface{}, error) {
-	jwk := json.JSONWebKey{}
+	jwk := jose.JSONWebKey{}
 	err := jwk.UnmarshalJSON(privKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: Could not parse input as JWK", prefix)
+		return nil, fmt.Errorf("%s: Could not parse input as JWK: %w", prefix, err)
 	}
 	if jwk.IsPublic() {
 		return nil, fmt.Errorf("%s: JWK is not a private key", prefix)
@@ -46,10 +45,10 @@ func parseJWKPrivateKey(privKey []byte, prefix string) (interface{}, error) {
 
 // parseJWKPublicKey parses the input byte array as a JWK
 func parseJWKPublicKey(privKey []byte, prefix string) (interface{}, error) {
-	jwk := json.JSONWebKey{}
+	jwk := jose.JSONWebKey{}
 	err := jwk.UnmarshalJSON(privKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "%s: Could not parse input as JWK", prefix)
+		return nil, fmt.Errorf("%s: Could not parse input as JWK: %w", prefix, err)
 	}
 	if !jwk.IsPublic() {
 		return nil, fmt.Errorf("%s: JWK is not a public key", prefix)
@@ -97,11 +96,11 @@ func ParsePrivateKey(privKey, privKeyPassword []byte, prefix string) (interface{
 			var der []byte
 			if x509.IsEncryptedPEMBlock(block) { //nolint:staticcheck // ignore SA1019, which is kept for backward compatibility
 				if privKeyPassword == nil {
-					return nil, errors.Errorf("%s: Missing password for encrypted private key", prefix)
+					return nil, fmt.Errorf("%s: Missing password for encrypted private key", prefix)
 				}
 				der, err = x509.DecryptPEMBlock(block, privKeyPassword) //nolint:staticcheck // ignore SA1019, which is kept for backward compatibility
 				if err != nil {
-					return nil, errors.Errorf("%s: Wrong password: could not decrypt private key", prefix)
+					return nil, fmt.Errorf("%s: Wrong password: could not decrypt private key", prefix)
 				}
 			} else {
 				der = block.Bytes
@@ -111,7 +110,7 @@ func ParsePrivateKey(privKey, privKeyPassword []byte, prefix string) (interface{
 			if err != nil {
 				key, err = x509.ParsePKCS1PrivateKey(der)
 				if err != nil {
-					return nil, errors.Wrapf(err, "%s: Could not parse private key", prefix)
+					return nil, fmt.Errorf("%s: Could not parse private key: %w", prefix, err)
 				}
 			}
 		} else {
@@ -145,7 +144,7 @@ func ParsePublicKey(pubKey []byte, prefix string) (interface{}, error) {
 		if block != nil {
 			key, err = x509.ParsePKIXPublicKey(block.Bytes)
 			if err != nil {
-				return nil, errors.Wrapf(err, "%s: Could not parse public key", prefix)
+				return nil, fmt.Errorf("%s: Could not parse public key: %w", prefix, err)
 			}
 		} else {
 			key, err = parseJWKPublicKey(pubKey, prefix)
@@ -179,7 +178,7 @@ func ParseCertificate(certBytes []byte, prefix string) (*x509.Certificate, error
 		}
 		x509Cert, err = x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s: Could not parse x509 certificate", prefix)
+			return nil, fmt.Errorf("%s: Could not parse x509 certificate: %w", prefix, err)
 		}
 	}
 	return x509Cert, err

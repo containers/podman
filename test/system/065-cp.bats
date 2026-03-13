@@ -8,6 +8,8 @@
 load helpers
 
 @test "podman cp file from host to container" {
+    skip_if_remote "cp with new filename fails in remote mode on RHEL 9.2.0"
+
     srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
     mkdir -p $srcdir
     local -a randomcontent=(

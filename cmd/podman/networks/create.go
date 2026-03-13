@@ -165,7 +165,7 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		return errors.New("cannot set gateway or range without subnet")
 	}
 
-	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), network)
+	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), network, nil)
 	if err != nil {
 		return err
 	}

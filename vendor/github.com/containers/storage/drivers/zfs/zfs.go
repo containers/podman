@@ -18,7 +18,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
-	"github.com/mistifyio/go-zfs"
+	zfs "github.com/mistifyio/go-zfs/v3"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -30,10 +30,10 @@ type zfsOptions struct {
 	mountOptions string
 }
 
-const defaultPerms = os.FileMode(0555)
+const defaultPerms = os.FileMode(0o555)
 
 func init() {
-	graphdriver.Register("zfs", Init)
+	graphdriver.MustRegister("zfs", Init)
 }
 
 // Logger returns a zfs logger implementation.
@@ -57,12 +57,12 @@ func Init(base string, opt graphdriver.Options) (graphdriver.Driver, error) {
 		return nil, fmt.Errorf("the 'zfs' command is not available: %w", graphdriver.ErrPrerequisites)
 	}
 
-	file, err := os.OpenFile("/dev/zfs", os.O_RDWR, 0600)
+	file, err := unix.Open("/dev/zfs", unix.O_RDWR, 0o600)
 	if err != nil {
 		logger.Debugf("cannot open /dev/zfs: %v", err)
 		return nil, fmt.Errorf("could not open /dev/zfs: %v: %w", err, graphdriver.ErrPrerequisites)
 	}
-	defer file.Close()
+	defer unix.Close(file)
 
 	options, err := parseOptions(opt.DriverOptions)
 	if err != nil {
@@ -110,7 +110,7 @@ func Init(base string, opt graphdriver.Options) (graphdriver.Driver, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get root uid/gid: %w", err)
 	}
-	if err := idtools.MkdirAllAs(base, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(base, 0o700, rootUID, rootGID); err != nil {
 		return nil, fmt.Errorf("failed to create '%s': %w", base, err)
 	}
 
@@ -409,7 +409,6 @@ func (d *Driver) Remove(id string) error {
 
 // Get returns the mountpoint for the given id after creating the target directories if necessary.
 func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
-
 	mountpoint := d.mountPath(id)
 	if count := d.ctr.Increment(mountpoint); count > 1 {
 		return mountpoint, nil
@@ -454,7 +453,7 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr
 		return "", err
 	}
 	// Create the target directories if they don't exist
-	if err := idtools.MkdirAllAs(mountpoint, 0755, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(mountpoint, 0o755, rootUID, rootGID); err != nil {
 		return "", err
 	}
 
@@ -504,6 +503,13 @@ func (d *Driver) Exists(id string) bool {
 	d.Lock()
 	defer d.Unlock()
 	return d.filesystemsCache[d.zfsPath(id)]
+}
+
+// List layers (not including additional image stores).  Our layers aren't all
+// dependent on a single well-known dataset, so we can't reliably tell which
+// datasets are ours and which ones just look like they could be ours.
+func (d *Driver) ListLayers() ([]string, error) {
+	return nil, graphdriver.ErrNotSupported
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver

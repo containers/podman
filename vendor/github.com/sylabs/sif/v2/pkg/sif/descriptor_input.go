@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2023, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -7,10 +7,10 @@ package sif
 
 import (
 	"crypto"
+	"encoding"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"time"
 )
 
@@ -20,7 +20,7 @@ type descriptorOpts struct {
 	linkID    uint32
 	alignment int
 	name      string
-	extra     interface{}
+	md        encoding.BinaryMarshaler
 	t         time.Time
 }
 
@@ -93,6 +93,14 @@ func OptObjectTime(t time.Time) DescriptorInputOpt {
 	}
 }
 
+// OptMetadata marshals metadata from md into the "extra" field of d.
+func OptMetadata(md encoding.BinaryMarshaler) DescriptorInputOpt {
+	return func(t DataType, opts *descriptorOpts) error {
+		opts.md = md
+		return nil
+	}
+}
+
 type unexpectedDataTypeError struct {
 	got  DataType
 	want []DataType
@@ -103,7 +111,6 @@ func (e *unexpectedDataTypeError) Error() string {
 }
 
 func (e *unexpectedDataTypeError) Is(target error) bool {
-	//nolint:errorlint // don't compare wrapped errors in Is()
 	t, ok := target.(*unexpectedDataTypeError)
 	if !ok {
 		return false
@@ -156,7 +163,7 @@ func OptCryptoMessageMetadata(ft FormatType, mt MessageType) DescriptorInputOpt 
 			Messagetype: mt,
 		}
 
-		opts.extra = m
+		opts.md = binaryMarshaler{m}
 		return nil
 	}
 }
@@ -185,7 +192,7 @@ func OptPartitionMetadata(fs FSType, pt PartType, arch string) DescriptorInputOp
 			Arch:     sifarch,
 		}
 
-		opts.extra = p
+		opts.md = p
 		return nil
 	}
 }
@@ -222,7 +229,25 @@ func OptSignatureMetadata(ht crypto.Hash, fp []byte) DescriptorInputOpt {
 		}
 		copy(s.Entity[:], fp)
 
-		opts.extra = s
+		opts.md = binaryMarshaler{s}
+		return nil
+	}
+}
+
+// OptSBOMMetadata sets metadata for a SBOM data object. The SBOM format is set to f.
+//
+// If this option is applied to a data object with an incompatible type, an error is returned.
+func OptSBOMMetadata(f SBOMFormat) DescriptorInputOpt {
+	return func(t DataType, opts *descriptorOpts) error {
+		if got, want := t, DataSBOM; got != want {
+			return &unexpectedDataTypeError{got, []DataType{want}}
+		}
+
+		s := sbom{
+			Format: f,
+		}
+
+		opts.md = binaryMarshaler{s}
 		return nil
 	}
 }
@@ -242,14 +267,16 @@ const DefaultObjectGroup = 1
 //
 // It is possible (and often necessary) to store additional metadata related to certain types of
 // data objects. Consider supplying options such as OptCryptoMessageMetadata, OptPartitionMetadata,
-// and OptSignatureMetadata for this purpose.
+// OptSignatureMetadata, and OptSBOMMetadata for this purpose. To set custom metadata, use
+// OptMetadata.
 //
 // By default, the data object will be placed in the default data object group (1). To override
 // this behavior, use OptNoGroup or OptGroupID. To link this data object, use OptLinkedID or
 // OptLinkedGroupID.
 //
-// By default, the data object will be aligned according to the system's memory page size. To
-// override this behavior, consider using OptObjectAlignment.
+// By default, the data object will not be aligned unless it is of type DataPartition, in which
+// case it will be aligned on a 4096 byte boundary. To override this behavior, consider using
+// OptObjectAlignment.
 //
 // By default, no name is set for data object. To set a name, use OptObjectName.
 //
@@ -258,8 +285,20 @@ const DefaultObjectGroup = 1
 // image modification time. To override this behavior, consider using OptObjectTime.
 func NewDescriptorInput(t DataType, r io.Reader, opts ...DescriptorInputOpt) (DescriptorInput, error) {
 	dopts := descriptorOpts{
-		groupID:   DefaultObjectGroup,
-		alignment: os.Getpagesize(),
+		groupID: DefaultObjectGroup,
+	}
+
+	if t == DataPartition {
+		dopts.alignment = 4096
+	}
+
+	// Accumulate hash for OCI blobs as they are written.
+	if t == DataOCIRootIndex || t == DataOCIBlob {
+		md := newOCIBlobDigest()
+
+		r = io.TeeReader(r, md.hasher)
+
+		dopts.md = md
 	}
 
 	for _, opt := range opts {
@@ -296,5 +335,5 @@ func (di DescriptorInput) fillDescriptor(t time.Time, d *rawDescriptor) error {
 		return err
 	}
 
-	return d.setExtra(di.opts.extra)
+	return d.setExtra(di.opts.md)
 }

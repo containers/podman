@@ -13,9 +13,9 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -23,8 +23,10 @@ import (
 	"time"
 	"unicode"
 
-	jose "gopkg.in/square/go-jose.v2"
+	jose "gopkg.in/go-jose/go-jose.v2"
 )
+
+const Unspecified = "Unspecified"
 
 // Package Variables Variables
 
@@ -182,7 +184,7 @@ func ValidSerial(serial string) bool {
 func GetBuildID() (retID string) {
 	retID = BuildID
 	if retID == "" {
-		retID = "Unspecified"
+		retID = Unspecified
 	}
 	return
 }
@@ -191,7 +193,7 @@ func GetBuildID() (retID string) {
 func GetBuildTime() (retID string) {
 	retID = BuildTime
 	if retID == "" {
-		retID = "Unspecified"
+		retID = Unspecified
 	}
 	return
 }
@@ -200,7 +202,7 @@ func GetBuildTime() (retID string) {
 func GetBuildHost() (retID string) {
 	retID = BuildHost
 	if retID == "" {
-		retID = "Unspecified"
+		retID = Unspecified
 	}
 	return
 }
@@ -245,7 +247,7 @@ func UniqueLowerNames(names []string) (unique []string) {
 
 // LoadCert loads a PEM certificate specified by filename or returns an error
 func LoadCert(filename string) (*x509.Certificate, error) {
-	certPEM, err := ioutil.ReadFile(filename)
+	certPEM, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

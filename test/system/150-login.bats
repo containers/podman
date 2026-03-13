@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 ###############################################################################
 # BEGIN one-time envariable setup
@@ -122,7 +123,7 @@ function setup() {
                --password-stdin \
                $registry <<< "x${PODMAN_LOGIN_PASS}"
     is "$output" \
-       "Error: error logging into \"$registry\": invalid username/password" \
+       "Error: logging into \"$registry\": invalid username/password" \
        'output from podman login'
 }
 
@@ -180,7 +181,7 @@ EOF
     run_podman 125 push --authfile=$authfile \
         --tls-verify=false $IMAGE \
         localhost:${PODMAN_LOGIN_REGISTRY_PORT}/badpush:1
-    is "$output" ".*: unauthorized: authentication required" \
+    is "$output" ".*: authentication required" \
        "auth error on push"
 }
 
@@ -314,7 +315,7 @@ function _test_skopeo_credential_sharing() {
     fi
 
     # Make sure socket is closed
-    if ! port_is_free $PODMAN_LOGIN_REGISTRY_PORT; then
+    if tcp_port_probe $PODMAN_LOGIN_REGISTRY_PORT; then
         die "Socket still seems open"
     fi
 }

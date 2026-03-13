@@ -25,6 +25,7 @@ type Rule struct {
 	Invert            bool
 	Dport             *RulePortRange
 	Sport             *RulePortRange
+	IPProto           int
 }
 
 func (r Rule) String() string {

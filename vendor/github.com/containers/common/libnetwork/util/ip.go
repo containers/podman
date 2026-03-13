@@ -54,3 +54,25 @@ func NormalizeIP(ip *net.IP) {
 		*ip = ipv4
 	}
 }
+
+// GetLocalIP returns the first non loopback local IPv4 of the host.
+// If no ipv4 address is found it may return an ipv6 address.
+// When no ip is found and empty string is returned.
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	ip := ""
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && ipnet.IP.IsGlobalUnicast() {
+			if IsIPv4(ipnet.IP) {
+				return ipnet.IP.String()
+			}
+			// if ipv6 we keep looking for an ipv4 address
+			ip = ipnet.IP.String()
+		}
+	}
+	return ip
+}

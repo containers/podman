@@ -15,15 +15,14 @@
 package name
 
 import (
+	// nolint: depguard
+	_ "crypto/sha256" // Recommended by go-digest.
 	"strings"
+
+	"github.com/opencontainers/go-digest"
 )
 
-const (
-	// These have the form: sha256:<hex string>
-	// TODO(dekkagaijin): replace with opencontainers/go-digest or docker/distribution's validation.
-	digestChars = "sh:0123456789abcdef"
-	digestDelim = "@"
-)
+const digestDelim = "@"
 
 // Digest stores a digest name in a structured form.
 type Digest struct {
@@ -60,10 +59,6 @@ func (d Digest) String() string {
 	return d.original
 }
 
-func checkDigest(name string) error {
-	return checkElement("digest", name, digestChars, 7+64, 7+64)
-}
-
 // NewDigest returns a new Digest representing the given name.
 func NewDigest(name string, opts ...Option) (Digest, error) {
 	// Split on "@"
@@ -72,10 +67,13 @@ func NewDigest(name string, opts ...Option) (Digest, error) {
 		return Digest{}, newErrBadName("a digest must contain exactly one '@' separator (e.g. registry/repository@digest) saw: %s", name)
 	}
 	base := parts[0]
-	digest := parts[1]
-
-	// Always check that the digest is valid.
-	if err := checkDigest(digest); err != nil {
+	dig := parts[1]
+	prefix := digest.Canonical.String() + ":"
+	if !strings.HasPrefix(dig, prefix) {
+		return Digest{}, newErrBadName("unsupported digest algorithm: %s", dig)
+	}
+	hex := strings.TrimPrefix(dig, prefix)
+	if err := digest.Canonical.Validate(hex); err != nil {
 		return Digest{}, err
 	}
 
@@ -90,7 +88,7 @@ func NewDigest(name string, opts ...Option) (Digest, error) {
 	}
 	return Digest{
 		Repository: repo,
-		digest:     digest,
+		digest:     dig,
 		original:   name,
 	}, nil
 }

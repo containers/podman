@@ -1,8 +1,23 @@
+// Copyright 2013-2023 The Cobra Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cobra
 
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -14,6 +29,8 @@ const (
 	activeHelpGlobalEnvVar  = "COBRA_ACTIVE_HELP"
 	activeHelpGlobalDisable = "0"
 )
+
+var activeHelpEnvVarPrefixSubstRegexp = regexp.MustCompile(`[^A-Z0-9_]`)
 
 // AppendActiveHelp adds the specified string to the specified array to be used as ActiveHelp.
 // Such strings will be processed by the completion script and will be shown as ActiveHelp
@@ -28,7 +45,7 @@ func AppendActiveHelp(compArray []string, activeHelpStr string) []string {
 
 // GetActiveHelpConfig returns the value of the ActiveHelp environment variable
 // <PROGRAM>_ACTIVE_HELP where <PROGRAM> is the name of the root command in upper
-// case, with all - replaced by _.
+// case, with all non-ASCII-alphanumeric characters replaced by `_`.
 // It will always return "0" if the global environment variable COBRA_ACTIVE_HELP
 // is set to "0".
 func GetActiveHelpConfig(cmd *Command) string {
@@ -41,9 +58,10 @@ func GetActiveHelpConfig(cmd *Command) string {
 
 // activeHelpEnvVar returns the name of the program-specific ActiveHelp environment
 // variable.  It has the format <PROGRAM>_ACTIVE_HELP where <PROGRAM> is the name of the
-// root command in upper case, with all - replaced by _.
+// root command in upper case, with all non-ASCII-alphanumeric characters replaced by `_`.
 func activeHelpEnvVar(name string) string {
 	// This format should not be changed: users will be using it explicitly.
 	activeHelpEnvVar := strings.ToUpper(fmt.Sprintf("%s%s", name, activeHelpEnvVarSuffix))
-	return strings.ReplaceAll(activeHelpEnvVar, "-", "_")
+	activeHelpEnvVar = activeHelpEnvVarPrefixSubstRegexp.ReplaceAllString(activeHelpEnvVar, "_")
+	return activeHelpEnvVar
 }

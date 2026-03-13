@@ -31,14 +31,14 @@ type Signature struct {
 
 // untrustedSignature is a parsed content of a signature.
 type untrustedSignature struct {
-	UntrustedDockerManifestDigest digest.Digest
-	UntrustedDockerReference      string // FIXME: more precise type?
-	UntrustedCreatorID            *string
+	untrustedDockerManifestDigest digest.Digest
+	untrustedDockerReference      string // FIXME: more precise type?
+	untrustedCreatorID            *string
 	// This is intentionally an int64; the native JSON float64 type would allow to represent _some_ sub-second precision,
 	// but not nearly enough (with current timestamp values, a single unit in the last place is on the order of hundreds of nanoseconds).
 	// So, this is explicitly an int64, and we reject fractional values. If we did need more precise timestamps eventually,
 	// we would add another field, UntrustedTimestampNS int64.
-	UntrustedTimestamp *int64
+	untrustedTimestamp *int64
 }
 
 // UntrustedSignatureInformation is information available in an untrusted signature.
@@ -65,34 +65,35 @@ func newUntrustedSignature(dockerManifestDigest digest.Digest, dockerReference s
 	creatorID := "atomic " + version.Version
 	timestamp := time.Now().Unix()
 	return untrustedSignature{
-		UntrustedDockerManifestDigest: dockerManifestDigest,
-		UntrustedDockerReference:      dockerReference,
-		UntrustedCreatorID:            &creatorID,
-		UntrustedTimestamp:            &timestamp,
+		untrustedDockerManifestDigest: dockerManifestDigest,
+		untrustedDockerReference:      dockerReference,
+		untrustedCreatorID:            &creatorID,
+		untrustedTimestamp:            &timestamp,
 	}
 }
 
-// Compile-time check that untrustedSignature implements json.Marshaler
+// A compile-time check that untrustedSignature  and *untrustedSignature implements json.Marshaler
+var _ json.Marshaler = untrustedSignature{}
 var _ json.Marshaler = (*untrustedSignature)(nil)
 
 // MarshalJSON implements the json.Marshaler interface.
 func (s untrustedSignature) MarshalJSON() ([]byte, error) {
-	if s.UntrustedDockerManifestDigest == "" || s.UntrustedDockerReference == "" {
+	if s.untrustedDockerManifestDigest == "" || s.untrustedDockerReference == "" {
 		return nil, errors.New("Unexpected empty signature content")
 	}
-	critical := map[string]interface{}{
+	critical := map[string]any{
 		"type":     signatureType,
-		"image":    map[string]string{"docker-manifest-digest": s.UntrustedDockerManifestDigest.String()},
-		"identity": map[string]string{"docker-reference": s.UntrustedDockerReference},
+		"image":    map[string]string{"docker-manifest-digest": s.untrustedDockerManifestDigest.String()},
+		"identity": map[string]string{"docker-reference": s.untrustedDockerReference},
 	}
-	optional := map[string]interface{}{}
-	if s.UntrustedCreatorID != nil {
-		optional["creator"] = *s.UntrustedCreatorID
+	optional := map[string]any{}
+	if s.untrustedCreatorID != nil {
+		optional["creator"] = *s.untrustedCreatorID
 	}
-	if s.UntrustedTimestamp != nil {
-		optional["timestamp"] = *s.UntrustedTimestamp
+	if s.untrustedTimestamp != nil {
+		optional["timestamp"] = *s.untrustedTimestamp
 	}
-	signature := map[string]interface{}{
+	signature := map[string]any{
 		"critical": critical,
 		"optional": optional,
 	}
@@ -117,7 +118,7 @@ func (s *untrustedSignature) UnmarshalJSON(data []byte) error {
 // Splitting it into a separate function allows us to do the internal.JSONFormatError → InvalidSignatureError in a single place, the caller.
 func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	var critical, optional json.RawMessage
-	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]any{
 		"critical": &critical,
 		"optional": &optional,
 	}); err != nil {
@@ -127,7 +128,7 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	var creatorID string
 	var timestamp float64
 	var gotCreatorID, gotTimestamp = false, false
-	if err := internal.ParanoidUnmarshalJSONObject(optional, func(key string) interface{} {
+	if err := internal.ParanoidUnmarshalJSONObject(optional, func(key string) any {
 		switch key {
 		case "creator":
 			gotCreatorID = true
@@ -136,26 +137,26 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 			gotTimestamp = true
 			return &timestamp
 		default:
-			var ignore interface{}
+			var ignore any
 			return &ignore
 		}
 	}); err != nil {
 		return err
 	}
 	if gotCreatorID {
-		s.UntrustedCreatorID = &creatorID
+		s.untrustedCreatorID = &creatorID
 	}
 	if gotTimestamp {
 		intTimestamp := int64(timestamp)
 		if float64(intTimestamp) != timestamp {
 			return internal.NewInvalidSignatureError("Field optional.timestamp is not is not an integer")
 		}
-		s.UntrustedTimestamp = &intTimestamp
+		s.untrustedTimestamp = &intTimestamp
 	}
 
 	var t string
 	var image, identity json.RawMessage
-	if err := internal.ParanoidUnmarshalJSONObjectExactFields(critical, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(critical, map[string]any{
 		"type":     &t,
 		"image":    &image,
 		"identity": &identity,
@@ -167,15 +168,15 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	}
 
 	var digestString string
-	if err := internal.ParanoidUnmarshalJSONObjectExactFields(image, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(image, map[string]any{
 		"docker-manifest-digest": &digestString,
 	}); err != nil {
 		return err
 	}
-	s.UntrustedDockerManifestDigest = digest.Digest(digestString)
+	s.untrustedDockerManifestDigest = digest.Digest(digestString)
 
-	return internal.ParanoidUnmarshalJSONObjectExactFields(identity, map[string]interface{}{
-		"docker-reference": &s.UntrustedDockerReference,
+	return internal.ParanoidUnmarshalJSONObjectExactFields(identity, map[string]any{
+		"docker-reference": &s.untrustedDockerReference,
 	})
 }
 
@@ -228,16 +229,16 @@ func verifyAndExtractSignature(mech SigningMechanism, unverifiedSignature []byte
 	if err := json.Unmarshal(signed, &unmatchedSignature); err != nil {
 		return nil, internal.NewInvalidSignatureError(err.Error())
 	}
-	if err := rules.validateSignedDockerManifestDigest(unmatchedSignature.UntrustedDockerManifestDigest); err != nil {
+	if err := rules.validateSignedDockerManifestDigest(unmatchedSignature.untrustedDockerManifestDigest); err != nil {
 		return nil, err
 	}
-	if err := rules.validateSignedDockerReference(unmatchedSignature.UntrustedDockerReference); err != nil {
+	if err := rules.validateSignedDockerReference(unmatchedSignature.untrustedDockerReference); err != nil {
 		return nil, err
 	}
 	// signatureAcceptanceRules have accepted this value.
 	return &Signature{
-		DockerManifestDigest: unmatchedSignature.UntrustedDockerManifestDigest,
-		DockerReference:      unmatchedSignature.UntrustedDockerReference,
+		DockerManifestDigest: unmatchedSignature.untrustedDockerManifestDigest,
+		DockerReference:      unmatchedSignature.untrustedDockerReference,
 	}, nil
 }
 
@@ -268,14 +269,14 @@ func GetUntrustedSignatureInformationWithoutVerifying(untrustedSignatureBytes []
 	}
 
 	var timestamp *time.Time // = nil
-	if untrustedDecodedContents.UntrustedTimestamp != nil {
-		ts := time.Unix(*untrustedDecodedContents.UntrustedTimestamp, 0)
+	if untrustedDecodedContents.untrustedTimestamp != nil {
+		ts := time.Unix(*untrustedDecodedContents.untrustedTimestamp, 0)
 		timestamp = &ts
 	}
 	return &UntrustedSignatureInformation{
-		UntrustedDockerManifestDigest: untrustedDecodedContents.UntrustedDockerManifestDigest,
-		UntrustedDockerReference:      untrustedDecodedContents.UntrustedDockerReference,
-		UntrustedCreatorID:            untrustedDecodedContents.UntrustedCreatorID,
+		UntrustedDockerManifestDigest: untrustedDecodedContents.untrustedDockerManifestDigest,
+		UntrustedDockerReference:      untrustedDecodedContents.untrustedDockerReference,
+		UntrustedCreatorID:            untrustedDecodedContents.untrustedCreatorID,
 		UntrustedTimestamp:            timestamp,
 		UntrustedShortKeyIdentifier:   shortKeyIdentifier,
 	}, nil

@@ -24,6 +24,10 @@ Please note the following limitations of this code:
 
   * filepath.SkipDir is not supported;
 
+  * ErrNotExist errors from filepath.Walk are silently ignored for any path
+    except the top directory (Walk argument); any other error is returned to
+    the caller of Walk;
+
   * no errors are ever passed to WalkFunc;
 
   * once any error is returned from any WalkFunc instance, no more new calls

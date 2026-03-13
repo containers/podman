@@ -57,4 +57,43 @@ var (
 	ErrNotSupported = errors.New("not supported")
 	// ErrInvalidMappings is returned when the specified mappings are invalid.
 	ErrInvalidMappings = errors.New("invalid mappings specified")
+	// ErrNoAvailableIDs is returned when there are not enough unused IDS within the user namespace.
+	ErrNoAvailableIDs = errors.New("not enough unused IDs in user namespace")
+
+	// ErrLayerUnaccounted describes a layer that is present in the lower-level storage driver,
+	// but which is not known to or managed by the higher-level driver-agnostic logic.
+	ErrLayerUnaccounted = errors.New("layer in lower level storage driver not accounted for")
+	// ErrLayerUnreferenced describes a layer which is not used by any image or container.
+	ErrLayerUnreferenced = errors.New("layer not referenced by any images or containers")
+	// ErrLayerIncorrectContentDigest describes a layer for which the contents of one or more
+	// files which were added in the layer appear to have changed.  It may instead look like an
+	// unnamed "file integrity checksum failed" error.
+	ErrLayerIncorrectContentDigest = errors.New("layer content incorrect digest")
+	// ErrLayerIncorrectContentSize describes a layer for which regenerating the diff that was
+	// used to populate the layer produced a diff of a different size.  We check the digest
+	// first, so it's highly unlikely you'll ever see this error.
+	ErrLayerIncorrectContentSize = errors.New("layer content incorrect size")
+	// ErrLayerContentModified describes a layer which contains contents which should not be
+	// there, or for which ownership/permissions/dates have been changed.
+	ErrLayerContentModified = errors.New("layer content modified")
+	// ErrLayerDataMissing describes a layer which is missing a big data item.
+	ErrLayerDataMissing = errors.New("layer data item is missing")
+	// ErrLayerMissing describes a layer which is the missing parent of a layer.
+	ErrLayerMissing = errors.New("layer is missing")
+	// ErrImageLayerMissing describes an image which claims to have a layer that we don't know
+	// about.
+	ErrImageLayerMissing = errors.New("image layer is missing")
+	// ErrImageDataMissing describes an image which is missing a big data item.
+	ErrImageDataMissing = errors.New("image data item is missing")
+	// ErrImageDataIncorrectSize describes an image which has a big data item which looks like
+	// its size has changed, likely because it's been modified somehow.
+	ErrImageDataIncorrectSize = errors.New("image data item has incorrect size")
+	// ErrContainerImageMissing describes a container which claims to be based on an image that
+	// we don't know about.
+	ErrContainerImageMissing = errors.New("image missing")
+	// ErrContainerDataMissing describes a container which is missing a big data item.
+	ErrContainerDataMissing = errors.New("container data item is missing")
+	// ErrContainerDataIncorrectSize describes a container which has a big data item which looks
+	// like its size has changed, likely because it's been modified somehow.
+	ErrContainerDataIncorrectSize = errors.New("container data item has incorrect size")
 )
