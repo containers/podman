@@ -1,6 +1,7 @@
 package stdpull
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -19,13 +20,14 @@ import (
 )
 
 type DiskFromURL struct {
-	u            *url2.URL
-	finalPath    *define.VMFile
-	tempLocation *define.VMFile
-	cache        bool
+	u             *url2.URL
+	baseTLSConfig *tls.Config
+	finalPath     *define.VMFile
+	tempLocation  *define.VMFile
+	cache         bool
 }
 
-func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile, optionalTempFileName *string, cache bool) (*DiskFromURL, error) {
+func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.VMFile, optionalTempFileName *string, cache bool, baseTLSConfig *tls.Config) (*DiskFromURL, error) {
 	var err error
 	u, err := url2.Parse(inputPath)
 	if err != nil {
@@ -53,10 +55,11 @@ func NewDiskFromURL(inputPath string, finalPath *define.VMFile, tempDir *define.
 	}
 
 	return &DiskFromURL{
-		u:            u,
-		finalPath:    finalPath,
-		tempLocation: tempLocation,
-		cache:        cache,
+		u:             u,
+		baseTLSConfig: baseTLSConfig,
+		finalPath:     finalPath,
+		tempLocation:  tempLocation,
+		cache:         cache,
 	}, nil
 }
 
@@ -90,7 +93,23 @@ func (d *DiskFromURL) pull() error {
 		}
 	}()
 
-	resp, err := http.Get(d.u.String())
+	// nil means http.DefaultTransport.
+	// This variable must have type http.RoundTripper, not *http.Transport, to avoid https://go.dev/doc/faq#nil_error .
+	var transport http.RoundTripper
+	if d.baseTLSConfig != nil {
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return errors.New("internal error: http.DefaultTransport is not a *http.Transport")
+		}
+		t := defaultTransport.Clone()
+		t.TLSClientConfig = d.baseTLSConfig
+		defer t.CloseIdleConnections()
+		transport = t
+	}
+	client := &http.Client{
+		Transport: transport,
+	}
+	resp, err := client.Get(d.u.String())
 	if err != nil {
 		return err
 	}

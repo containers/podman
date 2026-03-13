@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v6/pkg/bindings"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 )
 
 var dialStdioCommand = &cobra.Command{
@@ -37,7 +38,14 @@ func runDialStdio() error {
 	cfg := registry.PodmanConfig()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	bindCtx, err := bindings.NewConnection(ctx, cfg.URI)
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(cfg.TLSDetailsFile)
+	if err != nil {
+		return err
+	}
+	bindCtx, err := bindings.NewConnectionWithOptions(ctx, bindings.Options{
+		URI:           cfg.URI,
+		BaseTLSConfig: baseTLSConfig.TLSConfig(),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to open connection to podman: %w", err)
 	}

@@ -19,6 +19,7 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal/output"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -140,6 +141,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	contextDir := ""
 	cliArgs := inputArgs
 
+	systemContext, err := parse.SystemContextFromOptions(c)
+	if err != nil {
+		return options, nil, nil, fmt.Errorf("building system context: %w", err)
+	}
+
 	// Nothing provided, we assume the current working directory as build
 	// context
 	if len(cliArgs) == 0 {
@@ -149,7 +155,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		}
 	} else {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := define.TempDirForURL("", "buildah", cliArgs[0])
+		tempDir, subDir, err := download.TempDirForURL("", "buildah", cliArgs[0], systemContext.BaseTLSConfig)
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("prepping temporary context directory: %w", err)
 		}
@@ -197,11 +203,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		stdout = iopts.Logwriter
 		stderr = iopts.Logwriter
 		reporter = iopts.Logwriter
-	}
-
-	systemContext, err := parse.SystemContextFromOptions(c)
-	if err != nil {
-		return options, nil, nil, fmt.Errorf("building system context: %w", err)
 	}
 
 	isolation, err := parse.IsolationOption(iopts.Isolation)

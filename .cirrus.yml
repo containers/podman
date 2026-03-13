@@ -262,6 +262,7 @@ alt_build_task:
             ALT_NAME: 'Alt Arch. MIPS64 Cross'
       - env:
             ALT_NAME: 'Alt Arch. Other Cross'
+    timeout_in: 40m
     # This task cannot make use of the shared repo.tar.zst artifact.
     clone_script: *full_clone
     setup_script: *setup
