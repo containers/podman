@@ -136,15 +136,81 @@ type ImageHistoryReport struct {
 	Layers []ImageHistoryLayer
 }
 
+// swagger:alias
+type ImagePullStatus string
+
+const (
+	ImagePullStatusPulling ImagePullStatus = "pulling"
+	ImagePullStatusSuccess ImagePullStatus = "success"
+	ImagePullStatusError   ImagePullStatus = "error"
+)
+
 type ImagePullReport struct {
-	// Stream used to provide output from c/image
+	// Status contains the status of the image pull.
+	// Populated when streaming is enabled.
+	//
+	// Possible values:
+	//
+	// "pulling": image pull is in progress
+	//
+	// "success": image pull has completed successfully
+	//
+	// "error": image pull has encountered an error
+	//
+	// Note: The values in this field may change in future updates of podman.
+	Status ImagePullStatus `json:"status,omitempty"`
+	// Stream used to provide output from c/image.
+	// Populated when streaming is enabled and image status is "pulling".
 	Stream string `json:"stream,omitempty"`
-	// Error contains text of errors from c/image
+	// Error contains text of errors from c/image.
+	// Populated when streaming is enabled and image status is "error".
 	Error string `json:"error,omitempty"`
 	// Images contains the ID's of the images pulled
 	Images []string `json:"images,omitempty"`
 	// ID contains image id (retained for backwards compatibility)
 	ID string `json:"id,omitempty"`
+	// Progress contains the information about the progress of the artifact pull.
+	// Populated when streaming is enabled, image status is "pulling",
+	// and there is pull progress to report.
+	Progress *ArtifactPullProgress `json:"pullProgress,omitempty"`
+}
+
+// swagger:alias
+type ArtifactPullStatus string
+
+const (
+	ArtifactPullStatusPulling ArtifactPullStatus = "pulling"
+	ArtifactPullStatusSuccess ArtifactPullStatus = "success"
+	ArtifactPullStatusSkipped ArtifactPullStatus = "skipped"
+)
+
+// Information about the progress of the artifact pull.
+// Populated when streaming is enabled, image status is "pulling",
+// and there is pull progress to report.
+type ArtifactPullProgress struct {
+	// Status contains the status of the artifact pull.
+	//
+	// Possible values:
+	//
+	// "pulling": artifact pull is in progress
+	//
+	// "success": artifact pull has completed successfully
+	//
+	// "skipped": artifact pull has been skipped because the artifact is already available at the destination
+	//
+	// Note: The values in this field may change in future updates of podman.
+	Status ArtifactPullStatus `json:"status,omitempty"`
+	// Current is the number of bytes of the current artifact that have been
+	// transferred so far
+	// Populated when artifact status is "pulling" or "success".
+	Current uint64 `json:"current,omitempty"`
+	// Total is the total size of the artifact in bytes. A value of -1
+	// indicates that the total size is unknown.
+	// Populated when artifact status is "pulling" or "success".
+	Total int64 `json:"total,omitempty"`
+	// ProgressComponentID is the unique identifier for the artifact being pulled.
+	// A value of "" indicates that the progress component ID is unknown.
+	ProgressComponentID string `json:"progressComponentID,omitempty"`
 }
 
 type ImagePushStream struct {
