@@ -11,6 +11,7 @@ import (
 // ErrNoSuchUser indicates that the user provided by the caller does not
 // exist in /etc/passws
 var ErrNoSuchUser = errors.New("user does not exist in /etc/passwd")
+var ErrUserlessContainer = errors.New("userless container")
 
 // GetUser will return the uid, gid of the user specified in the userspec
 // it will use the /etc/passwd and /etc/group files inside of the rootdir
@@ -68,6 +69,10 @@ func GetUser(rootdir, userspec string) (uint32, uint32, string, error) {
 	homedir, err := lookupHomedirInContainer(rootdir, uid64)
 	if err != nil {
 		homedir = "/"
+	}
+
+	if spec[0] == "" {
+		return 0, 0, homedir, ErrUserlessContainer
 	}
 
 	if uerr == nil && gerr == nil {
