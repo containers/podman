@@ -927,8 +927,7 @@ func (c *Container) Sync() error {
 // It is mostly intended to be used in cases where the system firewall has been
 // reloaded, and existing rules have been wiped out. It is expected that some
 // downtime will result, as the rules are destroyed as part of this process.
-// At present, this only works on root containers; it may be expanded to restart
-// slirp4netns in the future to work with rootless containers as well.
+// At present, this only works on containers with bridge networking.
 // Requires that the container must be running or created.
 func (c *Container) ReloadNetwork() error {
 	if !c.batched {

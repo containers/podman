@@ -23,4 +23,4 @@ If it is not, the container port is randomly assigned a port on the host.
 Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
 
 Port publishing is only supported for containers utilizing their own network namespace
-through `bridge` networks, or the `pasta` and `slirp4netns` network modes.
+through `bridge` networks, or the `pasta` network mode.

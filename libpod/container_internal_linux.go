@@ -22,7 +22,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
@@ -88,6 +87,16 @@ func (c *Container) prepare() error {
 			c.reservedPorts, createNetNSErr = c.bindPorts()
 			if createNetNSErr != nil {
 				return
+			}
+
+			// Create rootlessport sync pipes for rootless containers with port mappings
+			// These need to exist before network setup since port forwarding is configured during createNetNS
+			if rootless.IsRootless() && len(c.config.PortMappings) > 0 {
+				c.rootlessPortSyncR, c.rootlessPortSyncW, createNetNSErr = os.Pipe()
+				if createNetNSErr != nil {
+					createNetNSErr = fmt.Errorf("failed to create rootless port sync pipe: %w", createNetNSErr)
+					return
+				}
 			}
 
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
@@ -557,7 +566,7 @@ func (c *Container) setCgroupsPath(g *generate.Generator) error {
 	return nil
 }
 
-// addSpecialDNS adds special dns servers for slirp4netns and pasta
+// addSpecialDNS adds special dns servers for pasta
 func (c *Container) addSpecialDNS(nameservers []string) []string {
 	switch {
 	case c.config.NetMode.IsBridge():
@@ -567,40 +576,8 @@ func (c *Container) addSpecialDNS(nameservers []string) []string {
 		}
 	case c.pastaResult != nil:
 		nameservers = append(nameservers, c.pastaResult.DNSForwardIPs...)
-	case c.config.NetMode.IsSlirp4netns():
-		// slirp4netns has a built in DNS forwarder.
-		slirp4netnsDNS, err := slirp4netns.GetDNS(c.slirp4netnsSubnet)
-		if err != nil {
-			logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
-		} else {
-			nameservers = append(nameservers, slirp4netnsDNS.String())
-		}
 	}
 	return nameservers
-}
-
-func (c *Container) isSlirp4netnsIPv6() bool {
-	if c.config.NetMode.IsSlirp4netns() {
-		extraOptions := c.config.NetworkOptions[slirp4netns.BinaryName]
-		options := make([]string, 0, len(c.runtime.config.Engine.NetworkCmdOptions.Get())+len(extraOptions))
-		options = append(options, c.runtime.config.Engine.NetworkCmdOptions.Get()...)
-		options = append(options, extraOptions...)
-
-		// loop backwards as the last argument wins and we can exit early
-		// This should be kept in sync with c/common/libnetwork/slirp4netns.
-		for i := len(options) - 1; i >= 0; i-- {
-			switch options[i] {
-			case "enable_ipv6=true":
-				return true
-			case "enable_ipv6=false":
-				return false
-			}
-		}
-		// default is true
-		return true
-	}
-
-	return false
 }
 
 // check for net=none

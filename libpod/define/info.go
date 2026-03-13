@@ -52,13 +52,13 @@ type HostInfo struct {
 	OS                 string            `json:"os"`
 	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
 	RemoteSocket *RemoteSocket `json:"remoteSocket,omitempty"`
-	// RootlessNetworkCmd returns the default rootless network command (slirp4netns or pasta)
+	// RootlessNetworkCmd returns the default rootless network command (pasta)
 	RootlessNetworkCmd string         `json:"rootlessNetworkCmd"`
 	RuntimeInfo        map[string]any `json:"runtimeInfo,omitempty"`
 	// ServiceIsRemote is true when the podman/libpod service is remote to the client
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
-	Slirp4NetNS     SlirpInfo    `json:"slirp4netns"`
+	Slirp4NetNS     SlirpInfo    `json:"slirp4netns,omitempty"` // Deprecated: slirp4netns support removed in Podman 6
 	Pasta           PastaInfo    `json:"pasta"`
 
 	SwapFree  int64  `json:"swapFree"`

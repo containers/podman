@@ -25,7 +25,7 @@ podman run --name basic_httpd -d -p 8080:80/tcp docker.io/nginx
 ```
 Because the container is being run in detached mode, represented by the *-d* in the `podman run` command, Podman
 will print the container ID after it has run. Note that we use port forwarding to be able to
-access the HTTP server. For successful running at least slirp4netns v0.3.0 is needed.
+access the HTTP server.
 
 ### Listing running containers
 The Podman *ps* command is used to list creating and running containers.
