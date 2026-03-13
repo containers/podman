@@ -222,13 +222,11 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
 
 	// do namespace work in a dedicated goroutine, so that we can safely
 	// Lock/Unlock OSThread without upsetting the lock/unlock state of
 	// the caller of this function
-	go (func() {
-		defer wg.Done()
+	wg.Go(func() {
 		runtime.LockOSThread()
 		// Don't unlock. By not unlocking, golang will kill the OS thread when the
 		// goroutine is done (for go1.10+)
@@ -248,7 +246,7 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 		if err != nil {
 			err = fmt.Errorf("failed to bind mount ns at %s: %v", nsPath, err)
 		}
-	})()
+	})
 	wg.Wait()
 
 	if err != nil {

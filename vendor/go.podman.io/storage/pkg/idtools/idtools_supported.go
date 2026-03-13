@@ -37,8 +37,8 @@ import "C"
 
 var onceInit sync.Once
 
-func readSubid(username string, isUser bool) (ranges, error) {
-	var ret ranges
+func readSubid(username string, isUser bool) ([]subIDRange, error) {
+	var ret []subIDRange
 	uidstr := ""
 
 	if username == "ALL" {
@@ -88,10 +88,10 @@ func readSubid(username string, isUser bool) (ranges, error) {
 	return ret, nil
 }
 
-func readSubuid(username string) (ranges, error) {
+func readSubuid(username string) ([]subIDRange, error) {
 	return readSubid(username, true)
 }
 
-func readSubgid(username string) (ranges, error) {
+func readSubgid(username string) ([]subIDRange, error) {
 	return readSubid(username, false)
 }

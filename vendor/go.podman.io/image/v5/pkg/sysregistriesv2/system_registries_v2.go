@@ -529,6 +529,7 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 }
 
 // ConfigPath returns the path to the system-wide registry configuration file.
+//
 // Deprecated: This API implies configuration is read from files, and that there is only one.
 // Please use ConfigurationSourceDescription to obtain a string usable for error messages.
 func ConfigPath(ctx *types.SystemContext) string {
@@ -537,6 +538,7 @@ func ConfigPath(ctx *types.SystemContext) string {
 
 // ConfigDirPath returns the path to the directory for drop-in
 // registry configuration files.
+//
 // Deprecated: This API implies configuration is read from directories, and that there is only one.
 // Please use ConfigurationSourceDescription to obtain a string usable for error messages.
 func ConfigDirPath(ctx *types.SystemContext) string {

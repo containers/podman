@@ -143,7 +143,7 @@ func (rc *rollingChecksumReader) Read(b []byte) (bool, int, error) {
 	if rc.pendingHole > 0 {
 		toCopy := min(rc.pendingHole, int64(len(b)))
 		rc.pendingHole -= toCopy
-		for i := int64(0); i < toCopy; i++ {
+		for i := range b[:toCopy] {
 			b[i] = 0
 		}
 

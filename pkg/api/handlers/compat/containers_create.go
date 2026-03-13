@@ -346,12 +346,6 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 			if endpoint != nil {
 				netOpts.Aliases = endpoint.Aliases
 
-				// if IP address is provided
-				if endpoint.IPAddress.IsValid() {
-					staticIP := net.IP(endpoint.IPAddress.AsSlice())
-					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
-				}
-
 				if endpoint.IPAMConfig != nil {
 					// if IPAMConfig.IPv4Address is provided
 					if endpoint.IPAMConfig.IPv4Address.IsValid() {
