@@ -39,6 +39,24 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 		return nil, err
 	}
 
+	// Check netavark version if blackhole routes are requested
+	for netName := range options.Networks {
+		net, err := n.getNetwork(netName)
+		if err != nil {
+			return nil, err
+		}
+		for _, route := range net.Routes {
+			if route.RouteType == types.RouteTypeBlackhole ||
+				route.RouteType == types.RouteTypeUnreachable ||
+				route.RouteType == types.RouteTypeProhibit {
+				if err := n.checkVersion("2.0.0-dev"); err != nil {
+					return nil, err
+				}
+				break
+			}
+		}
+	}
+
 	// allocate IPs in the IPAM db
 	err = n.allocIPs(&options.NetworkOptions)
 	if err != nil {
