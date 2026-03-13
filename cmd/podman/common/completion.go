@@ -1920,15 +1920,30 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, _ []string, toComplete string
 	}
 	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
-		"after=":    getImg,
-		"dangling=": getBoolCompletion,
-		"driver=":   local,
-		"label=":    nil,
-		"name=":     func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
-		"opt=":      nil,
-		"scope=":    local,
-		"since=":    getImg,
-		"until=":    nil,
+		"after=":     getImg,
+		"anonymous=": getBoolCompletion,
+		"dangling=":  getBoolCompletion,
+		"driver=":    local,
+		"label=":     nil,
+		"name=":      func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"opt=":       nil,
+		"scope=":     local,
+		"since=":     getImg,
+		"until=":     nil,
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteVolumePruneFilters - Autocomplete volume prune --filter options.
+func AutocompleteVolumePruneFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
+	kv := keyValueCompletion{
+		"after=":     getImg,
+		"all=":       getBoolCompletion,
+		"anonymous=": getBoolCompletion,
+		"label=":     nil,
+		"since=":     getImg,
+		"until=":     nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }

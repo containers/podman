@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -54,6 +55,21 @@ func FiltersFromRequest(r *http.Request) ([]string, error) {
 	}
 
 	return libpodFilters, nil
+}
+
+// NormalizeVolumePruneFilters translates the "all" pseudo-filter into the
+// "anonymous" filter for Docker-compatible volume prune behavior. When "all"
+// is not truthy, anonymous=true is injected so only anonymous volumes are pruned.
+func NormalizeVolumePruneFilters(f url.Values) url.Values {
+	if len(f) == 0 {
+		f = make(url.Values)
+	}
+	allValue := f.Get("all")
+	if !strings.EqualFold(allValue, "true") && allValue != "1" && !f.Has("anonymous") {
+		f.Set("anonymous", "true")
+	}
+	f.Del("all")
+	return f
 }
 
 // PrepareFilters prepares a *map[string][]string of filters to be later searched

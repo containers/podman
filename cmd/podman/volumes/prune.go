@@ -18,14 +18,13 @@ import (
 )
 
 var (
-	volumePruneDescription = `Volumes that are not currently owned by a container will be removed.
-
-  The command prompts for confirmation which can be overridden with the --force flag.
-  Note all data will be destroyed.`
+	volumePruneDescription = `By default, only anonymous (unnamed) unused volumes are removed.
+  Use --all to remove all unused volumes (anonymous and named).
+  The command prompts for confirmation which can be overridden with the --force flag.`
 	pruneCommand = &cobra.Command{
 		Use:               "prune [options]",
 		Args:              validate.NoArgs,
-		Short:             "Remove all unused volumes",
+		Short:             "Remove unused volumes",
 		Long:              volumePruneDescription,
 		RunE:              prune,
 		ValidArgsFunction: completion.AutocompleteNone,
@@ -42,8 +41,9 @@ func init() {
 
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filter, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
-	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumeFilters)
+	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumePruneFilters)
 	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
+	flags.BoolP("all", "a", false, "Remove all unused volumes (anonymous and named), not just anonymous ones")
 }
 
 func prune(cmd *cobra.Command, _ []string) error {
@@ -61,28 +61,43 @@ func prune(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+
+	// --all adds filter all=true (Docker-compatible; behavior is filter-only)
+	allFlag, _ := cmd.Flags().GetBool("all")
+	if allFlag {
+		pruneOptions.Filters.Set("all", "true")
+	}
+
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
+		if allFlag {
+			fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
+		} else {
+			fmt.Println("WARNING! This will remove anonymous local volumes not used by at least one container. The following volumes will be removed:")
+		}
 		listOptions.Filter, err = parse.FilterArgumentsIntoFilters(filter)
 		if err != nil {
 			return err
 		}
-		// filter all the dangling volumes
-		unusedOptions.Filter = make(map[string][]string, 1)
-		unusedOptions.Filter["dangling"] = []string{"true"}
+		unusedOptions.Filter = map[string][]string{"dangling": {"true"}}
+		if !allFlag {
+			unusedOptions.Filter["anonymous"] = []string{"true"}
+		}
 		unusedVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), unusedOptions)
 		if err != nil {
 			return err
 		}
-		// filter volumes based on user input
 		filteredVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), listOptions)
 		if err != nil {
 			return err
 		}
 		finalVolumes := getIntersection(unusedVolumes, filteredVolumes)
 		if len(finalVolumes) < 1 {
-			fmt.Println("No dangling volumes found")
+			if allFlag {
+				fmt.Println("No dangling volumes found")
+			} else {
+				fmt.Println("No dangling anonymous volumes found")
+			}
 			return nil
 		}
 		for _, fv := range finalVolumes {

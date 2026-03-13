@@ -140,6 +140,9 @@ var _ = Describe("Podman volumes", func() {
 	})
 
 	It("prune unused volume", func() {
+		allVolumesOptions := volumes.PruneOptions{
+			Filters: map[string][]string{"all": {"true"}},
+		}
 		// Pruning when no volumes present should be ok
 		_, err := volumes.Prune(connText, nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -147,7 +150,7 @@ var _ = Describe("Podman volumes", func() {
 		// Removing an unused volume should work
 		_, err = volumes.Create(connText, entities.VolumeCreateOptions{}, nil)
 		Expect(err).ToNot(HaveOccurred())
-		vols, err := volumes.Prune(connText, nil)
+		vols, err := volumes.Prune(connText, &allVolumesOptions)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(vols).To(HaveLen(1))
 
@@ -157,7 +160,7 @@ var _ = Describe("Podman volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		session := bt.runPodman([]string{"run", "-dt", "-v", fmt.Sprintf("%s:/homer", "homer"), "--name", "vtest", alpine.name, "top"})
 		session.Wait(45)
-		vols, err = volumes.Prune(connText, nil)
+		vols, err = volumes.Prune(connText, &allVolumesOptions)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(reports.PruneReportsIds(vols)).To(HaveLen(1))
 		_, err = volumes.Inspect(connText, "homer", nil)
@@ -199,5 +202,28 @@ var _ = Describe("Podman volumes", func() {
 		vols, err = volumes.Prune(connText, options)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(vols).To(HaveLen(2))
+
+		// Pruning volumes without filters should remove all anonymous unused volumes
+		namedVolume := "named-keep"
+		ctrName := "anon-prune-test-ctr"
+
+		session = bt.runPodman([]string{"create", "--name", ctrName, "-v", "/anon", alpine.name, "top"})
+		session.Wait(45)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = bt.runPodman([]string{"rm", ctrName})
+		session.Wait(45)
+		Expect(session.ExitCode()).To(BeZero())
+
+		session = bt.runPodman([]string{"create", "-v", "/anon2", alpine.name, "top"})
+		session.Wait(45)
+		Expect(session.ExitCode()).To(BeZero())
+
+		_, err = volumes.Create(connText, entities.VolumeCreateOptions{Name: namedVolume}, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		pruned, err := volumes.Prune(connText, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pruned).To(HaveLen(1))
 	})
 })

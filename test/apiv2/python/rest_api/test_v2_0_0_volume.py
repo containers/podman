@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import unittest
@@ -55,9 +56,9 @@ class VolumeTestCase(APITestCase):
         rm = requests.delete(self.podman_url + f"/v1.40/volumes/{name}")
         self.assertEqual(rm.status_code, 204, rm.text)
 
-        # recreate volume with data and then prune it
+        # Recreate volume with data and verify default prune behavior.
         r = requests.post(self.podman_url + "/v1.40/volumes/create", json={"Name": name})
-        self.assertEqual(create.status_code, 201, create.text)
+        self.assertEqual(r.status_code, 201, r.text)
 
         create = r.json()
         with open(os.path.join(create["Mountpoint"], "test_prune"), "w") as file:
@@ -67,8 +68,19 @@ class VolumeTestCase(APITestCase):
         self.assertEqual(prune.status_code, 200, prune.text)
 
         payload = prune.json()
-        self.assertIn(name, payload["VolumesDeleted"])
-        self.assertGreater(payload["SpaceReclaimed"], 0)
+        self.assertNotIn(name, payload["VolumesDeleted"])
+
+        # Current Docker/Podman behavior: named volumes are pruned when
+        # the all=true filter is set.
+        prune_all = requests.post(
+            self.podman_url + "/v1.40/volumes/prune",
+            params={"filters": json.dumps({"all": {"true": True}})},
+        )
+        self.assertEqual(prune_all.status_code, 200, prune_all.text)
+
+        payload_all = prune_all.json()
+        self.assertIn(name, payload_all["VolumesDeleted"])
+        self.assertGreater(payload_all["SpaceReclaimed"], 0)
 
     def test_volume_label(self):
         name = f"Volume_{random.getrandbits(160):x}"
