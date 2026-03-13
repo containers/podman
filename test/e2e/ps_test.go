@@ -1117,4 +1117,43 @@ var _ = Describe("Podman ps", func() {
 		Expect(output).ToNot(ContainSubstring("test-unless-stopped-exit-bad"))
 		Expect(output).ToNot(ContainSubstring("test-always-exit-bad"))
 	})
+
+	It("podman ps filter should-start-on-boot with --not-stopped-by-user", func() {
+		SkipIfRemote("--not-stopped-by-user flag is not supported on remote")
+
+		commands := [][]string{
+			{"create", "--restart", "unless-stopped", "--name", "test-unless-stopped-not-user-stop", ALPINE, "top"},
+			{"create", "--restart", "always", "--name", "test-always-not-user-stop", ALPINE, "top"},
+			{"create", "--restart", "no", "--name", "test-no-restart-not-user-stop", ALPINE, "top"},
+			{"create", "--restart", "on-failure", "--name", "test-onfailure-not-user-stop", ALPINE, "top"},
+			{"start", "test-unless-stopped-not-user-stop"},
+			{"start", "test-always-not-user-stop"},
+			{"start", "test-no-restart-not-user-stop"},
+			{"start", "test-onfailure-not-user-stop"},
+			{"stop", "--not-stopped-by-user", "test-unless-stopped-not-user-stop"},
+			{"stop", "--not-stopped-by-user", "test-always-not-user-stop"},
+			{"stop", "--not-stopped-by-user", "test-no-restart-not-user-stop"},
+			{"stop", "--not-stopped-by-user", "test-onfailure-not-user-stop"},
+		}
+
+		for _, cmd := range commands {
+			podmanTest.PodmanExitCleanly(cmd...)
+		}
+
+		session := podmanTest.PodmanExitCleanly("ps", "-a", "--filter", "should-start-on-boot=true", "--format", "{{.Names}}")
+		output := session.OutputToString()
+
+		Expect(output).To(ContainSubstring("test-unless-stopped-not-user-stop"))
+		Expect(output).To(ContainSubstring("test-always-not-user-stop"))
+		Expect(output).ToNot(ContainSubstring("test-no-restart-not-user-stop"))
+		Expect(output).ToNot(ContainSubstring("test-onfailure-not-user-stop"))
+
+		session = podmanTest.PodmanExitCleanly("ps", "-a", "--filter", "should-start-on-boot=false", "--format", "{{.Names}}")
+		output = session.OutputToString()
+
+		Expect(output).To(ContainSubstring("test-no-restart-not-user-stop"))
+		Expect(output).To(ContainSubstring("test-onfailure-not-user-stop"))
+		Expect(output).ToNot(ContainSubstring("test-unless-stopped-not-user-stop"))
+		Expect(output).ToNot(ContainSubstring("test-always-not-user-stop"))
+	})
 })

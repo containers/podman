@@ -101,6 +101,12 @@ type StopOptions struct {
 	Ignore  bool
 	Latest  bool
 	Timeout *uint
+	// NotStoppedByUser specifies that the container should not be marked as
+	// stopped by user. This is used internally by systemd units and should not
+	// be exposed via the REST API. When set to true, the StoppedByUser field will
+	// not be set when stopping the container. Note that explicit stop requests
+	// may still not trigger automatic restart-policy handling during cleanup.
+	NotStoppedByUser bool
 }
 
 type StopReport struct {

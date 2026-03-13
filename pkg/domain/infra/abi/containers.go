@@ -318,13 +318,12 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	}
 
 	errMap, err := parallelctr.ContainerOp(ctx, libpodContainers, func(c *libpod.Container) error {
-		var err error
+		timeout := c.StopTimeout()
 		if options.Timeout != nil {
-			err = c.StopWithTimeout(*options.Timeout)
-		} else {
-			err = c.Stop()
+			timeout = *options.Timeout
 		}
-		if err != nil {
+
+		if err := c.StopWithArgs(timeout, options.NotStoppedByUser); err != nil {
 			switch {
 			case errors.Is(err, define.ErrCtrStopped):
 				logrus.Debugf("Container %s is already stopped", c.ID())
@@ -359,7 +358,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				}
 			}
 		} else {
-			if err = c.Cleanup(ctx, false); err != nil {
+			if err := c.Cleanup(ctx, false); err != nil {
 				// The container could still have been removed, as we unlocked
 				// after we stopped it.
 				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
