@@ -30,9 +30,11 @@ type Browser interface {
 }
 
 // Open tries to open a URL in your default browser ensuring you have a display
-// set up and not running this from SSH. NOTE: This may cause your program to
-// hang until the browser process is closed in some OSes, see
-// https://github.com/toqueteos/webbrowser/issues/4.
+// set up and not running this from SSH.
+// NOTE: This may cause your program to hang until the browser process is closed in
+// some OSes, see https://github.com/toqueteos/webbrowser/issues/4.
+// SECURITY(windows): Do not use a file:// URLs pointing to an executable, this
+// can execute programs, see https://github.com/toqueteos/webbrowser/issues/10
 func Open(s string) (err error) {
 	if len(Candidates) == 0 {
 		return ErrNoCandidates

@@ -71,7 +71,7 @@ func (m Model) apply(opts *generator.GenOpts) {
 	opts.AcceptDefinitionsOnly = m.AcceptDefinitionsOnly
 }
 
-func (m Model) log(rp string) {
+func (m Model) log(_ string) {
 	log.Println(`Generation completed!
 
 For this generation to compile you need to have some packages in your go.mod:
@@ -87,8 +87,7 @@ func (m *Model) generate(opts *generator.GenOpts) error {
 }
 
 // Execute generates a model file
-func (m *Model) Execute(args []string) error {
-
+func (m *Model) Execute(_ []string) error {
 	if m.Shared.DumpData && len(append(m.Name, m.Models.Models...)) > 1 {
 		return errors.New("only 1 model at a time is supported for dumping data")
 	}
