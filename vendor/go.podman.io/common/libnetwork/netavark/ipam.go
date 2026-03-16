@@ -95,34 +95,38 @@ func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {
 			}
 
 			// requestIPs is the list of ips which should be used for this container
-			requestIPs := make([]net.IP, 0, len(network.Subnets))
+			requestIPs := make([]net.IP, 0, len(netOpts.StaticIPs))
 
-			for i := range network.Subnets {
-				subnetBkt, err := netBkt.CreateBucketIfNotExists([]byte(network.Subnets[i].Subnet.String()))
+			for i, subnet := range network.Subnets {
+				subnetBkt, err := netBkt.CreateBucketIfNotExists([]byte(subnet.Subnet.String()))
 				if err != nil {
 					return newIPAMError(err, "failed to create/get subnet bucket for network %s", netName)
 				}
 
-				// search for a static ip which matches the current subnet
-				// in this case the user wants this one and we should not assign a free one
-				var ip net.IP
+				// check for static ips requested for this subnet and allocate them if available
+				hasSubnetStaticIP := false
 				for _, staticIP := range netOpts.StaticIPs {
-					if network.Subnets[i].Subnet.Contains(staticIP) {
-						ip = staticIP
-						break
+					if subnet.Subnet.Contains(staticIP) {
+						hasSubnetStaticIP = true
+
+						// convert to 4 byte ipv4 if needed
+						util.NormalizeIP(&staticIP)
+						id := subnetBkt.Get(staticIP)
+						if id != nil {
+							return newIPAMError(nil, "requested ip address %s is already allocated to container ID %s", staticIP.String(), string(id))
+						}
+						err = subnetBkt.Put(staticIP, []byte(opts.ContainerID))
+						if err != nil {
+							return newIPAMError(err, "failed to store ip in database")
+						}
+
+						requestIPs = append(requestIPs, staticIP)
 					}
 				}
 
-				// when static ip is requested for this network
-				if ip != nil {
-					// convert to 4 byte ipv4 if needed
-					util.NormalizeIP(&ip)
-					id := subnetBkt.Get(ip)
-					if id != nil {
-						return newIPAMError(nil, "requested ip address %s is already allocated to container ID %s", ip.String(), string(id))
-					}
-				} else {
-					ip, err = getFreeIPFromBucket(subnetBkt, &network.Subnets[i])
+				// when no static ip is requested for this subnet we need to alloc a free one
+				if !hasSubnetStaticIP {
+					ip, err := getFreeIPFromBucket(subnetBkt, &network.Subnets[i])
 					if err != nil {
 						return err
 					}
@@ -130,14 +134,14 @@ func (n *netavarkNetwork) allocIPs(opts *types.NetworkOptions) error {
 					if err != nil {
 						return newIPAMError(err, "failed to store last ip in database")
 					}
-				}
 
-				err = subnetBkt.Put(ip, []byte(opts.ContainerID))
-				if err != nil {
-					return newIPAMError(err, "failed to store ip in database")
-				}
+					err = subnetBkt.Put(ip, []byte(opts.ContainerID))
+					if err != nil {
+						return newIPAMError(err, "failed to store ip in database")
+					}
 
-				requestIPs = append(requestIPs, ip)
+					requestIPs = append(requestIPs, ip)
+				}
 			}
 
 			idsBucket, err := netBkt.CreateBucketIfNotExists(idBucketKey)
@@ -326,21 +330,21 @@ func (n *netavarkNetwork) deallocIPs(opts *types.NetworkOptions) error {
 
 				// search for a static ip which matches the current subnet
 				// in this case the user wants this one and we should not assign a free one
-				var ip net.IP
-				for _, staticIP := range netOpts.StaticIPs {
-					if subnet.Subnet.Contains(staticIP) {
-						ip = staticIP
-						break
+				removed := false
+				for _, assignedIP := range netOpts.StaticIPs {
+					if subnet.Subnet.Contains(assignedIP) {
+						removed = true
+						util.NormalizeIP(&assignedIP)
+
+						err = subnetBkt.Delete(assignedIP)
+						if err != nil {
+							return newIPAMError(err, "failed to remove ip %s from subnet bucket for network %s", assignedIP.String(), netName)
+						}
 					}
 				}
-				if ip == nil {
-					return newIPAMError(nil, "failed to find ip for subnet %s on network %s", subnet.Subnet.String(), netName)
-				}
-				util.NormalizeIP(&ip)
 
-				err = subnetBkt.Delete(ip)
-				if err != nil {
-					return newIPAMError(err, "failed to remove ip %s from subnet bucket for network %s", ip.String(), netName)
+				if !removed {
+					return newIPAMError(nil, "failed to find ip for subnet %s on network %s", subnet.Subnet.String(), netName)
 				}
 			}
 

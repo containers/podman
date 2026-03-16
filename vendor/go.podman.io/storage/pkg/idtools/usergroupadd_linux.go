@@ -3,7 +3,6 @@ package idtools
 import (
 	"fmt"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -124,7 +123,7 @@ func findNextUIDRange() (int, error) {
 	if err != nil {
 		return -1, fmt.Errorf("couldn't parse all ranges in /etc/subuid file: %w", err)
 	}
-	sort.Sort(ranges)
+	slices.SortFunc(ranges, compareRanges)
 	return findNextRangeStart(ranges)
 }
 
@@ -133,11 +132,11 @@ func findNextGIDRange() (int, error) {
 	if err != nil {
 		return -1, fmt.Errorf("couldn't parse all ranges in /etc/subgid file: %w", err)
 	}
-	sort.Sort(ranges)
+	slices.SortFunc(ranges, compareRanges)
 	return findNextRangeStart(ranges)
 }
 
-func findNextRangeStart(rangeList ranges) (int, error) {
+func findNextRangeStart(rangeList []subIDRange) (int, error) {
 	startID := defaultRangeStart
 	for _, arange := range rangeList {
 		if wouldOverlap(arange, startID) {

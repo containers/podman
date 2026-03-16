@@ -401,12 +401,6 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			netOpts.Aliases = netConnect.EndpointConfig.Aliases
 		}
 
-		// if IP address is provided
-		if netConnect.EndpointConfig.IPAddress.IsValid() {
-			staticIP := net.IP(netConnect.EndpointConfig.IPAddress.AsSlice())
-			netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
-		}
-
 		if netConnect.EndpointConfig.IPAMConfig != nil {
 			ipam := netConnect.EndpointConfig.IPAMConfig
 

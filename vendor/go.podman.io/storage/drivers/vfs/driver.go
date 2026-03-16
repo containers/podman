@@ -225,7 +225,7 @@ func (d *Driver) dir2(id string, useImageStore bool) string {
 		homedir = filepath.Join(d.home, "dir", filepath.Base(id))
 	}
 	if err := fileutils.Exists(homedir); err != nil {
-		additionalHomes := d.additionalHomes[:]
+		additionalHomes := d.additionalHomes
 		if d.imageStore != "" {
 			additionalHomes = append(additionalHomes, d.imageStore)
 		}

@@ -276,7 +276,7 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	}
 	if reg != nil {
 		if reg.Blocked {
-			return nil, fmt.Errorf("registry %s is blocked in %s or %s", reg.Prefix, sysregistriesv2.ConfigPath(sys), sysregistriesv2.ConfigDirPath(sys))
+			return nil, fmt.Errorf("registry %s is blocked in one of %s", reg.Prefix, sysregistriesv2.ConfigurationSourceDescription(sys))
 		}
 		skipVerify = reg.Insecure
 	}

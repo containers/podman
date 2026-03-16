@@ -49,7 +49,7 @@ type Schema1V1Compatibility struct {
 	Parent          string                                `json:"parent,omitempty"`
 	Comment         string                                `json:"comment,omitempty"`
 	Created         time.Time                             `json:"created"`
-	ContainerConfig schema1V1CompatibilityContainerConfig `json:"container_config,omitempty"`
+	ContainerConfig schema1V1CompatibilityContainerConfig `json:"container_config"`
 	Author          string                                `json:"author,omitempty"`
 	ThrowAway       bool                                  `json:"throwaway,omitempty"`
 }
