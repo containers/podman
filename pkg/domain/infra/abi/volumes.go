@@ -21,6 +21,8 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 	var volumeOptions []libpod.VolumeCreateOption
 	if len(opts.Name) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeName(opts.Name))
+	} else {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeAnonymous())
 	}
 	if len(opts.Driver) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeDriver(opts.Driver))

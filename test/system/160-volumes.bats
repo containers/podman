@@ -378,13 +378,13 @@ EOF
     run_podman run --name c2 --volume ${v[2]}:/vol2 -v ${v[3]}:/vol3 \
                $IMAGE date
 
-    # List available volumes for pruning after using 1,2,3
+    # List available volumes for pruning after using 1,2,3 (without -a only anonymous are listed; we have none)
     run_podman volume prune <<< N
-    is "$(echo $(sort <<<${lines[*]:1:3}))" "${v[4]} ${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use, lists 4,5,6"
+    is "${lines[1]}" "No dangling anonymous volumes found" "volume prune without -a lists no volumes when only named volumes exist"
 
-    # List available volumes for pruning after using 1,2,3 and filtering; see #8913
+    # List available volumes for pruning after using 1,2,3 and filtering; see #8913 (without -a only anonymous; we have none)
     run_podman volume prune --filter label=mylabel <<< N
-    is "$(echo $(sort <<<${lines[*]:1:2}))" "${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use and 4 filtered out, lists 5,6"
+    is "${lines[1]}" "No dangling anonymous volumes found" "volume prune without -a and filter: no anonymous volumes to list"
 
     # prune with -a should remove named unused volumes v4, v5, v6
     run_podman volume prune --force -a
@@ -419,14 +419,44 @@ EOF
     run_podman run --name c1 --volume ${v[1]}:/vol1 $IMAGE date
 
     run_podman volume prune <<< N
-    is "$(echo $(sort <<<${lines[*]:1:2}))" "${v[2]} ${v[3]}" \
-       "volume prune without -a lists named unused volumes"
+    is "${lines[1]}" "No dangling anonymous volumes found" \
+       "volume prune without -a does not list named volumes"
 
     run_podman volume prune --force
     is "$output" "" "volume prune without -a does not delete named volumes"
 
     run_podman volume exists ${v[2]}
     run_podman volume exists ${v[3]}
+}
+
+@test "podman volume prune removes only anonymous unused volumes" {
+    # Start clean: create two named volumes and one anonymous (no name)
+    local suffix=$(random_string)
+    local named1=named1_${suffix}
+    local named2=named2_${suffix}
+
+    run_podman volume create $named1
+    is "$output" "$named1" "volume create named1"
+
+    run_podman volume create $named2
+    is "$output" "$named2" "volume create named2"
+
+    run_podman volume create
+    anon_vol=$(echo "$output" | tr -d '\n\r')
+    assert "$anon_vol" != "" "anonymous volume create returns a name"
+
+    run_podman volume ls --format '{{.Name}}'
+    assert "$output" =~ "$named1" "volume ls includes named1"
+    assert "$output" =~ "$named2" "volume ls includes named2"
+    assert "$output" =~ "$anon_vol" "volume ls includes anonymous volume"
+
+    run_podman volume prune --force
+    assert "$output" =~ "$anon_vol" "volume prune removes the anonymous volume"
+
+    run_podman volume ls --format '{{.Name}}'
+    assert "$output" =~ "$named1" "after prune: named1 still present"
+    assert "$output" =~ "$named2" "after prune: named2 still present"
+    assert "$output" !~ "$anon_vol" "after prune: anonymous volume removed"
 }
 
 @test "podman volume type=bind" {
