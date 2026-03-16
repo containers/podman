@@ -248,7 +248,7 @@ func SpecGenToOCI(_ context.Context, s *specgen.SpecGenerator, rt *libpod.Runtim
 	var userDevices []spec.LinuxDevice
 	// add default devices from containers.conf
 	for _, device := range rtc.Containers.Devices.Get() {
-		if err = DevicesFromPath(&g, device, rtc); err != nil {
+		if err = DevicesFromPath(&g, device); err != nil {
 			return nil, err
 		}
 	}
@@ -259,7 +259,7 @@ func SpecGenToOCI(_ context.Context, s *specgen.SpecGenerator, rt *libpod.Runtim
 	}
 	// add default devices specified by caller
 	for _, device := range userDevices {
-		if err = DevicesFromPath(&g, device.Path, rtc); err != nil {
+		if err = DevicesFromPath(&g, device.Path); err != nil {
 			return nil, err
 		}
 	}

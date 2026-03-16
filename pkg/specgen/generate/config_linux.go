@@ -20,25 +20,12 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"tags.cncf.io/container-device-interface/pkg/cdi"
 )
 
 // DevicesFromPath computes a list of devices
-func DevicesFromPath(g *generate.Generator, devicePath string, config *config.Config) error {
+func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	if isCDIDevice(devicePath) {
-		registry, err := cdi.NewCache(
-			cdi.WithSpecDirs(config.Engine.CdiSpecDirs.Get()...),
-			cdi.WithAutoRefresh(false),
-		)
-		if err != nil {
-			return fmt.Errorf("creating CDI registry: %w", err)
-		}
-		if err := registry.Refresh(); err != nil {
-			logrus.Debugf("The following error was triggered when refreshing the CDI registry: %v", err)
-		}
-		if _, err := registry.InjectDevices(g.Config, devicePath); err != nil {
-			return fmt.Errorf("setting up CDI devices: %w", err)
-		}
+		// CDI devices are processed separately. Ignoring device.
 		return nil
 	}
 	devs := strings.Split(devicePath, ":")
