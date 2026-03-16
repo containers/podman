@@ -20,6 +20,16 @@ var _ = Describe("Podman version", func() {
 		Expect(session.Out.Contents()).Should(ContainSubstring(version.Version.String()))
 	})
 
+	It("podman version: check for client information when no system service", func() {
+		SkipIfNotRemote("testing only failed remote connections")
+		podmanTest.StopRemoteService()
+		defer podmanTest.StartRemoteService()
+		version := podmanTest.Podman([]string{"version"})
+		version.WaitWithDefaultTimeout()
+		Expect(version.OutputToString()).To(ContainSubstring("Client:"))
+		Expect(version).ToNot(ExitCleanly())
+	})
+
 	It("podman -v", func() {
 		session := podmanTest.Podman([]string{"-v"})
 		session.WaitWithDefaultTimeout()

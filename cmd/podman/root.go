@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
+	"github.com/containers/podman/v6/cmd/podman/system"
 	"github.com/containers/podman/v6/cmd/podman/validate"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/shutdown"
@@ -383,12 +384,22 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
 		// Note: this is gross, but it is the hand we are dealt
-		if registry.IsRemote() && errors.As(err, &bindings.ConnectError{}) && cmd.Name() == "info" && cmd.Parent() == cmd.Root() {
-			clientDesc, err := getClientInfo()
-			// we eat the error here. if this fails, they just don't any client info
-			if err == nil {
-				b, _ := yaml.Marshal(clientDesc)
-				fmt.Println(string(b))
+		if registry.IsRemote() && errors.As(err, &bindings.ConnectError{}) && cmd.Parent() == cmd.Root() {
+			switch cmd.Name() {
+			case "info":
+				clientDesc, err := getClientInfo()
+				// we eat the error here. if this fails, they just don't any client info
+				if err == nil {
+					b, _ := yaml.Marshal(clientDesc)
+					fmt.Println(string(b))
+				}
+			case "version":
+				versions, err := define.GetVersion()
+				if err == nil {
+					if printErr := system.PrintVersion(cmd, &entities.SystemVersionReport{Client: &versions}); printErr != nil {
+						logrus.Debugf("Failed to print client version information: %v", printErr)
+					}
+				}
 			}
 		}
 		return err
