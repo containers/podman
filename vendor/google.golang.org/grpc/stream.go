@@ -548,7 +548,7 @@ func (a *csAttempt) newStream() error {
 			}
 		}
 	}
-	s, err := a.transport.NewStream(a.ctx, cs.callHdr)
+	s, err := a.transport.NewStream(a.ctx, cs.callHdr, a.statsHandler)
 	if err != nil {
 		nse, ok := err.(*transport.NewStreamError)
 		if !ok {
@@ -1354,7 +1354,8 @@ func newNonRetryClientStream(ctx context.Context, desc *StreamDesc, method strin
 		transport:        t,
 	}
 
-	s, err := as.transport.NewStream(as.ctx, as.callHdr)
+	// nil stats handler: internal streams like health and ORCA do not support telemetry.
+	s, err := as.transport.NewStream(as.ctx, as.callHdr, nil)
 	if err != nil {
 		err = toRPCErr(err)
 		return nil, err
