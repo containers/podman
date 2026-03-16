@@ -278,6 +278,23 @@ class ContainerTestCase(APITestCase):
         # is zero.  I think the test needs some rewrite.
         # self.assertIsNotNone(prune_payload["ImagesDeleted"][1]["Deleted"])
 
+    def test_create_duplicate_name(self):
+        name = f"Container_{random.getrandbits(160):x}"
+        payload = {"Cmd": ["top"], "Image": "alpine:latest"}
+
+        r = requests.post(
+            self.podman_url + f"/v1.40/containers/create?name={name}", json=payload
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        container_id = r.json()["Id"]
+
+        r = requests.post(
+            self.podman_url + f"/v1.40/containers/create?name={name}", json=payload
+        )
+        self.assertEqual(r.status_code, 409, r.text)
+
+        requests.delete(self.podman_url + f"/v1.40/containers/{container_id}?force=true")
+
     def test_status(self):
         r = requests.post(
             self.podman_url + "/v1.40/containers/create?name=topcontainer",
