@@ -161,6 +161,7 @@ func CWConvertImage(ctx context.Context, systemContext *types.SystemContext, sto
 	// Generate the image contents.
 	archiveOptions := mkcw.ArchiveOptions{
 		AttestationURL:           options.AttestationURL,
+		BaseTLSConfig:            systemContext.BaseTLSConfig,
 		CPUs:                     options.CPUs,
 		Memory:                   options.Memory,
 		TempDir:                  targetDir,

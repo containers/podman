@@ -4,6 +4,7 @@ package os
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -90,7 +91,7 @@ func (dist *OSTree) Upgrade(ctx context.Context, opts UpgradeOptions) error {
 		// check if an in band update exists. this covers two scenarios
 		// 5.7.1 -> 5.7.2
 		// 5.7.1 -> newer OS image with 5.7.1
-		registryDigest, updateExists, err := checkInBandUpgrade(ctx, originNamed, localDigest)
+		registryDigest, updateExists, err := checkInBandUpgrade(ctx, originNamed, localDigest, opts.BaseTLSConfig)
 		if err != nil {
 			return err
 		}
@@ -109,13 +110,14 @@ func (dist *OSTree) Upgrade(ctx context.Context, opts UpgradeOptions) error {
 		}
 		machineInfo.InBandUpgradeAvailable = true
 		updateMessage = fmt.Sprintf("Updating OS from %s to %s\n", localDigest.String(), registryDigest.String())
-		args = []string{"bootc", "upgrade"}
+		args = []string{"bootc", "upgrade"} // NOTE: this does not respect baseTLSConfig.
+
 	default:
 		// if caller version > machine version, then update to the caller version
 		newVersion := fmt.Sprintf("%d.%d", opts.MachineVersion.Major, opts.MachineVersion.Minor)
 		updateReference := fmt.Sprintf("%s:%s", originNamed.Name(), newVersion)
 		updateMessage = fmt.Sprintf("Updating OS from version %d.%d to %s\n", opts.ClientVersion.Major, opts.ClientVersion.Minor, newVersion)
-		args = []string{"bootc", "switch", updateReference}
+		args = []string{"bootc", "switch", updateReference} // NOTE: this does not respect baseTLSConfig.
 	}
 
 	if len(opts.Format) > 0 {
@@ -151,8 +153,10 @@ func compareMajorMinor(versionA, versionB semver.Version) int {
 
 // checkInBandUpgrade takes a named and the digest of the image that made the operating system.  we then check if the image
 // on the registry is different.
-func checkInBandUpgrade(ctx context.Context, named reference.Named, localHostDigest digest.Digest) (digest.Digest, bool, error) {
-	sysCtx := types.SystemContext{}
+func checkInBandUpgrade(ctx context.Context, named reference.Named, localHostDigest digest.Digest, baseTLSConfig *tls.Config) (digest.Digest, bool, error) {
+	sysCtx := types.SystemContext{
+		BaseTLSConfig: baseTLSConfig,
+	}
 	logrus.Debugf("Checking if %s has upgrade available", named.Name())
 	// Lookup the image from the os
 	ir, err := docker.NewReference(named)
