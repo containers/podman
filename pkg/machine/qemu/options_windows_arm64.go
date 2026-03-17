@@ -2,7 +2,7 @@
 
 package qemu
 
-var QemuCommand = "qemu-system-aarch64w"
+var qemuCommand = []string{"qemu-system-aarch64w"}
 
 func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	// stub to fix compilation issues
