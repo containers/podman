@@ -39,7 +39,7 @@ require (
 	github.com/klauspost/pgzip v1.2.6
 	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.34
+	github.com/mattn/go-sqlite3 v1.14.37
 	github.com/mdlayher/vsock v1.2.1
 	github.com/moby/docker-image-spec v1.3.1
 	github.com/moby/moby/api v1.54.0

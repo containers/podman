@@ -1783,15 +1783,18 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 
 // Close the connection.
 func (c *SQLiteConn) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.db == nil {
+		return nil
+	}
+	runtime.SetFinalizer(c, nil)
 	rv := C.sqlite3_close_v2(c.db)
 	if rv != C.SQLITE_OK {
-		return c.lastError()
+		return lastError(c.db)
 	}
 	deleteHandles(c)
-	c.mu.Lock()
 	c.db = nil
-	c.mu.Unlock()
-	runtime.SetFinalizer(c, nil)
 	return nil
 }
 
@@ -1932,16 +1935,18 @@ func (s *SQLiteStmt) Close() error {
 		return nil
 	}
 	s.closed = true
-	if !s.c.dbConnOpen() {
+	runtime.SetFinalizer(s, nil)
+	conn := s.c
+	stmt := s.s
+	s.s = nil
+	s.c = nil
+	if !conn.dbConnOpen() {
 		return errors.New("sqlite statement with already closed database connection")
 	}
-	rv := C.sqlite3_finalize(s.s)
-	s.s = nil
+	rv := C.sqlite3_finalize(stmt)
 	if rv != C.SQLITE_OK {
-		return s.c.lastError()
+		return conn.lastError()
 	}
-	s.c = nil
-	runtime.SetFinalizer(s, nil)
 	return nil
 }
 
@@ -1957,6 +1962,8 @@ func (s *SQLiteStmt) bind(args []driver.NamedValue) error {
 	if rv != C.SQLITE_ROW && rv != C.SQLITE_OK && rv != C.SQLITE_DONE {
 		return s.c.lastError()
 	}
+
+	C.sqlite3_clear_bindings(s.s)
 
 	bindIndices := make([][3]int, len(args))
 	prefixes := []string{":", "@", "$"}
