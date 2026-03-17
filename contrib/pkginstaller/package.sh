@@ -74,7 +74,7 @@ sign "${binDir}/vfkit"
 sign "${binDir}/podman-mac-helper"
 
 sign "${binDir}/krunkit"
-sign "${libDir}/libkrun-efi.dylib"
+sign "${libDir}/libkrun.dylib"
 sign "${libDir}/libvirglrenderer.1.dylib"
 sign "${libDir}/libepoxy.0.dylib"
 sign "${libDir}/libMoltenVK.dylib"
