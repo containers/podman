@@ -364,6 +364,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 		registry = ""
 		format = query.OutputFormat
+		if format == "" {
+			format = buildah.OCIv1ImageManifest
+		}
 	} else {
 		if _, found := r.URL.Query()["isolation"]; found {
 			if query.Isolation != "" && query.Isolation != "default" {
