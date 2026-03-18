@@ -104,8 +104,9 @@ func (w WSLStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.Igni
 	return nil, nil
 }
 
-func (w WSLStubber) Exists(name string) (bool, error) {
-	return isWSLExist(env.WithToolPrefix(name))
+func (w WSLStubber) Exists(name string) (*bool, error) {
+	exists, err := isWSLExist(env.WithToolPrefix(name))
+	return &exists, err
 }
 
 func (w WSLStubber) MountType() vmconfigs.VolumeMountType {

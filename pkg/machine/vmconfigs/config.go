@@ -73,7 +73,7 @@ type CloudInitConfig struct {
 type VMProvider interface { //nolint:interfacebloat
 	CreateVM(opts define.CreateVMOpts, mc *MachineConfig, builder *ignition.IgnitionBuilder) error
 	PrepareIgnition(mc *MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error)
-	Exists(name string) (bool, error)
+	Exists(name string) (*bool, error)
 	MountType() VolumeMountType
 	MountVolumesToVM(mc *MachineConfig, quiet bool) error
 	Remove(mc *MachineConfig) ([]string, func() error, error)

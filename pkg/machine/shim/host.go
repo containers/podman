@@ -332,6 +332,7 @@ type MultiProvider []vmconfigs.VMProvider
 //  3. External VM: VM already exists on hypervisor but no config, so it was not created by podman -> returns (nil, provider, error)
 //  4. Hypervisor error with config: Config exists but hypervisor check fails -> returns (config, provider, nil)
 //     (config is trusted, warning is logged)
+//  5. VM does not exist on hypervisor and no config -> returns (nil, nil, nil)
 func VMExists(name string) (*vmconfigs.MachineConfig, vmconfigs.VMProvider, error) {
 	vmstubbers := provider.GetAll()
 	// Look on disk first
@@ -357,13 +358,29 @@ func VMExists(name string) (*vmconfigs.MachineConfig, vmconfigs.VMProvider, erro
 			}
 			return nil, nil, err
 		}
-		if exists {
-			if hasConfig {
-				return mc.MachineConfig, vmstubber, nil
-			}
-			// VM exists in hypervisor but no local config - it was created by something else
-			return nil, vmstubber, fmt.Errorf("vm %q already exists on hypervisor", name)
+
+		// If the provider explicitly said that the VM doesn't exist, we can return early
+		if exists != nil && !*exists {
+			return nil, nil, nil
 		}
+
+		// At this point: The VM exists or the provider (e.g. applehv, libkrun and qemu)
+		// doesn't support the exists check, so we trust the config.
+		// If we have a config, we have a VM.
+		if hasConfig {
+			return mc.MachineConfig, vmstubber, nil
+		}
+
+		// Here: we know the Podman VM does not exist as there is no config -
+		// however a VM with that name may exist.
+		// We must handle two cases:
+		// 1. the provider does not support the exists check, so we can say the VM does not exist
+		// 2. the provider supports the exists check, it responded that the VM exists but there is no config
+		//    for it, so it must have been created by something else (e.g. a user created it using HyperV Manager).
+		if exists == nil {
+			return nil, nil, nil
+		}
+		return nil, vmstubber, fmt.Errorf("vm %q already exists on hypervisor", name)
 	}
 
 	return nil, nil, &machineDefine.ErrVMDoesNotExist{Name: name}
@@ -378,7 +395,7 @@ func VMExistsOnHyperVisor(name string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if exists {
+		if exists != nil && *exists {
 			return true, nil
 		}
 	}

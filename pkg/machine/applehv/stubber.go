@@ -86,9 +86,9 @@ func (a *AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machin
 	return apple.ResizeDisk(mc, mc.Resources.DiskSize)
 }
 
-func (a *AppleHVStubber) Exists(_ string) (bool, error) {
+func (a *AppleHVStubber) Exists(_ string) (*bool, error) {
 	// not applicable for applehv
-	return false, nil
+	return nil, nil
 }
 
 func (a *AppleHVStubber) MountType() vmconfigs.VolumeMountType {
