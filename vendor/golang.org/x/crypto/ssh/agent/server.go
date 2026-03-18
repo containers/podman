@@ -7,6 +7,7 @@ package agent
 import (
 	"crypto/dsa"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"encoding/binary"
@@ -16,11 +17,10 @@ import (
 	"log"
 	"math/big"
 
-	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh"
 )
 
-// Server wraps an Agent and uses it to implement the agent side of
+// server wraps an Agent and uses it to implement the agent side of
 // the SSH-agent, wire protocol.
 type server struct {
 	agent Agent
@@ -208,7 +208,7 @@ func parseConstraints(constraints []byte) (lifetimeSecs uint32, confirmBeforeUse
 		case agentConstrainConfirm:
 			confirmBeforeUse = true
 			constraints = constraints[1:]
-		case agentConstrainExtension:
+		case agentConstrainExtension, agentConstrainExtensionV00:
 			var msg constrainExtensionAgentMsg
 			if err = ssh.Unmarshal(constraints, &msg); err != nil {
 				return 0, false, nil, err
@@ -506,7 +506,7 @@ func (s *server) insertIdentity(req []byte) error {
 	switch record.Type {
 	case ssh.KeyAlgoRSA:
 		addedKey, err = parseRSAKey(req)
-	case ssh.KeyAlgoDSA:
+	case ssh.InsecureKeyAlgoDSA:
 		addedKey, err = parseDSAKey(req)
 	case ssh.KeyAlgoECDSA256, ssh.KeyAlgoECDSA384, ssh.KeyAlgoECDSA521:
 		addedKey, err = parseECDSAKey(req)
@@ -514,7 +514,7 @@ func (s *server) insertIdentity(req []byte) error {
 		addedKey, err = parseEd25519Key(req)
 	case ssh.CertAlgoRSAv01:
 		addedKey, err = parseRSACert(req)
-	case ssh.CertAlgoDSAv01:
+	case ssh.InsecureCertAlgoDSAv01:
 		addedKey, err = parseDSACert(req)
 	case ssh.CertAlgoECDSA256v01, ssh.CertAlgoECDSA384v01, ssh.CertAlgoECDSA521v01:
 		addedKey, err = parseECDSACert(req)

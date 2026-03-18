@@ -39,7 +39,7 @@ func DeviceFromPath(device string) ([]devices.Device, error) {
 	// If source device is a directory
 	srcDevices, err := devices.GetDevices(src)
 	if err != nil {
-		return nil, fmt.Errorf("error getting source devices from directory %s: %w", src, err)
+		return nil, fmt.Errorf("getting source devices from directory %s: %w", src, err)
 	}
 	devs := make([]devices.Device, 0, len(srcDevices))
 	for _, d := range srcDevices {

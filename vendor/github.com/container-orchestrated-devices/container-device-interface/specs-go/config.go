@@ -3,7 +3,7 @@ package specs
 import "os"
 
 // CurrentVersion is the current version of the Spec.
-const CurrentVersion = "0.4.0"
+const CurrentVersion = "0.5.0"
 
 // Spec is the base configuration for CDI
 type Spec struct {
@@ -31,6 +31,7 @@ type ContainerEdits struct {
 // DeviceNode represents a device node that needs to be added to the OCI spec.
 type DeviceNode struct {
 	Path        string       `json:"path"`
+	HostPath    string       `json:"hostPath,omitempty"`
 	Type        string       `json:"type,omitempty"`
 	Major       int64        `json:"major,omitempty"`
 	Minor       int64        `json:"minor,omitempty"`

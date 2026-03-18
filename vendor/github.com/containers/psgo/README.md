@@ -83,6 +83,8 @@ The ps library is compatible with all AIX format descriptors of the ps command-l
   - The corresponding host PID of a container process.
 - **huser**
   - The corresponding effective user of a container process on the host.
+- **huid**
+  - The corresponding host UID of a container process.
 - **label**
   - Current security attributes of the process.
 - **seccomp**

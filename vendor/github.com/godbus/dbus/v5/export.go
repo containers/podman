@@ -205,9 +205,7 @@ func (conn *Conn) handleCall(msg *Message) {
 		}
 		reply.Headers[FieldReplySerial] = MakeVariant(msg.serial)
 		reply.Body = make([]interface{}, len(ret))
-		for i := 0; i < len(ret); i++ {
-			reply.Body[i] = ret[i]
-		}
+		copy(reply.Body, ret)
 		reply.Headers[FieldSignature] = MakeVariant(SignatureOf(reply.Body...))
 
 		if err := reply.IsValid(); err != nil {

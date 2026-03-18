@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/manifest"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/docker/api/types/versions"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/exp/slices"
 )
 
 // Schema1FSLayers is an entry of the "fsLayers" array in docker/distribution schema 1.
@@ -53,16 +56,16 @@ type Schema1V1Compatibility struct {
 // Schema1FromManifest creates a Schema1 manifest instance from a manifest blob.
 // (NOTE: The instance is not necessary a literal representation of the original blob,
 // layers with duplicate IDs are eliminated.)
-func Schema1FromManifest(manifest []byte) (*Schema1, error) {
+func Schema1FromManifest(manifestBlob []byte) (*Schema1, error) {
 	s1 := Schema1{}
-	if err := json.Unmarshal(manifest, &s1); err != nil {
+	if err := json.Unmarshal(manifestBlob, &s1); err != nil {
 		return nil, err
 	}
 	if s1.SchemaVersion != 1 {
 		return nil, fmt.Errorf("unsupported schema version %d", s1.SchemaVersion)
 	}
-	if err := validateUnambiguousManifestFormat(manifest, DockerV2Schema1SignedMediaType,
-		allowedFieldFSLayers|allowedFieldHistory); err != nil {
+	if err := manifest.ValidateUnambiguousManifestFormat(manifestBlob, DockerV2Schema1SignedMediaType,
+		manifest.AllowedFieldFSLayers|manifest.AllowedFieldHistory); err != nil {
 		return nil, err
 	}
 	if err := s1.initialize(); err != nil {
@@ -151,6 +154,9 @@ func (m *Schema1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		// but (docker pull) ignores them in favor of computing DiffIDs from uncompressed data, except verifying the child->parent links and uniqueness.
 		// So, we don't bother recomputing the IDs in m.History.V1Compatibility.
 		m.FSLayers[(len(layerInfos)-1)-i].BlobSum = info.Digest
+		if info.CryptoOperation != types.PreserveOriginalCrypto {
+			return fmt.Errorf("encryption change (for layer %q) is not supported in schema1 manifests", info.Digest)
+		}
 	}
 	return nil
 }
@@ -183,22 +189,22 @@ func (m *Schema1) fixManifestLayers() error {
 		return errors.New("Invalid parent ID in the base layer of the image")
 	}
 	// check general duplicates to error instead of a deadlock
-	idmap := make(map[string]struct{})
+	idmap := set.New[string]()
 	var lastID string
 	for _, img := range m.ExtractedV1Compatibility {
 		// skip IDs that appear after each other, we handle those later
-		if _, exists := idmap[img.ID]; img.ID != lastID && exists {
+		if img.ID != lastID && idmap.Contains(img.ID) {
 			return fmt.Errorf("ID %+v appears multiple times in manifest", img.ID)
 		}
 		lastID = img.ID
-		idmap[lastID] = struct{}{}
+		idmap.Add(lastID)
 	}
 	// backwards loop so that we keep the remaining indexes after removing items
 	for i := len(m.ExtractedV1Compatibility) - 2; i >= 0; i-- {
 		if m.ExtractedV1Compatibility[i].ID == m.ExtractedV1Compatibility[i+1].ID { // repeated ID. remove and continue
-			m.FSLayers = append(m.FSLayers[:i], m.FSLayers[i+1:]...)
-			m.History = append(m.History[:i], m.History[i+1:]...)
-			m.ExtractedV1Compatibility = append(m.ExtractedV1Compatibility[:i], m.ExtractedV1Compatibility[i+1:]...)
+			m.FSLayers = slices.Delete(m.FSLayers, i, i+1)
+			m.History = slices.Delete(m.History, i, i+1)
+			m.ExtractedV1Compatibility = slices.Delete(m.ExtractedV1Compatibility, i, i+1)
 		} else if m.ExtractedV1Compatibility[i].Parent != m.ExtractedV1Compatibility[i+1].ID {
 			return fmt.Errorf("Invalid parent ID. Expected %v, got %v", m.ExtractedV1Compatibility[i+1].ID, m.ExtractedV1Compatibility[i].Parent)
 		}
@@ -206,7 +212,7 @@ func (m *Schema1) fixManifestLayers() error {
 	return nil
 }
 
-var validHex = regexp.MustCompile(`^([a-f0-9]{64})$`)
+var validHex = regexp.Delayed(`^([a-f0-9]{64})$`)
 
 func validateV1ID(id string) error {
 	if ok := validHex.MatchString(id); !ok {
@@ -221,13 +227,17 @@ func (m *Schema1) Inspect(_ func(types.BlobInfo) ([]byte, error)) (*types.ImageI
 	if err := json.Unmarshal([]byte(m.History[0].V1Compatibility), s1); err != nil {
 		return nil, err
 	}
+	layerInfos := m.LayerInfos()
 	i := &types.ImageInspectInfo{
 		Tag:           m.Tag,
 		Created:       &s1.Created,
 		DockerVersion: s1.DockerVersion,
 		Architecture:  s1.Architecture,
+		Variant:       s1.Variant,
 		Os:            s1.OS,
-		Layers:        layerInfosToStrings(m.LayerInfos()),
+		Layers:        layerInfosToStrings(layerInfos),
+		LayersData:    imgInspectLayersFromLayerInfos(layerInfos),
+		Author:        s1.Author,
 	}
 	if s1.Config != nil {
 		i.Labels = s1.Config.Labels

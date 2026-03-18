@@ -50,7 +50,7 @@ endif
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
 #           and inlining. Using these build options allows you to subsequently
 #           use source debugging tools like delve.
-all: bin/buildah bin/imgtype bin/copy bin/tutorial docs
+all: bin/buildah bin/imgtype bin/copy bin/inet bin/tutorial bin/dumpspec docs
 
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
@@ -81,7 +81,7 @@ DARWIN_CROSS_TARGETS := $(filter bin/buildah.darwin.%,$(ALL_CROSS_TARGETS))
 WINDOWS_CROSS_TARGETS := $(addsuffix .exe,$(filter bin/buildah.windows.%,$(ALL_CROSS_TARGETS)))
 FREEBSD_CROSS_TARGETS := $(filter bin/buildah.freebsd.%,$(ALL_CROSS_TARGETS))
 .PHONY: cross
-cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $(FREEBSD_CROSS_TARGETS)
+cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(FREEBSD_CROSS_TARGETS)
 
 bin/buildah.%:
 	mkdir -p ./bin
@@ -95,6 +95,12 @@ bin/copy: $(SOURCES) tests/copy/copy.go
 
 bin/tutorial: $(SOURCES) tests/tutorial/tutorial.go
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/tutorial/tutorial.go
+
+bin/inet: tests/inet/inet.go
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/inet/inet.go
+
+bin/dumpspec: $(SOURCES)
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/dumpspec
 
 .PHONY: clean
 clean:
@@ -164,11 +170,11 @@ install.runc:
 
 .PHONY: test-conformance
 test-conformance:
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 20m ./tests/conformance
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -timeout 20m ./tests/conformance
 
 .PHONY: test-integration
 test-integration: install.tools
-	./tests/tools/build/ginkgo $(BUILDFLAGS) -v tests/e2e/.
+	$(GO_TEST) $(BUILDFLAGS) -v ./tests/e2e/.
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go
@@ -176,13 +182,13 @@ tests/testreport/testreport: tests/testreport/testreport.go
 
 .PHONY: test-unit
 test-unit: tests/testreport/testreport
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover $(RACEFLAGS) $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd) -timeout 45m
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" $(RACEFLAGS) $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd) -timeout 45m
 	tmp=$(shell mktemp -d) ; \
 	mkdir -p $$tmp/root $$tmp/runroot; \
-	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover $(RACEFLAGS) ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" $(RACEFLAGS) ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.17 make vendor
+	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.22 make vendor
 
 .PHONY: vendor
 vendor:

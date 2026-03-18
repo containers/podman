@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -54,17 +57,19 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 	}
 
 	config := v1.Image{
-		Config:       ic,
-		History:      history,
-		OS:           options.OS,
-		Architecture: options.Arch,
-		Variant:      options.Variant,
+		Config:  ic,
+		History: history,
+		Platform: v1.Platform{
+			OS:           options.OS,
+			Architecture: options.Arch,
+			Variant:      options.Variant,
+		},
 	}
 
 	u, err := url.ParseRequestURI(path)
 	if err == nil && u.Scheme != "" {
 		// If source is a URL, download the file.
-		fmt.Printf("Downloading from %q\n", path)
+		fmt.Printf("Downloading from %q\n", path) //nolint:forbidigo
 		file, err := download.FromURL(r.systemContext.BigFilesTemporaryDir, path)
 		if err != nil {
 			return "", err

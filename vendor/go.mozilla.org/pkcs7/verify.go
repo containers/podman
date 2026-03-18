@@ -18,8 +18,12 @@ func (p7 *PKCS7) Verify() (err error) {
 }
 
 // VerifyWithChain checks the signatures of a PKCS7 object.
-// If truststore is not nil, it also verifies the chain of trust of the end-entity
-// signer cert to one of the root in the truststore.
+//
+// If truststore is not nil, it also verifies the chain of trust of
+// the end-entity signer cert to one of the roots in the
+// truststore. When the PKCS7 object includes the signing time
+// authenticated attr verifies the chain at that time and UTC now
+// otherwise.
 func (p7 *PKCS7) VerifyWithChain(truststore *x509.CertPool) (err error) {
 	if len(p7.Signers) == 0 {
 		return errors.New("pkcs7: Message has no signers")
@@ -30,6 +34,81 @@ func (p7 *PKCS7) VerifyWithChain(truststore *x509.CertPool) (err error) {
 		}
 	}
 	return nil
+}
+
+// VerifyWithChainAtTime checks the signatures of a PKCS7 object.
+//
+// If truststore is not nil, it also verifies the chain of trust of
+// the end-entity signer cert to a root in the truststore at
+// currentTime. It does not use the signing time authenticated
+// attribute.
+func (p7 *PKCS7) VerifyWithChainAtTime(truststore *x509.CertPool, currentTime time.Time) (err error) {
+	if len(p7.Signers) == 0 {
+		return errors.New("pkcs7: Message has no signers")
+	}
+	for _, signer := range p7.Signers {
+		if err := verifySignatureAtTime(p7, signer, truststore, currentTime); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifySignatureAtTime(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool, currentTime time.Time) (err error) {
+	signedData := p7.Content
+	ee := getCertFromCertsByIssuerAndSerial(p7.Certificates, signer.IssuerAndSerialNumber)
+	if ee == nil {
+		return errors.New("pkcs7: No certificate for signer")
+	}
+	if len(signer.AuthenticatedAttributes) > 0 {
+		// TODO(fullsailor): First check the content type match
+		var (
+			digest      []byte
+			signingTime time.Time
+		)
+		err := unmarshalAttribute(signer.AuthenticatedAttributes, OIDAttributeMessageDigest, &digest)
+		if err != nil {
+			return err
+		}
+		hash, err := getHashForOID(signer.DigestAlgorithm.Algorithm)
+		if err != nil {
+			return err
+		}
+		h := hash.New()
+		h.Write(p7.Content)
+		computed := h.Sum(nil)
+		if subtle.ConstantTimeCompare(digest, computed) != 1 {
+			return &MessageDigestMismatchError{
+				ExpectedDigest: digest,
+				ActualDigest:   computed,
+			}
+		}
+		signedData, err = marshalAttributes(signer.AuthenticatedAttributes)
+		if err != nil {
+			return err
+		}
+		err = unmarshalAttribute(signer.AuthenticatedAttributes, OIDAttributeSigningTime, &signingTime)
+		if err == nil {
+			// signing time found, performing validity check
+			if signingTime.After(ee.NotAfter) || signingTime.Before(ee.NotBefore) {
+				return fmt.Errorf("pkcs7: signing time %q is outside of certificate validity %q to %q",
+					signingTime.Format(time.RFC3339),
+					ee.NotBefore.Format(time.RFC3339),
+					ee.NotAfter.Format(time.RFC3339))
+			}
+		}
+	}
+	if truststore != nil {
+		_, err = verifyCertChain(ee, p7.Certificates, truststore, currentTime)
+		if err != nil {
+			return err
+		}
+	}
+	sigalg, err := getSignatureAlgorithm(signer.DigestEncryptionAlgorithm, signer.DigestAlgorithm)
+	if err != nil {
+		return err
+	}
+	return ee.CheckSignature(sigalg, signedData, signer.EncryptedDigest)
 }
 
 func verifySignature(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool) (err error) {
@@ -70,7 +149,7 @@ func verifySignature(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool) (e
 				return fmt.Errorf("pkcs7: signing time %q is outside of certificate validity %q to %q",
 					signingTime.Format(time.RFC3339),
 					ee.NotBefore.Format(time.RFC3339),
-					ee.NotBefore.Format(time.RFC3339))
+					ee.NotAfter.Format(time.RFC3339))
 			}
 		}
 	}

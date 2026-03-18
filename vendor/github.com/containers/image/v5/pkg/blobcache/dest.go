@@ -80,47 +80,58 @@ func (d *blobCacheDestination) IgnoresEmbeddedDockerReference() bool {
 // and this new file.
 func (d *blobCacheDestination) saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os.File, compressedFilename string, compressedDigest digest.Digest, isConfig bool, alternateDigest *digest.Digest) {
 	defer wg.Done()
-	// Decompress from and digest the reading end of that pipe.
-	decompressed, err3 := archive.DecompressStream(decompressReader)
+	defer decompressReader.Close()
+
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			// Remove the temporary file.
+			if err := os.Remove(tempFile.Name()); err != nil {
+				logrus.Debugf("error cleaning up temporary file %q for decompressed copy of blob %q: %v", tempFile.Name(), compressedDigest.String(), err)
+			}
+		}
+	}()
+
 	digester := digest.Canonical.Digester()
-	if err3 == nil {
+	if err := func() error { // A scope for defer
+		defer tempFile.Close()
+
+		// Decompress from and digest the reading end of that pipe.
+		decompressed, err := archive.DecompressStream(decompressReader)
+		if err != nil {
+			// Drain the pipe to keep from stalling the PutBlob() thread.
+			if _, err2 := io.Copy(io.Discard, decompressReader); err2 != nil {
+				logrus.Debugf("error draining the pipe: %v", err2)
+			}
+			return err
+		}
+		defer decompressed.Close()
 		// Read the decompressed data through the filter over the pipe, blocking until the
 		// writing end is closed.
-		_, err3 = io.Copy(io.MultiWriter(tempFile, digester.Hash()), decompressed)
-	} else {
-		// Drain the pipe to keep from stalling the PutBlob() thread.
-		if _, err := io.Copy(io.Discard, decompressReader); err != nil {
-			logrus.Debugf("error draining the pipe: %v", err)
-		}
+		_, err = io.Copy(io.MultiWriter(tempFile, digester.Hash()), decompressed)
+		return err
+	}(); err != nil {
+		return
 	}
-	decompressReader.Close()
-	decompressed.Close()
-	tempFile.Close()
+
 	// Determine the name that we should give to the uncompressed copy of the blob.
-	decompressedFilename := d.reference.blobPath(digester.Digest(), isConfig)
-	if err3 == nil {
-		// Rename the temporary file.
-		if err3 = os.Rename(tempFile.Name(), decompressedFilename); err3 != nil {
-			logrus.Debugf("error renaming new decompressed copy of blob %q into place at %q: %v", digester.Digest().String(), decompressedFilename, err3)
-			// Remove the temporary file.
-			if err3 = os.Remove(tempFile.Name()); err3 != nil {
-				logrus.Debugf("error cleaning up temporary file %q for decompressed copy of blob %q: %v", tempFile.Name(), compressedDigest.String(), err3)
-			}
-		} else {
-			*alternateDigest = digester.Digest()
-			// Note the relationship between the two files.
-			if err3 = ioutils.AtomicWriteFile(decompressedFilename+compressedNote, []byte(compressedDigest.String()), 0600); err3 != nil {
-				logrus.Debugf("error noting that the compressed version of %q is %q: %v", digester.Digest().String(), compressedDigest.String(), err3)
-			}
-			if err3 = ioutils.AtomicWriteFile(compressedFilename+decompressedNote, []byte(digester.Digest().String()), 0600); err3 != nil {
-				logrus.Debugf("error noting that the decompressed version of %q is %q: %v", compressedDigest.String(), digester.Digest().String(), err3)
-			}
-		}
-	} else {
-		// Remove the temporary file.
-		if err3 = os.Remove(tempFile.Name()); err3 != nil {
-			logrus.Debugf("error cleaning up temporary file %q for decompressed copy of blob %q: %v", tempFile.Name(), compressedDigest.String(), err3)
-		}
+	decompressedFilename, err := d.reference.blobPath(digester.Digest(), isConfig)
+	if err != nil {
+		return
+	}
+	// Rename the temporary file.
+	if err := os.Rename(tempFile.Name(), decompressedFilename); err != nil {
+		logrus.Debugf("error renaming new decompressed copy of blob %q into place at %q: %v", digester.Digest().String(), decompressedFilename, err)
+		return
+	}
+	succeeded = true
+	*alternateDigest = digester.Digest()
+	// Note the relationship between the two files.
+	if err := ioutils.AtomicWriteFile(decompressedFilename+compressedNote, []byte(compressedDigest.String()), 0600); err != nil {
+		logrus.Debugf("error noting that the compressed version of %q is %q: %v", digester.Digest().String(), compressedDigest.String(), err)
+	}
+	if err := ioutils.AtomicWriteFile(compressedFilename+decompressedNote, []byte(digester.Digest().String()), 0600); err != nil {
+		logrus.Debugf("error noting that the decompressed version of %q is %q: %v", compressedDigest.String(), digester.Digest().String(), err)
 	}
 }
 
@@ -134,8 +145,8 @@ func (d *blobCacheDestination) HasThreadSafePutBlob() bool {
 // inputInfo.MediaType describes the blob format, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
-// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
+// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlobWithOptions MUST 1) fail, and 2) delete any data stored so far.
+func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
 	var tempfile *os.File
 	var err error
 	var n int
@@ -145,7 +156,10 @@ func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io
 	needToWait := false
 	compression := archive.Uncompressed
 	if inputInfo.Digest != "" {
-		filename := d.reference.blobPath(inputInfo.Digest, options.IsConfig)
+		filename, err2 := d.reference.blobPath(inputInfo.Digest, options.IsConfig)
+		if err2 != nil {
+			return private.UploadedBlob{}, err2
+		}
 		tempfile, err = os.CreateTemp(filepath.Dir(filename), filepath.Base(filename))
 		if err == nil {
 			stream = io.TeeReader(stream, tempfile)
@@ -227,18 +241,19 @@ func (d *blobCacheDestination) SupportsPutBlobPartial() bool {
 // It is available only if SupportsPutBlobPartial().
 // Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 // should fall back to PutBlobWithOptions.
-func (d *blobCacheDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (types.BlobInfo, error) {
+func (d *blobCacheDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
 	return d.destination.PutBlobPartial(ctx, chunkAccessor, srcInfo, cache)
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
-// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
-// reflected in the manifest that will be written.
+// If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-func (d *blobCacheDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (d *blobCacheDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
+	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+		return false, private.ReusedBlob{}, nil
+	}
 	present, reusedInfo, err := d.destination.TryReusingBlobWithOptions(ctx, info, options)
 	if err != nil || present {
 		return present, reusedInfo, err
@@ -246,7 +261,7 @@ func (d *blobCacheDestination) TryReusingBlobWithOptions(ctx context.Context, in
 
 	blobPath, _, isConfig, err := d.reference.findBlob(info)
 	if err != nil {
-		return false, types.BlobInfo{}, err
+		return false, private.ReusedBlob{}, err
 	}
 	if blobPath != "" {
 		f, err := os.Open(blobPath)
@@ -259,13 +274,13 @@ func (d *blobCacheDestination) TryReusingBlobWithOptions(ctx context.Context, in
 				LayerIndex: options.LayerIndex,
 			})
 			if err != nil {
-				return false, types.BlobInfo{}, err
+				return false, private.ReusedBlob{}, err
 			}
-			return true, uploadedInfo, nil
+			return true, private.ReusedBlob{Digest: uploadedInfo.Digest, Size: uploadedInfo.Size}, nil
 		}
 	}
 
-	return false, types.BlobInfo{}, nil
+	return false, private.ReusedBlob{}, nil
 }
 
 func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []byte, instanceDigest *digest.Digest) error {
@@ -273,7 +288,10 @@ func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []
 	if err != nil {
 		logrus.Warnf("error digesting manifest %q: %v", string(manifestBytes), err)
 	} else {
-		filename := d.reference.blobPath(manifestDigest, false)
+		filename, err := d.reference.blobPath(manifestDigest, false)
+		if err != nil {
+			return err
+		}
 		if err = ioutils.AtomicWriteFile(filename, manifestBytes, 0600); err != nil {
 			logrus.Warnf("error saving manifest as %q: %v", filename, err)
 		}

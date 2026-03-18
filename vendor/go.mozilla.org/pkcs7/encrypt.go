@@ -35,7 +35,7 @@ type recipientInfo struct {
 type encryptedContentInfo struct {
 	ContentType                asn1.ObjectIdentifier
 	ContentEncryptionAlgorithm pkix.AlgorithmIdentifier
-	EncryptedContent           asn1.RawValue `asn1:"tag:0,optional,explicit"`
+	EncryptedContent           asn1.RawValue `asn1:"tag:0,optional"`
 }
 
 const (

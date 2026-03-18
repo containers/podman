@@ -12,6 +12,8 @@ The `zstd` package is provided as open source software using a Go standard licen
 
 Currently the package is heavily optimized for 64 bit processors and will be significantly slower on 32 bit processors.
 
+For seekable zstd streams, see [this excellent package](https://github.com/SaveTheRbtz/zstd-seekable-format-go).
+
 ## Installation
 
 Install using `go get -u github.com/klauspost/compress`. The package is located in `github.com/klauspost/compress/zstd`.
@@ -302,7 +304,7 @@ import "github.com/klauspost/compress/zstd"
 
 // Create a reader that caches decompressors.
 // For this operation type we supply a nil Reader.
-var decoder, _ = zstd.NewReader(nil, WithDecoderConcurrency(0))
+var decoder, _ = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
 
 // Decompress a buffer. We don't supply a destination buffer,
 // so it will be allocated by the decoder.

@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -47,7 +46,7 @@ import (
 	mountpk "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
-	"github.com/opencontainers/runc/libcontainer/userns"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/tar/storage"
@@ -65,10 +64,10 @@ var (
 	enableDirperm     bool
 )
 
-const defaultPerms = os.FileMode(0555)
+const defaultPerms = os.FileMode(0o555)
 
 func init() {
-	graphdriver.Register("aufs", Init)
+	graphdriver.MustRegister("aufs", Init)
 }
 
 // Driver contains information about the filesystem mounted.
@@ -88,11 +87,9 @@ type Driver struct {
 // Init returns a new AUFS driver.
 // An error is returned if AUFS is not supported.
 func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
-
 	// Try to load the aufs kernel module
 	if err := supportsAufs(); err != nil {
 		return nil, fmt.Errorf("kernel does not support aufs: %w", graphdriver.ErrNotSupported)
-
 	}
 
 	fsMagic, err := graphdriver.GetFSMagic(home)
@@ -146,7 +143,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	// Create the root aufs driver dir and return
 	// if it already exists
 	// If not populate the dir structure
-	if err := idtools.MkdirAllAs(home, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(home, 0o700, rootUID, rootGID); err != nil {
 		if os.IsExist(err) {
 			return a, nil
 		}
@@ -159,7 +156,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	// Populate the dir structure
 	for _, p := range paths {
-		if err := idtools.MkdirAllAs(path.Join(home, p), 0700, rootUID, rootGID); err != nil {
+		if err := idtools.MkdirAllAs(path.Join(home, p), 0o700, rootUID, rootGID); err != nil {
 			return nil, err
 		}
 	}
@@ -170,7 +167,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	for _, path := range []string{"mnt", "diff"} {
 		p := filepath.Join(home, path)
-		entries, err := ioutil.ReadDir(p)
+		entries, err := os.ReadDir(p)
 		if err != nil {
 			logger.WithError(err).WithField("dir", p).Error("error reading dir entries")
 			continue
@@ -200,7 +197,7 @@ func supportsAufs() error {
 	// proc/filesystems for when aufs is supported
 	exec.Command("modprobe", "aufs").Run()
 
-	if userns.RunningInUserNS() {
+	if unshare.IsRootless() {
 		return ErrAufsNested
 	}
 
@@ -240,7 +237,7 @@ func (a *Driver) Status() [][2]string {
 
 // Metadata not implemented
 func (a *Driver) Metadata(id string) (map[string]string, error) {
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 // Exists returns true if the given id is registered with
@@ -250,6 +247,23 @@ func (a *Driver) Exists(id string) bool {
 		return false
 	}
 	return true
+}
+
+// ListLayers() returns all of the layers known to the driver.
+func (a *Driver) ListLayers() ([]string, error) {
+	diffsDir := filepath.Join(a.rootPath(), "diff")
+	entries, err := os.ReadDir(diffsDir)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		results = append(results, entry.Name())
+	}
+	return results, nil
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver
@@ -274,7 +288,6 @@ func (a *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts
 // Create three folders for each id
 // mnt, layers, and diff
 func (a *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-
 	if opts != nil && len(opts.StorageOpt) != 0 {
 		return fmt.Errorf("--storage-opt is not supported for aufs")
 	}
@@ -730,14 +743,14 @@ func (a *Driver) aufsMount(ro []string, rw, target string, options graphdriver.M
 // version of aufs.
 func useDirperm() bool {
 	enableDirpermLock.Do(func() {
-		base, err := ioutil.TempDir("", "storage-aufs-base")
+		base, err := os.MkdirTemp("", "storage-aufs-base")
 		if err != nil {
 			logrus.Errorf("Checking dirperm1: %v", err)
 			return
 		}
 		defer os.RemoveAll(base)
 
-		union, err := ioutil.TempDir("", "storage-aufs-union")
+		union, err := os.MkdirTemp("", "storage-aufs-union")
 		if err != nil {
 			logrus.Errorf("Checking dirperm1: %v", err)
 			return

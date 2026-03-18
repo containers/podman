@@ -50,6 +50,9 @@ func (e EventJournalD) Write(ee Event) error {
 		if ee.ContainerExitCode != 0 {
 			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
 		}
+		if ee.PodID != "" {
+			m["PODMAN_POD_ID"] = ee.PodID
+		}
 		// If we have container labels, we need to convert them to a string so they
 		// can be recorded with the event
 		if len(ee.Details.Attributes) > 0 {
@@ -60,6 +63,10 @@ func (e EventJournalD) Write(ee Event) error {
 			m["PODMAN_LABELS"] = string(b)
 		}
 		m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
+
+		if len(ee.Details.ContainerInspectData) > 0 {
+			m["PODMAN_CONTAINER_INSPECT_DATA"] = ee.Details.ContainerInspectData
+		}
 	case Network:
 		m["PODMAN_ID"] = ee.ID
 		m["PODMAN_NETWORK_NAME"] = ee.Network
@@ -112,57 +119,16 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		}
 	}
 
-	// the api requires a next|prev before getting a cursor
-	if _, err := j.Next(); err != nil {
-		return fmt.Errorf("failed to move journal cursor to next entry: %w", err)
-	}
-
-	prevCursor, err := j.GetCursor()
-	if err != nil {
-		return fmt.Errorf("failed to get journal cursor: %w", err)
-	}
 	for {
-		select {
-		case <-ctx.Done():
-			// the consumer has cancelled
+		entry, err := getNextEntry(ctx, j, options.Stream, untilTime)
+		if err != nil {
+			return err
+		}
+		// no entry == we hit the end
+		if entry == nil {
 			return nil
-		default:
-			// fallthrough
 		}
 
-		if _, err := j.Next(); err != nil {
-			return fmt.Errorf("failed to move journal cursor to next entry: %w", err)
-		}
-		newCursor, err := j.GetCursor()
-		if err != nil {
-			return fmt.Errorf("failed to get journal cursor: %w", err)
-		}
-		if prevCursor == newCursor {
-			if !options.Stream || (len(options.Until) > 0 && time.Now().After(untilTime)) {
-				break
-			}
-
-			// j.Wait() is blocking, this would cause the goroutine to hang forever
-			// if no more journal entries are generated and thus if the client
-			// has closed the connection in the meantime to leak memory.
-			// Waiting only 5 seconds makes sure we can check if the client closed in the
-			// meantime at least every 5 seconds.
-			t := 5 * time.Second
-			if len(options.Until) > 0 {
-				until := time.Until(untilTime)
-				if until < t {
-					t = until
-				}
-			}
-			_ = j.Wait(t)
-			continue
-		}
-		prevCursor = newCursor
-
-		entry, err := j.GetEntry()
-		if err != nil {
-			return fmt.Errorf("failed to read journal entry: %w", err)
-		}
 		newEvent, err := newEventFromJournalEntry(entry)
 		if err != nil {
 			// We can't decode this event.
@@ -177,7 +143,6 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 			options.EventChannel <- newEvent
 		}
 	}
-	return nil
 }
 
 func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
@@ -203,6 +168,9 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 	case Container, Pod:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Image = entry.Fields["PODMAN_IMAGE"]
+		if podID, ok := entry.Fields["PODMAN_POD_ID"]; ok {
+			newEvent.PodID = podID
+		}
 		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
 			intCode, err := strconv.Atoi(code)
 			if err != nil {
@@ -221,10 +189,13 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 
 			// if we have labels, add them to the event
 			if len(labels) > 0 {
-				newEvent.Details = Details{Attributes: labels}
+				newEvent.Attributes = labels
 			}
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
+		if inspectData, ok := entry.Fields["PODMAN_CONTAINER_INSPECT_DATA"]; ok {
+			newEvent.Details.ContainerInspectData = inspectData
+		}
 	case Network:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Network = entry.Fields["PODMAN_NETWORK_NAME"]
@@ -237,4 +208,52 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 // String returns a string representation of the logger
 func (e EventJournalD) String() string {
 	return Journald.String()
+}
+
+// getNextEntry returns the next entry in the journal. If the end  of the
+// journal is reached and stream is not set or the current time is after
+// the until time this function return nil,nil.
+func getNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
+	for {
+		select {
+		case <-ctx.Done():
+			// the consumer has cancelled
+			return nil, nil
+		default:
+			// fallthrough
+		}
+		// the api requires a next|prev before reading the event
+		ret, err := j.Next()
+		if err != nil {
+			return nil, fmt.Errorf("failed to move journal cursor to next entry: %w", err)
+		}
+		// ret == 0 equals EOF, see sd_journal_next(3)
+		if ret == 0 {
+			if !stream || (!untilTime.IsZero() && time.Now().After(untilTime)) {
+				// we hit the end and should not keep streaming
+				return nil, nil
+			}
+			// keep waiting for the next entry
+			// j.Wait() is blocking, this would cause the goroutine to hang forever
+			// if no more journal entries are generated and thus if the client
+			// has closed the connection in the meantime to leak memory.
+			// Waiting only 5 seconds makes sure we can check if the client closed in the
+			// meantime at least every 5 seconds.
+			t := 5 * time.Second
+			if !untilTime.IsZero() {
+				until := time.Until(untilTime)
+				if until < t {
+					t = until
+				}
+			}
+			_ = j.Wait(t)
+			continue
+		}
+
+		entry, err := j.GetEntry()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read journal entry: %w", err)
+		}
+		return entry, nil
+	}
 }

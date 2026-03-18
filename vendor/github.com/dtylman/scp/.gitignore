@@ -23,3 +23,5 @@ _testmain.go
 *.test
 *.prof
 example/example
+goscp/example
+goscp/goscp

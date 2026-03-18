@@ -214,6 +214,8 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	if options.Layers {
 		params.Set("layers", "1")
+	} else {
+		params.Set("layers", "0")
 	}
 	if options.LogRusage {
 		params.Set("rusage", "1")

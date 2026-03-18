@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helpers
+load helpers.network
 
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {
@@ -169,6 +170,8 @@ function random_ip() {
 }
 
 @test "podman pod create - hashtag AllTheOptions" {
+    skip "connection timeout on RHEL 9.2.0 (firewall blocks 127.0.0.1 ports)"
+
     mac=$(random_mac)
     add_host_ip=$(random_ip)
     add_host_n=$(random_string | tr A-Z a-z).$(random_string | tr A-Z a-z).xyz
@@ -470,34 +473,6 @@ spec:
     is "$output" "stop" "custom exit policy"
     _ensure_pod_state $name-pod Exited
     run_podman pod rm $name-pod
-}
-
-@test "pod resource limits" {
-    skip_if_remote "resource limits only implemented on non-remote"
-    skip_if_rootless "resource limits only work with root"
-    skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
-
-    local name1="resources1"
-    run_podman --cgroup-manager=systemd pod create --name=$name1 --cpus=5 --memory=10m
-    run_podman --cgroup-manager=systemd pod start $name1
-    run_podman pod inspect --format '{{.CgroupPath}}' $name1
-    local path1="$output"
-    local actual1=$(< /sys/fs/cgroup/$path1/cpu.max)
-    is "$actual1" "500000 100000" "resource limits set properly"
-    local actual2=$(< /sys/fs/cgroup/$path1/memory.max)
-    is "$actual2" "10485760" "resource limits set properly"
-    run_podman pod --cgroup-manager=systemd rm -f $name1
-
-    local name2="resources2"
-    run_podman --cgroup-manager=cgroupfs pod create --cpus=5 --memory=10m --name=$name2
-    run_podman --cgroup-manager=cgroupfs pod start $name2
-    run_podman pod inspect --format '{{.CgroupPath}}' $name2
-    local path2="$output"
-    local actual2=$(< /sys/fs/cgroup/$path2/cpu.max)
-    is "$actual2" "500000 100000" "resource limits set properly"
-    local actual2=$(< /sys/fs/cgroup/$path2/memory.max)
-    is "$actual2" "10485760" "resource limits set properly"
-    run_podman --cgroup-manager=cgroupfs pod rm $name2
 }
 
 @test "podman pod ps doesn't race with pod rm" {

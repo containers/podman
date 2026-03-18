@@ -60,6 +60,7 @@ func BarWidth(width int) BarOption {
 }
 
 // BarQueueAfter puts this (being constructed) bar into the queue.
+// BarPriority will be inherited from the argument bar.
 // When argument bar completes or aborts queued bar replaces its place.
 // If sync is true queued bar is suspended until argument bar completes
 // or aborts.
@@ -68,8 +69,8 @@ func BarQueueAfter(bar *Bar, sync bool) BarOption {
 		return nil
 	}
 	return func(s *bState) {
-		s.afterBar = bar
-		s.sync = sync
+		s.wait.bar = bar
+		s.wait.sync = sync
 	}
 }
 
@@ -111,29 +112,61 @@ func BarFillerMiddleware(middle func(BarFiller) BarFiller) BarOption {
 }
 
 // BarPriority sets bar's priority. Zero is highest priority, i.e. bar
-// will be on top. If `BarReplaceOnComplete` option is supplied, this
-// option is ignored.
+// will be on top. This option isn't effective with `BarQueueAfter` option.
 func BarPriority(priority int) BarOption {
 	return func(s *bState) {
 		s.priority = priority
 	}
 }
 
-// BarExtender provides a way to extend bar to the next new line.
+// BarExtender extends bar with arbitrary lines. Provided BarFiller will be
+// called at each render/flush cycle. Any lines written to the underlying
+// io.Writer will be printed after the bar itself.
 func BarExtender(filler BarFiller) BarOption {
+	return barExtender(filler, false)
+}
+
+// BarExtenderRev extends bar with arbitrary lines in reverse order. Provided
+// BarFiller will be called at each render/flush cycle. Any lines written
+// to the underlying io.Writer will be printed before the bar itself.
+func BarExtenderRev(filler BarFiller) BarOption {
+	return barExtender(filler, true)
+}
+
+func barExtender(filler BarFiller, rev bool) BarOption {
 	if filler == nil {
 		return nil
 	}
 	return func(s *bState) {
-		s.extender = makeExtenderFunc(filler)
+		s.extender = makeExtenderFunc(filler, rev)
 	}
 }
 
-func makeExtenderFunc(filler BarFiller) extenderFunc {
+func makeExtenderFunc(filler BarFiller, rev bool) extenderFunc {
 	buf := new(bytes.Buffer)
-	return func(r io.Reader, reqWidth int, st decor.Statistics) (io.Reader, int) {
-		filler.Fill(buf, reqWidth, st)
-		return io.MultiReader(r, buf), bytes.Count(buf.Bytes(), []byte("\n"))
+	base := func(rows []io.Reader, width int, stat decor.Statistics) []io.Reader {
+		buf.Reset()
+		filler.Fill(buf, width, stat)
+		for {
+			b, err := buf.ReadBytes('\n')
+			if err != nil {
+				break
+			}
+			rows = append(rows, bytes.NewReader(b))
+		}
+		return rows
+	}
+
+	if !rev {
+		return base
+	} else {
+		return func(rows []io.Reader, width int, stat decor.Statistics) []io.Reader {
+			rows = base(rows, width, stat)
+			for left, right := 0, len(rows)-1; left < right; left, right = left+1, right-1 {
+				rows[left], rows[right] = rows[right], rows[left]
+			}
+			return rows
+		}
 	}
 }
 

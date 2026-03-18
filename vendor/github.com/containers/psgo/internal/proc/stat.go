@@ -32,7 +32,7 @@ type Stat struct {
 	// whether or not the executable is swapped out.
 	Comm string
 	// (3) The process state (e.g., running, sleeping, zombie, dead).
-	// Refer to proc(5) for further deatils.
+	// Refer to proc(5) for further details.
 	State string
 	// (4) The PID of the parent of this process.
 	Ppid string

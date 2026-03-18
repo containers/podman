@@ -9,7 +9,9 @@ import (
 type ContainerNetwork interface {
 	// NetworkCreate will take a partial filled Network and fill the
 	// missing fields. It creates the Network and returns the full Network.
-	NetworkCreate(Network) (Network, error)
+	NetworkCreate(Network, *NetworkCreateOptions) (Network, error)
+	// NetworkUpdate will take network name and ID and updates network DNS Servers.
+	NetworkUpdate(nameOrID string, options NetworkUpdateOptions) error
 	// NetworkRemove will remove the Network with the given name or ID.
 	NetworkRemove(nameOrID string) error
 	// NetworkList will return all known Networks. Optionally you can
@@ -32,6 +34,10 @@ type ContainerNetwork interface {
 	// DefaultNetworkName will return the default network name
 	// for this interface.
 	DefaultNetworkName() string
+
+	// NetworkInfo return the network information about backend type,
+	// binary path, package version and so on.
+	NetworkInfo() NetworkInfo
 }
 
 // Network describes the Network attributes.
@@ -48,14 +54,20 @@ type Network struct {
 	Created time.Time `json:"created,omitempty"`
 	// Subnets to use for this network.
 	Subnets []Subnet `json:"subnets,omitempty"`
+	// Routes to use for this network.
+	Routes []Route `json:"routes,omitempty"`
 	// IPv6Enabled if set to true an ipv6 subnet should be created for this net.
 	IPv6Enabled bool `json:"ipv6_enabled"`
 	// Internal is whether the Network should not have external routes
 	// to public or other Networks.
 	Internal bool `json:"internal"`
 	// DNSEnabled is whether name resolution is active for container on
-	// this Network.
+	// this Network. Only supported with the bridge driver.
 	DNSEnabled bool `json:"dns_enabled"`
+	// List of custom DNS server for podman's DNS resolver at network level,
+	// all the containers attached to this network will consider resolvers
+	// configured at network level.
+	NetworkDNSServers []string `json:"network_dns_servers,omitempty"`
 	// Labels is a set of key-value labels that have been applied to the
 	// Network.
 	Labels map[string]string `json:"labels,omitempty"`
@@ -64,6 +76,30 @@ type Network struct {
 	Options map[string]string `json:"options,omitempty"`
 	// IPAMOptions contains options used for the ip assignment.
 	IPAMOptions map[string]string `json:"ipam_options,omitempty"`
+}
+
+// NetworkOptions for a given container.
+type NetworkUpdateOptions struct {
+	// List of custom DNS server for podman's DNS resolver.
+	// Priority order will be kept as defined by user in the configuration.
+	AddDNSServers    []string `json:"add_dns_servers,omitempty"`
+	RemoveDNSServers []string `json:"remove_dns_servers,omitempty"`
+}
+
+// NetworkInfo contains the network information.
+type NetworkInfo struct {
+	Backend NetworkBackend `json:"backend"`
+	Version string         `json:"version,omitempty"`
+	Package string         `json:"package,omitempty"`
+	Path    string         `json:"path,omitempty"`
+	DNS     DNSNetworkInfo `json:"dns,omitempty"`
+}
+
+// NetworkInfo contains the DNS information.
+type DNSNetworkInfo struct {
+	Version string `json:"version,omitempty"`
+	Package string `json:"package,omitempty"`
+	Path    string `json:"path,omitempty"`
 }
 
 // IPNet is used as custom net.IPNet type to add Marshal/Unmarshal methods.
@@ -155,6 +191,17 @@ type Subnet struct {
 	LeaseRange *LeaseRange `json:"lease_range,omitempty"`
 }
 
+type Route struct {
+	// Destination for this route in CIDR form.
+	// swagger:strfmt string
+	Destination IPNet `json:"destination"`
+	// Gateway IP for this route.
+	// swagger:strfmt string
+	Gateway net.IP `json:"gateway"`
+	// Metric for this route. Optional.
+	Metric *uint32 `json:"metric,omitempty"`
+}
+
 // LeaseRange contains the range where IP are leased.
 type LeaseRange struct {
 	// StartIP first IP in the subnet which should be used to assign ips.
@@ -199,6 +246,7 @@ type NetAddress struct {
 // PerNetworkOptions are options which should be set on a per network basis.
 type PerNetworkOptions struct {
 	// StaticIPs for this container. Optional.
+	// swagger:type []string
 	StaticIPs []net.IP `json:"static_ips,omitempty"`
 	// Aliases contains a list of names which the dns server should resolve
 	// to this container. Should only be set when DNSEnabled is true on the Network.
@@ -207,6 +255,7 @@ type PerNetworkOptions struct {
 	// Optional.
 	Aliases []string `json:"aliases,omitempty"`
 	// StaticMac for this container. Optional.
+	// swagger:strfmt string
 	StaticMAC HardwareAddr `json:"static_mac,omitempty"`
 	// InterfaceName for this container. Required in the backend.
 	// Optional in the frontend. Will be filled with ethX (where X is a integer) when empty.
@@ -224,6 +273,9 @@ type NetworkOptions struct {
 	// Networks contains all networks with the PerNetworkOptions.
 	// The map should contain at least one element.
 	Networks map[string]PerNetworkOptions `json:"networks"`
+	// List of custom DNS server for podman's DNS resolver.
+	// Priority order will be kept as defined by user in the configuration.
+	DNSServers []string `json:"dns_servers,omitempty"`
 }
 
 // PortMapping is one or more ports that will be mapped into the container.
@@ -280,3 +332,8 @@ type TeardownOptions struct {
 
 // FilterFunc can be passed to NetworkList to filter the networks.
 type FilterFunc func(Network) bool
+
+type NetworkCreateOptions struct {
+	// IgnoreIfExists if true, do not fail if the network already exists
+	IgnoreIfExists bool
+}

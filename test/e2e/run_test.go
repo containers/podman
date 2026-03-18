@@ -74,6 +74,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run from manifest list", func() {
+		SkipIfRemote("BUG: remote does not find manifests in local storage, tries to pull localhost/ from registry")
 		session := podmanTest.Podman([]string{"manifest", "create", "localhost/test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

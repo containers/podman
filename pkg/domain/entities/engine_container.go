@@ -60,7 +60,7 @@ type ContainerEngine interface {
 	HealthCheckRun(ctx context.Context, nameOrID string, options HealthCheckOptions) (*define.HealthCheckResults, error)
 	Info(ctx context.Context) (*define.Info, error)
 	NetworkConnect(ctx context.Context, networkname string, options NetworkConnectOptions) error
-	NetworkCreate(ctx context.Context, network types.Network) (*types.Network, error)
+	NetworkCreate(ctx context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error)
 	NetworkDisconnect(ctx context.Context, networkname string, options NetworkDisconnectOptions) error
 	NetworkExists(ctx context.Context, networkname string) (*BoolReport, error)
 	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]types.Network, []error, error)
