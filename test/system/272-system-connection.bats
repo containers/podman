@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 # This will be set if we start a local service
 _SERVICE_PID=
