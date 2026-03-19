@@ -1135,4 +1135,48 @@ EOF
     is "$output" ".*${pasta_iface}.*"
 }
 
+# Refer https://github.com/containers/netavark/issues/1338
+# bats test_tags=ci:parallel
+@test "podman run - dual-stack port binding" {
+    skip_if_rootless
+
+    myport=$(random_free_port)
+    cname="c-$(safename)"
+    teststring=$(random_string 30)
+
+    run_podman run -d --name $cname -p $myport:$myport \
+               $IMAGE nc -l -n -v -p $myport
+    cid="$output"
+
+    wait_for_output "listening on .*:$myport .*" $cid
+
+    echo "$teststring" > /dev/tcp/127.0.0.1/$myport
+
+    run_podman logs $cid
+    assert "$output" =~ "listening on \[::\]:$myport" "nc listening on IPv6 wildcard (dual-stack)"
+    assert "$output" =~ "$teststring" "IPv4 connection received"
+
+    run_podman rm -f -t0 $cid
+}
+
+# Refer https://github.com/containers/netavark/issues/1338
+# bats test_tags=ci:parallel
+@test "podman run - dual-stack conflicts with explicit wildcards" {
+    skip_if_rootless "port reservation only works as root"
+
+    myport=$(random_free_port)
+    cname1="c1-$(safename)"
+
+    run_podman run -d --name $cname1 -p $myport:8080 $IMAGE sleep inf
+    cid1="$output"
+
+    run_podman 126 run --rm -p 0.0.0.0:$myport:8080 $IMAGE true
+    assert "$output" =~ "address already in use" "explicit IPv4 wildcard should conflict with dual-stack"
+
+    run_podman 126 run --rm -p [::]:$myport:8080 $IMAGE true
+    assert "$output" =~ "address already in use" "explicit IPv6 wildcard should conflict with dual-stack"
+
+    run_podman rm -f -t0 $cid1
+}
+
 # vim: filetype=sh
