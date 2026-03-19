@@ -275,7 +275,7 @@ func TestParseNetworkFlag(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, got2, err := ParseNetworkFlag(tt.args)
+			got, got1, got2, got3, err := ParseNetworkFlag(tt.args)
 			if tt.err != "" {
 				assert.EqualError(t, err, tt.err, tt.name)
 			} else {
@@ -284,7 +284,8 @@ func TestParseNetworkFlag(t *testing.T) {
 
 			assert.Equal(t, tt.nsmode, got, tt.name)
 			assert.Equal(t, tt.networks, got1, tt.name)
-			assert.Equal(t, tt.options, got2, tt.name)
+			assert.Equal(t, tt.args, got2, tt.name)
+			assert.Equal(t, tt.options, got3, tt.name)
 		})
 	}
 }

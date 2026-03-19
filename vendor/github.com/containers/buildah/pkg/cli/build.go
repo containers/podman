@@ -331,7 +331,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		}
 	}
 
-	if c.Flag("network").Changed && c.Flag("isolation").Changed {
+	if c.Flag("network").Changed {
 		if isolation == define.IsolationChroot {
 			if ns := namespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil {
 				if !ns.Host {
