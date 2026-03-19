@@ -38,6 +38,8 @@ var (
 	LogLevels = []string{"trace", "debug", "info", "warn", "warning", "error", "fatal", "panic"}
 	// ValidSaveFormats is the list of support podman save formats
 	ValidSaveFormats = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
+	// ValidScpFormats is the list of formats for podman image scp (archive types only)
+	ValidScpFormats = []string{define.OCIArchive, define.V2s2Archive}
 )
 
 type completeType int
@@ -1709,6 +1711,11 @@ func AutocompletePsSort(_ *cobra.Command, _ []string, _ string) ([]string, cobra
 // AutocompleteImageSaveFormat - Autocomplete image save format options.
 func AutocompleteImageSaveFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return ValidSaveFormats, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteImageScpFormat - Autocomplete image scp format options (oci-archive, docker-archive).
+func AutocompleteImageScpFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return ValidScpFormats, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteWaitCondition - Autocomplete wait condition options.
