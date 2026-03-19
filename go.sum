@@ -281,6 +281,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJ
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee h1:W5t00kpgFdJifH4BDsTlE89Zl93FEloxaWZfGcifgq8=
 github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
+github.com/mtrmac/container-libs/image/v5 v5.0.0-20260319185914-5571d7ffceec h1:sQjrQG9g89/7P7VdSDpPCkUBOimUrURhlvHALuuCDhw=
+github.com/mtrmac/container-libs/image/v5 v5.0.0-20260319185914-5571d7ffceec/go.mod h1:eSTQb66cEeMtWaj3y4mfDsMB7t068tG+UjbPLWj60ho=
 github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/onsi/ginkgo/v2 v2.28.1 h1:S4hj+HbZp40fNKuLUQOYLDgZLwNUVn19N3Atb98NCyI=
@@ -433,8 +435,6 @@ go.opentelemetry.io/otel/trace v1.40.0 h1:WA4etStDttCSYuhwvEa8OP8I5EWu24lkOzp+ZY
 go.opentelemetry.io/otel/trace v1.40.0/go.mod h1:zeAhriXecNGP/s2SEG3+Y8X9ujcJOTqQ5RgdEJcawiA=
 go.podman.io/common v0.67.1-0.20260316162257-e70c309aabae h1:VoUmnazJGnPqWoGYF3YzRU0ZgA9DQ3qg1bYCqhkYUyg=
 go.podman.io/common v0.67.1-0.20260316162257-e70c309aabae/go.mod h1:sugHfpSU9btZ6KRTruHrfbzTO8HbOCX9s++p7kmdbOQ=
-go.podman.io/image/v5 v5.39.2-0.20260316162257-e70c309aabae h1:jBTnK7tFX0O7b5wuo2b+JunSLxJE0rSsTvhiTGtfNf8=
-go.podman.io/image/v5 v5.39.2-0.20260316162257-e70c309aabae/go.mod h1:eSTQb66cEeMtWaj3y4mfDsMB7t068tG+UjbPLWj60ho=
 go.podman.io/storage v1.62.1-0.20260316162257-e70c309aabae h1:2cNSnB3KSKTtmd+PBqAHsQmNjhOkmh2Ne0mhhMRrMRo=
 go.podman.io/storage v1.62.1-0.20260316162257-e70c309aabae/go.mod h1:k8lWBDknm4IJEfY9Gy3P/wRFT8aWvtk+rPtD8FKxIBE=
 go.yaml.in/yaml/v2 v2.4.3 h1:6gvOSjQoTB3vt1l+CU+tSyi/HOjfOjRLJ4YwYZGwRO0=
