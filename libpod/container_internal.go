@@ -373,7 +373,10 @@ func (c *Container) syncContainer() error {
 
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
-			// Check for a restart policy match
+			// Mark restart-policy match only for runtime-observed exits from
+			// Running/Paused into Stopped/Exited when the container was not
+			// explicitly stopped by the user. Explicit stopInternal() paths set
+			// state to Stopping first, so they typically do not satisfy this.
 			if c.config.RestartPolicy != define.RestartPolicyNone && c.config.RestartPolicy != define.RestartPolicyNo &&
 				(oldState == define.ContainerStateRunning || oldState == define.ContainerStatePaused) &&
 				(c.state.State == define.ContainerStateStopped || c.state.State == define.ContainerStateExited) &&
@@ -1386,6 +1389,16 @@ func (c *Container) stopWithAll() (bool, error) {
 
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
+	return c.stopInternal(timeout, true)
+}
+
+// Internal, non-locking function to stop container
+// stoppedByUser controls whether to set the StoppedByUser state field.
+func (c *Container) stopInternal(timeout uint, stoppedByUser bool) error {
+	// This is explicit container stop that flows pass through Running -> Stopping -> Stopped/Exited states.
+	// As a result, this does not satisfy the Running/Paused -> Stopped/Exited
+	// transition that is required to trigger restart policy during cleanup.
+
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
 	all, err := c.stopWithAll()
@@ -1406,13 +1419,20 @@ func (c *Container) stop(timeout uint) error {
 		cannotStopErr = fmt.Errorf("can only stop created or running containers. %s is in state %s: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
-	c.state.StoppedByUser = true
+	if stoppedByUser {
+		c.state.StoppedByUser = true
+	}
+
 	if cannotStopErr == nil {
 		// Set the container state to "stopping" and unlock the container
 		// before handing it over to conmon to unblock other commands.  #8501
 		// demonstrates nicely that a high stop timeout will block even simple
 		// commands such as `podman ps` from progressing if the container lock
 		// is held when busy-waiting for the container to be stopped.
+		//
+		// This intermediate Stopping state also ensures an explicit stop path is
+		// distinguished from a runtime-observed Running/Paused -> Stopped/Exited
+		// transition when syncContainer() computes RestartPolicyMatch.
 		c.state.State = define.ContainerStateStopping
 	}
 	if err := c.save(); err != nil {

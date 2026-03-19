@@ -294,7 +294,11 @@ func (ic *ContainerEngine) ContainerUnpause(_ context.Context, namesOrIds []stri
 	}
 	return reports, nil
 }
-func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+
+// containerStopRunner is the signature for stopping a single container (used to share logic between ContainerStop and ContainerStopService).
+type containerStopRunner func(*libpod.Container, uint) error
+
+func (ic *ContainerEngine) containerStopImpl(ctx context.Context, namesOrIds []string, options entities.StopOptions, runStop containerStopRunner) ([]*entities.StopReport, error) {
 	containers, err := getContainers(ic.Libpod,
 		getContainersOptions{
 			all:     options.All,
@@ -318,13 +322,12 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	}
 
 	errMap, err := parallelctr.ContainerOp(ctx, libpodContainers, func(c *libpod.Container) error {
-		var err error
+		timeout := c.StopTimeout()
 		if options.Timeout != nil {
-			err = c.StopWithTimeout(*options.Timeout)
-		} else {
-			err = c.Stop()
+			timeout = *options.Timeout
 		}
-		if err != nil {
+
+		if err := runStop(c, timeout); err != nil {
 			switch {
 			case errors.Is(err, define.ErrCtrStopped):
 				logrus.Debugf("Container %s is already stopped", c.ID())
@@ -359,7 +362,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				}
 			}
 		} else {
-			if err = c.Cleanup(ctx, false); err != nil {
+			if err := c.Cleanup(ctx, false); err != nil {
 				// The container could still have been removed, as we unlocked
 				// after we stopped it.
 				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
@@ -382,6 +385,14 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		reports = append(reports, report)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+	return ic.containerStopImpl(ctx, namesOrIds, options, func(c *libpod.Container, t uint) error { return c.StopWithTimeout(t) })
+}
+
+func (ic *ContainerEngine) ContainerStopService(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+	return ic.containerStopImpl(ctx, namesOrIds, options, func(c *libpod.Container, t uint) error { return c.StopService(t) })
 }
 
 func (ic *ContainerEngine) ContainerPrune(_ context.Context, options entities.ContainerPruneOptions) ([]*reports.PruneReport, error) {
