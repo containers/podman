@@ -30,9 +30,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/docker/docker/pkg/homedir"
-	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/client/pkg/jsonmessage"
+	"github.com/moby/moby/v2/pkg/homedir"
 )
 
 const (
@@ -654,7 +654,7 @@ func handleStreamResponse(resp *http.Response, streamOptions *streamOptions) err
 		return err
 	}
 	if st, ok := streamOptions.stdout.(stream); ok {
-		err = jsonmessage.DisplayJSONMessagesToStream(resp.Body, st, nil)
+		err = jsonmessage.DisplayJSONMessagesStream(resp.Body, st, st.FD(), st.IsTerminal(), nil)
 	} else {
 		err = jsonmessage.DisplayJSONMessagesStream(resp.Body, streamOptions.stdout, 0, false, nil)
 	}

@@ -624,7 +624,7 @@ var _ = Describe("Podman network create", func() {
 
 		// can only check this as root
 		if !isRootless() {
-			// make sure cni/netavark created bridge with expected name
+			// make sure netavark created bridge with expected name
 			bridge, err := net.InterfaceByName(bridgeName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bridge.Name).To(Equal(bridgeName))
@@ -656,7 +656,7 @@ var _ = Describe("Podman network create", func() {
 
 		containerIP, _, err := net.ParseCIDR(try.OutputToString())
 		Expect(err).ToNot(HaveOccurred())
-		// Note as of today (June 2023) we always get the first ip from netavark and cni but let's not depend on that.
+		// Note as of today (June 2023) we always get the first ip from netavark but let's not depend on that.
 		// All we care about is the ip is from the range which allows for both.
 		Expect(containerIP.String()).To(Or(Equal("10.11.16.11"), Equal("10.11.16.12")), "ip address must be in --ip-range")
 	})

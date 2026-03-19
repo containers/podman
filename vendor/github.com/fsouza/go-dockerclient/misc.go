@@ -10,8 +10,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-
-	"github.com/docker/docker/api/types/swarm"
 )
 
 // Version returns version information about the docker server.
@@ -78,21 +76,24 @@ type DockerInfo struct {
 	Isolation          string
 	InitBinary         string
 	DefaultRuntime     string
-	Swarm              swarm.Info
+	Swarm              SwarmInfo
 	LiveRestoreEnabled bool
 	MemoryLimit        bool
 	SwapLimit          bool
-	KernelMemory       bool
-	CPUCfsPeriod       bool `json:"CpuCfsPeriod"`
-	CPUCfsQuota        bool `json:"CpuCfsQuota"`
-	CPUShares          bool
-	CPUSet             bool
-	IPv4Forwarding     bool
-	BridgeNfIptables   bool
-	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
-	Debug              bool
-	OomKillDisable     bool
-	ExperimentalBuild  bool
+	// Deprecated: KernelMemory is deprecated as of API 1.42 and removed in API 1.52.
+	KernelMemory      bool
+	CPUCfsPeriod      bool `json:"CpuCfsPeriod"`
+	CPUCfsQuota       bool `json:"CpuCfsQuota"`
+	CPUShares         bool
+	CPUSet            bool
+	IPv4Forwarding    bool
+	BridgeNfIptables  bool
+	BridgeNfIP6tables bool `json:"BridgeNfIp6tables"`
+	Debug             bool
+	OomKillDisable    bool
+	ExperimentalBuild bool
+	CDISpecDirs       []string        `json:"CDISpecDirs,omitempty"`
+	Containerd        *ContainerdInfo `json:"Containerd,omitempty"`
 }
 
 // Runtime describes an OCI runtime
@@ -101,6 +102,22 @@ type DockerInfo struct {
 type Runtime struct {
 	Path string
 	Args []string `json:"runtimeArgs"`
+}
+
+// ContainerdInfo contains information about the containerd instance.
+type ContainerdInfo struct {
+	Address    string `json:"Address,omitempty"`
+	Namespaces struct {
+		Containers string `json:"Containers,omitempty"`
+		Plugins    string `json:"Plugins,omitempty"`
+	} `json:"Namespaces,omitempty"`
+}
+
+// SwarmInfo contains basic swarm information from docker info.
+// Deprecated: Docker Swarm is deprecated.
+type SwarmInfo struct {
+	NodeID   string
+	NodeAddr string
 }
 
 // PluginsInfo is a struct with the plugins registered with the docker daemon

@@ -1,4 +1,4 @@
-// Copyright 2018 CNI authors
+// Copyright 2015-2018 CNI authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,9 +29,9 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/unshare"
@@ -42,6 +42,209 @@ import (
 const threadNsPath = "/proc/thread-self/ns/net"
 
 var errNoFreeName = errors.New("failed to find free netns path name")
+
+// NetNS defines a network namespace.
+type NetNS interface {
+	// Do executes the passed closure in this object's network namespace,
+	// attempting to restore the original namespace before returning.
+	// However, since each OS thread can have a different network namespace,
+	// and Go's thread scheduling is highly variable, callers cannot
+	// guarantee any specific namespace is set unless operations that
+	// require that namespace are wrapped with Do(). Also, no code called
+	// from Do() should call runtime.UnlockOSThread(), or the risk
+	// of executing code in an incorrect namespace will be greater. See
+	// https://github.com/golang/go/wiki/LockOSThread for further details.
+	Do(toRun func(NetNS) error) error
+
+	// Set sets the current network namespace to this object's network namespace.
+	// Note that since Go's thread scheduling is highly variable, callers
+	// cannot guarantee the requested namespace will be the current namespace
+	// after this function is called; to ensure this wrap operations that
+	// require the namespace with Do() instead.
+	Set() error
+
+	// Path returns the filesystem path representing this object's network namespace.
+	Path() string
+
+	// Fd returns a file descriptor representing this object's network namespace.
+	Fd() uintptr
+
+	// Close cleans up this instance of the network namespace; if this instance
+	// is the last user the namespace will be destroyed.
+	Close() error
+}
+
+type netNS struct {
+	file   *os.File
+	closed bool
+}
+
+// netNS implements the NetNS interface.
+var _ NetNS = &netNS{}
+
+const (
+	// https://github.com/torvalds/linux/blob/master/include/uapi/linux/magic.h
+	nsfsMagic   = unix.NSFS_MAGIC
+	procfsMagic = unix.PROC_SUPER_MAGIC
+)
+
+// NSPathNotExistErr is returned when the netns path does not exist.
+type NSPathNotExistErr struct{ msg string }
+
+func (e NSPathNotExistErr) Error() string { return e.msg }
+
+// NSPathNotNSErr is returned when the path exists but is not a network namespace.
+type NSPathNotNSErr struct{ msg string }
+
+func (e NSPathNotNSErr) Error() string { return e.msg }
+
+// IsNSorErr checks whether the given path is a network namespace.
+func IsNSorErr(nspath string) error {
+	stat := syscall.Statfs_t{}
+	if err := syscall.Statfs(nspath, &stat); err != nil {
+		if os.IsNotExist(err) {
+			err = NSPathNotExistErr{msg: fmt.Sprintf("failed to Statfs %q: %v", nspath, err)}
+		} else {
+			err = fmt.Errorf("failed to Statfs %q: %v", nspath, err)
+		}
+		return err
+	}
+
+	switch stat.Type {
+	case procfsMagic, nsfsMagic:
+		return nil
+	default:
+		return NSPathNotNSErr{msg: fmt.Sprintf("unknown FS magic on %q: %x", nspath, stat.Type)}
+	}
+}
+
+// GetNS returns an object representing the namespace referred to by @path.
+func GetNS(nspath string) (NetNS, error) {
+	err := IsNSorErr(nspath)
+	if err != nil {
+		return nil, err
+	}
+
+	fd, err := os.Open(nspath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &netNS{file: fd}, nil
+}
+
+// GetCurrentNS returns an object representing the current OS thread's network namespace.
+func GetCurrentNS() (NetNS, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	return GetNS(threadNsPath)
+}
+
+// WithNetNSPath executes the passed closure under the given network
+// namespace, restoring the original namespace afterwards.
+func WithNetNSPath(nspath string, toRun func(NetNS) error) error {
+	ns, err := GetNS(nspath)
+	if err != nil {
+		return err
+	}
+	defer ns.Close()
+	return ns.Do(toRun)
+}
+
+func (ns *netNS) Path() string {
+	return ns.file.Name()
+}
+
+func (ns *netNS) Fd() uintptr {
+	return ns.file.Fd()
+}
+
+func (ns *netNS) errorIfClosed() error {
+	if ns.closed {
+		return fmt.Errorf("%q has already been closed", ns.file.Name())
+	}
+	return nil
+}
+
+func (ns *netNS) Close() error {
+	if err := ns.errorIfClosed(); err != nil {
+		return err
+	}
+
+	if err := ns.file.Close(); err != nil {
+		return fmt.Errorf("failed to close %q: %v", ns.file.Name(), err)
+	}
+	ns.closed = true
+
+	return nil
+}
+
+func (ns *netNS) Set() error {
+	if err := ns.errorIfClosed(); err != nil {
+		return err
+	}
+
+	if err := unix.Setns(int(ns.Fd()), unix.CLONE_NEWNET); err != nil {
+		return fmt.Errorf("error switching to ns %v: %v", ns.file.Name(), err)
+	}
+
+	return nil
+}
+
+func (ns *netNS) Do(toRun func(NetNS) error) error {
+	if err := ns.errorIfClosed(); err != nil {
+		return err
+	}
+
+	containedCall := func(hostNS NetNS) error {
+		threadNS, err := GetNS(threadNsPath)
+		if err != nil {
+			return fmt.Errorf("failed to open current netns: %v", err)
+		}
+		defer threadNS.Close()
+
+		// switch to target namespace
+		if err = ns.Set(); err != nil {
+			return fmt.Errorf("error switching to ns %v: %v", ns.file.Name(), err)
+		}
+		defer func() {
+			err := threadNS.Set() // switch back
+			if err == nil {
+				// Unlock the current thread only when we successfully switched back
+				// to the original namespace; otherwise leave the thread locked which
+				// will force the runtime to scrap the current thread, that is maybe
+				// not as optimal but at least always safe to do.
+				runtime.UnlockOSThread()
+			}
+		}()
+
+		return toRun(hostNS)
+	}
+
+	// save a handle to current network namespace
+	hostNS, err := GetCurrentNS()
+	if err != nil {
+		return fmt.Errorf("failed to open current namespace: %v", err)
+	}
+	defer hostNS.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Start the callback in a new green thread so that if we later fail
+	// to switch the namespace back to the original one, we can safely
+	// leave the thread locked to die without a risk of the current thread
+	// left lingering with incorrect namespace.
+	var innerError error
+	go func() {
+		defer wg.Done()
+		runtime.LockOSThread()
+		innerError = containedCall(hostNS)
+	}()
+	wg.Wait()
+
+	return innerError
+}
 
 // GetNSRunDir returns the dir of where to create the netNS. When running
 // rootless, it needs to be at a location writable by user.
@@ -56,13 +259,15 @@ func GetNSRunDir() (string, error) {
 	return "/run/netns", nil
 }
 
-func NewNSAtPath(nsPath string) (ns.NetNS, error) {
+// NewNSAtPath creates a new persistent (bind-mounted) network namespace
+// at the given path and returns an object representing that namespace.
+func NewNSAtPath(nsPath string) (NetNS, error) {
 	return newNSPath(nsPath)
 }
 
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
-func NewNS() (ns.NetNS, error) {
+func NewNS() (NetNS, error) {
 	nsRunDir, err := GetNSRunDir()
 	if err != nil {
 		return nil, err
@@ -208,7 +413,7 @@ func createNetnsFile(path string) error {
 	return mountPointFd.Close()
 }
 
-func newNSPath(nsPath string) (ns.NetNS, error) {
+func newNSPath(nsPath string) (NetNS, error) {
 	// create an empty file to use as at the mount point
 	err := createNetnsFile(nsPath)
 	if err != nil {
@@ -253,7 +458,7 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 		return nil, fmt.Errorf("failed to create namespace: %v", err)
 	}
 
-	return ns.GetNS(nsPath)
+	return GetNS(nsPath)
 }
 
 // UnmountNS unmounts the given netns path.

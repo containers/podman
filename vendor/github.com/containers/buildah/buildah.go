@@ -147,14 +147,13 @@ type Builder struct {
 	// namespace), effectively deciding whether or not the process has a
 	// usable network.
 	ConfigureNetwork define.NetworkConfigurationPolicy
-	// CNIPluginPath is the location of CNI plugin helpers, if they should be
-	// run from a location other than the default location.
+	// Deprecated: CNIPluginPath was the location of CNI plugin helpers.
+	// It is no longer used and is expected to be empty.
 	CNIPluginPath string
-	// CNIConfigDir is the location of CNI configuration files, if the files in
-	// the default configuration directory shouldn't be used.
+	// Deprecated: CNIConfigDir was the location of CNI configuration files.
+	// It is no longer used and is expected to be empty.
 	CNIConfigDir string
-
-	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	// NetworkInterface is the libnetwork network interface used to setup netavark networks.
 	NetworkInterface nettypes.ContainerNetwork `json:"-"`
 
 	// GroupAdd is a list of groups to add to the primary process when Run() is
@@ -224,13 +223,15 @@ type BuilderInfo struct {
 	NamespaceOptions      define.NamespaceOptions
 	Capabilities          []string
 	ConfigureNetwork      string
-	CNIPluginPath         string
-	CNIConfigDir          string
-	IDMappingOptions      define.IDMappingOptions
-	History               []v1.History
-	Devices               define.ContainerDevices
-	DeviceSpecs           []string
-	CDIConfigDir          string
+	// Deprecated: CNIPluginPath is no longer used and is expected to be empty.
+	CNIPluginPath string
+	// Deprecated: CNIConfigDir is no longer used and is expected to be empty.
+	CNIConfigDir     string
+	IDMappingOptions define.IDMappingOptions
+	History          []v1.History
+	Devices          define.ContainerDevices
+	DeviceSpecs      []string
+	CDIConfigDir     string
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -261,8 +262,6 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		Isolation:             b.Isolation.String(),
 		NamespaceOptions:      b.NamespaceOptions,
 		ConfigureNetwork:      fmt.Sprintf("%v", b.ConfigureNetwork),
-		CNIPluginPath:         b.CNIPluginPath,
-		CNIConfigDir:          b.CNIConfigDir,
 		IDMappingOptions:      b.IDMappingOptions,
 		Capabilities:          b.Capabilities,
 		History:               history,
@@ -333,14 +332,13 @@ type BuilderOptions struct {
 	// namespace), effectively deciding whether or not the process has a
 	// usable network.
 	ConfigureNetwork define.NetworkConfigurationPolicy
-	// CNIPluginPath is the location of CNI plugin helpers, if they should be
-	// run from a location other than the default location.
+	// Deprecated: CNIPluginPath was the location of CNI plugin helpers.
+	// It is no longer used and is expected to be empty.
 	CNIPluginPath string
-	// CNIConfigDir is the location of CNI configuration files, if the files in
-	// the default configuration directory shouldn't be used.
+	// Deprecated: CNIConfigDir was the location of CNI configuration files.
+	// It is no longer used and is expected to be empty.
 	CNIConfigDir string
-
-	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	// NetworkInterface is the libnetwork network interface used to setup netavark networks.
 	NetworkInterface nettypes.ContainerNetwork `json:"-"`
 
 	// ID mapping options to use if we're setting up our own user namespace.
@@ -462,7 +460,7 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 		return nil, fmt.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
 	}
 
-	netInt, err := getNetworkInterface(store, b.CNIConfigDir, b.CNIPluginPath)
+	netInt, err := getNetworkInterface(store)
 	if err != nil {
 		return nil, err
 	}

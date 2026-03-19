@@ -101,9 +101,7 @@ type executor struct {
 	isolation                      define.Isolation
 	namespaceOptions               []define.NamespaceOption
 	configureNetwork               define.NetworkConfigurationPolicy
-	cniPluginPath                  string
-	cniConfigDir                   string
-	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	// networkInterface is the libnetwork network interface used to setup netavark networks.
 	networkInterface                        nettypes.ContainerNetwork
 	idmappingOptions                        *define.IDMappingOptions
 	commonBuildOptions                      *define.CommonBuildOptions
@@ -302,8 +300,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		inheritAnnotations:                      options.InheritAnnotations,
 		namespaceOptions:                        options.NamespaceOptions,
 		configureNetwork:                        options.ConfigureNetwork,
-		cniPluginPath:                           options.CNIPluginPath,
-		cniConfigDir:                            options.CNIConfigDir,
 		networkInterface:                        options.NetworkInterface,
 		idmappingOptions:                        options.IDMappingOptions,
 		commonBuildOptions:                      options.CommonBuildOpts,
@@ -545,6 +541,7 @@ func (b *executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 }
 
 func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, commitResults *buildah.CommitResults, onlyBaseImage bool, err error) {
+	var prependInstructions, appendInstructions []string
 	stage := stages[stageIndex]
 	ib := stage.Builder
 	node := stage.Node
@@ -569,36 +566,29 @@ func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageE
 	output := ""
 	if stageIndex == len(stages)-1 {
 		output = b.output
-		// Check if any labels were passed in via the API, and add a final line
-		// to the Dockerfile that would provide the same result.
+		// Check if any labels were passed in via the API, and add an instruction at
+		// the end of the Dockerfile stage that would provide the intended result.
 		// Reason: Docker adds label modification as a last step which can be
 		// processed like regular steps, and if no modification is done to
 		// layers, its easier to reuse cached layers.
 		if len(b.labels) > 0 {
-			var labelLine string
-			labels := slices.Clone(b.labels)
-			for _, labelSpec := range labels {
+			labelLine := "LABEL"
+			for _, labelSpec := range b.labels {
 				key, value, _ := strings.Cut(labelSpec, "=")
 				// check only for an empty key since docker allows empty values
 				if key != "" {
 					labelLine += fmt.Sprintf(" %q=%q", key, value)
 				}
 			}
-			if len(labelLine) > 0 {
-				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
-				if err != nil {
-					return "", nil, false, fmt.Errorf("while adding additional LABEL step: %w", err)
-				}
-				stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
-			}
+			appendInstructions = slices.Concat(appendInstructions, []string{labelLine})
 		}
 	}
 
-	// If this stage is starting out with environment variables that were
-	// passed in via our API, we should include them in the history, since
-	// they affect RUN instructions in this stage.
+	// If we were given environment variables to set via the API, add them as instructions
+	// at the beginning of the stage so that they affect subsequent RUN instructions and
+	// factor into the image history.
 	if len(b.envs) > 0 {
-		var envLine string
+		envLine := "ENV"
 		for _, envSpec := range b.envs {
 			key, value, hasValue := strings.Cut(envSpec, "=")
 			if hasValue {
@@ -607,14 +597,25 @@ func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageE
 				return "", nil, false, fmt.Errorf("BUG: unresolved environment variable: %q", key)
 			}
 		}
-		if len(envLine) > 0 {
-			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("ENV" + envLine + "\n"))
-			if err != nil {
-				return "", nil, false, fmt.Errorf("while adding additional ENV step: %w", err)
-			}
-			// make this the first instruction in the stage after its FROM instruction
-			stage.Node.Children = append(additionalNode.Children, stage.Node.Children...)
+		prependInstructions = slices.Concat([]string{envLine}, prependInstructions)
+	}
+
+	// If we're supposed to be appending or prepending instructions to this stage, add them now.
+	if len(prependInstructions) > 0 {
+		addLines := strings.Join(prependInstructions, "\n")
+		additionalNodes, err := imagebuilder.ParseDockerfile(strings.NewReader(addLines))
+		if err != nil {
+			return "", nil, false, fmt.Errorf("while adding additional steps %q: %w", prependInstructions, err)
 		}
+		stage.Node.Children = append(additionalNodes.Children, stage.Node.Children...)
+	}
+	if len(appendInstructions) > 0 {
+		addLines := strings.Join(appendInstructions, "\n")
+		additionalNodes, err := imagebuilder.ParseDockerfile(strings.NewReader(addLines))
+		if err != nil {
+			return "", nil, false, fmt.Errorf("while adding additional steps %q: %w", appendInstructions, err)
+		}
+		stage.Node.Children = append(stage.Node.Children, additionalNodes.Children...)
 	}
 
 	b.stagesLock.Lock()

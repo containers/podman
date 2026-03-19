@@ -36,7 +36,7 @@ env:
     DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20251211t152018z-f43f42d14"
+    IMAGE_SUFFIX: "c20260310t170224z-f43f42d14"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}" # Used temporarily for rust-podman-sequoia. After that RPM is available in stable Fedora releases, we can stop testing against Rawhide again.
@@ -127,7 +127,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.24.6
+        image: docker.io/library/golang:1.25
         cpu: 1
         memory: 1
 
@@ -178,6 +178,15 @@ unit_task:
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     unit_test_script: '${SCRIPT_BASE}/test.sh unit |& ${_TIMESTAMP}'
 
+    always: &standardlogs
+        audit_log_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh audit'
+        df_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh df'
+        journal_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh podman'
+        buildah_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_version'
+        buildah_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_info'
+        package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
+        golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
 
 conformance_task:
     name: 'Debian Conformance w/ $STORAGE_DRIVER'
@@ -199,6 +208,8 @@ conformance_task:
     setup_script: '${SCRIPT_BASE}/setup.sh conformance |& ${_TIMESTAMP}'
     conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
 
+    always:
+        <<: *standardlogs
 
 integration_task:
     name: "Integration $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
@@ -284,15 +295,8 @@ integration_task:
     binary_artifacts:
         path: ./bin/*
 
-    always: &standardlogs
-        audit_log_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh audit'
-        df_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh df'
-        journal_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh podman'
-        buildah_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_version'
-        buildah_info_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh buildah_info'
-        package_versions_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh packages'
-        golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
+    always:
+        <<: *standardlogs
 
 integration_rootless_task:
     name: "Integration rootless $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
