@@ -149,6 +149,37 @@ function _check_pause_process() {
     run_podman rm -f -t0 $cname1
 }
 
+# Test that podman detects and recovers from a stale pause.pid with a recycled PID
+@test "rootless podman recovers from stale pause.pid with recycled PID" {
+    skip_if_not_rootless "pause process is only used as rootless"
+    skip_if_remote "system migrate not supported via remote"
+
+    run_podman info
+
+    _check_pause_process
+
+    if [ -e $ns_handles_file ]; then
+        skip "ns_handles in use, not pause.pid"
+    fi
+
+    kill -9 $pause_pid
+
+    sleep 99999 &
+    local fake_pid=$!
+
+    echo -n $fake_pid > $pause_pid_file
+
+    run_podman info
+    assert "$output" =~ "pause.pid file refers to PID $fake_pid which is not a pause process" \
+           "podman should report stale pause.pid"
+    assert "$output" =~ "Removing.*pause.pid" \
+           "podman should report removing the stale pause.pid file"
+
+    kill $fake_pid 2>/dev/null || true
+
+    _check_pause_process
+}
+
 # regression test for https://issues.redhat.com/browse/RHEL-59620
 @test "rootless userns can unmount netns properly" {
     skip_if_not_rootless "pause process is only used as rootless"
