@@ -26,7 +26,7 @@ type directory struct {
 	syms       []symbol
 }
 
-// filterDirs groups the directories by import path,
+// byImportPath groups the directories by import path,
 // sorting the ones with the same import path by semantic version,
 // most recent first.
 func byImportPath(dirs []Relpath) (map[string][]*directory, error) {

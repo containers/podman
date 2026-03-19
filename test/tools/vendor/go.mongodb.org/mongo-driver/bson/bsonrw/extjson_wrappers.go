@@ -95,9 +95,9 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 				return nil, 0, fmt.Errorf("$binary subType value should be string, but instead is %s", val.t)
 			}
 
-			i, err := strconv.ParseInt(val.v.(string), 16, 64)
+			i, err := strconv.ParseUint(val.v.(string), 16, 8)
 			if err != nil {
-				return nil, 0, fmt.Errorf("invalid $binary subType string: %s", val.v.(string))
+				return nil, 0, fmt.Errorf("invalid $binary subType string: %q: %w", val.v.(string), err)
 			}
 
 			subType = byte(i)

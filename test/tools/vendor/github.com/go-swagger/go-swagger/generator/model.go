@@ -153,12 +153,12 @@ func makeGenDefinition(name, pkg string, schema spec.Schema, specDoc *loads.Docu
 		// this means that the immediate content of the top level definitions has at least one validation.
 		//
 		// If none is found at this level and that no special case where no Validate() method is exposed at all
-		// (e.g. io.ReadCloser and interface{} types and their aliases), then there is an empty Validate() method which
+		// (e.g. io.ReadCloser and any types and their aliases), then there is an empty Validate() method which
 		// just return nil (the object abides by the runtime.Validatable interface, but knows it has nothing to validate).
 		//
 		// We do this at the top level because of the possibility of aliased types which always bubble up validation to types which
 		// are referring to them. This results in correct but inelegant code with empty validations.
-		gd.GenSchema.HasValidations = shallowValidationLookup(gd.GenSchema)
+		gd.HasValidations = shallowValidationLookup(gd.GenSchema)
 	}
 	return gd, err
 }
@@ -196,7 +196,7 @@ func shallowValidationLookup(sch GenSchema) bool {
 	for _, p := range sch.Properties {
 		// Using a base type within another structure triggers validation of the base type.
 		// The discriminator property in the base type definition itself does not.
-		if (p.HasValidations || p.Required) && !(sch.IsBaseType && p.Name == sch.DiscriminatorField) || (p.IsAliased || p.IsComplexObject) && !(p.IsInterface || p.IsStream) {
+		if (p.HasValidations || p.Required) && (!sch.IsBaseType || p.Name != sch.DiscriminatorField) || (p.IsAliased || p.IsComplexObject) && !p.IsInterface && !p.IsStream {
 			return true
 		}
 	}
@@ -207,7 +207,7 @@ func shallowValidationLookup(sch GenSchema) bool {
 		return false
 	}
 
-	if sch.HasAdditionalProperties && sch.AdditionalProperties != nil && (sch.AdditionalProperties.HasValidations || sch.AdditionalProperties.Required || sch.AdditionalProperties.IsAliased && !(sch.AdditionalProperties.IsInterface || sch.AdditionalProperties.IsStream)) {
+	if sch.HasAdditionalProperties && sch.AdditionalProperties != nil && (sch.AdditionalProperties.HasValidations || sch.AdditionalProperties.Required || sch.AdditionalProperties.IsAliased && !sch.AdditionalProperties.IsInterface && !sch.AdditionalProperties.IsStream) {
 		return true
 	}
 
@@ -318,8 +318,8 @@ func makeGenDefinitionHierarchy(name, pkg, container string, schema spec.Schema,
 					if err != nil {
 						return nil, err
 					}
-					gs.GenSchema.IsBaseType = true
-					gs.GenSchema.IsExported = true
+					gs.IsBaseType = true
+					gs.IsExported = true
 					pg.GenSchema.AllOf[i] = gs.GenSchema
 					schPtr := &(pg.GenSchema.AllOf[i])
 					if schPtr.AdditionalItems != nil {
@@ -367,6 +367,7 @@ func makeGenDefinitionHierarchy(name, pkg, container string, schema spec.Schema,
 			TargetImportPath: opts.LanguageOpts.baseImport(opts.Target),
 		},
 		Package:        modelPkg,
+		CliPackage:     opts.CliPackage,
 		GenSchema:      pg.GenSchema,
 		DependsOn:      pg.Dependencies,
 		DefaultImports: defaultImports,
@@ -802,7 +803,7 @@ func (sg *schemaGenContext) buildProperties() error {
 			return err
 		}
 
-		// whatever the validations says, if we have an interface{}, do not validate
+		// whatever the validations says, if we have an any, do not validate
 		// NOTE: this may be the case when the type is left empty and we get a Enum validation.
 		if emprop.GenSchema.IsInterface || emprop.GenSchema.IsStream {
 			emprop.GenSchema.HasValidations = false
@@ -829,7 +830,7 @@ func (sg *schemaGenContext) buildProperties() error {
 				if rsch == nil {
 					return errors.New("spec.ResolveRef returned nil schema")
 				}
-				if rsch != nil && rsch.Ref.String() != "" {
+				if rsch.Ref.String() != "" {
 					ref = rsch.Ref
 					continue
 				}
@@ -868,7 +869,7 @@ func (sg *schemaGenContext) buildProperties() error {
 
 			// a base type property is always validated against the base type
 			// exception: for the base type definition itself (see shallowValidationLookup())
-			if (hv || emprop.GenSchema.IsBaseType) && !(emprop.GenSchema.IsInterface || emprop.GenSchema.IsStream) {
+			if (hv || emprop.GenSchema.IsBaseType) && !emprop.GenSchema.IsInterface && !emprop.GenSchema.IsStream {
 				emprop.GenSchema.HasValidations = true
 			}
 			if ttpe.HasAdditionalItems && sch.AdditionalItems.Schema != nil {
@@ -962,7 +963,7 @@ func (sg *schemaGenContext) buildAllOf() error {
 		if (tpe.IsAnonymous && len(sch.AllOf) > 0) || (sch.Ref.String() == "" && !tpe.IsComplexObject && (tpe.IsArray || tpe.IsInterface || tpe.IsPrimitive)) {
 			// cases where anonymous structures cause the creation of a new type:
 			// - nested allOf: this one is itself a AllOf: build a new type for it
-			// - anonymous simple types for edge cases: array, primitive, interface{}
+			// - anonymous simple types for edge cases: array, primitive, any
 			// NOTE: when branches are aliased or anonymous, the nullable property in the branch type is lost.
 			name := swag.ToVarName(goName(&sch, sg.makeRefName()+"AllOf"+strconv.Itoa(i)))
 			debugLog("building anonymous nested allOf in %s: %s", sg.Name, name)
@@ -1012,7 +1013,7 @@ func (sg *schemaGenContext) buildAllOf() error {
 		}
 
 		// lift validations when complex or ref'ed
-		if (comprop.GenSchema.IsComplexObject || comprop.Schema.Ref.String() != "") && !(comprop.GenSchema.IsInterface || comprop.GenSchema.IsStream) {
+		if (comprop.GenSchema.IsComplexObject || comprop.Schema.Ref.String() != "") && !comprop.GenSchema.IsInterface && !comprop.GenSchema.IsStream {
 			comprop.GenSchema.HasValidations = true
 		}
 		sg.MergeResult(comprop, true)
@@ -1132,7 +1133,7 @@ func (mt *mapStack) Build() error {
 		mt.Context.GenSchema.AdditionalProperties = &cp.GenSchema
 
 		// lift validations
-		if (csch.Ref.String() != "" || cp.GenSchema.IsAliased) && !(cp.GenSchema.IsInterface || cp.GenSchema.IsStream) {
+		if (csch.Ref.String() != "" || cp.GenSchema.IsAliased) && !cp.GenSchema.IsInterface && !cp.GenSchema.IsStream {
 			// - we stopped on a ref, or anything else that require we call its Validate() method
 			// - if the alias / ref is on an interface (or stream) type: no validation
 			mt.Context.GenSchema.HasValidations = true
@@ -1191,7 +1192,7 @@ func (mt *mapStack) Build() error {
 
 			// lift validations
 			c := &cur.Next.Context.GenSchema
-			if (cur.Next.Context.Schema.Ref.String() != "" || c.IsAliased) && !(c.IsInterface || c.IsStream) {
+			if (cur.Next.Context.Schema.Ref.String() != "" || c.IsAliased) && !c.IsInterface && !c.IsStream {
 				// - we stopped on a ref, or anything else that require we call its Validate()
 				// - if the alias / ref is on an interface (or stream) type: no validation
 				cur.Context.GenSchema.HasValidations = true
@@ -1218,8 +1219,8 @@ func (mt *mapStack) HasMore() bool {
 }
 
 /* currently unused:
-func (mt *mapStack) Dict() map[string]interface{} {
-	res := make(map[string]interface{})
+func (mt *mapStack) Dict() map[string]any {
+	res := make(map[string]any)
 	res["context"] = mt.Context.Schema
 	if mt.Next != nil {
 		res["next"] = mt.Next.Dict()
@@ -1262,7 +1263,7 @@ func (sg *schemaGenContext) buildAdditionalProperties() error {
 	if addp.Schema == nil {
 		// this is for AdditionalProperties:true|false
 		if addp.Allows {
-			// additionalProperties: true is rendered as: map[string]interface{}
+			// additionalProperties: true is rendered as: map[string]any
 			addp.Schema = &spec.Schema{}
 
 			addp.Schema.Typed("object", "")
@@ -1281,7 +1282,7 @@ func (sg *schemaGenContext) buildAdditionalProperties() error {
 			}
 			sg.MergeResult(cp, false)
 			sg.GenSchema.AdditionalProperties = &cp.GenSchema
-			debugLog("added interface{} schema for additionalProperties[allows == true], IsInterface=%t", cp.GenSchema.IsInterface)
+			debugLog("added any schema for additionalProperties[allows == true], IsInterface=%t", cp.GenSchema.IsInterface)
 		}
 		return nil
 	}
@@ -1348,6 +1349,9 @@ func (sg *schemaGenContext) buildAdditionalProperties() error {
 		// rewrite value expression for arrays and arrays of arrays in maps (rendered as map[string][][]...)
 		if sg.GenSchema.AdditionalProperties.IsArray {
 			// maps of slices are where an override may take effect
+			if sg.GenSchema.AdditionalProperties.Items == nil {
+				return fmt.Errorf("items schema not defined for additional property in %q", sg.Name)
+			}
 			sg.GenSchema.AdditionalProperties.Items.IsMapNullOverride = sg.GenSchema.AdditionalProperties.IsMapNullOverride
 			sg.GenSchema.AdditionalProperties.Items.ValueExpression = sg.GenSchema.ValueExpression + "[" + comprop.KeyVar + "]" + "[" + sg.GenSchema.AdditionalProperties.IndexVar + "]"
 			ap := sg.GenSchema.AdditionalProperties.Items
@@ -1359,7 +1363,7 @@ func (sg *schemaGenContext) buildAdditionalProperties() error {
 		}
 
 		// lift validation
-		if (sg.GenSchema.AdditionalProperties.IsComplexObject || sg.GenSchema.AdditionalProperties.IsAliased || sg.GenSchema.AdditionalProperties.Required) && !(sg.GenSchema.AdditionalProperties.IsInterface || sg.GenSchema.IsStream) {
+		if (sg.GenSchema.AdditionalProperties.IsComplexObject || sg.GenSchema.AdditionalProperties.IsAliased || sg.GenSchema.AdditionalProperties.Required) && !sg.GenSchema.AdditionalProperties.IsInterface && !sg.GenSchema.IsStream {
 			sg.GenSchema.HasValidations = true
 		}
 		return nil
@@ -1508,7 +1512,7 @@ func (sg *schemaGenContext) buildArray() error {
 		schemaCopy.HasValidations = true
 	}
 
-	if (elProp.Schema.Ref.String() != "" || elProp.GenSchema.IsAliased) && !(elProp.GenSchema.IsInterface || elProp.GenSchema.IsStream) {
+	if (elProp.Schema.Ref.String() != "" || elProp.GenSchema.IsAliased) && !elProp.GenSchema.IsInterface && !elProp.GenSchema.IsStream {
 		schemaCopy.HasValidations = true
 	}
 
@@ -1649,7 +1653,7 @@ func (sg *schemaGenContext) buildAdditionalItems() error {
 		}
 
 		// lift validations when complex is not anonymous or ref'ed
-		if (tpe.IsComplexObject || it.Schema.Ref.String() != "") && !(tpe.IsInterface || tpe.IsStream) {
+		if (tpe.IsComplexObject || it.Schema.Ref.String() != "") && !tpe.IsInterface && !tpe.IsStream {
 			it.GenSchema.HasValidations = true
 		}
 
@@ -1742,7 +1746,7 @@ func (sg *schemaGenContext) shortCircuitNamedRef() (bool, error) {
 		sg.MergeResult(pg, true)
 		sg.GenSchema = pg.GenSchema
 		sg.GenSchema.resolvedType = tpe
-		sg.GenSchema.resolvedType.IsSuperAlias = true
+		sg.GenSchema.IsSuperAlias = true
 		sg.GenSchema.IsBaseType = tpe.IsBaseType
 
 		return true, nil
@@ -2063,7 +2067,7 @@ func (sg *schemaGenContext) makeGenSchema() error {
 			sg.GenSchema.resolvedType = tpe
 			sg.GenSchema.Required = sg.Required
 			// assume we validate everything but interface and io.Reader - validation may be disabled by using the noValidation hint
-			sg.GenSchema.HasValidations = !(tpe.IsInterface || tpe.IsStream || tpe.SkipExternalValidation)
+			sg.GenSchema.HasValidations = !tpe.IsInterface && !tpe.IsStream && !tpe.SkipExternalValidation
 			sg.GenSchema.IsAliased = sg.GenSchema.HasValidations
 
 			log.Printf("INFO: type %s is external, with inferred spec type %s, referred to as %s", sg.GenSchema.Name, sg.GenSchema.GoType, extType)
@@ -2145,10 +2149,10 @@ func (sg *schemaGenContext) makeGenSchema() error {
 	// - aliased primitive of a formatter type which is not a stringer
 	//
 	// but not for:
-	// - interface{}
+	// - any
 	// - io.Reader
 	gs := sg.GenSchema
-	sg.GenSchema.WantsMarshalBinary = !(gs.IsInterface || gs.IsStream || gs.IsBaseType) &&
+	sg.GenSchema.WantsMarshalBinary = !gs.IsInterface && !gs.IsStream && !gs.IsBaseType &&
 		(gs.IsTuple || gs.IsComplexObject || gs.IsAdditionalProperties || (gs.IsPrimitive && gs.IsAliased && gs.IsCustomFormatter && !strings.Contains(gs.Zero(), `("`)))
 
 	debugLog("finished gen schema for %q", sg.Name)
