@@ -643,6 +643,55 @@ can_use_shortcut (char **argv)
   return ret;
 }
 
+/* Best-effort check: read /proc/<pid>/environ and look for _PODMAN_PAUSE=1.
+   Returns 1 if found, 0 if not found or on any error.  */
+static int
+is_pause_process (long pid)
+{
+  cleanup_free char *environ_path = NULL;
+  cleanup_free char *buf = NULL;
+  cleanup_close int fd = -1;
+  const size_t buf_size = 4096;
+  ssize_t n;
+
+  if (asprintf (&environ_path, "/proc/%ld/environ", pid) < 0)
+    return 0;
+
+  buf = malloc (buf_size);
+  if (buf == NULL)
+    return 0;
+
+  fd = open (environ_path, O_RDONLY | O_CLOEXEC);
+  if (fd < 0)
+    return 0;
+
+  /* Read in chunks and search for the null-delimited key=value entry.  */
+  n = TEMP_FAILURE_RETRY (read (fd, buf, buf_size));
+  if (n <= 0)
+    return 0;
+
+  /* environ entries are separated by '\0'.  Search for "_PODMAN_PAUSE=1".  */
+  for (char *p = buf; p < buf + n; )
+    {
+      if (strcmp (p, "_PODMAN_PAUSE=1") == 0)
+        return 1;
+      p += strlen (p) + 1;
+    }
+  return 0;
+}
+
+/* If the process referred to by pause.pid is not actually a pause process,
+   it means the PID was recycled.  Warn the user and remove the stale file.  */
+static void
+check_stale_pause_pid (long pid, const char *path)
+{
+  if (!is_pause_process (pid))
+    {
+      fprintf (stderr, "pause.pid file refers to PID %ld which is not a pause process, the process may have exited and the PID been recycled. Removing %s\n", pid, path);
+      unlink (path);
+    }
+}
+
 static int
 open_namespace (int pid_to_join, const char *ns_file)
 {
@@ -842,14 +891,23 @@ static void __attribute__((constructor)) init()
 
       userns_fd = open_namespace (pid, "user");
       if (userns_fd < 0)
-        return;
+        {
+          check_stale_pause_pid (pid, path);
+          return;
+        }
 
       mntns_fd = open_namespace (pid, "mnt");
       if (mntns_fd < 0)
-        return;
+        {
+          check_stale_pause_pid (pid, path);
+          return;
+        }
 
       if (setns (userns_fd, 0) < 0)
-        return;
+        {
+          check_stale_pause_pid (pid, path);
+          return;
+        }
 
       /* This is a fatal error we can't recover from since we have already joined the userns.  */
       join_namespace_or_die ("mnt", mntns_fd);
