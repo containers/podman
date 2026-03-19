@@ -530,7 +530,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			WithVolumeMountLabel(ctr.MountLabel()),
 		}
 		if isAnonymous {
-			volOptions = append(volOptions, withSetAnon())
+			volOptions = append(volOptions, WithVolumeAnonymous())
 		}
 
 		// If volume-opts are set, parse and add driver opts.

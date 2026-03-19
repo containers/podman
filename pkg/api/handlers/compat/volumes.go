@@ -149,6 +149,8 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 
 	if len(input.Name) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeName(input.Name))
+	} else {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeAnonymous())
 	}
 	if len(input.Driver) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeDriver(input.Driver))
@@ -285,7 +287,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f := (url.Values)(*filterMap)
+	f := util.NormalizeVolumePruneFilters(url.Values(*filterMap))
 	filterFuncs := []libpod.VolumeFilter{}
 	for filter, filterValues := range f {
 		filterFunc, err := filters.GeneratePruneVolumeFilters(filter, filterValues, runtime)

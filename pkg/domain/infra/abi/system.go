@@ -161,6 +161,10 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			volumePruneOptions := entities.VolumePruneOptions{}
 			volumePruneOptions.Filters = (url.Values)(options.Filters)
 
+			if len(volumePruneOptions.Filters) == 0 {
+				volumePruneOptions.Filters.Set("all", "true")
+			}
+
 			volumePruneReports, err := ic.VolumePrune(ctx, volumePruneOptions)
 			if err != nil {
 				return nil, err

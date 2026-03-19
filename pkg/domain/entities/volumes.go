@@ -23,8 +23,10 @@ type VolumeRmReport = types.VolumeRmReport
 
 type VolumeInspectReport = types.VolumeInspectReport
 
-// VolumePruneOptions describes the options needed
-// to prune a volume from the CLI
+// VolumePruneOptions describes the options needed to prune volumes.
+// Behavior is determined only by filters (Docker API 1.42+):
+// - when filter "all" is not set or not truthy, only anonymous unused volumes are pruned (default);
+// - when filter "all" is true, all unused volumes are pruned.
 type VolumePruneOptions struct {
 	Filters url.Values `json:"filters" schema:"filters"`
 }

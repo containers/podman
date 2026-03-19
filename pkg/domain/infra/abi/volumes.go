@@ -14,12 +14,15 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities/reports"
 	"github.com/containers/podman/v6/pkg/domain/filters"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi/parse"
+	"github.com/containers/podman/v6/pkg/util"
 )
 
 func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
 	var volumeOptions []libpod.VolumeCreateOption
 	if len(opts.Name) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeName(opts.Name))
+	} else {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeAnonymous())
 	}
 	if len(opts.Driver) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeDriver(opts.Driver))
@@ -134,7 +137,7 @@ func (ic *ContainerEngine) VolumeInspect(_ context.Context, namesOrIds []string,
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.VolumePruneOptions) ([]*reports.PruneReport, error) {
 	funcs := []libpod.VolumeFilter{}
-	for filter, filterValues := range options.Filters {
+	for filter, filterValues := range util.NormalizeVolumePruneFilters(options.Filters) {
 		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues, ic.Libpod)
 		if err != nil {
 			return nil, err
