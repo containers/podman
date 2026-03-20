@@ -34,6 +34,7 @@ type SetFlags struct {
 	Rootful            bool
 	UserModeNetworking bool
 	USBs               []string
+	ImportNativeCA     bool
 }
 
 func init() {
@@ -81,6 +82,10 @@ func init() {
 	userModeNetFlagName := "user-mode-networking"
 	flags.BoolVar(&setFlags.UserModeNetworking, userModeNetFlagName, false, // defaults not-relevant due to use of Changed()
 		"Whether this machine should use user-mode networking, routing traffic through a host user-space process")
+
+	importNativeCaFlagName := "import-native-ca"
+	flags.BoolVar(&setFlags.ImportNativeCA, importNativeCaFlagName, false, // defaults not-relevant due to use of Changed()
+		"Import the host trusted CA certificates into the machine")
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
@@ -116,6 +121,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("usb") {
 		setOpts.USBs = &setFlags.USBs
+	}
+	if cmd.Flags().Changed("import-native-ca") {
+		setOpts.ImportNativeCA = &setFlags.ImportNativeCA
 	}
 
 	// At this point, we have the known changed information, etc
