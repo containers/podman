@@ -34,14 +34,15 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		AllTags    bool   `schema:"allTags"`
-		CompatMode bool   `schema:"compatMode"`
-		PullPolicy string `schema:"policy"`
-		Quiet      bool   `schema:"quiet"`
-		Reference  string `schema:"reference"`
-		Retry      uint   `schema:"retry"`
-		RetryDelay string `schema:"retrydelay"`
-		TLSVerify  bool   `schema:"tlsVerify"`
+		AllTags      bool   `schema:"allTags"`
+		CompatMode   bool   `schema:"compatMode"`
+		PullProgress bool   `schema:"pullProgress"`
+		PullPolicy   string `schema:"policy"`
+		Quiet        bool   `schema:"quiet"`
+		Reference    string `schema:"reference"`
+		Retry        uint   `schema:"retry"`
+		RetryDelay   string `schema:"retrydelay"`
+		TLSVerify    bool   `schema:"tlsVerify"`
 		// Platform fields below:
 		Arch    string `schema:"Arch"`
 		OS      string `schema:"OS"`
@@ -56,13 +57,23 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if query.Quiet && query.CompatMode {
-		utils.InternalServerError(w, errors.New("'quiet' and 'compatMode' cannot be used simultaneously"))
+	if query.CompatMode && query.PullProgress {
+		utils.Error(w, http.StatusBadRequest, errors.New("'compatMode' and 'pullProgress' cannot be used simultaneously"))
+		return
+	}
+
+	if query.CompatMode && query.Quiet {
+		utils.Error(w, http.StatusBadRequest, errors.New("'compatMode' and 'quiet' cannot be used simultaneously"))
+		return
+	}
+
+	if query.PullProgress && query.Quiet {
+		utils.Error(w, http.StatusBadRequest, errors.New("'pullProgress' and 'quiet' cannot be used simultaneously"))
 		return
 	}
 
 	if len(query.Reference) == 0 {
-		utils.InternalServerError(w, errors.New("reference parameter cannot be empty"))
+		utils.Error(w, http.StatusBadRequest, errors.New("reference parameter cannot be empty"))
 		return
 	}
 
@@ -186,14 +197,51 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	reportPullProgress := func(e types.ProgressProperties) {
+		var report entities.ImagePullReport
+		report.Status = entities.ImagePullStatusPulling
+		report.Progress = &entities.ArtifactPullProgress{
+			ProgressComponentID: e.Artifact.Digest.String(),
+		}
+		switch e.Event {
+		case types.ProgressEventNewArtifact:
+			report.Stream = "Starting to pull artifact"
+			report.Progress.Status = entities.ArtifactPullStatusPulling
+			report.Progress.Current = e.Offset
+			report.Progress.Total = e.Artifact.Size
+		case types.ProgressEventRead:
+			report.Stream = "Pulling artifact"
+			report.Progress.Status = entities.ArtifactPullStatusPulling
+			report.Progress.Current = e.Offset
+			report.Progress.Total = e.Artifact.Size
+		case types.ProgressEventDone:
+			report.Stream = "Artifact pulled successfully"
+			report.Progress.Status = entities.ArtifactPullStatusSuccess
+			report.Progress.Current = e.Offset
+			report.Progress.Total = e.Artifact.Size
+		case types.ProgressEventSkipped:
+			report.Stream = "Artifact already exists"
+			report.Progress.Status = entities.ArtifactPullStatusSkipped
+		}
+		if err := enc.Encode(report); err != nil {
+			logrus.Errorf("Error encoding pull report: %v", err)
+			return
+		}
+		flush()
+	}
+
 	for {
 		select {
-		case <-progress:
+		case e := <-progress:
 			startStreaming() // We are reporting progress working with the image contents, so it presumably exists and it is accessible.
+			if query.PullProgress {
+				reportPullProgress(e)
+			}
 		case <-streamingDelayTimer.C:
 			startStreaming() // At some point, give up on the precise error code and let the caller show an “operation in progress, no data available yet” UI.
 		case s := <-writer.Chan():
 			report := entities.ImagePullReport{
+				Status: entities.ImagePullStatusPulling,
 				Stream: string(s),
 			}
 			if streamingStarted {
@@ -218,7 +266,10 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 				report.ID = image.ID()
 			}
 			if pullError != nil {
+				report.Status = entities.ImagePullStatusError
 				report.Error = pullError.Error()
+			} else {
+				report.Status = entities.ImagePullStatusSuccess
 			}
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to encode json: %v", err)
