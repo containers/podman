@@ -37,6 +37,30 @@ func LocalhostSSHWithStdin(username, identityPath, name string, sshPort int, inp
 	return localhostBuiltinSSH(username, identityPath, name, sshPort, inputArgs, true, stdin)
 }
 
+// LocalhostSSHCopy uses scp to copy files from/to a localhost machine using ssh.
+func LocalhostSSHCopy(username, identityPath string, sshPort int, srcPath, destPath string, isSrcFromGuest, quiet bool) error {
+	var src, dest string
+	if isSrcFromGuest {
+		src = username + "@localhost:" + srcPath
+		dest = destPath
+	} else {
+		src = srcPath
+		dest = username + "@localhost:" + destPath
+	}
+	args := append(
+		LocalhostSSHArgs(), // Warning: This MUST NOT be generalized to allow communication over untrusted networks.
+		"-r",
+		"-i", identityPath,
+		"-P", strconv.Itoa(sshPort),
+		src, dest)
+	cmd := exec.Command("scp", args...)
+	if !quiet {
+		cmd.Stdout = os.Stdout
+	}
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func localhostBuiltinSSH(username, identityPath, name string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {
 	config, err := createLocalhostConfig(username, identityPath) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
 	if err != nil {
