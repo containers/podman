@@ -49,6 +49,8 @@ func TestUnitDirs(t *testing.T) {
 		AppendSubPaths(rootlessPaths, path.Join(configDir, "containers/systemd"), false, nil)
 		AppendSubPaths(rootlessPaths, filepath.Join(UnitDirAdmin, "users"), true, nonNumericFilter)
 		AppendSubPaths(rootlessPaths, filepath.Join(UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		AppendSubPaths(rootlessPaths, filepath.Join(UnitDirDistro, "users"), true, nonNumericFilter)
+		AppendSubPaths(rootlessPaths, filepath.Join(UnitDirDistro, "users", u.Uid), true, userLevelFilter)
 
 		unitDirs = GetUnitDirs(true)
 		assert.Equal(t, rootlessPaths.GetSortedPaths(), unitDirs, "rootless unit dirs should match")
@@ -180,10 +182,12 @@ func TestUnitDirs(t *testing.T) {
 		err = syscall.Chroot(symLinkTestBaseDir)
 		assert.NoError(t, err)
 
-		err = os.MkdirAll(UnitDirAdmin, 0o755)
-		assert.NoError(t, err)
-		err = os.RemoveAll(UnitDirAdmin)
-		assert.NoError(t, err)
+		for _, v := range []string{UnitDirAdmin, UnitDirDistro} {
+			err = os.MkdirAll(v, 0o755)
+			assert.NoError(t, err)
+			err = os.RemoveAll(v)
+			assert.NoError(t, err)
+		}
 
 		createDir := func(path, name string) string {
 			dirName := filepath.Join(path, name)
@@ -207,17 +211,31 @@ func TestUnitDirs(t *testing.T) {
 		uidDir2 := createDir(userDir, strconv.Itoa(uidInt+1))
 		userInternalDir := createDir(userDir, "internal")
 
+		distroSystemdDir := createDir("/", "systemd2")
+		distroUserDir := createDir("/", "users2")
+		linkDir(distroSystemdDir, "users", distroUserDir)
+		linkDir(UnitDirDistro, "", distroSystemdDir)
+
+		distroUidDir := createDir(distroUserDir, u.Uid)
+		distroUidDir2 := createDir(distroUserDir, strconv.Itoa(uidInt+1))
+		distroInternalDir := createDir(distroUserDir, "internal")
+
 		// Make sure QUADLET_UNIT_DIRS is not set
 		t.Setenv("QUADLET_UNIT_DIRS", "")
 		// Test Rootful
 		unitDirs := GetUnitDirs(false)
 		assert.NotContains(t, unitDirs, userDir, "rootful should not contain rootless")
 		assert.NotContains(t, unitDirs, userInternalDir, "rootful should not contain rootless")
+		assert.NotContains(t, unitDirs, distroUserDir, "rootful should not contain distro rootless")
+		assert.NotContains(t, unitDirs, distroInternalDir, "rootful should not contain distro rootless")
 
 		// Test Rootless
 		unitDirs = GetUnitDirs(true)
 		assert.NotContains(t, unitDirs, uidDir2, "rootless should not contain other users'")
 		assert.Contains(t, unitDirs, userInternalDir, "rootless should contain sub-directories of users dir")
 		assert.Contains(t, unitDirs, uidDir, "rootless should contain the directory for its UID")
+		assert.NotContains(t, unitDirs, distroUidDir2, "rootless should not contain other distro users' dirs")
+		assert.Contains(t, unitDirs, distroInternalDir, "rootless should contain sub-directories of distro users dir")
+		assert.Contains(t, unitDirs, distroUidDir, "rootless should contain the distro directory for its UID")
 	}
 }
