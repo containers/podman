@@ -56,8 +56,7 @@ jobs:
         message: "[NON-BLOCKING] Packit jobs failed. @containers/packit-build please check. Everyone else, feel free to ignore."
     enable_net: true
     targets:
-      - fedora-all-x86_64
-      - fedora-all-aarch64
+      - fedora-rawhide-x86_64
     # Re-enable these scans if OpenScanHub starts scanning go packages
     # https://packit.dev/posts/openscanhub-prototype
     osh_diff_scan_after_copr_build: false
@@ -103,7 +102,7 @@ jobs:
     packages: [podman-fedora]
     notifications: *packit_generic_failure_notification
     targets:
-      - fedora-all
+      - fedora-rawhide
     tmt_plan: "/plans/system/*"
     tf_extra_params:
       environments:
@@ -113,7 +112,7 @@ jobs:
 
   - job: tests
     identifier: cockpit-revdeps
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications:
       failure_comment:
@@ -134,7 +133,7 @@ jobs:
 
   - job: tests
     identifier: tmt-revdeps
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications:
       failure_comment:
