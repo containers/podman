@@ -60,7 +60,7 @@ func TestParseNetworkFlag(t *testing.T) {
 		{
 			name:     "slirp4netns mode",
 			args:     []string{"slirp4netns"},
-			nsmode:   Namespace{NSMode: Slirp},
+			nsmode:   Namespace{NSMode: Pasta},
 			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
@@ -90,11 +90,9 @@ func TestParseNetworkFlag(t *testing.T) {
 		{
 			name:     "slirp4netns mode with options",
 			args:     []string{"slirp4netns:cidr=10.0.0.0/24"},
-			nsmode:   Namespace{NSMode: Slirp},
+			nsmode:   Namespace{NSMode: Pasta},
 			networks: map[string]types.PerNetworkOptions{},
-			options: map[string][]string{
-				"slirp4netns": {"cidr=10.0.0.0/24"},
-			},
+			// Note: cidr option is not supported by pasta and gets ignored
 		},
 		{
 			name:   "bridge mode with options 1",

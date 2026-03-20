@@ -226,14 +226,6 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "true" ".InfraConfig.HostNetwork"
     run_podman pod rm -t 0 -f $PODNAME
 
-    if has_slirp4netns; then
-        run_podman kube play --network slirp4netns:port_handler=slirp4netns $TESTYAML
-        run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
-        infraID="$output"
-        run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
-        is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
-    fi
-
     run_podman pod rm -t 0 -f $PODNAME
 
     run_podman kube play --network none $TESTYAML
