@@ -261,6 +261,8 @@ alt_build_task:
       - env:
             ALT_NAME: 'Alt Arch. MIPS64 Cross'
       - env:
+            ALT_NAME: 'Alt Arch. RISCV64 Cross'
+      - env:
             ALT_NAME: 'Alt Arch. Other Cross'
     # This task cannot make use of the shared repo.tar.zst artifact.
     clone_script: *full_clone
