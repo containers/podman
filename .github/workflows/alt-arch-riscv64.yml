@@ -1,0 +1,39 @@
+name: Alt Arch Riscv64
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Podman (riscv64)
+    runs-on: ubuntu-24.04-riscv
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y btrfs-progs go-md2man uidmap slirp4netns \
+            libapparmor-dev libglib2.0-dev libgpgme-dev libseccomp-dev \
+            libsystemd-dev pkg-config golang-go
+
+      - name: Build binaries
+        run: |
+          go version
+          make binaries
+
+      - name: Verify
+        run: |
+          ./bin/podman --version
+
+      - name: Build remote client
+        run: |
+          make podman-remote
+          ./bin/podman-remote --version
