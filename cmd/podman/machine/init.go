@@ -169,6 +169,9 @@ func init() {
 
 	setDefaultConnectionFlagName := "update-connection"
 	flags.BoolVarP(&setDefaultSystemConn, setDefaultConnectionFlagName, "u", false, "Set default system connection for this machine")
+
+	importNativeCaFlagName := "import-native-ca"
+	flags.BoolVar(&initOpts.ImportNativeCA, importNativeCaFlagName, cfg.ContainersConfDefaultsRO.Machine.ImportNativeCA, "Import the host trusted CA certificates into the machine")
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {

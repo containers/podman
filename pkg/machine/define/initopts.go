@@ -26,4 +26,5 @@ type InitOptions struct {
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
 	USBs               []string
 	SkipTlsVerify      types.OptionalBool
+	ImportNativeCA     bool
 }

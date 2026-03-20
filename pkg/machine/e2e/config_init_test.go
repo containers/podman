@@ -27,6 +27,7 @@ type initMachine struct {
 	updateConnection   *bool
 	userModeNetworking bool
 	tlsVerify          *bool
+	importNativeCA     bool
 
 	cmd []string
 }
@@ -82,6 +83,9 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.updateConnection != nil {
 		cmd = append(cmd, fmt.Sprintf("--update-connection=%s", strconv.FormatBool(*i.updateConnection)))
+	}
+	if i.importNativeCA {
+		cmd = append(cmd, "--import-native-ca")
 	}
 
 	name := m.name
@@ -188,5 +192,10 @@ func (i *initMachine) withUpdateConnection(value *bool) *initMachine {
 
 func (i *initMachine) withUserModeNetworking(r bool) *initMachine { //nolint:unused,nolintlint
 	i.userModeNetworking = r
+	return i
+}
+
+func (i *initMachine) withImportNativeCA(r bool) *initMachine {
+	i.importNativeCA = r
 	return i
 }
