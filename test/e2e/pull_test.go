@@ -115,9 +115,9 @@ var _ = Describe("Podman pull", func() {
 
 		// Set `imagestore` in `storage.conf` and container should run.
 		configPath := filepath.Join(podmanTest.TempDir, ".config", "containers", "storage.conf")
-		os.Setenv("CONTAINERS_STORAGE_CONF", configPath)
+		os.Setenv("CONTAINERS_STORAGE_CONF_OVERRIDE", configPath)
 		defer func() {
-			os.Unsetenv("CONTAINERS_STORAGE_CONF")
+			os.Unsetenv("CONTAINERS_STORAGE_CONF_OVERRIDE")
 		}()
 
 		err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
@@ -126,15 +126,11 @@ var _ = Describe("Podman pull", func() {
 		err = os.WriteFile(configPath, storageConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
-		session = podmanTest.Podman([]string{
+		session = podmanTest.PodmanExitCleanly(
 			"run", "--name", "test", "--rm",
 			imgName, "echo", "helloworld",
-		})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		)
 		Expect(session.OutputToString()).To(ContainSubstring("helloworld"))
-		Expect(session.ErrorToString()).To(ContainSubstring("The storage 'driver' option should be set in "))
-		Expect(session.ErrorToString()).To(ContainSubstring("A driver was picked automatically."))
 	})
 
 	It("podman pull by digest", func() {
