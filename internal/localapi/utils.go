@@ -81,9 +81,9 @@ func getMachineMountsAndVMType(connectionURI string, parsedConnection *url.URL) 
 	return mc.Mounts, machineProvider.VMType(), nil
 }
 
-// isPathAvailableOnMachine checks if a local path is available on the machine through mounted directories.
+// IsPathAvailableOnMachine checks if a local path is available on the machine through mounted directories.
 // If the path is available, it returns a LocalAPIMap with the corresponding remote path.
-func isPathAvailableOnMachine(mounts []*vmconfigs.Mount, vmType define.VMType, path string) (*LocalAPIMap, bool) {
+func IsPathAvailableOnMachine(mounts []*vmconfigs.Mount, vmType define.VMType, path string) (*LocalAPIMap, bool) {
 	pathABS, err := filepath.Abs(path)
 	if err != nil {
 		logrus.Debugf("Failed to get absolute path for %s: %v", path, err)
@@ -155,7 +155,7 @@ func CheckPathOnRunningMachine(ctx context.Context, path string) (*LocalAPIMap, 
 		return nil, false
 	}
 
-	return isPathAvailableOnMachine(mounts, vmType, path)
+	return IsPathAvailableOnMachine(mounts, vmType, path)
 }
 
 // CheckIfImageBuildPathsOnRunningMachine checks if the build context directory and all specified
@@ -184,7 +184,7 @@ func CheckIfImageBuildPathsOnRunningMachine(ctx context.Context, containerFiles 
 		logrus.Debugf("Path %s does not exist locally, skipping machine check", options.ContextDirectory)
 		return nil, options, false
 	}
-	mapping, found := isPathAvailableOnMachine(mounts, vmType, options.ContextDirectory)
+	mapping, found := IsPathAvailableOnMachine(mounts, vmType, options.ContextDirectory)
 	if !found {
 		logrus.Debugf("Path %s is not available on the running machine", options.ContextDirectory)
 		return nil, options, false
@@ -208,7 +208,7 @@ func CheckIfImageBuildPathsOnRunningMachine(ctx context.Context, containerFiles 
 			continue
 		}
 
-		mapping, found := isPathAvailableOnMachine(mounts, vmType, containerFile)
+		mapping, found := IsPathAvailableOnMachine(mounts, vmType, containerFile)
 		if !found {
 			logrus.Debugf("Path %s is not available on the running machine", containerFile)
 			return nil, options, false
@@ -226,7 +226,7 @@ func CheckIfImageBuildPathsOnRunningMachine(ctx context.Context, containerFiles 
 				logrus.Debugf("Path %s does not exist locally, skipping machine check", context.Value)
 				return nil, options, false
 			}
-			mapping, found := isPathAvailableOnMachine(mounts, vmType, context.Value)
+			mapping, found := IsPathAvailableOnMachine(mounts, vmType, context.Value)
 			if !found {
 				logrus.Debugf("Path %s is not available on the running machine", context.Value)
 				return nil, options, false
