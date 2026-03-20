@@ -66,6 +66,7 @@ type SSHOptions struct {
 }
 
 type StartOptions struct {
+	ReExec  bool
 	NoInfo  bool
 	Quiet   bool
 	Rosetta bool
@@ -74,6 +75,7 @@ type StartOptions struct {
 type StopOptions struct{}
 
 type RemoveOptions struct {
+	ReExec       bool
 	Force        bool
 	SaveImage    bool
 	SaveIgnition bool

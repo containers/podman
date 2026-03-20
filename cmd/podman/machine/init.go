@@ -287,7 +287,13 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		// Examples:
 		// - a user has chosen to perform their own reboot
 		// - reexec for limited admin operations, returning to parent
-		if errors.Is(err, define.ErrInitRelaunchAttempt) {
+		if errors.Is(err, define.ErrRelaunchAttempt) {
+			fmt.Println("Machine init complete")
+			if now {
+				fmt.Printf("Machine %q started successfully\n", initOpts.Name)
+				return nil
+			}
+			printStartCommand(initOpts.Name)
 			return nil
 		}
 		return err
@@ -297,15 +303,21 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	fmt.Println("Machine init complete")
 
 	if now {
+		// Pass reexec flag from init to start
+		startOpts.ReExec = initOpts.ReExec
 		return start(cmd, args)
 	}
 
+	printStartCommand(initOpts.Name)
+	return err
+}
+
+func printStartCommand(machineName string) {
 	extra := ""
-	if initOpts.Name != defaultMachineName {
-		extra = " " + initOpts.Name
+	if machineName != defaultMachineName {
+		extra = " " + machineName
 	}
 	fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
-	return err
 }
 
 // checkMaxMemory gets the total system memory and compares it to the variable.  if the variable
