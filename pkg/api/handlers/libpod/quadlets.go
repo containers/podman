@@ -181,11 +181,13 @@ func InstallQuadlets(w http.ResponseWriter, r *http.Request) {
 
 	// Parse query parameters
 	query := struct {
-		Replace       bool `schema:"replace"`
-		ReloadSystemd bool `schema:"reload-systemd"`
+		Replace       bool   `schema:"replace"`
+		ReloadSystemd bool   `schema:"reload-systemd"`
+		Application   string `schema:"application"`
 	}{
 		Replace:       false,
 		ReloadSystemd: true, // Default to true like CLI
+		Application:   "",
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -240,6 +242,7 @@ func InstallQuadlets(w http.ResponseWriter, r *http.Request) {
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	installOptions := entities.QuadletInstallOptions{
 		Replace:       query.Replace,
+		Application:   query.Application,
 		ReloadSystemd: query.ReloadSystemd,
 	}
 
@@ -269,6 +272,7 @@ func RemoveQuadlet(w http.ResponseWriter, r *http.Request) {
 		Force         bool `schema:"force"`
 		Ignore        bool `schema:"ignore"`
 		ReloadSystemd bool `schema:"reload-systemd"`
+		Recursive     bool `schema:"recursive"`
 	}{
 		ReloadSystemd: true, // Default to true like CLI
 	}
@@ -289,6 +293,7 @@ func RemoveQuadlet(w http.ResponseWriter, r *http.Request) {
 		Force:         query.Force,
 		Ignore:        query.Ignore,
 		ReloadSystemd: query.ReloadSystemd,
+		Recursive:     query.Recursive,
 	}
 
 	removeReport, err := containerEngine.QuadletRemove(r.Context(), []string{name}, removeOptions)
@@ -325,6 +330,7 @@ func RemoveQuadlets(w http.ResponseWriter, r *http.Request) {
 		Force         bool     `schema:"force"`
 		Ignore        bool     `schema:"ignore"`
 		ReloadSystemd bool     `schema:"reload-systemd"`
+		Recursive     bool     `schema:"recursive"`
 		Quadlets      []string `schema:"quadlets"`
 	}{
 		ReloadSystemd: true, // Default to true like CLI
@@ -353,6 +359,7 @@ func RemoveQuadlets(w http.ResponseWriter, r *http.Request) {
 		All:           query.All,
 		Ignore:        query.Ignore,
 		ReloadSystemd: query.ReloadSystemd,
+		Recursive:     query.Recursive,
 	}
 
 	removeReport, err := containerEngine.QuadletRemove(r.Context(), query.Quadlets, removeOptions)

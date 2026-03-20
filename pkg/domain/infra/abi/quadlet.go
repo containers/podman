@@ -3,7 +3,6 @@
 package abi
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
@@ -23,75 +21,10 @@ import (
 	"github.com/containers/podman/v6/pkg/systemd"
 	"github.com/containers/podman/v6/pkg/systemd/parser"
 	systemdquadlet "github.com/containers/podman/v6/pkg/systemd/quadlet"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage/pkg/fileutils"
 )
-
-// deleteAsset reads .<name>.asset, deletes listed files, then deletes the asset file
-func deleteAsset(name string) error {
-	assetFilename := fmt.Sprintf(".%s.asset", name)
-
-	installDir := systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless())
-	assetFilePath := filepath.Join(installDir, assetFilename)
-	result, err := getAssetListFromFile(assetFilePath)
-	if err != nil {
-		return fmt.Errorf("unable to get list of files to delete: %w", err)
-	}
-	for _, entry := range result {
-		err = os.Remove(filepath.Join(installDir, entry))
-		if err != nil {
-			return fmt.Errorf("unable to delete %s: %w", filepath.Join(installDir, entry), err)
-		}
-	}
-	err = os.Remove(assetFilePath)
-	if err != nil {
-		return fmt.Errorf("unable to delete %s: %w", assetFilePath, err)
-	}
-	return err
-}
-
-// readLinesFromFile reads lines from a file and calls the provided callback for each non-empty line.
-// It handles file opening, scanning, trimming whitespace, and error checking.
-func readLinesFromFile(filePath string, callback func(line string) error) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("could not open file: %w", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		if err := callback(line); err != nil {
-			return err
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading file: %w", err)
-	}
-	return nil
-}
-
-func getAssetListFromFile(path string) ([]string, error) {
-	var result []string
-	err := readLinesFromFile(path, func(line string) error {
-		if strings.Contains(line, "/") {
-			logrus.Warnf("Unexpected file line %q, expected name but got path components", line)
-			return nil
-		}
-		result = append(result, line)
-		return nil
-	})
-	if err != nil {
-		return result, fmt.Errorf("error reading asset file: %w", err)
-	}
-	return result, nil
-}
 
 // Install one or more Quadlet files
 func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []string, options entities.QuadletInstallOptions) (*entities.QuadletInstallReport, error) {
@@ -125,6 +58,11 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 	}
 
 	installDir := systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless())
+
+	if len(options.Application) > 0 {
+		installDir = filepath.Join(installDir, options.Application)
+	}
+
 	logrus.Debugf("Going to install Quadlet to directory %s", installDir)
 
 	if err := os.MkdirAll(installDir, 0o755); err != nil {
@@ -136,7 +74,6 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		QuadletErrors:     make(map[string]error),
 	}
 
-	assetFile := ""
 	paths := pathsOrURLs
 	if len(pathsOrURLs) > 0 && !strings.HasPrefix(pathsOrURLs[0], "http://") && !strings.HasPrefix(pathsOrURLs[0], "https://") {
 		// Check if first path is dir, this is an APP
@@ -145,8 +82,12 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 			return nil, fmt.Errorf("unable to stat Quadlet path %s: %w", pathsOrURLs[0], err)
 		}
 		if info.IsDir() {
+			if len(options.Application) == 0 {
+				return nil, fmt.Errorf("application name cannot be empty when installing from directory")
+			}
+
 			// If it's a directory, then read all files and add it to paths
-			entries, err := os.ReadDir(pathsOrURLs[0])
+			entries, err := os.ReadDir(pathsOrURLs[0]) // TODO: make recursive
 			if err != nil {
 				return nil, fmt.Errorf("unable to read Quadlet dir %s: %w", pathsOrURLs[0], err)
 			}
@@ -156,26 +97,11 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 			}
 			redoPaths = append(redoPaths, pathsOrURLs[1:]...)
 			paths = redoPaths
-			// treat all file in this session as part of one app.
-			assetFile = "." + filepath.Base(pathsOrURLs[0]) + ".app"
 		}
 	}
 
 	// Loop over all given URLs
 	for _, toInstall := range paths {
-		validateQuadletFile := false
-		if assetFile == "" {
-			// Check if this is a .quadlets file - if so, treat as an app
-			ext := filepath.Ext(toInstall)
-			if ext == ".quadlets" {
-				// For .quadlets files, use .app extension to group all quadlets as one application
-				baseName := strings.TrimSuffix(filepath.Base(toInstall), filepath.Ext(toInstall))
-				assetFile = "." + baseName + ".app"
-			} else {
-				assetFile = "." + filepath.Base(toInstall) + ".asset"
-			}
-			validateQuadletFile = true
-		}
 		switch {
 		case strings.HasPrefix(toInstall, "http://") || strings.HasPrefix(toInstall, "https://"):
 			r, err := http.Get(toInstall)
@@ -206,7 +132,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("populating temporary file: %w", err)
 				continue
 			}
-			installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), quadletFileName, installDir, assetFile, validateQuadletFile, options.Replace)
+			installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), quadletFileName, installDir, options.Replace)
 			if err != nil {
 				installReport.QuadletErrors[toInstall] = err
 				continue
@@ -226,7 +152,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 			// Handle files with unsupported extensions that are not .quadlets files
 			// If we're installing as part of an app (assetFile is set), allow non-quadlet files as assets
 			// Standalone files with unsupported extensions are not allowed
-			if !hasValidExt && !isQuadletsFile && assetFile == "" {
+			if !hasValidExt && !isQuadletsFile && options.Application == "" {
 				installReport.QuadletErrors[toInstall] = fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(toInstall))
 				continue
 			}
@@ -258,7 +184,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 
 					// Install the quadlet from the temporary file
 					destName := quadlet.name + quadlet.extension
-					installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), destName, installDir, assetFile, true, options.Replace)
+					installedPath, err := ic.installQuadlet(ctx, tmpFile.Name(), destName, installDir, options.Replace)
 					if err != nil {
 						installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to install quadlet section %s: %w", destName, err)
 						continue
@@ -270,7 +196,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				}
 			} else {
 				// If toInstall is a single file with a supported extension, execute the original logic
-				installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir, assetFile, validateQuadletFile, options.Replace)
+				installedPath, err := ic.installQuadlet(ctx, toInstall, filepath.Base(toInstall), installDir, options.Replace)
 				if err != nil {
 					installReport.QuadletErrors[toInstall] = err
 					continue
@@ -315,24 +241,43 @@ func getFileName(resp *http.Response, fileURL string) (string, error) {
 // Perform some minimal validation, but not much.
 // We can't know about a lot of problems without running the Quadlet binary, which we
 // only want to do once.
-func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir, assetFile string, isQuadletFile, replace bool) (string, error) {
+func (ic *ContainerEngine) installQuadlet(ctx context.Context, path, destName, installDir string, replace bool) (string, error) {
+	logrus.Debugf("[installQuadlet] path=%s, destName=%s, installDir=%s", path, destName, installDir)
+
 	// First, validate that the source path exists and is a file
 	stat, err := os.Stat(path)
 	if err != nil {
 		return "", fmt.Errorf("quadlet to install %q does not exist or cannot be read: %w", path, err)
 	}
 	if stat.IsDir() {
-		return "", fmt.Errorf("quadlet to install %q is not a file", path)
+		dirs, err := os.ReadDir(path)
+		if err != nil {
+			return "", err
+		}
+
+		for _, d := range dirs {
+			nInstallDir := filepath.Join(installDir, destName)
+			err := os.MkdirAll(nInstallDir, 0o755)
+			if err != nil {
+				return "", err
+			}
+
+			_, err = ic.installQuadlet(
+				ctx,
+				filepath.Join(path, d.Name()), // path
+				d.Name(),                      // destName
+				nInstallDir,                   // installDir
+				replace)
+			if err != nil {
+				return "", err
+			}
+		}
+		return path, nil
 	}
 
 	finalPath := filepath.Join(installDir, filepath.Base(filepath.Clean(path)))
 	if destName != "" {
 		finalPath = filepath.Join(installDir, destName)
-	}
-
-	// Validate extension is valid
-	if isQuadletFile && !systemdquadlet.IsExtSupported(finalPath) {
-		return "", fmt.Errorf("%q is not a supported Quadlet file type", filepath.Ext(finalPath))
 	}
 
 	osFlags := os.O_CREATE | os.O_WRONLY
@@ -362,22 +307,6 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 		return "", fmt.Errorf("unable to copy file from %s to %s: %w", path, finalPath, err)
 	}
 
-	// When we install files using this function, caller of this function can turn off `validateQuadletFile`
-	// when they are installing `non-quadlet` files.
-	if !isQuadletFile {
-		err := appendStringToFile(filepath.Join(installDir, assetFile), filepath.Base(filepath.Clean(path)))
-		if err != nil {
-			return "", fmt.Errorf("error while writing non-quadlet filename: %w", err)
-		}
-	} else if strings.HasSuffix(assetFile, ".app") {
-		// For quadlet files that are part of an application (indicated by .app extension),
-		// also write the quadlet filename to the .app file for proper application tracking
-		quadletName := filepath.Base(finalPath)
-		err := appendStringToFile(filepath.Join(installDir, assetFile), quadletName)
-		if err != nil {
-			return "", fmt.Errorf("error while writing quadlet filename to app file: %w", err)
-		}
-	}
 	return finalPath, nil
 }
 
@@ -513,74 +442,6 @@ func detectQuadletType(content string) (string, error) {
 	return "", fmt.Errorf("no recognized quadlet section found (expected [Container], [Volume], [Network], [Kube], [Image], [Build], or [Pod])")
 }
 
-// buildAppMap scans the given directory for files that start with '.'
-// and end with '.app', reads their contents (one filename per line), and
-// returns a map where each filename maps to the .app file that contains it.
-// Also returns a map where each `.app` points to a slice of strings containing
-// all the files in that `.app`.
-func buildAppMap(dir string) (map[string]string, map[string][]string, error) {
-	reverseMap := make(map[string]string)
-	appMap := make(map[string][]string)
-
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				logrus.Warnf("Error descending into path %s: %v", path, err)
-			}
-			return filepath.SkipDir
-		}
-		info, err := d.Info()
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				logrus.Warnf("Error descending into path %s: %v", path, err)
-			}
-			return filepath.SkipDir
-		}
-		if !info.IsDir() {
-			name := info.Name()
-			if strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".app") {
-				err := readLinesFromFile(path, func(line string) error {
-					reverseMap[line] = name
-					appMap[name] = append(appMap[name], line)
-					return nil
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	return reverseMap, appMap, nil
-}
-
-// Get the paths of all quadlets available to the current user
-func getAllQuadletPaths() []string {
-	var quadletPaths []string
-	quadletDirs := systemdquadlet.GetUnitDirs(rootless.IsRootless())
-	for _, dir := range quadletDirs {
-		dents, err := os.ReadDir(dir)
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				// This is perfectly normal, some quadlet directories aren't created by the package
-				logrus.Warnf("Cannot list Quadlet directory %s: %v", dir, err)
-			}
-			continue
-		}
-		logrus.Debugf("Checking for quadlets in %q", dir)
-		for _, dent := range dents {
-			if systemdquadlet.IsExtSupported(dent.Name()) && !dent.IsDir() {
-				logrus.Debugf("Found quadlet %q", dent.Name())
-				quadletPaths = append(quadletPaths, filepath.Join(dir, dent.Name()))
-			}
-		}
-	}
-	return quadletPaths
-}
-
 // Generate systemd service name for a Quadlet from full path to the Quadlet file
 func getQuadletServiceName(quadletPath string) (string, error) {
 	unit, err := parser.ParseUnitFile(quadletPath)
@@ -595,25 +456,7 @@ func getQuadletServiceName(quadletPath string) (string, error) {
 	return serviceName + ".service", nil
 }
 
-type QuadletFilter func(q *entities.ListQuadlet) bool
-
-func generateQuadletFilter(filter string, filterValues []string) (func(q *entities.ListQuadlet) bool, error) {
-	switch filter {
-	case "name":
-		return func(q *entities.ListQuadlet) bool {
-			res := util.StringMatchRegexSlice(q.Name, filterValues)
-			return res
-		}, nil
-	default:
-		return nil, fmt.Errorf("%s is not a valid filter", filter)
-	}
-}
-
 func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.QuadletListOptions) ([]*entities.ListQuadlet, error) {
-	reverseMap, _, err := buildAppMap(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()))
-	if err != nil {
-		return nil, fmt.Errorf("unable to build app map: %w", err)
-	}
 	// Is systemd available to the current user?
 	// We cannot proceed if not.
 	conn, err := systemd.ConnectToDBUS()
@@ -622,95 +465,20 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 	}
 	defer conn.Close()
 
-	quadletPaths := getAllQuadletPaths()
-
 	// Create filter functions
-	filterFuncs := make([]func(q *entities.ListQuadlet) bool, 0, len(options.Filters))
-	filterMap := make(map[string][]string)
-	// TODO: Add filter for app names.
-	for _, f := range options.Filters {
-		fname, filter, hasFilter := strings.Cut(f, "=")
-		if !hasFilter {
-			return nil, fmt.Errorf("invalid filter %q", f)
-		}
-		filterMap[fname] = append(filterMap[fname], filter)
-	}
-	for fname, filter := range filterMap {
-		filterFunc, err := generateQuadletFilter(fname, filter)
-		if err != nil {
-			return nil, err
-		}
-		filterFuncs = append(filterFuncs, filterFunc)
-	}
-
-	reports := make([]*entities.ListQuadlet, 0, len(quadletPaths))
-	allServiceNames := make([]string, 0, len(quadletPaths))
-	partialReports := make(map[string]entities.ListQuadlet)
-
-	for _, path := range quadletPaths {
-		appName := ""
-		value, ok := reverseMap[filepath.Base(path)]
-		if ok {
-			appName = value
-		}
-		report := entities.ListQuadlet{
-			Name: filepath.Base(path),
-			Path: path,
-			App:  appName,
-		}
-
-		serviceName, err := getQuadletServiceName(path)
-		if err != nil {
-			report.Status = err.Error()
-			reports = append(reports, &report)
-			continue
-		}
-		partialReports[serviceName] = report
-		allServiceNames = append(allServiceNames, serviceName)
-	}
-
-	// Get status of all systemd units with given names.
-	statuses, err := conn.ListUnitsByNamesContext(ctx, allServiceNames)
+	filterFunc, err := generateQuadletFilters(options.Filters)
 	if err != nil {
-		return nil, fmt.Errorf("querying systemd for unit status: %w", err)
-	}
-	if len(statuses) != len(allServiceNames) {
-		logrus.Warnf("Queried for %d services but received %d responses", len(allServiceNames), len(statuses))
-	}
-	for _, unitStatus := range statuses {
-		report, ok := partialReports[unitStatus.Name]
-		if !ok {
-			logrus.Errorf("Unexpected unit returned by systemd - was not searching for %s", unitStatus.Name)
-		}
-
-		logrus.Debugf("Unit %s has status %s %s %s", unitStatus.Name, unitStatus.LoadState, unitStatus.ActiveState, unitStatus.SubState)
-		report.UnitName = unitStatus.Name
-
-		// Unit is not loaded
-		if unitStatus.LoadState != "loaded" {
-			report.Status = "Not loaded"
-		} else {
-			report.Status = fmt.Sprintf("%s/%s", unitStatus.ActiveState, unitStatus.SubState)
-		}
-		reports = append(reports, &report)
-		delete(partialReports, unitStatus.Name)
+		return nil, fmt.Errorf("cannot use filters: %w", err)
 	}
 
-	// This should not happen.
-	// Systemd will give us output for everything we sent to them, even if it's not a valid unit.
-	// We can find them with LoadState, as we do above.
-	// Handle it anyways because it's easy enough to do.
-	for _, report := range partialReports {
-		report.Status = "Not loaded"
-		reports = append(reports, &report)
+	reports, err := getAllQuadlets(ctx, conn)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get quadlets: %w", err)
 	}
 
 	finalReports := make([]*entities.ListQuadlet, 0, len(reports))
 	for _, report := range reports {
-		include := true
-		for _, filterFunc := range filterFuncs {
-			include = filterFunc(report)
-		}
+		include := filterFunc(report)
 		if include {
 			finalReports = append(finalReports, report)
 		}
@@ -735,7 +503,7 @@ func getQuadletPathByName(name string) (string, error) {
 		return "", fmt.Errorf("%q is not a supported quadlet file type", filepath.Ext(name))
 	}
 
-	quadletDirs := systemdquadlet.GetUnitDirs(rootless.IsRootless())
+	quadletDirs := systemdquadlet.GetUnitDirs(rootless.IsRootless(), true)
 	for _, dir := range quadletDirs {
 		testPath := filepath.Join(dir, name)
 		if _, err := os.Stat(testPath); err != nil {
@@ -770,48 +538,6 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 		Errors:  make(map[string]error),
 		Removed: []string{},
 	}
-	removeList := []string{}
-	reverseMap, appMap, err := buildAppMap(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()))
-	if err != nil {
-		return nil, fmt.Errorf("unable to build app map: %w", err)
-	}
-	expandQuadletList := []string{}
-	// Process all `.app` files in arguments, if `.app` file
-	// is found then expand it to its respective quadlet files
-	// and remove it from the processing list.
-	for _, quadlet := range quadlets {
-		// Most likely this is an app
-		if strings.HasPrefix(quadlet, ".") && strings.HasSuffix(quadlet, ".app") {
-			files, ok := appMap[quadlet]
-			// Add all files of this application in to-be removed list.
-			if ok {
-				for _, file := range files {
-					if !systemdquadlet.IsExtSupported(file) {
-						removeList = append(removeList, file)
-					} else {
-						expandQuadletList = append(expandQuadletList, file)
-					}
-				}
-			}
-			// also add .app file itself to the remove list so it can
-			// be cleaned after removal of all components in the list
-			if !slices.Contains(removeList, quadlet) {
-				removeList = append(removeList, quadlet)
-			}
-		} else {
-			expandQuadletList = append(expandQuadletList, quadlet)
-		}
-	}
-	quadlets = expandQuadletList
-	allQuadletPaths := make([]string, 0, len(quadlets))
-	allServiceNames := make([]string, 0, len(quadlets))
-	runningQuadlets := make([]string, 0, len(quadlets))
-	serviceNameToQuadletName := make(map[string]string)
-	needReload := options.ReloadSystemd
-
-	if len(quadlets) == 0 && !options.All {
-		return nil, errors.New("must provide at least 1 quadlet to remove")
-	}
 
 	// Is systemd available to the current user?
 	// We cannot proceed if not.
@@ -821,141 +547,64 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	}
 	defer conn.Close()
 
-	if options.All {
-		allQuadlets := getAllQuadletPaths()
-		quadlets = allQuadlets
+	// Get all units (aka Quadlets)
+	units, err := getAllQuadlets(ctx, conn)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get quadlets: %w", err)
 	}
 
-	// We are using index wise iteration here instead of `range`
-	// because we are modifying `quadlets` in this loop by appending
-	// more elements to it if needed, we cannot do this with `range`.
-	for i := 0; i < len(quadlets); i++ {
-		var err error
-		var quadletPath string
-		quadlet := quadlets[i]
-		if options.All {
-			quadletPath = quadlet
-		} else {
-			quadletPath, err = getQuadletPathByName(quadlet)
+	// Group units by application
+	// Map application -> quadlets
+	applications := make(map[string][]*entities.ListQuadlet)
+	for _, unit := range units {
+		if len(unit.App) > 0 {
+			applications[unit.App] = append(applications[unit.App], unit)
 		}
-		if !options.All && err != nil {
-			// All implies Ignore, because the only reason we'd see an error here with all
-			// is if the quadlet was removed in a TOCTOU scenario.
-			if options.Ignore {
-				report.Removed = append(report.Removed, quadlet)
-			} else {
-				report.Errors[quadlet] = err
+	}
+
+	// Create a map filename -> quadlet
+	files := make(map[string]*entities.ListQuadlet, len(units))
+	for _, unit := range units {
+		files[unit.Name] = unit
+	}
+
+	// Iterate over the list of quadlets to remove
+	for _, quadlet := range quadlets {
+		if systemdquadlet.IsExtSupported(quadlet) {
+			// deleting a quadlet file
+			if files[quadlet] == nil {
+				return nil, fmt.Errorf("cannot find quadlet %q", quadlet)
 			}
-			continue
-		}
-		value, ok := reverseMap[quadlet]
-		if ok {
-			// If this is part of app and we are cleaning entire .app
-			// make sure to add .app file itself to the removal list
-			// if it does not already exists.
-			if !slices.Contains(removeList, value) {
-				removeList = append(removeList, value)
-			}
-			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), value)
-			filesToRemove, err := getAssetListFromFile(appFilePath)
+
+			err := removeQuadlet(ctx, conn, files[quadlet], options.Force)
 			if err != nil {
-				return nil, fmt.Errorf("unable to get list of files to remove: %w", err)
+				report.Errors[quadlet] = err
+			} else {
+				report.Removed = append(report.Removed, files[quadlet].Name)
 			}
-			for _, entry := range filesToRemove {
-				if !systemdquadlet.IsExtSupported(entry) {
-					removeList = append(removeList, entry)
-					if !slices.Contains(removeList, value) {
-						// In the last also clean .<quadlet>.app file
-						removeList = append(removeList, value)
-					}
-					continue
-				}
-				if !slices.Contains(quadlets, entry) {
-					quadlets = append(quadlets, entry)
-				}
+		} else {
+			// delete an application
+			if len(applications[quadlet]) == 0 {
+				return nil, fmt.Errorf("cannot find application %q", quadlet)
 			}
-		}
 
-		allQuadletPaths = append(allQuadletPaths, quadletPath)
-
-		serviceName, err := getQuadletServiceName(quadletPath)
-		if err != nil {
-			report.Errors[quadlet] = err
-			continue
-		}
-
-		allServiceNames = append(allServiceNames, serviceName)
-		serviceNameToQuadletName[serviceName] = quadlet
-	}
-
-	if len(allServiceNames) != 0 {
-		// Check if units are loaded into systemd, and further if they are running.
-		// If running and force is not set, error.
-		// If force is set, try and stop the unit.
-		statuses, err := conn.ListUnitsByNamesContext(ctx, allServiceNames)
-		if err != nil {
-			return nil, fmt.Errorf("querying systemd for unit status: %w", err)
-		}
-		for _, unitStatus := range statuses {
-			quadletName := serviceNameToQuadletName[unitStatus.Name]
-
-			if unitStatus.LoadState != "loaded" {
-				// Nothing to do here if it doesn't exist in systemd
-				continue
+			if !options.Recursive {
+				return nil, fmt.Errorf("refusing to remove application %q: recursive option is not set", quadlet)
 			}
-			needReload = options.ReloadSystemd
-			if unitStatus.ActiveState == "active" {
-				if !options.Force {
-					report.Errors[quadletName] = fmt.Errorf("quadlet %s is running and force is not set, refusing to remove: %w", quadletName, define.ErrQuadletRunning)
-					runningQuadlets = append(runningQuadlets, quadletName)
-					continue
-				}
-				logrus.Infof("Going to stop systemd unit %s (Quadlet %s)", unitStatus.Name, quadletName)
-				ch := make(chan string)
-				if _, err := conn.StopUnitContext(ctx, unitStatus.Name, "replace", ch); err != nil {
-					report.Errors[quadletName] = fmt.Errorf("stopping quadlet %s: %w", quadletName, err)
-					runningQuadlets = append(runningQuadlets, quadletName)
-					continue
-				}
-				logrus.Debugf("Waiting for systemd unit %s to stop", unitStatus.Name)
-				stopResult := <-ch
-				if stopResult != "done" && stopResult != "skipped" {
-					report.Errors[quadletName] = fmt.Errorf("unable to stop quadlet %s: %s", quadletName, stopResult)
-					runningQuadlets = append(runningQuadlets, quadletName)
-					continue
+
+			for _, unit := range applications[quadlet] {
+				err := removeQuadlet(ctx, conn, unit, options.Force)
+				if err != nil {
+					report.Errors[quadlet] = err
+				} else {
+					report.Removed = append(report.Removed, unit.Name)
 				}
 			}
-		}
-	}
-
-	// Remove the actual files behind the quadlets
-	if len(allQuadletPaths) != 0 {
-		for _, path := range allQuadletPaths {
-			var errAsset error
-			quadletName := filepath.Base(path)
-			errAsset = deleteAsset(quadletName)
-			if slices.Contains(runningQuadlets, quadletName) {
-				continue
-			}
-			if err := os.Remove(path); err != nil {
-				if !errors.Is(err, fs.ErrNotExist) {
-					reportErr := fmt.Errorf("removing quadlet %s: %w", quadletName, err)
-					if errAsset != nil {
-						reportErr = errors.Join(reportErr, errAsset)
-					}
-					report.Errors[quadletName] = reportErr
-					continue
-				}
-			}
-			for _, entry := range removeList {
-				os.Remove(filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry))
-			}
-			report.Removed = append(report.Removed, quadletName)
 		}
 	}
 
 	// Reload systemd, if necessary/requested.
-	if needReload {
+	if options.ReloadSystemd {
 		if err := conn.ReloadContext(ctx); err != nil {
 			return &report, fmt.Errorf("reloading systemd: %w", err)
 		}
