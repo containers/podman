@@ -640,6 +640,17 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 			return nil, fmt.Errorf("unable to parse ignore file: %w", err)
 		}
 		opts.Excludes = excludes
+
+		// Always pass ignore file to force buildah to consider
+		// an empty ignore file if passed. Make path relative to
+		// context directory for remote compatibility.
+		ignoreFile := flags.IgnoreFile
+		if absIgnore, err := filepath.Abs(ignoreFile); err == nil {
+			if relPath, ok := strings.CutPrefix(absIgnore, contextDir+string(filepath.Separator)); ok {
+				ignoreFile = relPath
+			}
+		}
+		opts.IgnoreFile = ignoreFile
 	}
 
 	if flags.SourceDateEpoch != "" { // could be explicitly specified, or passed via the environment, tricking .Changed()
