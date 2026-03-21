@@ -81,12 +81,16 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	if input.GID != nil {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*input.GID), libpod.WithVolumeNoChown())
 	}
+	if input.Pinned {
+		volumeOptions = append(volumeOptions, libpod.WithVolumePinned())
+	}
 
 	vol, err := runtime.NewVolume(r.Context(), volumeOptions...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
+
 	inspectOut, err := vol.Inspect()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -147,6 +151,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 
 func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		return nil, err
@@ -162,7 +167,14 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 		filterFuncs = append(filterFuncs, filterFunc)
 	}
 
-	reports, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	query := struct {
+		IncludePinned bool `schema:"includePinned"`
+	}{}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		return nil, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err)
+	}
+
+	reports, err := runtime.PruneVolumesWithOptions(r.Context(), filterFuncs, query.IncludePinned)
 	if err != nil {
 		return nil, err
 	}
@@ -175,8 +187,9 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
-		Force   bool  `schema:"force"`
-		Timeout *uint `schema:"timeout"`
+		Force         bool  `schema:"force"`
+		Timeout       *uint `schema:"timeout"`
+		IncludePinned bool  `schema:"includePinned"`
 	}{
 		// override any golang type defaults
 	}
@@ -192,8 +205,8 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		utils.VolumeNotFound(w, name, err)
 		return
 	}
-	if err := runtime.RemoveVolume(r.Context(), vol, query.Force, query.Timeout); err != nil {
-		if errors.Is(err, define.ErrVolumeBeingUsed) {
+	if err := runtime.RemoveVolumeWithOptions(r.Context(), vol, query.Force, query.Timeout, query.IncludePinned); err != nil {
+		if errors.Is(err, define.ErrVolumeBeingUsed) || errors.Is(err, define.ErrVolumePinned) {
 			utils.Error(w, http.StatusConflict, err)
 			return
 		}

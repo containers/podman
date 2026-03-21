@@ -70,7 +70,8 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//        - label=<key> or label=<key>:<value> Matches volumes based on the presence of a label alone or a label and a value.
 	//        - name=<volume-name> Matches all of volume name.
 	//        - opt=<driver-option> Matches a storage driver options
-	//        - `until=<timestamp>` List volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
+	//        - `pinned=true|false` Matches volumes based on their pinned status.
+	//        - `until=<timestamp>` List volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine's time.
 	// responses:
 	//   '200':
 	//     "$ref": "#/responses/volumeListLibpod"
@@ -93,8 +94,13 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//      Available filters:
 	//        - `all` When true, prune all unused volumes; when false or unset, only anonymous unused volumes.
 	//        - `anonymous` When true/false, restrict to anonymous or named volumes only.
-	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
+	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine's time.
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune volumes with (or without, in case `label!=...` is used) the specified labels.
+	//        - `pinned=true|false` Restrict to pinned or unpinned volumes.
+	//  - in: query
+	//    name: includePinned
+	//    type: boolean
+	//    description: include pinned volumes in the prune operation
 	// responses:
 	//   '200':
 	//      "$ref": "#/responses/volumePruneLibpod"
@@ -141,6 +147,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    name: timeout
 	//    type: integer
 	//    description: timeout before forcibly killing any containers using the volume
+	//  - in: query
+	//    name: includePinned
+	//    type: boolean
+	//    description: allow removal of pinned volumes
 	// produces:
 	// - application/json
 	// responses:
@@ -149,7 +159,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   404:
 	//     $ref: "#/responses/volumeNotFound"
 	//   409:
-	//     description: Volume is in use and cannot be removed
+	//     description: Volume is in use or pinned and cannot be removed
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/volumes/{name}"), s.APIHandler(libpod.RemoveVolume)).Methods(http.MethodDelete)
@@ -229,6 +239,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//        - driver=<volume-driver-name> Matches volumes based on their driver.
 	//        - label=<key> or label=<key>:<value> Matches volumes based on the presence of a label alone or a label and a value.
 	//        - name=<volume-name> Matches all of volume name.
+	//        - `pinned=true|false` Matches volumes based on their pinned status.
 	//        - `until=<timestamp>` List volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	//
 	//      Note:
@@ -309,6 +320,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    name: timeout
 	//    type: integer
 	//    description: timeout before forcibly killing any containers using the volume
+	//  - in: query
+	//    name: includePinned
+	//    type: boolean
+	//    description: allow removal of pinned volumes
 	// produces:
 	// - application/json
 	// responses:
@@ -317,7 +332,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   404:
 	//     $ref: "#/responses/volumeNotFound"
 	//   409:
-	//     description: Volume is in use and cannot be removed
+	//     description: Volume is in use or pinned and cannot be removed
 	//   500:
 	//     "$ref": "#/responses/internalError"
 	r.Handle(VersionedPath("/volumes/{name}"), s.APIHandler(compat.RemoveVolume)).Methods(http.MethodDelete)
@@ -338,8 +353,13 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//      JSON encoded value of filters (a map[string][]string). Docker API 1.42+ - by default only anonymous (unnamed) unused volumes are pruned; use filter all=true to prune all unused volumes.
 	//      Available filters:
 	//        - `all` When true, prune all unused volumes (anonymous and named). When false or unset, only anonymous unused volumes are pruned.
-	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
+	//        - `pinned=true|false` Restrict to pinned or unpinned volumes.
+	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine's time.
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune volumes with (or without, in case `label!=...` is used) the specified labels.
+	//  - in: query
+	//    name: includePinned
+	//    type: boolean
+	//    description: include pinned volumes in the prune operation
 	// responses:
 	//   '200':
 	//      "$ref": "#/responses/volumePruneResponse"

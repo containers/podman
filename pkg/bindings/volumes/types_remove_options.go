@@ -46,3 +46,18 @@ func (o *RemoveOptions) GetTimeout() uint {
 	}
 	return *o.Timeout
 }
+
+// WithIncludePinned set field IncludePinned to given value
+func (o *RemoveOptions) WithIncludePinned(value bool) *RemoveOptions {
+	o.IncludePinned = &value
+	return o
+}
+
+// GetIncludePinned returns value of field IncludePinned
+func (o *RemoveOptions) GetIncludePinned() bool {
+	if o.IncludePinned == nil {
+		var z bool
+		return z
+	}
+	return *o.IncludePinned
+}

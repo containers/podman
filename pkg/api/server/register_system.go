@@ -83,6 +83,10 @@ func (s *APIServer) registerSystemHandlers(r *mux.Router) error {
 	//     type: boolean
 	//     description: Remove build cache
 	//   - in: query
+	//     name: includePinned
+	//     type: boolean
+	//     description: include pinned volumes in prune
+	//   - in: query
 	//     name: filters
 	//     type: string
 	//     description: |
