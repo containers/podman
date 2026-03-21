@@ -10,6 +10,7 @@ type (
 	SystemPruneOptions      = types.SystemPruneOptions
 	SystemPruneReport       = types.SystemPruneReport
 	SystemMigrateOptions    = types.SystemMigrateOptions
+	SystemResetOptions      = types.SystemResetOptions
 	SystemCheckOptions      = types.SystemCheckOptions
 	SystemCheckReport       = types.SystemCheckReport
 	SystemDfOptions         = types.SystemDfOptions

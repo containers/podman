@@ -14,15 +14,12 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities/reports"
 	"github.com/containers/podman/v6/pkg/domain/filters"
 	"github.com/containers/podman/v6/pkg/domain/infra/abi/parse"
-	"github.com/containers/podman/v6/pkg/util"
 )
 
 func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
 	var volumeOptions []libpod.VolumeCreateOption
 	if len(opts.Name) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeName(opts.Name))
-	} else {
-		volumeOptions = append(volumeOptions, libpod.WithVolumeAnonymous())
 	}
 	if len(opts.Driver) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeDriver(opts.Driver))
@@ -48,11 +45,15 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 	if opts.GID != nil {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*opts.GID), libpod.WithVolumeNoChown())
 	}
+	if opts.Pinned {
+		volumeOptions = append(volumeOptions, libpod.WithVolumePinned())
+	}
 
 	vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
 	if err != nil {
 		return nil, err
 	}
+
 	return &entities.IDOrNameResponse{IDOrName: vol.Name()}, nil
 }
 
@@ -86,7 +87,7 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	}
 	for _, vol := range vols {
 		reports = append(reports, &entities.VolumeRmReport{
-			Err: ic.Libpod.RemoveVolume(ctx, vol, opts.Force, opts.Timeout),
+			Err: ic.Libpod.RemoveVolumeWithOptions(ctx, vol, opts.Force, opts.Timeout, opts.IncludePinned),
 			Id:  vol.Name(),
 		})
 	}
@@ -137,18 +138,19 @@ func (ic *ContainerEngine) VolumeInspect(_ context.Context, namesOrIds []string,
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.VolumePruneOptions) ([]*reports.PruneReport, error) {
 	funcs := []libpod.VolumeFilter{}
-	for filter, filterValues := range util.NormalizeVolumePruneFilters(options.Filters) {
+	for filter, filterValues := range options.Filters {
 		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
 		funcs = append(funcs, filterFunc)
 	}
-	return ic.pruneVolumesHelper(ctx, funcs)
+	return ic.pruneVolumesHelper(ctx, funcs, options.IncludePinned)
 }
 
-func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter) ([]*reports.PruneReport, error) {
-	pruned, err := ic.Libpod.PruneVolumes(ctx, filterFuncs)
+// pruneVolumesHelper applies volume prune filters and includePinned behavior.
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter, includePinned bool) ([]*reports.PruneReport, error) {
+	pruned, err := ic.Libpod.PruneVolumesWithOptions(ctx, filterFuncs, includePinned)
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +268,26 @@ func (ic *ContainerEngine) VolumeExport(_ context.Context, nameOrID string, opti
 	}
 
 	return nil
+}
+
+// VolumePin pins or unpins the given volumes based on opts.Unpin.
+func (ic *ContainerEngine) VolumePin(_ context.Context, namesOrIds []string, opts entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
+	reports := make([]*entities.VolumePinReport, 0, len(namesOrIds))
+
+	for _, nameOrId := range namesOrIds {
+		report := &entities.VolumePinReport{Id: nameOrId}
+
+		vol, err := ic.Libpod.LookupVolume(nameOrId)
+		if err != nil {
+			report.Err = err
+		} else {
+			report.Err = vol.SetPinned(!opts.Unpin)
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, nil
 }
 
 func (ic *ContainerEngine) VolumeImport(_ context.Context, nameOrID string, options entities.VolumeImportOptions) error {

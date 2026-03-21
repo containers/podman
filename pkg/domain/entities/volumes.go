@@ -13,22 +13,22 @@ type VolumeCreateOptions = types.VolumeCreateOptions
 type VolumeConfigResponse = types.VolumeConfigResponse
 
 type VolumeRmOptions struct {
-	All     bool
-	Force   bool
-	Ignore  bool
-	Timeout *uint
+	All           bool
+	Force         bool
+	Ignore        bool
+	Timeout       *uint
+	IncludePinned bool
 }
 
 type VolumeRmReport = types.VolumeRmReport
 
 type VolumeInspectReport = types.VolumeInspectReport
 
-// VolumePruneOptions describes the options needed to prune volumes.
-// Behavior is determined only by filters (Docker API 1.42+):
-// - when filter "all" is not set or not truthy, only anonymous unused volumes are pruned (default);
-// - when filter "all" is true, all unused volumes are pruned.
+// VolumePruneOptions describes the options needed
+// to prune a volume from the CLI
 type VolumePruneOptions struct {
-	Filters url.Values `json:"filters" schema:"filters"`
+	Filters       url.Values `json:"filters" schema:"filters"`
+	IncludePinned bool       `json:"includePinned" schema:"includePinned"`
 }
 
 type VolumeListOptions struct {
@@ -55,4 +55,15 @@ type VolumeExportOptions struct {
 type VolumeImportOptions struct {
 	// Input will be closed upon being fully consumed
 	Input io.Reader
+}
+
+// VolumePinOptions describes the options for pinning/unpinning volumes
+type VolumePinOptions struct {
+	Unpin bool
+}
+
+// VolumePinReport describes the response from pinning/unpinning a volume
+type VolumePinReport struct {
+	Id  string
+	Err error
 }

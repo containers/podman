@@ -158,12 +158,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 
 		// Remove unused volume data.
 		if options.Volume {
-			volumePruneOptions := entities.VolumePruneOptions{}
-			volumePruneOptions.Filters = (url.Values)(options.Filters)
-
-			if len(volumePruneOptions.Filters) == 0 {
-				volumePruneOptions.Filters.Set("all", "true")
-			}
+			volumePruneOptions := volumePruneOptionsFromSystemPruneOptions(options)
 
 			volumePruneReports, err := ic.VolumePrune(ctx, volumePruneOptions)
 			if err != nil {
@@ -180,6 +175,13 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 
 	systemPruneReport.ReclaimedSpace = reclaimedSpace
 	return systemPruneReport, nil
+}
+
+func volumePruneOptionsFromSystemPruneOptions(options entities.SystemPruneOptions) entities.VolumePruneOptions {
+	return entities.VolumePruneOptions{
+		Filters:       (url.Values)(options.Filters),
+		IncludePinned: options.VolumePruneOptions.IncludePinned,
+	}
 }
 
 func (ic *ContainerEngine) SystemDf(ctx context.Context, _ entities.SystemDfOptions) (*entities.SystemDfReport, error) {
@@ -300,8 +302,8 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, _ entities.SystemDfOpti
 	}, nil
 }
 
-func (ic *ContainerEngine) Reset(ctx context.Context) error {
-	return ic.Libpod.Reset(ctx)
+func (ic *ContainerEngine) Reset(ctx context.Context, options entities.SystemResetOptions) error {
+	return ic.Libpod.Reset(ctx, options.IncludePinned)
 }
 
 func (ic *ContainerEngine) Renumber(_ context.Context) error {

@@ -52,6 +52,31 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 		}, nil
 	case "until":
 		return createUntilFilterVolumeFunction(filterValues)
+	case "pinned":
+		for _, val := range filterValues {
+			switch strings.ToLower(val) {
+			case "true", "1", "false", "0":
+			default:
+				return nil, fmt.Errorf("%q is not a valid value for the \"pinned\" filter - must be true or false", val)
+			}
+		}
+		return func(v *libpod.Volume) bool {
+			for _, val := range filterValues {
+				pinned := v.IsPinned()
+
+				switch strings.ToLower(val) {
+				case "true", "1":
+					if pinned {
+						return true
+					}
+				case "false", "0":
+					if !pinned {
+						return true
+					}
+				}
+			}
+			return false
+		}, nil
 	case "dangling":
 		for _, val := range filterValues {
 			switch strings.ToLower(val) {
@@ -93,8 +118,6 @@ func GeneratePruneVolumeFilters(filter string, filterValues []string, runtime *l
 	switch filter {
 	case "after", "since":
 		return createAfterFilterVolumeFunction(filterValues, runtime)
-	case "anonymous":
-		return createAnonymousFilterVolumeFunction(filterValues)
 	case "label":
 		return func(v *libpod.Volume) bool {
 			return filters.MatchLabelFilters(filterValues, v.Labels())
@@ -105,6 +128,33 @@ func GeneratePruneVolumeFilters(filter string, filterValues []string, runtime *l
 		}, nil
 	case "until":
 		return createUntilFilterVolumeFunction(filterValues)
+	case "anonymous":
+		return createAnonymousFilterVolumeFunction(filterValues)
+	case "pinned":
+		for _, val := range filterValues {
+			switch strings.ToLower(val) {
+			case "true", "1", "false", "0":
+			default:
+				return nil, fmt.Errorf("%q is not a valid value for the \"pinned\" filter - must be true or false", val)
+			}
+		}
+		return func(v *libpod.Volume) bool {
+			for _, val := range filterValues {
+				pinned := v.IsPinned()
+
+				switch strings.ToLower(val) {
+				case "true", "1":
+					if pinned {
+						return true
+					}
+				case "false", "0":
+					if !pinned {
+						return true
+					}
+				}
+			}
+			return false
+		}, nil
 	}
 	return nil, fmt.Errorf("%q is an invalid volume filter", filter)
 }
