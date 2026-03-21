@@ -1927,16 +1927,17 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, _ []string, toComplete string
 	}
 	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
-		"after=":     getImg,
+		"after=":    getImg,
 		"anonymous=": getBoolCompletion,
-		"dangling=":  getBoolCompletion,
-		"driver=":    local,
-		"label=":     nil,
-		"name=":      func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
-		"opt=":       nil,
-		"scope=":     local,
-		"since=":     getImg,
-		"until=":     nil,
+		"dangling=": getBoolCompletion,
+		"driver=":   local,
+		"label=":    nil,
+		"name=":     func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"opt=":      nil,
+		"pinned=":   getBoolCompletion,
+		"scope=":    local,
+		"since=":    getImg,
+		"until=":    nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }
@@ -1949,6 +1950,7 @@ func AutocompleteVolumePruneFilters(cmd *cobra.Command, _ []string, toComplete s
 		"all=":       getBoolCompletion,
 		"anonymous=": getBoolCompletion,
 		"label=":     nil,
+		"pinned=":    getBoolCompletion,
 		"since=":     getImg,
 		"until=":     nil,
 	}

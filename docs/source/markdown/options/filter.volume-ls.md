@@ -13,13 +13,12 @@ Volumes can be filtered by the following attributes:
 
 | **Filter**  | **Description**                                                                       |
 | ----------  | ------------------------------------------------------------------------------------- |
-| anonymous   | [Bool] Matches anonymous volumes (true) or named volumes (false)                      |
 | dangling    | [Dangling] Matches all volumes not referenced by any containers                       |
 | driver      | [Driver] Matches volumes based on their driver                                        |
 | label       | [Key] or [Key=Value] Label assigned to a volume                                       |
-| label!      | [Key] or [Key=Value] Volumes without the specified label                              |
 | name        | [Name] Volume name (accepts regex)                                                    |
 | opt         | Matches a storage driver options                                                      |
+| pinned      | [Bool] Matches volumes based on their pinned status (true/false)                      |
 | scope       | Filters volume by scope                                                               |
 | after/since | Filter by volumes created after the given VOLUME (name or tag)                        |
 | until       | Filter by volumes created before given timestamp                                      |
