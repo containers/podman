@@ -44,6 +44,7 @@ func init() {
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumePruneFilters)
 	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
 	flags.BoolP("all", "a", false, "Remove all unused volumes, both anonymous and named")
+	flags.Bool("include-pinned", false, "Include pinned volumes in prune operation")
 }
 
 func prune(cmd *cobra.Command, _ []string) error {
@@ -68,6 +69,8 @@ func prune(cmd *cobra.Command, _ []string) error {
 		pruneOptions.Filters.Set("all", "true")
 	}
 
+	includePinned, _ := cmd.Flags().GetBool("include-pinned")
+	pruneOptions.IncludePinned = includePinned
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		if allFlag {
@@ -79,6 +82,17 @@ func prune(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return err
 		}
+
+		// Exclude pinned volumes from the confirmation preview unless
+		// --include-pinned was requested. The actual prune call also
+		// receives IncludePinned as the authoritative behavior flag.
+		if !includePinned {
+			if listOptions.Filter == nil {
+				listOptions.Filter = make(map[string][]string, 1)
+			}
+			listOptions.Filter["pinned"] = []string{"false"}
+		}
+
 		filteredVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), listOptions)
 		if err != nil {
 			return err
