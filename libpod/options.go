@@ -1716,14 +1716,14 @@ func WithVolumeNoChown() VolumeCreateOption {
 	}
 }
 
-// WithVolumeDisableQuota prevents the volume from being assigned a quota.
-func WithVolumeDisableQuota() VolumeCreateOption {
+// WithVolumePinned marks a volume as pinned at creation time.
+func WithVolumePinned() VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.DisableQuota = true
+		volume.state.Pinned = true
 
 		return nil
 	}
@@ -1739,6 +1739,19 @@ func WithVolumeAnonymous() VolumeCreateOption {
 		}
 
 		volume.config.IsAnon = true
+
+		return nil
+	}
+}
+
+// WithVolumeDisableQuota prevents the volume from being assigned a quota.
+func WithVolumeDisableQuota() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.DisableQuota = true
 
 		return nil
 	}
