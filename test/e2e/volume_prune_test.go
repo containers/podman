@@ -3,6 +3,7 @@
 package integration
 
 import (
+	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -12,103 +13,187 @@ var _ = Describe("Podman volume prune", func() {
 		podmanTest.CleanupVolume()
 	})
 
-	It("podman prune volume -a removes all unused volumes", func() {
-		podmanTest.PodmanExitCleanly("volume", "create")
-		podmanTest.PodmanExitCleanly("volume", "create")
-		podmanTest.PodmanExitCleanly("create", "-v", "myvol:/myvol", ALPINE, "ls")
+	It("podman prune volume", func() {
+		session := podmanTest.Podman([]string{"volume", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session := podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "-v", "myvol:/myvol", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(4))
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "-a", "--force")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
 	})
 
-	It("podman volume prune", func() {
-		session := podmanTest.PodmanExitCleanly("create", "-v", "/anon", ALPINE, "top")
-		podmanTest.PodmanExitCleanly("rm", session.OutputToString())
+	It("podman volume prune excludes pinned volumes by default", func() {
+		pinnedVolName := "pinned-prune-vol"
+		unpinnedVolName := "unpinned-prune-vol"
 
-		podmanTest.PodmanExitCleanly("volume", "create", "named_vol")
+		session := podmanTest.Podman([]string{"volume", "create", "--pinned", pinnedVolName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
-		Expect(session.OutputToStringArray()).To(HaveLen(3))
+		session = podmanTest.Podman([]string{"volume", "create", unpinnedVolName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
-		Expect(session.OutputToStringArray()).To(HaveLen(2))
-		Expect(session.OutputToString()).To(ContainSubstring("named_vol"))
-	})
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(pinnedVolName))
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(unpinnedVolName)))
 
-	It("podman volume prune --filter all=true removes all unused volumes", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "prune_filter_all_test")
-		podmanTest.PodmanExitCleanly("volume", "prune", "--filter", "all=true", "--force")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--include-pinned"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session := podmanTest.PodmanExitCleanly("volume", "ls")
-		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(pinnedVolName)))
 	})
 
 	It("podman prune volume --filter until", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "--label", "label1=value1", "myvol1")
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session := podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "until=50")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "until=50"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(2))
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "until=5000000000")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "until=5000000000"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman prune volume --filter", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "--label", "label1=value1", "myvol1")
-		podmanTest.PodmanExitCleanly("volume", "create", "--label", "sharedlabel1=slv1", "myvol2")
-		podmanTest.PodmanExitCleanly("volume", "create", "--label", "sharedlabel1=slv2", "myvol3")
-		podmanTest.PodmanExitCleanly("volume", "create", "--label", "sharedlabel1", "myvol4")
-		podmanTest.PodmanExitCleanly("create", "-v", "myvol5:/myvol5", ALPINE, "ls")
-		podmanTest.PodmanExitCleanly("create", "-v", "myvol6:/myvol6", ALPINE, "ls")
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "label1=value1", "myvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session := podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1=slv1", "myvol2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1=slv2", "myvol3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "sharedlabel1", "myvol4"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "-v", "myvol5:/myvol5", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "-v", "myvol6:/myvol6", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(7))
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "label=label1=value1")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "label=label1=value1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(6))
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "label=sharedlabel1=slv1")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "label=sharedlabel1=slv1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(5))
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "label=sharedlabel1")
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "label=sharedlabel1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(3))
 
-		podmanTest.PodmanExitCleanly("volume", "create", "--label", "testlabel", "myvol7")
-		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "label!=testlabel")
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "testlabel", "myvol7"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "prune", "--force", "--filter", "label!=testlabel"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("podman system prune --volume", func() {
 		useCustomNetworkDir(podmanTest, tempdir)
-		podmanTest.PodmanExitCleanly("volume", "create")
-		podmanTest.PodmanExitCleanly("volume", "create")
-		podmanTest.PodmanExitCleanly("create", "-v", "myvol:/myvol", ALPINE, "ls")
+		session := podmanTest.Podman([]string{"volume", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session := podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "-v", "myvol:/myvol", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(4))
 
-		podmanTest.PodmanExitCleanly("system", "prune", "--force", "--volumes")
+		session = podmanTest.Podman([]string{"system", "prune", "--force", "--volumes"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.PodmanExitCleanly("volume", "ls")
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
@@ -117,13 +202,24 @@ var _ = Describe("Podman volume prune", func() {
 		vol2 := "vol2"
 		vol3 := "vol3"
 
-		podmanTest.PodmanExitCleanly("volume", "create", vol1)
-		podmanTest.PodmanExitCleanly("volume", "create", vol2)
-		podmanTest.PodmanExitCleanly("volume", "create", vol3)
+		session := podmanTest.Podman([]string{"volume", "create", vol1})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
 
-		podmanTest.PodmanExitCleanly("volume", "prune", "-f", "--filter", "since="+vol1)
+		session = podmanTest.Podman([]string{"volume", "create", vol2})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
 
-		session := podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		session = podmanTest.Podman([]string{"volume", "create", vol3})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "prune", "-f", "--filter", "since=" + vol1})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol1))
 	})
