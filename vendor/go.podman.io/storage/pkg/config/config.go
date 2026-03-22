@@ -33,12 +33,16 @@ type OverlayOptionsConfig struct {
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
 	// files and directories
 	ForceMask string `toml:"force_mask,omitempty"`
+	// Sync controls filesystem sync during layer creation
+	Sync string `toml:"sync,omitempty"`
 }
 
 type VfsOptionsConfig struct {
 	// IgnoreChownErrors is a flag for whether chown errors should be
 	// ignored when building an image.
 	IgnoreChownErrors string `toml:"ignore_chown_errors,omitempty"`
+	// Sync controls filesystem sync during layer creation
+	Sync string `toml:"sync,omitempty"`
 }
 
 type ZfsOptionsConfig struct {
@@ -159,9 +163,15 @@ func GetGraphDriverOptions(options OptionsConfig) []string {
 	if options.Overlay.UseComposefs != "" {
 		doptions = append(doptions, fmt.Sprintf("overlay.use_composefs=%s", options.Overlay.UseComposefs))
 	}
+	if options.Overlay.Sync != "" {
+		doptions = append(doptions, fmt.Sprintf("overlay.sync=%s", options.Overlay.Sync))
+	}
 
 	if options.Vfs.IgnoreChownErrors != "" {
 		doptions = append(doptions, fmt.Sprintf("vfs.ignore_chown_errors=%s", options.Vfs.IgnoreChownErrors))
+	}
+	if options.Vfs.Sync != "" {
+		doptions = append(doptions, fmt.Sprintf("vfs.sync=%s", options.Vfs.Sync))
 	}
 
 	if options.Zfs.Name != "" {
