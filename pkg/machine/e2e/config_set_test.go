@@ -10,6 +10,7 @@ type setMachine struct {
 	memory             *uint
 	rootful            bool
 	userModeNetworking bool
+	importNativeCA     bool
 
 	cmd []string
 }
@@ -30,6 +31,9 @@ func (i *setMachine) buildCmd(m *machineTestBuilder) []string {
 	}
 	if i.userModeNetworking {
 		cmd = append(cmd, "--user-mode-networking")
+	}
+	if i.importNativeCA {
+		cmd = append(cmd, "--import-native-ca")
 	}
 	cmd = append(cmd, m.name)
 	i.cmd = cmd
