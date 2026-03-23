@@ -205,6 +205,8 @@ Build only on farm nodes that match the given platforms.
 
 @@option runtime-flag
 
+@@option save-stages
+
 @@option sbom
 
 @@option sbom-image-output
@@ -238,6 +240,8 @@ Build only on farm nodes that match the given platforms.
 @@option squash-all
 
 @@option ssh
+
+@@option stage-labels
 
 @@option tag
 

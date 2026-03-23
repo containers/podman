@@ -110,6 +110,7 @@ type BuildQuery struct {
 	RewriteTimestamp        bool               `schema:"rewritetimestamp"`
 	Retry                   int                `schema:"retry"`
 	RetryDelay              string             `schema:"retry-delay"`
+	SaveStages              bool               `schema:"save-stages"`
 	Seccomp                 string             `schema:"seccomp"`
 	Secrets                 string             `schema:"secrets"`
 	SecurityOpt             string             `schema:"securityopt"`
@@ -118,6 +119,7 @@ type BuildQuery struct {
 	SourceDateEpoch         int64              `schema:"sourcedateepoch"`
 	SourcePolicy            string             `schema:"sourcePolicy"`
 	Squash                  bool               `schema:"squash"`
+	StageLabels             bool               `schema:"stage-labels"`
 	TLSVerify               bool               `schema:"tlsVerify"`
 	Tags                    []string           `schema:"t"`
 	Target                  string             `schema:"target"`
@@ -384,6 +386,10 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 	compatVolumes, _ := utils.ParseOptionalBool(query.CompatVolumes, "compatvolumes", queryValues)
 
 	compression := archive.Compression(query.Compression)
+
+	if query.StageLabels && !query.SaveStages {
+		return nil, nil, utils.GetGenericBadRequestError(errors.New("stage-labels requires save-stages be set as well"))
+	}
 
 	// Process tags
 	tags := query.Tags
@@ -764,7 +770,9 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		RewriteTimestamp:               query.RewriteTimestamp,
 		RusageLogFile:                  query.RusageLogFile,
 		SkipUnusedStages:               skipUnusedStages,
+		SaveStages:                     query.SaveStages,
 		Squash:                         query.Squash,
+		StageLabels:                    query.StageLabels,
 		SystemContext:                  systemContext,
 		Target:                         query.Target,
 		TransientRunMounts:             query.TransientRunMounts,

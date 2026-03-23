@@ -171,6 +171,10 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 		}
 	}
 
+	if buildOpts.StageLabels && !buildOpts.SaveStages {
+		return nil, errors.New(`"--stage-labels" requires "--save-stages"`)
+	}
+
 	// Extract container files from the CLI (i.e., --file/-f) first.
 	var containerFiles []string
 	for _, f := range buildOpts.File {
@@ -605,11 +609,13 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		Runtime:                 podmanConfig.RuntimePath,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           flags.RusageLogFile,
+		SaveStages:              flags.SaveStages,
 		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  flags.SignBy,
 		SignaturePolicyPath:     flags.SignaturePolicy,
 		SourcePolicyFile:        flags.SourcePolicyFile,
 		Squash:                  flags.Squash,
+		StageLabels:             flags.StageLabels,
 		SystemContext:           systemContext,
 		Target:                  flags.Target,
 		TransientMounts:         flags.Volumes,
