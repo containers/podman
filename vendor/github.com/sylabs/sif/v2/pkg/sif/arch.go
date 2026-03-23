@@ -19,6 +19,7 @@ var (
 	hdrArchMIPS64le archType = [...]byte{'1', '0', '\x00'}
 	hdrArchS390x    archType = [...]byte{'1', '1', '\x00'}
 	hdrArchRISCV64  archType = [...]byte{'1', '2', '\x00'}
+	hdrArchLOONG64  archType = [...]byte{'1', '3', '\x00'}
 )
 
 type archType [3]byte
@@ -38,6 +39,7 @@ func getSIFArch(arch string) archType {
 		"mips64le": hdrArchMIPS64le,
 		"s390x":    hdrArchS390x,
 		"riscv64":  hdrArchRISCV64,
+		"loong64":  hdrArchLOONG64,
 	}
 
 	t, ok := archMap[arch]
@@ -62,6 +64,7 @@ func (t archType) GoArch() string {
 		hdrArchMIPS64le: "mips64le",
 		hdrArchS390x:    "s390x",
 		hdrArchRISCV64:  "riscv64",
+		hdrArchLOONG64:  "loong64",
 	}
 
 	arch, ok := archMap[t]

@@ -116,7 +116,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 
 	sigs, err := c.sourceSignatures(ctx, src,
 		"Getting image source signatures",
-		"Checking if image destination supports signatures")
+		"Checking if image destination supports signatures", false)
 	if err != nil {
 		return copySingleImageResult{}, err
 	}

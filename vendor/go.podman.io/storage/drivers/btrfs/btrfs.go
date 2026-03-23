@@ -161,6 +161,12 @@ func (d *Driver) Cleanup() error {
 	return mount.Unmount(d.home)
 }
 
+// SyncMode returns the sync mode configured for the driver.
+// Btrfs does not support sync mode configuration, always returns SyncModeNone.
+func (d *Driver) SyncMode() graphdriver.SyncMode {
+	return graphdriver.SyncModeNone
+}
+
 func free(p *C.char) {
 	C.free(unsafe.Pointer(p))
 }

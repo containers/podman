@@ -82,6 +82,7 @@ const (
 	listOpInvalid ListOp = iota
 	ListOpAdd
 	ListOpUpdate
+	ListOpDelete
 )
 
 // ListEdit includes the fields which a List's EditInstances() method will modify.
@@ -105,6 +106,9 @@ type ListEdit struct {
 	AddPlatform              *imgspecv1.Platform
 	AddAnnotations           map[string]string
 	AddCompressionAlgorithms []compression.Algorithm
+
+	// If Op = ListOpDelete. Callers should submit operations from highest index to lowest to avoid index shifting.
+	DeleteIndex int
 }
 
 // ListPublicFromBlob parses a list of manifests.
