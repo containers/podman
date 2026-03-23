@@ -253,10 +253,8 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
 	}
 
-	if cmd.Flags().Changed("memory") {
-		if err := checkMaxMemory(strongunits.MiB(initOpts.Memory)); err != nil {
-			return err
-		}
+	if err := checkMaxMemory(strongunits.MiB(initOpts.Memory)); err != nil {
+		return err
 	}
 	if err := checkMaxCPUs(initOpts.CPUS); err != nil {
 		return err
