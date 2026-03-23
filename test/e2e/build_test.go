@@ -136,6 +136,22 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman remote build file secret with dockerignore that ignores all files", func() {
+		// Test for: https://github.com/containers/podman/issues/25314
+		session := podmanTest.PodmanExitCleanly("build", "-f", "build/remote-secret-dockerignore-star/Dockerfile", "--secret", "id=MY_SECRET,type=file,src=build/remote-secret-dockerignore-star/host-secret.txt", "build/remote-secret-dockerignore-star")
+		Expect(session.OutputToString()).To(ContainSubstring("Super Secret"))
+	})
+
+	It("podman remote build env secret with COPY does not leak podman-build-secret temp files", func() {
+		// Test for: https://github.com/containers/podman/issues/28334
+		secret := "somesecretvalue"
+		os.Setenv("MYSECRET", secret)
+		defer os.Unsetenv("MYSECRET")
+
+		session := podmanTest.PodmanExitCleanly("build", "-f", "build/remote-secret-copy/Dockerfile", "--secret", "id=mysecret,env=MYSECRET", "build/remote-secret-copy")
+		Expect(session.OutputToString()).To(ContainSubstring(secret))
+	})
+
 	It("podman build with not found Containerfile or Dockerfile", func() {
 		targetPath := filepath.Join(podmanTest.TempDir, "notfound")
 		err = os.Mkdir(targetPath, 0o755)
