@@ -435,6 +435,10 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 		}
 	}
 
+	if len(podmanNetworks) == 1 && len(networkOrder) == 0 {
+		networkOrder = nil
+	}
+
 	return toReturn, podmanNetworks, networkOrder, networkOptions, nil
 }
 
