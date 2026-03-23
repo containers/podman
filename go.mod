@@ -3,7 +3,7 @@ module github.com/containers/podman/v6
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
@@ -64,9 +64,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vbauerster/mpb/v8 v8.12.0
 	github.com/vishvananda/netlink v1.3.1
-	go.podman.io/common v0.67.1-0.20260319204327-cfee468e9b0b
-	go.podman.io/image/v5 v5.39.2-0.20260319204327-cfee468e9b0b
-	go.podman.io/storage v1.62.1-0.20260319204327-cfee468e9b0b
+	go.podman.io/common v0.67.1-0.20260320151802-172e05252cca
+	go.podman.io/image/v5 v5.39.2-0.20260320151802-172e05252cca
+	go.podman.io/storage v1.62.1-0.20260320151802-172e05252cca
 	golang.org/x/crypto v0.49.0
 	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.20.0
@@ -122,7 +122,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-containerregistry v0.20.7 // indirect
+	github.com/google/go-containerregistry v0.21.1 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -162,7 +162,7 @@ require (
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/smallstep/pkcs7 v0.1.1 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
-	github.com/sylabs/sif/v2 v2.22.0 // indirect
+	github.com/sylabs/sif/v2 v2.24.0 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect

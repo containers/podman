@@ -176,6 +176,11 @@ func (index *OCI1IndexPublic) editInstances(editInstances []ListEdit, cannotModi
 				Platform:     editInstance.AddPlatform,
 				Annotations:  annotations,
 			})
+		case ListOpDelete:
+			if editInstance.DeleteIndex < 0 || editInstance.DeleteIndex >= len(index.Manifests) {
+				return fmt.Errorf("OCI1Index.EditInstances: invalid delete index %d (list has %d instances)", editInstance.DeleteIndex, len(index.Manifests))
+			}
+			index.Manifests = slices.Delete(index.Manifests, editInstance.DeleteIndex, editInstance.DeleteIndex+1)
 		default:
 			return fmt.Errorf("internal error: invalid operation: %d", editInstance.ListOperation)
 		}
