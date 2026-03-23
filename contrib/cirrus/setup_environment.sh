@@ -143,10 +143,6 @@ case "$OS_RELEASE_ID" in
     *) die_unknown OS_RELEASE_ID
 esac
 
-# Remove packaged storage.conf as it hard codes a graphroot which
-# is not correct for rootless users based on our new config file parsing.
-rm -f /usr/share/containers/storage.conf
-
 # Force the requested storage driver for both system and e2e tests.
 # This is (sigh) different because e2e tests have their own special way
 # of ignoring system defaults.

@@ -154,7 +154,6 @@ EOF
     # pollute it for use by old-podman. We must keep that pristine
     # so old-podman is the first to write to it.
     #
-    # mount /etc/containers/storage.conf to use the same storage settings as on the host
     # mount /dev/shm because the container locks are stored there
     # mount /run/containers for the dnsname plugin
     #
