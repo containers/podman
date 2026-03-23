@@ -587,7 +587,7 @@ func (s *SQLiteState) networkModify(ctr *Container, network types.NamedPerNetwor
 		}
 	}
 	if new && ok {
-		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrNetworkConnected)
+		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network.Name, define.ErrNetworkConnected)
 	}
 	if !ok && (!new || disconnect) {
 		return fmt.Errorf("container %s is not connected to network %s: %w", ctr.ID(), network, define.ErrNoSuchNetwork)

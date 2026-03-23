@@ -1171,8 +1171,10 @@ EOF
     run_podman network create $netname2
 
     # Absurd sed oneliner provided by Google Gemini
-    run_podman run -t -i --net "$netname1\:interface_name=first" --net "$netname2\:interface_name=second" $IMAGE sh -c "ip link | sed -nE 's/^([0-9]+): ([^:]+):.*/\1 \2/p'"
-    assert "$output" =~ "1 lo\n2 first\n3 second"
+    run_podman run --net "$netname1:interface_name=first" --net "$netname2:interface_name=second" $IMAGE sh -c "ip link | sed -nE 's/^([0-9]+): ([^:]+):.*/\1 \2/p' | sed 's/@.*//'"
+    assert "$output" =~ "1 lo
+2 first
+3 second"
 }
 
 # vim: filetype=sh
