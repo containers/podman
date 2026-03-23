@@ -98,6 +98,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		setOpts.Rootful = &setFlags.Rootful
 	}
 	if cmd.Flags().Changed("cpus") {
+		if err := checkMaxCPUs(setFlags.CPUs); err != nil {
+			return err
+		}
 		setOpts.CPUs = &setFlags.CPUs
 	}
 	if cmd.Flags().Changed("memory") {

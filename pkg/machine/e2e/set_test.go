@@ -13,6 +13,21 @@ import (
 )
 
 var _ = Describe("podman machine set", func() {
+	It("machine set rejects excessive cpus", func() {
+		skipIfWSL("WSL cannot change cpus via set")
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		badSet := setMachine{}
+		badCPUSession, err := mb.setName(name).setCmd(badSet.withCPUs(9999999)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(badCPUSession).To(Exit(125))
+		Expect(badCPUSession.errorToString()).To(ContainSubstring("greater than number of host CPUs"))
+	})
+
 	It("set machine cpus, disk, memory", func() {
 		skipIfWSL("WSL cannot change set properties of disk, processor, or memory")
 		name := randomString()

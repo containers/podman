@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"slices"
 
 	"github.com/containers/podman/v6/cmd/podman/registry"
@@ -257,6 +258,9 @@ func initMachine(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	if err := checkMaxCPUs(initOpts.CPUS); err != nil {
+		return err
+	}
 
 	// initOpts.SkipTlsVerify defaults to OptionalBoolUndefined, which means the backend library
 	// decides whether to verify TLS. We only explicitly set it if the user specifies the
@@ -317,6 +321,15 @@ func checkMaxMemory(newMem strongunits.MiB) error {
 	}
 	if total := strongunits.B(memStat.Total); strongunits.B(memStat.Total) < newMem.ToBytes() {
 		return fmt.Errorf("requested amount of memory (%d MB) greater than total system memory (%d MB)", newMem, strongunits.ToMib(total))
+	}
+	return nil
+}
+
+// checkMaxCPUs compares requested CPUs to the host (runtime.NumCPU).
+func checkMaxCPUs(requestedCPUs uint64) error {
+	hostCPUs := uint64(runtime.NumCPU())
+	if requestedCPUs > hostCPUs {
+		return fmt.Errorf("requested number of CPUs (%d) greater than number of host CPUs (%d)", requestedCPUs, hostCPUs)
 	}
 	return nil
 }
