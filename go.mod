@@ -188,3 +188,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace go.podman.io/image/v5 => github.com/mtrmac/container-libs/image/v5 v5.0.0-20260323171112-9319dcbe7288
