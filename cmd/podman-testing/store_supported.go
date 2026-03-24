@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v6/internal/domain/infra"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/storage"
-	"go.podman.io/storage/types"
 )
 
 var (
@@ -23,12 +22,6 @@ var (
 func init() {
 	if defaultStoreOptions, err := storage.DefaultStoreOptions(); err == nil {
 		globalStorageOptions = defaultStoreOptions
-	}
-	if storageConf, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
-		options := globalStorageOptions
-		if types.ReloadConfigurationFileIfNeeded(storageConf, &options) == nil {
-			globalStorageOptions = options
-		}
 	}
 	fl := mainCmd.PersistentFlags()
 	fl.StringVar(&globalStorageOptions.GraphDriverName, "storage-driver", "", "storage driver used to manage images and containers")

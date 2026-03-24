@@ -30,9 +30,7 @@ func New(out io.Writer) *Writer {
 		w.fd = int(f.Fd())
 		if IsTerminal(w.fd) {
 			w.terminal = true
-			w.termSize = func(fd int) (int, int, error) {
-				return GetSize(fd)
-			}
+			w.termSize = GetSize
 		}
 	}
 	bb := make([]byte, 16)

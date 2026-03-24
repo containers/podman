@@ -418,9 +418,7 @@ func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts en
 			if err == nil {
 				return report, nil
 			}
-			if err != nil {
-				logrus.Debugf("BuildLocal failed: %v", err)
-			}
+			logrus.Debugf("BuildLocal failed: %v", err)
 
 			var errModel *errorhandling.ErrorModel
 			if errors.As(err, &errModel) {

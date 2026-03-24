@@ -19,6 +19,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -41,6 +42,16 @@ func checkCommand(t *testing.T, cmd *cobra.Command) {
 		// if not check if completion for that command is provided
 	} else if cmd.ValidArgsFunction == nil && cmd.ValidArgs == nil {
 		t.Errorf("%s command has no shell completion function set", cmd.CommandPath())
+	}
+
+	// Verify Example strings are flush-left (no leading whitespace).
+	// The indentExamples template function adds the 2-space indent at
+	// render time, so source examples must not contain their own indentation.
+	for i, line := range strings.Split(cmd.Example, "\n") {
+		if line != "" && line != strings.TrimLeft(line, " \t") {
+			t.Errorf("%s: Example line %d has leading whitespace: %q",
+				cmd.CommandPath(), i+1, line)
+		}
 	}
 
 	// loop over all local flags

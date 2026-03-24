@@ -16,12 +16,14 @@ Each setup is supported with an example.
 One of the guiding factors on networking for containers with Podman is going to
 be whether or not the container is run by a root user or not. This is because
 unprivileged users cannot create networking interfaces on the host. Therefore,
-for rootless containers, the default network mode is slirp4netns. Because of the
-limited privileges, slirp4netns lacks some of the features of networking
-compared to rootful Podman's networking; for example, slirp4netns cannot give
-containers a routable IP address. The default networking mode for rootful
-containers on the other side is netavark, which allows a container to have a
-routable IP address.
+for rootless containers, the default network mode is `pasta` (default since
+Podman 5.0; `slirp4netns` was the previous default). Because of the limited
+privileges, these rootless network modes lack some of the features of
+networking compared to rootful Podman's networking; for example, they do not
+give containers their own independently routable IP on the host's network.
+For more details on rootless networking and its limitations, see [Shortcomings of Rootless Podman](https://github.com/containers/podman/blob/main/rootless.md).
+The default networking mode for rootful containers on the other side is netavark,
+which allows a container to have a routable IP address.
 
 ## Firewalls
 
@@ -45,9 +47,10 @@ the container on an internal bridge network, which is then connected to the inte
 via Network Address Translation(NAT).  We also see users wanting to use `macvlan`
 for networking as well. The `macvlan` plugin forwards an entire network interface
 from the host into the container, allowing it access to the network the host is connected
-to. And finally, the default network configuration for rootless containers is slirp4netns.
-The slirp4netns network mode has limited capabilities but can be run on users without
-root privileges. It creates a tunnel from the host into the container to forward
+to. And finally, rootless containers typically use user-mode networking via
+`pasta` (current default) or `slirp4netns`. These network modes have limited
+capabilities but can be run by users without root privileges. `slirp4netns`,
+for example, creates a tunnel from the host into the container to forward
 traffic.
 
 ### Bridge
@@ -78,8 +81,9 @@ command. Containers can be joined to a network when they are created with the
 `--network` flag, or after they are created via the `podman network connect` and
 `podman network disconnect` commands.
 
-As mentioned earlier, slirp4netns is the default network configuration for rootless
-users.  But as of Podman version 4.0, rootless users can also use netavark.
+As mentioned earlier, rootless users use user-mode networking (`pasta` by
+default since Podman 5.0, with `slirp4netns` still available as an option).
+But as of Podman version 4.0, rootless users can also use netavark.
 The user experience of rootless netavark is very akin to a rootful netavark, except that
 there is no default network configuration provided.  You simply need to create a
 network, and the one will be created as a bridge network.
@@ -222,10 +226,11 @@ managed by firewalld, no change to the firewall is needed.
 
 ### Slirp4netns
 
-Slirp4netns is the default network setup for rootless containers and pods.  It was
-invented because unprivileged users are not allowed to make network interfaces on
-the host.  Slirp4netns creates a TAP device in the container’s network namespace
-and connects to the usermode TCP/IP stack.  Consider the following illustration.
+Slirp4netns was the original default network setup for rootless containers and
+pods and is still available as a configurable option.  It was invented because
+unprivileged users are not allowed to make network interfaces on the host.
+Slirp4netns creates a TAP device in the container’s network namespace and
+connects to the usermode TCP/IP stack.  Consider the following illustration.
 
 ![slirp_network](podman_rootless_default.png)
 

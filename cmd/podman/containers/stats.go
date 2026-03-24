@@ -28,8 +28,8 @@ var (
 		Args:              checkStatOptions,
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stats --all --no-stream
-  podman stats ctrID
-  podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
+podman stats ctrID
+podman stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
 	}
 
 	containerStatsCommand = &cobra.Command{
@@ -40,8 +40,8 @@ var (
 		Args:              checkStatOptions,
 		ValidArgsFunction: statsCommand.ValidArgsFunction,
 		Example: `podman container stats --all --no-stream
-  podman container stats ctrID
-  podman container stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
+podman container stats ctrID
+podman container stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" ctrID`,
 	}
 )
 

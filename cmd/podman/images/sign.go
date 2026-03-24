@@ -23,7 +23,7 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image sign --sign-by mykey imageID
-  podman image sign --sign-by mykey --directory ./mykeydir imageID`,
+podman image sign --sign-by mykey --directory ./mykeydir imageID`,
 	}
 )
 

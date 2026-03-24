@@ -121,7 +121,7 @@ type Layer struct {
 	// versions of the library did not track this information, so callers
 	// will likely want to use the IsZero() method to verify that a value
 	// is set before using it.
-	Created time.Time `json:"created,omitempty"`
+	Created time.Time `json:"created"`
 
 	// CompressedDigest is the digest of the blob that was last passed to
 	// ApplyDiff() or create(), as it was presented to us.
@@ -2162,8 +2162,8 @@ func (r *layerStore) Wipe() error {
 	for id := range r.byid {
 		ids = append(ids, id)
 	}
-	sort.Slice(ids, func(i, j int) bool {
-		return r.byid[ids[i]].Created.After(r.byid[ids[j]].Created)
+	slices.SortFunc(ids, func(a, b string) int {
+		return -r.byid[a].Created.Compare(r.byid[b].Created)
 	})
 	for _, id := range ids {
 		if err := r.deleteWhileHoldingLock(id); err != nil {
@@ -2640,7 +2640,17 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 			return -1, err
 		}
 
-		return applyDriverFunc(payload)
+		size, err := applyDriverFunc(payload)
+		if err != nil {
+			return -1, err
+		}
+		// Fully consume the payload; it may contain trailing zero padding, and we need all of that
+		// recorded in tar-split (which happens when the data passes through NewInputTarStream).
+		if _, err := io.Copy(io.Discard, payload); err != nil {
+			return -1, err
+		}
+
+		return size, nil
 	}()
 	if err != nil {
 		return nil, err

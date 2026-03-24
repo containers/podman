@@ -9,10 +9,10 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/entities/reports"
 	"github.com/containers/podman/v6/pkg/inspect"
-	"github.com/docker/docker/api/types/container"
-	dockerImage "github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/volume"
+	"github.com/moby/moby/api/types/container"
+	dockerImage "github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/volume"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/image/v5/manifest"
 )
@@ -59,7 +59,7 @@ type imagesImportResponseLibpod struct {
 	Body entities.ImageImportReport
 }
 
-// Image Pull
+// Image Pull. Errors may be detected later even if this returns HTTP status 200, and in that case, the error description will be in the `error` field.
 // swagger:response
 type imagesPullResponseLibpod struct {
 	// in:body

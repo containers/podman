@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package server
 
@@ -93,7 +93,11 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: force
 	//    type: boolean
-	//    description : force removal of a running pod by first stopping all containers, then removing all containers in the pod
+	//    description: force removal of a running pod by first stopping all containers, then removing all containers in the pod
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    description: number of seconds to wait before killing containers in pod
 	// responses:
 	//   200:
 	//     $ref: '#/responses/podRmResponse'
@@ -339,6 +343,16 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    type: array
 	//    items:
 	//      type: string
+	//  - in: query
+	//    name: stream
+	//    type: boolean
+	//    default: false
+	//    description: Stream the output
+	//  - in: query
+	//    name: delay
+	//    type: integer
+	//    default: 5
+	//    description: Time in seconds between stats reports
 	// produces:
 	// - application/json
 	// responses:

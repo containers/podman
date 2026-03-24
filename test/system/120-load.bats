@@ -81,6 +81,14 @@ verify_iid_and_name() {
     run_podman rmi $fqin
 }
 
+
+@test "podman image scp --format invalid" {
+    skip_if_remote "only applicable under local podman"
+
+    run_podman 125 image scp --format invalid-format $IMAGE somehost::
+    assert "$output" =~ "Error:.*invalid-format.*is not a valid value" "invalid --format is rejected"
+}
+
 @test "podman image scp transfer" {
     skip_if_remote "only applicable under local podman"
 
@@ -123,8 +131,9 @@ verify_iid_and_name() {
     run_podman image scp $newname ${notme}@localhost::
     is "$output" "Copying blob .*Copying config.*Writing manifest"
 
-    # confirm that image was copied. FIXME: also try $PODMAN image inspect?
-    _sudo "${PODMAN_CMD[@]}" image exists $newname
+    # Confirm image was copied and manifest format is preserved (OCI).
+    run _sudo "${PODMAN_CMD[@]}" image inspect --format '{{.ManifestType}}' $newname
+    assert "$output" == "application/vnd.docker.distribution.manifest.v2+json" "destination image has Docker manifest type (default) after transfer"
 
     # Copy it back, this time using -q
     run_podman untag $IMAGE $newname
@@ -149,23 +158,22 @@ verify_iid_and_name() {
 
     # get foobar's ID, for an ID transfer test
     run_podman image inspect --format '{{.ID}}' foobar:123
-    run_podman image scp $output ${notme}@localhost::foobartwo
+    run_podman image scp --format oci-archive $output ${notme}@localhost::foobartwo
 
-    _sudo "${PODMAN_CMD[@]}" image exists foobartwo
+    run _sudo "${PODMAN_CMD[@]}" image inspect --format '{{.ManifestType}}' foobartwo
+    assert "$output" == "application/vnd.oci.image.manifest.v1+json" "destination image has OCI manifest type"
 
     # Clean up
     _sudo "${PODMAN_CMD[@]}" image rm foobartwo
     run_podman untag $IMAGE $newname
 
-    # Negative test for nonexistent image.
-    # FIXME: error message is 2 lines, the 2nd being "exit status 125".
-    # FIXME: is that fixable, or do we have to live with it?
+    # Negative test for nonexistent image (output may include exit status on second line).
     nope="nope.nope/nonesuch:notag"
     run_podman 125 image scp ${notme}@localhost::$nope
-    is "$output" "Error: $nope: image not known.*" "Pulling nonexistent image"
+    assert "$output" =~ "Error:.*$nope.*image not known" "Pulling nonexistent image"
 
     run_podman 125 image scp $nope ${notme}@localhost::
-    is "$output" "Error: $nope: image not known.*" "Pushing nonexistent image"
+    assert "$output" =~ "Error:.*$nope.*image not known" "Pushing nonexistent image"
 
     run_podman rmi foobar:123
 }

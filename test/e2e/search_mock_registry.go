@@ -399,10 +399,7 @@ func applyLimitToResults(results map[string]any, limitNum int) map[string]any {
 
 	if limitNum > 0 {
 		if resultsArray, ok := resultsCopy["results"].([]any); ok {
-			actualLimit := limitNum
-			if len(resultsArray) < limitNum {
-				actualLimit = len(resultsArray)
-			}
+			actualLimit := min(len(resultsArray), limitNum)
 			resultsCopy["results"] = resultsArray[:actualLimit]
 			resultsCopy["num_results"] = actualLimit
 		}
@@ -491,10 +488,7 @@ func applyPagination(allTags []string, limit int, last string, repoName string) 
 	}
 
 	if limit > 0 {
-		endIndex := startIndex + limit
-		if endIndex > len(allTags) {
-			endIndex = len(allTags)
-		}
+		endIndex := min(startIndex+limit, len(allTags))
 		return allTags[startIndex:endIndex]
 	}
 

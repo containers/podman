@@ -94,17 +94,17 @@ func convertRuntimeIDMaps(UIDMap, GIDMap []rspec.LinuxIDMapping) ([]idtools.IDMa
 func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
 	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
 	if err != nil {
-		return false, fmt.Errorf("unable to parse the registries configuration (%s): %w", sysregistriesv2.ConfigPath(sc), err)
+		return false, fmt.Errorf("unable to parse the registries configuration (%s): %w", sysregistriesv2.ConfigurationSourceDescription(sc), err)
 	}
 	if reginfo != nil {
 		if reginfo.Blocked {
-			logrus.Debugf("registry %q is marked as blocked in registries configuration %q", registry, sysregistriesv2.ConfigPath(sc))
+			logrus.Debugf("registry %q is marked as blocked in registries configuration %q", registry, sysregistriesv2.ConfigurationSourceDescription(sc))
 		} else {
-			logrus.Debugf("registry %q is not marked as blocked in registries configuration %q", registry, sysregistriesv2.ConfigPath(sc))
+			logrus.Debugf("registry %q is not marked as blocked in registries configuration %q", registry, sysregistriesv2.ConfigurationSourceDescription(sc))
 		}
 		return reginfo.Blocked, nil
 	}
-	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's not blocked", registry, sysregistriesv2.ConfigPath(sc))
+	logrus.Debugf("registry %q is not listed in registries configuration %q, assuming it's not blocked", registry, sysregistriesv2.ConfigurationSourceDescription(sc))
 	return false, nil
 }
 

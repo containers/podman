@@ -935,6 +935,7 @@ BOGUS=foo
 		Entry("env-host.container", "env-host.container"),
 		Entry("env.container", "env.container"),
 		Entry("entrypoint.container", "entrypoint.container"),
+		Entry("entrypoint-empty.container", "entrypoint-empty.container"),
 		Entry("escapes.container", "escapes.container"),
 		Entry("exec.container", "exec.container"),
 		Entry("group-add.container", "group-add.container"),
@@ -1017,6 +1018,7 @@ BOGUS=foo
 		Entry("Volume - global args", "globalargs.volume"),
 		Entry("Volume - Containers Conf Modules", "containersconfmodule.volume"),
 		Entry("Volume - Type=bind", "device-bind.volume"),
+		Entry("mount-options.volume", "mount-options.volume"),
 
 		Entry("Absolute Path", "absolute.path.kube"),
 		Entry("Basic kube", "basic.kube"),
@@ -1141,6 +1143,7 @@ BOGUS=foo
 		Entry("Pod - Shm Size", "shmsize.pod"),
 		Entry("Pod - StopTimeout", "stoptimeout.pod"),
 		Entry("Pod - Service Environment", "service-environment.pod"),
+		Entry("Pod - Restart policy override", "restart.pod"),
 	)
 
 	DescribeTable("Running expected warning quadlet test case",

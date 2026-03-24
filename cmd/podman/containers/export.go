@@ -27,7 +27,7 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman export ctrID > myCtr.tar
-  podman export --output="myCtr.tar" ctrID`,
+podman export --output="myCtr.tar" ctrID`,
 	}
 
 	containerExportCommand = &cobra.Command{
@@ -38,7 +38,7 @@ var (
 		RunE:              exportCommand.RunE,
 		ValidArgsFunction: exportCommand.ValidArgsFunction,
 		Example: `podman container export ctrID > myCtr.tar
-  podman container export --output="myCtr.tar" ctrID`,
+podman container export --output="myCtr.tar" ctrID`,
 	}
 )
 

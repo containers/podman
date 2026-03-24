@@ -19,7 +19,7 @@ var (
 		RunE:              inspectExec,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container inspect myCtr
-  podman container inspect -l --format '{{.Id}} {{.Config.Labels}}'`,
+podman container inspect -l --format '{{.Id}} {{.Config.Labels}}'`,
 	}
 	inspectOpts *entities.InspectOptions
 )

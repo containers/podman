@@ -29,7 +29,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/inspect"
 	. "github.com/containers/podman/v6/test/utils"
 	"github.com/containers/podman/v6/utils"
@@ -686,6 +688,15 @@ func (p *PodmanTestIntegration) InspectArtifact(name string) libartifact.Artifac
 	return session.InspectArtifactToJSON()
 }
 
+// InspectNetwork returns a network's inspect data in JSON format
+func (p *PodmanTestIntegration) InspectNetwork(name string) []entities.NetworkInspectReport {
+	cmd := []string{"network", "inspect", name}
+	session := p.Podman(cmd)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(Exit(0))
+	return session.InspectNetworkToJSON()
+}
+
 // Pull a single field from a container using `podman inspect --format {{ field }}`,
 // and verify it against the given expected value.
 func (p *PodmanTestIntegration) CheckContainerSingleField(name, field, expected string) {
@@ -817,13 +828,13 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 	return session, session.OutputToString()
 }
 
-// RunContainerWithNetworkTest runs the fedoraMinimal curl with the specified network mode.
+// RunContainerWithNetworkTest runs curl in FEDORA_MINIMAL with the specified network mode.
 func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *PodmanSessionIntegration {
 	podmanArgs := []string{"run"}
 	if mode != "" {
 		podmanArgs = append(podmanArgs, "--network", mode)
 	}
-	podmanArgs = append(podmanArgs, fedoraMinimal, "curl", "-s", "-S", "-k", "-o", "/dev/null", "http://www.redhat.com:80")
+	podmanArgs = append(podmanArgs, FEDORA_MINIMAL, "curl", "-s", "-S", "-k", "-o", "/dev/null", "http://www.redhat.com:80")
 	session := p.Podman(podmanArgs)
 	return session
 }
@@ -968,6 +979,13 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
+}
+
+func (s *PodmanSessionIntegration) InspectNetworkToJSON() []entities.NetworkInspectReport {
+	var out []entities.NetworkInspectReport
+	err := json.Unmarshal(s.Out.Contents(), &out)
+	Expect(err).ToNot(HaveOccurred())
+	return out
 }
 
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
@@ -1195,6 +1213,74 @@ func SkipIfInContainer(reason string) {
 	}
 }
 
+// SkipIfConmonVersionLessThan skips a test if the conmon version is less than
+// the specified minimum version (e.g., "2.2.0").
+func SkipIfConmonVersionLessThan(minVersion string) {
+	out, err := exec.Command(podmanTest.ConmonBinary, "--version").Output()
+	if err != nil {
+		Fail(fmt.Sprintf("[conmon]: failed to get conmon version: %v", err))
+	}
+	// Output format: "conmon version 2.2.0"
+	fields := strings.Fields(strings.TrimSpace(string(out)))
+	if len(fields) < 3 {
+		Fail(fmt.Sprintf("[conmon]: unexpected conmon --version output: %s", out))
+	}
+	current, err := semver.Parse(fields[2])
+	if err != nil {
+		Fail(fmt.Sprintf("[conmon]: failed to parse conmon version %q: %v", fields[2], err))
+	}
+	minVer, err := semver.Parse(minVersion)
+	if err != nil {
+		Fail(fmt.Sprintf("[conmon]: failed to parse minimum version %q: %v", minVersion, err))
+	}
+	if current.Compare(minVer) < 0 {
+		Skip(fmt.Sprintf("[conmon]: need conmon >= %s; have %s", minVersion, fields[2]))
+	}
+}
+
+// SkipIfNetavarkVersionLessThan skips a test if the current network backend is
+// netavark and its version is less than the specified minimum version (e.g., "1.17.2").
+// The function is a no-op when netavark is not the active network backend.
+func SkipIfNetavarkVersionLessThan(minVersion string) {
+	session := podmanTest.PodmanExitCleanly("info", "--format", "{{.Host.NetworkBackendInfo.Backend}}=={{.Host.NetworkBackendInfo.Version}}")
+	out := strings.TrimSpace(session.OutputToString())
+
+	backend, rawVersion, ok := strings.Cut(out, "==")
+	if !ok {
+		Fail(fmt.Sprintf("[netavark]: unexpected podman info output: %q", out))
+	}
+	if backend != "netavark" {
+		return
+	}
+
+	rawVersion = strings.TrimSpace(rawVersion)
+	if rawVersion == "" {
+		Fail(fmt.Sprintf("[netavark]: unexpected empty version in podman info output: %q", out))
+	}
+
+	parts := strings.Fields(rawVersion)
+	if len(parts) == 0 {
+		Fail(fmt.Sprintf("[netavark]: unexpected netavark version format: %q", rawVersion))
+	}
+
+	versionStr := strings.TrimPrefix(parts[len(parts)-1], "v")
+
+	current, err := semver.Parse(versionStr)
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to parse netavark version %q: %v", rawVersion, err))
+	}
+
+	minVersion = strings.TrimPrefix(strings.TrimSpace(minVersion), "v")
+	minVer, err := semver.Parse(minVersion)
+	if err != nil {
+		Fail(fmt.Sprintf("[netavark]: failed to parse minimum version %q: %v", minVersion, err))
+	}
+
+	if current.Compare(minVer) < 0 {
+		Skip(fmt.Sprintf("[netavark]: need netavark >= %s; have %s", minVersion, versionStr))
+	}
+}
+
 // SkipIfNotActive skips a test if the given systemd unit is not active
 func SkipIfNotActive(unit string, reason string) {
 	checkReason(reason)
@@ -1314,9 +1400,9 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		return args
 	}
 
-	var debug string
+	podmanOptions := []string{}
 	if _, ok := os.LookupEnv("E2E_DEBUG"); ok {
-		debug = "--log-level=debug --syslog=true "
+		podmanOptions = append(podmanOptions, "--log-level=debug", "--syslog=true")
 	}
 
 	eventsType := "file"
@@ -1324,8 +1410,16 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		eventsType = "none"
 	}
 
-	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
-		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
+	podmanOptions = append(podmanOptions,
+		"--root", p.Root,
+		"--runroot", p.RunRoot,
+		"--runtime", p.OCIRuntime,
+		"--conmon", p.ConmonBinary,
+		"--network-config-dir", p.NetworkConfigDir,
+		"--cgroup-manager", p.CgroupManager,
+		"--tmpdir", p.TmpDir,
+		"--events-backend", eventsType,
+	)
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {
@@ -1753,4 +1847,10 @@ func makeTempDirInDir(dir string) string {
 
 func skipWithoutDevNullb0() {
 	SkipIfNotExist("use modprobe null_blk nr_devices=1 to create it", "/dev/nullb0")
+}
+
+func SkipIfNotAMD64() {
+	if podmanTest.Host.Arch != "amd64" {
+		Skip("test only valid on amd64")
+	}
 }

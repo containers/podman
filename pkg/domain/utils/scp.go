@@ -88,11 +88,6 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		return nil, err
 	}
 
-	createCommandOpts := entities.ScpCreateCommandsOptions{}
-	createCommandOpts.ParentFlags = opts.ParentFlags
-	createCommandOpts.Podman = podman
-	saveCmd, loadCmd := CreateCommands(source, dest, createCommandOpts)
-
 	switch {
 	case source.Remote: // if we want to load FROM the remote, dest can either be local or remote in this case
 		saveToRemoteOpts := entities.ScpSaveToRemoteOptions{}
@@ -102,6 +97,7 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		saveToRemoteOpts.URL = sshInfo.URI[0]
 		saveToRemoteOpts.Iden = sshInfo.Identities[0]
 		saveToRemoteOpts.SSHMode = opts.SSHMode
+		saveToRemoteOpts.Format = opts.SaveFormat
 		_, err = SaveToRemote(saveToRemoteOpts)
 		if err != nil {
 			return nil, err
@@ -126,6 +122,13 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 			}
 			break
 		}
+		loadCmd := []string{podman}
+		loadCmd = append(loadCmd, opts.ParentFlags...)
+		loadCmd = append(loadCmd, "load")
+		if source.Quiet {
+			loadCmd = append(loadCmd, "-q")
+		}
+		loadCmd = append(loadCmd, "--input", dest.File)
 		id, err := ExecPodman(dest, podman, loadCmd)
 		if err != nil {
 			return nil, err
@@ -134,6 +137,16 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 			loadReport.Names = append(loadReport.Names, id)
 		}
 	case dest.Remote: // remote host load, implies source is local
+		saveCmd := []string{podman}
+		saveCmd = append(saveCmd, opts.ParentFlags...)
+		saveCmd = append(saveCmd, "save")
+		if opts.SaveFormat != "" {
+			saveCmd = append(saveCmd, "--format", opts.SaveFormat)
+		}
+		if source.Quiet {
+			saveCmd = append(saveCmd, "-q")
+		}
+		saveCmd = append(saveCmd, "--output", source.File, source.Image)
 		_, err = ExecPodman(dest, podman, saveCmd)
 		if err != nil {
 			return nil, err
@@ -174,6 +187,7 @@ func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (
 		rep.Source = &source
 		rep.Dest = &dest
 		rep.ParentFlags = opts.ParentFlags
+		rep.SaveFormat = opts.SaveFormat
 		return &rep, nil // transfer needs to be done in ABI due to cross issues
 	}
 
@@ -293,7 +307,14 @@ func SaveToRemote(opts entities.ScpSaveToRemoteOptions) (*entities.ScpSaveToRemo
 		return nil, err
 	}
 
-	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"podman", "image", "save", opts.Image, "--format", "oci-archive", "--output", remoteFile}}, opts.SSHMode)
+	saveArgs := []string{"podman", "image", "save", opts.Image}
+	if opts.Format != "" {
+		saveArgs = append(saveArgs, "--format", opts.Format)
+	}
+
+	saveArgs = append(saveArgs, "--output", remoteFile)
+
+	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: saveArgs}, opts.SSHMode)
 	if err != nil {
 		return nil, err
 	}
@@ -329,23 +350,6 @@ func ExecPodman(dest entities.ScpTransferImageOptions, podman string, command []
 		return img, nil
 	}
 	return "", cmd.Run()
-}
-
-// CreateCommands forms the podman save and load commands used by SCP
-func CreateCommands(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts entities.ScpCreateCommandsOptions) ([]string, []string) {
-	var parentString string
-	quiet := ""
-	if source.Quiet {
-		quiet = "-q "
-	}
-	if len(opts.ParentFlags) > 0 {
-		parentString = strings.Join(opts.ParentFlags, " ") + " " // if there are parent args, an extra space needs to be added
-	} else {
-		parentString = strings.Join(opts.ParentFlags, " ")
-	}
-	loadCmd := strings.Split(fmt.Sprintf("%s %sload %s--input %s", opts.Podman, parentString, quiet, dest.File), " ")
-	saveCmd := strings.Split(fmt.Sprintf("%s %vsave %s--output %s %s", opts.Podman, parentString, quiet, source.File, source.Image), " ")
-	return saveCmd, loadCmd
 }
 
 // parseImageSCPArg returns the valid connection, and source/destination data based off of the information provided by the user

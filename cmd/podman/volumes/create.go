@@ -22,9 +22,9 @@ var (
 		RunE:              create,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman volume create myvol
-  podman volume create
-  podman volume create --label foo=bar myvol
-  podman volume create --uid 4321 --gid 1234 myvol`,
+podman volume create
+podman volume create --label foo=bar myvol
+podman volume create --uid 4321 --gid 1234 myvol`,
 	}
 )
 

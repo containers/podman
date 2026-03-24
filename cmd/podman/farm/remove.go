@@ -24,7 +24,7 @@ var (
 		PersistentPostRunE: validate.NoOp,
 		ValidArgsFunction:  common.AutoCompleteFarms,
 		Example: `podman farm rm myfarm1 myfarm2
-  podman farm rm --all`,
+podman farm rm --all`,
 	}
 
 	// Temporary struct to hold cli values.

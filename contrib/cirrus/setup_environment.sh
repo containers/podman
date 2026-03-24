@@ -155,11 +155,12 @@ fi
 cat <<EOF >$conf
 [storage]
 driver = "$CI_DESIRED_STORAGE"
-runroot = "/run/containers/storage"
-graphroot = "/var/lib/containers/storage"
 EOF
 
 if [[ -n "$CI_DESIRED_COMPOSEFS" ]]; then
+    # composefs only works as root so we must set it in the rootful config
+    mkdir /etc/containers/storage.rootful.conf.d/
+    conf=/etc/containers/storage.rootful.conf.d/99-composefs.conf
     cat <<EOF >>$conf
 
 # BEGIN CI-enabled composefs

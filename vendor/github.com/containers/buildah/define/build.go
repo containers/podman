@@ -145,9 +145,12 @@ type BuildOptions struct {
 	Runtime string
 	// RuntimeArgs adds global arguments for the runtime.
 	RuntimeArgs []string
-	// TransientMounts is a list of unparsed mounts that will be provided to
+	// TransientMounts is a list of unparsed src:dest volume instructions that will be provided to
 	// RUN instructions.
 	TransientMounts []string
+	// TransientRunMounts is a list of unparsed mounts (e.g. type=secret etc) that will be provided to
+	// RUN instructions.
+	TransientRunMounts []string
 	// CacheFrom specifies any remote repository which can be treated as
 	// potential cache source.
 	CacheFrom []reference.Named
@@ -204,6 +207,12 @@ type BuildOptions struct {
 	// specified, indicating that the shared, system-wide default policy
 	// should be used.
 	SignaturePolicyPath string
+	// SourcePolicyFile specifies the path to a BuildKit-compatible source
+	// policy JSON file. When specified, source references (e.g., base images
+	// in FROM instructions) are evaluated against the policy rules. Rules
+	// can DENY specific sources or CONVERT them to different references
+	// (e.g., pinning tags to digests).
+	SourcePolicyFile string
 	// SkipUnusedStages allows users to skip stages in a multi-stage builds
 	// which do not contribute anything to the target stage. Expected default
 	// value is true.
@@ -227,14 +236,13 @@ type BuildOptions struct {
 	// namespace), effectively deciding whether or not the process has a
 	// usable network.
 	ConfigureNetwork NetworkConfigurationPolicy
-	// CNIPluginPath is the location of CNI plugin helpers, if they should be
-	// run from a location other than the default location.
+	// Deprecated: CNIPluginPath was the location of CNI plugin helpers.
+	// It is no longer used and is expected to be empty.
 	CNIPluginPath string
-	// CNIConfigDir is the location of CNI configuration files, if the files in
-	// the default configuration directory shouldn't be used.
+	// Deprecated: CNIConfigDir was the location of CNI configuration files.
+	// It is no longer used and is expected to be empty.
 	CNIConfigDir string
-
-	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	// NetworkInterface is the libnetwork network interface used to setup netavark networks.
 	NetworkInterface nettypes.ContainerNetwork `json:"-"`
 
 	// ID mapping options to use if we're setting up our own user namespace

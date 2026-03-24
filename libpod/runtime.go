@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/libpod/lock"
+	"github.com/containers/podman/v6/libpod/namesgenerator"
 	"github.com/containers/podman/v6/libpod/plugin"
 	"github.com/containers/podman/v6/libpod/shutdown"
 	"github.com/containers/podman/v6/pkg/domain/entities"
@@ -26,7 +27,6 @@ import (
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/systemd"
 	"github.com/containers/podman/v6/pkg/util"
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -38,7 +38,6 @@ import (
 	artStore "go.podman.io/common/pkg/libartifact"
 	"go.podman.io/common/pkg/secrets"
 	systemdCommon "go.podman.io/common/pkg/systemd"
-	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	is "go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
@@ -72,7 +71,7 @@ type Runtime struct {
 	state                  State
 	store                  storage.Store
 	storageService         *storageService
-	imageContext           *types.SystemContext
+	imageContext           types.SystemContext
 	defaultOCIRuntime      OCIRuntime
 	ociRuntimes            map[string]OCIRuntime
 	runtimeFlags           []string
@@ -437,10 +436,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	runtime.eventer = eventer
 
 	// Set up containers/image
-	if runtime.imageContext == nil {
-		runtime.imageContext = &types.SystemContext{
-			BigFilesTemporaryDir: parse.GetTempDir(),
-		}
+	if runtime.imageContext.BigFilesTemporaryDir == "" {
+		runtime.imageContext.BigFilesTemporaryDir = parse.GetTempDir()
 	}
 	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
@@ -911,7 +908,7 @@ func (r *Runtime) configureStore() error {
 	r.storageService = getStorageService(r.store)
 
 	runtimeOptions := &libimage.RuntimeOptions{
-		SystemContext: r.imageContext,
+		SystemContext: &r.imageContext,
 	}
 	libimageRuntime, err := libimage.RuntimeFromStore(store, runtimeOptions)
 	if err != nil {
@@ -1047,42 +1044,6 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 
 func (r *Runtime) EnableLabeling() bool {
 	return r.config.Containers.EnableLabeling
-}
-
-// Reload reloads the configurations files
-func (r *Runtime) Reload() error {
-	if err := r.reloadContainersConf(); err != nil {
-		return err
-	}
-	if err := r.reloadStorageConf(); err != nil {
-		return err
-	}
-	// Invalidate the registries.conf cache. The next invocation will
-	// reload all data.
-	sysregistriesv2.InvalidateCache()
-	return nil
-}
-
-// reloadContainersConf reloads the containers.conf
-func (r *Runtime) reloadContainersConf() error {
-	config, err := config.Reload()
-	if err != nil {
-		return err
-	}
-	r.config = config
-	logrus.Infof("Applied new containers configuration: %v", config)
-	return nil
-}
-
-// reloadStorageConf reloads the storage.conf
-func (r *Runtime) reloadStorageConf() error {
-	configFile, err := storage.DefaultConfigFile()
-	if err != nil {
-		return err
-	}
-	storage.ReloadConfigurationFile(configFile, &r.storageConfig)
-	logrus.Infof("Applied new storage configuration: %v", r.storageConfig)
-	return nil
 }
 
 // getVolumePlugin gets a specific volume plugin.

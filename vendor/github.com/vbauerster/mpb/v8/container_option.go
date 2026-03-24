@@ -33,7 +33,7 @@ func WithWidth(width int) ContainerOption {
 
 // WithQueueLen sets buffer size of heap manager channel. Ideally it must be
 // kept at MAX value, where MAX is number of bars to be rendered at the same
-// time. Default queue len is 128.
+// time. Default queue len is 64.
 func WithQueueLen(len int) ContainerOption {
 	return func(s *pState) {
 		s.hmQueueLen = len
@@ -65,9 +65,9 @@ func WithRenderDelay(ch <-chan struct{}) ContainerOption {
 	}
 }
 
-// WithShutdownNotifier value of type `[]*mpb.Bar` will be send to provided channel
-// on shutdown event, i.e. after `(*Progress) Wait()` or `(*Progress) Shutdown()` call.
-func WithShutdownNotifier(ch chan<- interface{}) ContainerOption {
+// WithShutdownNotifier closes provided channel on shutdown event,
+// i.e. after `(*Progress) Wait()` or `(*Progress) Shutdown()` call.
+func WithShutdownNotifier(ch chan interface{}) ContainerOption {
 	return func(s *pState) {
 		s.shutdownNotifier = ch
 	}
@@ -136,4 +136,11 @@ func ContainerFuncOptOn(option func() ContainerOption, predicate func() bool) Co
 		return option()
 	}
 	return nil
+}
+
+// withHandOverBarHeap for test purposes only
+func withHandOverBarHeap(ch chan<- []*Bar) ContainerOption {
+	return func(s *pState) {
+		s.handOverBarHeap = ch
+	}
 }

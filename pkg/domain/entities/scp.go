@@ -31,6 +31,8 @@ type ScpExecuteTransferOptions struct {
 	Quiet bool
 	// SSHMode is the specified ssh.EngineMode which should be used
 	SSHMode ssh.EngineMode
+	// SaveFormat is the format for podman save (oci-archive or docker-archive). Empty means default of podman save (docker-archive).
+	SaveFormat string
 }
 
 type ScpExecuteTransferReport struct {
@@ -42,11 +44,15 @@ type ScpExecuteTransferReport struct {
 	Dest *ScpTransferImageOptions
 	// ParentFlags are the arguments to apply to the parent podman command when called via ssh
 	ParentFlags []string
+	// SaveFormat is the format to use for podman save when transferring (oci-archive or docker-archive)
+	SaveFormat string
 }
 
 type ScpTransferOptions struct {
 	// ParentFlags are the arguments to apply to the parent podman command when called.
 	ParentFlags []string
+	// SaveFormat is the format for podman save (oci-archive or docker-archive)
+	SaveFormat string
 }
 
 type ScpTransferReport struct{}
@@ -85,13 +91,8 @@ type ScpSaveToRemoteOptions struct {
 	Iden string
 	// SSHMode is the specified ssh.EngineMode which should be used
 	SSHMode ssh.EngineMode
+	// Format is the save format (oci-archive or docker-archive). Empty means default of podman save (docker-archive).
+	Format string
 }
 
 type ScpSaveToRemoteReport struct{}
-
-type ScpCreateCommandsOptions struct {
-	// ParentFlags are the arguments to apply to the parent podman command when called via ssh
-	ParentFlags []string
-	// Podman is the path to the local podman executable
-	Podman string
-}

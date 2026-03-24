@@ -17,8 +17,8 @@ var listCmd = &cobra.Command{
 	RunE:              ps,
 	ValidArgsFunction: completion.AutocompleteNone,
 	Example: `podman container list -a
-  podman container list -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
-  podman container list --size --sort names`,
+podman container list -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
+podman container list --size --sort names`,
 }
 
 func init() {

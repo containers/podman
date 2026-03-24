@@ -104,7 +104,7 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	val, ok := os.LookupEnv(unshare.UsernsEnvName)
 	useRootlessNetns := ok && val == "done"
 	if useRootlessNetns {
-		netns, err = rootlessnetns.New(conf.NetworkRunDir, rootlessnetns.Netavark, conf.Config)
+		netns, err = rootlessnetns.New(conf.NetworkRunDir, conf.Config)
 		if err != nil {
 			return nil, err
 		}
@@ -354,7 +354,7 @@ func (n *netavarkNetwork) Len() int {
 	return len(n.networks)
 }
 
-// DefaultInterfaceName return the default cni bridge name, must be suffixed with a number.
+// DefaultInterfaceName return the default bridge name, must be suffixed with a number.
 func (n *netavarkNetwork) DefaultInterfaceName() string {
 	return defaultBridgeName
 }

@@ -7,7 +7,7 @@ param (
     [string]$architecture = $(
         $defaultArchitecture = 'amd64'
         $arch = try { & go env GOARCH } catch {
-            Write-Warning "Failed retriving the host architecture, using default ($defaultArchitecture). Is Go installed?"
+            Write-Warning "Failed retrieving the host architecture, using default ($defaultArchitecture). Is Go installed?"
             return $defaultArchitecture
         }
         if ($arch -cnotin @('arm64', 'amd64')) {
@@ -209,7 +209,7 @@ function Documentation {
 }
 
 # DocumentationUsingPodman generates documentation with pandoc running in a container.
-# This is usefult on Windows arm64 where pandoc is not available.
+# This is useful on Windows arm64 where pandoc is not available.
 # It's also useful to generate documentation identical to CI.
 # It requires the podman client to be built and a podman machine running.
 # The whole podman git repository is bind mounted in the container at /podman.
@@ -428,7 +428,7 @@ switch ($target) {
         Write-Host 'Example: Run all machine tests '
         Write-Host ' .\winmake localmachine'
         Write-Host
-        Write-Host 'Example: Run specfic machine tests '
+        Write-Host 'Example: Run specific machine tests '
         Write-Host ' .\winmake localmachine 'basic_test.go""
         Write-Host
         Write-Host 'Example: Download win-gvproxy and win-sshproxy helpers'

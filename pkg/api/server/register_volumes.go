@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package server
 
@@ -91,6 +91,8 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    description: |
 	//      JSON encoded value of filters (a map[string][]string) to match volumes against before pruning.
 	//      Available filters:
+	//        - `all` When true, prune all unused volumes; when false or unset, only anonymous unused volumes.
+	//        - `anonymous` When true/false, restrict to anonymous or named volumes only.
 	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune volumes with (or without, in case `label!=...` is used) the specified labels.
 	// responses:
@@ -135,6 +137,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    name: force
 	//    type: boolean
 	//    description: force removal
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    description: timeout before forcibly killing any containers using the volume
 	// produces:
 	// - application/json
 	// responses:
@@ -299,6 +305,10 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//      Force removal of the volume. This actually only causes errors due
 	//      to the names volume not being found to be suppressed, which is the
 	//      behaviour Docker implements.
+	//  - in: query
+	//    name: timeout
+	//    type: integer
+	//    description: timeout before forcibly killing any containers using the volume
 	// produces:
 	// - application/json
 	// responses:
@@ -325,8 +335,9 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//      JSON encoded value of filters (a map[string][]string) to match volumes against before pruning.
+	//      JSON encoded value of filters (a map[string][]string). Docker API 1.42+ - by default only anonymous (unnamed) unused volumes are pruned; use filter all=true to prune all unused volumes.
 	//      Available filters:
+	//        - `all` When true, prune all unused volumes (anonymous and named). When false or unset, only anonymous unused volumes are pruned.
 	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune volumes with (or without, in case `label!=...` is used) the specified labels.
 	// responses:

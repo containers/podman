@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -554,9 +554,7 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 		// If the data was multipart, then save items from it into a
 		// directory that will be removed along with this list,
 		// whenever that happens.
-		artifactExtraction.Add(1)
-		go func() {
-			defer artifactExtraction.Done()
+		artifactExtraction.Go(func() {
 			storageConfig := runtime.StorageConfig()
 			// FIXME: knowing that this is the location of the
 			// per-image-record-stuff directory is a little too
@@ -618,7 +616,7 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 			}
 			// Save the list of files that we created.
 			body.ArtifactFiles = contentFiles
-		}()
+		})
 	}
 
 	if tlsVerify, ok := r.URL.Query()["tlsVerify"]; ok {

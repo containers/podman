@@ -123,6 +123,7 @@ type CreateNetworkOptions struct {
 	CheckDuplicate bool               `json:"CheckDuplicate" yaml:"CheckDuplicate" toml:"CheckDuplicate"`
 	Internal       bool               `json:"Internal" yaml:"Internal" toml:"Internal"`
 	EnableIPv6     bool               `json:"EnableIPv6" yaml:"EnableIPv6" toml:"EnableIPv6"`
+	EnableIPv4     bool               `json:"EnableIPv4,omitempty" yaml:"EnableIPv4,omitempty" toml:"EnableIPv4,omitempty"`
 	Attachable     bool               `json:"Attachable" yaml:"Attachable" toml:"Attachable"`
 	ConfigOnly     bool               `json:"ConfigOnly" yaml:"ConfigOnly" toml:"ConfigOnly"`
 	Ingress        bool               `json:"Ingress" yaml:"Ingress" toml:"Ingress"`
@@ -239,6 +240,7 @@ type EndpointConfig struct {
 	GlobalIPv6PrefixLen int                 `json:"GlobalIPv6PrefixLen,omitempty" yaml:"GlobalIPv6PrefixLen,omitempty" toml:"GlobalIPv6PrefixLen,omitempty"`
 	MacAddress          string              `json:"MacAddress,omitempty" yaml:"MacAddress,omitempty" toml:"MacAddress,omitempty"`
 	DriverOpts          map[string]string   `json:"DriverOpts,omitempty" yaml:"DriverOpts,omitempty" toml:"DriverOpts,omitempty"`
+	GwPriority          int                 `json:"GwPriority,omitempty" yaml:"GwPriority,omitempty" toml:"GwPriority,omitempty"`
 }
 
 // EndpointIPAMConfig represents IPAM configurations for an

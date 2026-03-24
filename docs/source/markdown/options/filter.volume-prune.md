@@ -8,12 +8,10 @@ Supported filters:
 
 | Filter      | Description                                                                                                |
 |:-----------:|------------------------------------------------------------------------------------------------------------|
-| dangling    | [Bool] Only remove volumes not referenced by any containers                                                |
-| driver      | [String] Only remove volumes with the given driver                                                         |
+| all         | [Bool] When true, remove all unused volumes (same as **--all**). When false or unset, only anonymous volumes are considered. |
+| anonymous   | [Bool] Only remove volumes that are anonymous (true) or named (false).                                     |
 | label       | [String] Only remove volumes, with (or without, in the case of label!=[...] is used) the specified labels. |
-| name        | [String] Only remove volume with the given name                                                            |
-| opt         | [String] Only remove volumes created with the given options                                                |
-| scope       | [String] Only remove volumes with the given scope                                                          |
+| label!      | [String] Only remove volumes without the specified labels.                                                  |
 | until       | [DateTime] Only remove volumes created before given timestamp.                                             |
 | after/since | [Volume] Filter by volumes created after the given VOLUME (name or tag)                                    |
 

@@ -2181,6 +2181,15 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 		if err != io.EOF {
 			return fmt.Errorf("reading tar stream: expected EOF: %w", err)
 		}
+		// Drain any remaining data from bulkReader to prevent broken pipe errors.
+		// tar.Reader returns EOF after reading the standard tar EOF marker
+		// (two 512-byte blocks of nulls), but the tar file may have additional
+		// trailing null bytes. If we don't read them, the subprocess exits before
+		// the sender finishes writing to the pipe, causing EPIPE/broken pipe.
+		// See: https://github.com/containers/buildah/issues/6573
+		if _, err := io.Copy(io.Discard, bulkReader); err != nil {
+			logrus.Debugf("error draining remaining data from tar stream: %v", err)
+		}
 		return nil
 	}
 	return &response{Error: "", Put: putResponse{}}, cb, nil
@@ -2329,7 +2338,7 @@ func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response 
 	for _, item := range req.EnsureOptions.Paths {
 		uid, gid := 0, 0
 		if item.Chown != nil {
-			uid, gid = item.Chown.UID, item.Chown.UID
+			uid, gid = item.Chown.UID, item.Chown.GID
 		}
 		var mode os.FileMode
 		switch item.Typeflag {
@@ -2405,7 +2414,7 @@ func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response 
 					createdLeaf = strings.TrimPrefix(createdLeaf, string(os.PathSeparator))
 				}
 				created = append(created, createdLeaf)
-				if err = chown(filepath.Join(req.Root, leaf), uid, uid); err != nil {
+				if err = chown(filepath.Join(req.Root, leaf), uid, gid); err != nil {
 					return errorResponse("copier: ensure: error setting owner of %q to %d:%d: %v", leaf, uid, gid, err)
 				}
 				if err = chmod(filepath.Join(req.Root, leaf), mode); err != nil {

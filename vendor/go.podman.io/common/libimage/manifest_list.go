@@ -235,6 +235,9 @@ func (i *Image) ConvertToManifestList(ctx context.Context) (*ManifestList, error
 	// Copy from the OCI layout into the same image record, so that it gets
 	// both its own manifest and the image index.
 	copyOptions := imageCopy.Options{
+		SourceCtx:      &i.runtime.systemContext,
+		DestinationCtx: &i.runtime.systemContext,
+
 		ForceManifestMIMEType: imageManifestType,
 	}
 	if _, err := imageCopy.Image(ctx, policyContext, i.storageReference, bundle, &copyOptions); err != nil {
@@ -561,6 +564,9 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 	if options == nil {
 		options = &ManifestListAddArtifactOptions{}
 	}
+
+	systemContext := m.image.runtime.systemContextCopy()
+
 	opts := manifests.AddArtifactOptions{
 		ManifestArtifactType: options.Type,
 		Annotations:          maps.Clone(options.Annotations),
@@ -592,7 +598,7 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 		opts.LayerMediaType = &options.LayerType
 	}
 	if options.Subject != "" {
-		ref, err := m.parseNameToExtantReference(ctx, nil, options.Subject, true, "subject for artifact manifest")
+		ref, err := m.parseNameToExtantReference(ctx, systemContext, options.Subject, true, "subject for artifact manifest")
 		if err != nil {
 			return "", err
 		}
@@ -606,8 +612,6 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 	}
 	locker.Lock()
 	defer locker.Unlock()
-
-	systemContext := m.image.runtime.systemContextCopy()
 
 	// Make sure to reload the image from the containers storage to fetch
 	// the latest data (e.g., new or delete digests).
@@ -709,7 +713,7 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 		}
 	}
 	if options.Subject != "" {
-		ref, err := m.parseNameToExtantReference(ctx, nil, options.Subject, true, "subject for image index")
+		ref, err := m.parseNameToExtantReference(ctx, &m.image.runtime.systemContext, options.Subject, true, "subject for image index")
 		if err != nil {
 			return err
 		}

@@ -38,6 +38,8 @@ var (
 	LogLevels = []string{"trace", "debug", "info", "warn", "warning", "error", "fatal", "panic"}
 	// ValidSaveFormats is the list of support podman save formats
 	ValidSaveFormats = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
+	// ValidScpFormats is the list of formats for podman image scp (archive types only)
+	ValidScpFormats = []string{define.OCIArchive, define.V2s2Archive}
 )
 
 type completeType int
@@ -1169,7 +1171,7 @@ func AutocompleteLogDriver(_ *cobra.Command, _ []string, _ string) ([]string, co
 // AutocompleteLogOpt - Autocomplete log-opt options.
 // -> "path=", "tag="
 func AutocompleteLogOpt(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	logOptions := []string{"path=", "tag=", "max-size="}
+	logOptions := []string{"path=", "tag=", "max-size=", "label="}
 	if strings.HasPrefix(toComplete, "path=") {
 		return nil, cobra.ShellCompDirectiveDefault
 	}
@@ -1711,6 +1713,11 @@ func AutocompleteImageSaveFormat(_ *cobra.Command, _ []string, _ string) ([]stri
 	return ValidSaveFormats, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteImageScpFormat - Autocomplete image scp format options (oci-archive, docker-archive).
+func AutocompleteImageScpFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return ValidScpFormats, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteWaitCondition - Autocomplete wait condition options.
 // -> "unknown", "configured", "created", "running", "stopped", "paused", "exited", "removing"
 func AutocompleteWaitCondition(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
@@ -1920,15 +1927,30 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, _ []string, toComplete string
 	}
 	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
-		"after=":    getImg,
-		"dangling=": getBoolCompletion,
-		"driver=":   local,
-		"label=":    nil,
-		"name=":     func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
-		"opt=":      nil,
-		"scope=":    local,
-		"since=":    getImg,
-		"until=":    nil,
+		"after=":     getImg,
+		"anonymous=": getBoolCompletion,
+		"dangling=":  getBoolCompletion,
+		"driver=":    local,
+		"label=":     nil,
+		"name=":      func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+		"opt=":       nil,
+		"scope=":     local,
+		"since=":     getImg,
+		"until=":     nil,
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteVolumePruneFilters - Autocomplete volume prune --filter options.
+func AutocompleteVolumePruneFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
+	kv := keyValueCompletion{
+		"after=":     getImg,
+		"all=":       getBoolCompletion,
+		"anonymous=": getBoolCompletion,
+		"label=":     nil,
+		"since=":     getImg,
+		"until=":     nil,
 	}
 	return completeKeyValues(toComplete, kv)
 }

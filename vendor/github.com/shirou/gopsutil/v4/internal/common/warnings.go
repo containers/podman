@@ -38,7 +38,7 @@ func (w *Warnings) Error() string {
 		str := ""
 		var sb strings.Builder
 		for i, e := range w.List {
-			sb.WriteString(fmt.Sprintf("\tError %d: %s\n", i, e.Error()))
+			fmt.Fprintf(&sb, "\tError %d: %s\n", i, e.Error())
 		}
 		str += sb.String()
 		if w.tooManyErrors {

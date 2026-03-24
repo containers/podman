@@ -30,9 +30,9 @@ var (
 		RunE:              create,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman manifest create mylist:v1.11
-  podman manifest create mylist:v1.11 arch-specific-image-to-add
-  podman manifest create mylist:v1.11 arch-specific-image-to-add another-arch-specific-image-to-add
-  podman manifest create --all mylist:v1.11 transport:tagged-image-to-add`,
+podman manifest create mylist:v1.11 arch-specific-image-to-add
+podman manifest create mylist:v1.11 arch-specific-image-to-add another-arch-specific-image-to-add
+podman manifest create --all mylist:v1.11 transport:tagged-image-to-add`,
 		Args: cobra.MinimumNArgs(1),
 	}
 )

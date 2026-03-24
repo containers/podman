@@ -422,6 +422,21 @@ func BecomeRootInUserNS(stateDir string) (bool, int, error) {
 	return becomeRootInUserNS(stateDir)
 }
 
+// isPauseProcess checks if the given PID has _PODMAN_PAUSE=1 in its environment.
+// It is a best-effort check; any errors are silently ignored and it returns false.
+func isPauseProcess(pid int) bool {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/environ", pid))
+	if err != nil {
+		return false
+	}
+	for _, entry := range bytes.Split(data, []byte{0}) {
+		if string(entry) == "_PODMAN_PAUSE=1" {
+			return true
+		}
+	}
+	return false
+}
+
 // TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
@@ -446,6 +461,12 @@ func TryJoinFromFilePaths(stateDir string, paths []string) (bool, int, error) {
 			joined, ret, err := joinUserAndMountNS(uint(pid), stateDir)
 			if err == nil {
 				return joined, ret, nil
+			}
+			if !isPauseProcess(pid) {
+				logrus.Warningf("pause.pid file refers to PID %d which is not a pause process, the process may have exited and the PID been recycled. Removing %s", pid, path)
+				os.Remove(path)
+				lastErr = err
+				continue
 			}
 			lastErr = err
 		}

@@ -45,6 +45,11 @@ func version(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	return PrintVersion(cmd, versions)
+}
+
+func PrintVersion(cmd *cobra.Command, versions *entities.SystemVersionReport) error {
+	var err error
 
 	if report.IsJSON(versionFormat) {
 		s, err := json.MarshalToString(versions)

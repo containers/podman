@@ -27,10 +27,11 @@ import (
 // docker_version and os.version are not part of the spec but included
 // for backwards compatibility.
 type ConfigFile struct {
-	Architecture  string    `json:"architecture"`
-	Author        string    `json:"author,omitempty"`
-	Container     string    `json:"container,omitempty"`
-	Created       Time      `json:"created,omitempty"`
+	Architecture string `json:"architecture"`
+	Author       string `json:"author,omitempty"`
+	Container    string `json:"container,omitempty"`
+	Created      Time   `json:"created,omitempty"`
+	// Deprecated: This field is deprecated and will be removed in the next release.
 	DockerVersion string    `json:"docker_version,omitempty"`
 	History       []History `json:"history,omitempty"`
 	OS            string    `json:"os"`

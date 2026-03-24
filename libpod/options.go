@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/namespaces"
@@ -26,7 +25,7 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
-	"go.podman.io/image/v5/types"
+	"go.podman.io/image/v5/pkg/cli/basetls"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
@@ -222,13 +221,16 @@ func WithRegistriesConf(path string) RuntimeOption {
 		if err := fileutils.Exists(path); err != nil {
 			return fmt.Errorf("locating specified registries.conf: %w", err)
 		}
-		if rt.imageContext == nil {
-			rt.imageContext = &types.SystemContext{
-				BigFilesTemporaryDir: parse.GetTempDir(),
-			}
-		}
 
 		rt.imageContext.SystemRegistriesConfPath = path
+		return nil
+	}
+}
+
+// WithBaseTLSConfig sets the TLS _algorithm_ options for the runtime.
+func WithBaseTLSConfig(baseTLSConfig *basetls.Config) RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.imageContext.BaseTLSConfig = baseTLSConfig.TLSConfig()
 		return nil
 	}
 }
@@ -1053,6 +1055,19 @@ func WithLogTag(tag string) CtrCreateOption {
 	}
 }
 
+// WithLogLabels sets the labels to the log file.
+func WithLogLabels(logLabels map[string]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.LogLabels = logLabels
+
+		return nil
+	}
+}
+
 // WithCgroupsMode disables the creation of Cgroups for the conmon process.
 func WithCgroupsMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1330,7 +1345,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 		}
 
 		for _, vol := range volumes {
-			mountOpts, err := util.ProcessOptions(vol.Options, false, "")
+			mountOpts, noCreate, err := util.ProcessOptions(vol.Options, false, "")
 			if err != nil {
 				return fmt.Errorf("processing options for named volume %q mounted at %q: %w", vol.Name, vol.Dest, err)
 			}
@@ -1341,6 +1356,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 				Options:     mountOpts,
 				IsAnonymous: vol.IsAnonymous,
 				SubPath:     vol.SubPath,
+				NoCreate:    noCreate,
 			})
 		}
 
@@ -1713,10 +1729,10 @@ func WithVolumeDisableQuota() VolumeCreateOption {
 	}
 }
 
-// withSetAnon sets a bool notifying libpod that this volume is anonymous and
+// WithVolumeAnonymous sets a bool notifying libpod that this volume is anonymous and
 // should be removed when containers using it are removed and volumes are
 // specified for removal.
-func withSetAnon() VolumeCreateOption {
+func WithVolumeAnonymous() VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized

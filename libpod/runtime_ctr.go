@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -308,6 +308,27 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	ctr.runtime = r
 
+	// If `default_host_ips` is set and HostIP is empty
+	// Create port mappings for each non empty HostIP * DefaultHostIP
+	if len(ctr.config.PortMappings) > 0 {
+		defaultHostIPs := r.config.Network.DefaultHostIPs.Get()
+		if len(defaultHostIPs) > 0 {
+			expanded := make([]types.PortMapping, 0, len(ctr.config.PortMappings)*len(defaultHostIPs))
+			for _, pm := range ctr.config.PortMappings {
+				if pm.HostIP == "" {
+					for _, ip := range defaultHostIPs {
+						newPM := pm
+						newPM.HostIP = ip
+						expanded = append(expanded, newPM)
+					}
+				} else {
+					expanded = append(expanded, pm)
+				}
+			}
+			ctr.config.PortMappings = expanded
+		}
+	}
+
 	// Validate the container
 	if err := ctr.validate(); err != nil {
 		return nil, err
@@ -511,6 +532,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			} else if !errors.Is(err, define.ErrNoSuchVolume) {
 				return nil, fmt.Errorf("retrieving named volume %s for new container: %w", vol.Name, err)
 			}
+			// Volume does not exist - check if nocreate option is set
+			if vol.NoCreate {
+				return nil, fmt.Errorf("volume %s does not exist and nocreate option is set: %w", vol.Name, define.ErrNoSuchVolume)
+			}
 		}
 		if vol.IsAnonymous {
 			// If SetAnonymous is true, make this an anonymous volume
@@ -526,7 +551,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			WithVolumeMountLabel(ctr.MountLabel()),
 		}
 		if isAnonymous {
-			volOptions = append(volOptions, withSetAnon())
+			volOptions = append(volOptions, WithVolumeAnonymous())
 		}
 
 		// If volume-opts are set, parse and add driver opts.

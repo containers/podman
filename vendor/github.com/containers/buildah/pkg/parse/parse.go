@@ -1,4 +1,4 @@
-package parse
+package parse //nolint:revive,nolintlint
 
 // this package should contain functions that parse and validate
 // user input and is shared either amongst buildah subcommands or
@@ -19,7 +19,7 @@ import (
 	"github.com/containerd/platforms"
 	"github.com/containers/buildah/define"
 	mkcwtypes "github.com/containers/buildah/internal/mkcw/types"
-	internalParse "github.com/containers/buildah/internal/parse"
+	internalParse "github.com/containers/buildah/internal/parsevolume"
 	"github.com/containers/buildah/internal/sbom"
 	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/sshagent"
@@ -734,6 +734,9 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 
 // GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
 // Takes `buildOutput` as string and returns BuildOutputOption
+// This function will read an argument of `type=tar` as "output in a local folder names type=tar"
+//
+// Deprecated: This function is now internal
 func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 	if buildOutput == "-" {
 		// Feature parity with buildkit, output tar to stdout

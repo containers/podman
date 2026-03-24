@@ -42,7 +42,8 @@ Don't fail if the named volume already exists, instead just print the name. Note
 
 #### **--label**, **-l**=*label*
 
-Set metadata for a volume (e.g., --label mykey=value).
+Set metadata for the volume (e.g., `--label mykey=value`). Can be used multiple times.
+These labels can be viewed in `podman volume inspect` or `podman volume ls`.
 
 #### **--opt**, **-o**=*option*
 

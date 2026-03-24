@@ -83,10 +83,6 @@ func (b *bindingTest) runPodman(command []string) *Session {
 	if ok {
 		cmd = append(cmd, "--cgroup-manager", val)
 	}
-	val, ok = os.LookupEnv("CNI_CONFIG_DIR")
-	if ok {
-		cmd = append(cmd, "--network-config-dir", val)
-	}
 	val, ok = os.LookupEnv("CONMON")
 	if ok {
 		cmd = append(cmd, "--conmon", val)

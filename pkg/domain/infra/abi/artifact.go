@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package abi
 
@@ -162,7 +162,6 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 	}
 
 	copyOpts := libimage.CopyOptions{
-		SystemContext:                    nil,
 		SourceLookupReferenceFunc:        nil,
 		DestinationLookupReferenceFunc:   nil,
 		CompressionFormat:                nil,

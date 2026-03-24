@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -255,6 +255,9 @@ type ContainerNamedVolume struct {
 	IsAnonymous bool `json:"setAnonymous,omitempty"`
 	// SubPath determines which part of the Source will be mounted in the container
 	SubPath string `json:",omitempty"`
+	// NoCreate indicates that the volume must already exist and should not
+	// be created automatically if it doesn't exist.
+	NoCreate bool `json:"noCreate,omitempty"`
 }
 
 // ContainerOverlayVolume is an overlay volume that will be mounted into the
@@ -671,6 +674,11 @@ func (c *Container) LogSizeMax() int64 {
 		return c.config.LogSize
 	}
 	return c.runtime.config.Containers.LogSizeMax
+}
+
+// LogLabels returns the labels added to the container's log file
+func (c *Container) LogLabels() map[string]string {
+	return c.config.LogLabels
 }
 
 // RestartPolicy returns the container's restart policy.
@@ -1451,18 +1459,20 @@ func (c *Container) NetworkMode() string {
 		// If there is none, it's host networking.
 		// If there is one and it has a path, it's "ns:".
 		foundNetNS := false
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				foundNetNS = true
-				if ns.Path != "" {
-					networkMode = fmt.Sprintf("ns:%s", ns.Path)
-				} else {
-					// We're making a network ns,  but not
-					// configuring with Slirp or CNI. That
-					// means it's --net=none
-					networkMode = "none"
+		if ctrSpec.Linux != nil {
+			for _, ns := range ctrSpec.Linux.Namespaces {
+				if ns.Type == spec.NetworkNamespace {
+					foundNetNS = true
+					if ns.Path != "" {
+						networkMode = fmt.Sprintf("ns:%s", ns.Path)
+					} else {
+						// We're making a network ns, but not
+						// configuring with Slirp. That means
+						// it's --net=none
+						networkMode = "none"
+					}
+					break
 				}
-				break
 			}
 		}
 		if !foundNetNS {

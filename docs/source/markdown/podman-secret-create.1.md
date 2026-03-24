@@ -44,9 +44,10 @@ If a secret with the same name already exists, do not return an error and return
 Cannot be used with `--replace`.
 The default is **false**.
 
-#### **--label**, **-l**=*key=val1,key2=val2*
+#### **--label**, **-l**=*label*
 
-Add label to secret. These labels can be viewed in podman secrete inspect or ls.
+Set metadata for the secret (e.g., `--label mykey=value`). Can be used multiple times.
+These labels can be viewed in `podman secret inspect` or `podman secret ls`.
 
 #### **--replace**=*false*
 

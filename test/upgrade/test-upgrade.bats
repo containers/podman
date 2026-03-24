@@ -146,13 +146,6 @@ EOF
     # Not entirely a NOP! This is just so we get the /run/... mount points created on a CI VM
     $PODMAN run --rm $OLD_PODMAN true
 
-    # Containers-common around release 1-55 no-longer supplies this file
-    sconf=/etc/containers/storage.conf
-    v_sconf=
-    if [[ -e "$sconf" ]]; then
-        v_sconf="-v $sconf:$sconf"
-    fi
-
     #
     # Use new-podman to run the above script under old-podman.
     #
@@ -161,7 +154,6 @@ EOF
     # pollute it for use by old-podman. We must keep that pristine
     # so old-podman is the first to write to it.
     #
-    # mount /etc/containers/storage.conf to use the same storage settings as on the host
     # mount /dev/shm because the container locks are stored there
     # mount /run/containers for the dnsname plugin
     #

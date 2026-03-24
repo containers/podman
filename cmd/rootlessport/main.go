@@ -14,12 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/netns"
 	"go.podman.io/common/pkg/rootlessport"
 	"golang.org/x/sys/unix"
 )
@@ -137,11 +137,11 @@ func parent() error {
 	cmd.Stdout = &logrusWriter{prefix: "child"}
 	cmd.Stderr = cmd.Stdout
 	cmd.Env = append(os.Environ(), reexecChildEnvOpaque+"="+string(opaqueJSON))
-	childNS, err := ns.GetNS(cfg.NetNSPath)
+	childNS, err := netns.GetNS(cfg.NetNSPath)
 	if err != nil {
 		return err
 	}
-	if err := childNS.Do(func(_ ns.NetNS) error {
+	if err := childNS.Do(func(_ netns.NetNS) error {
 		logrus.Infof("Starting child driver in child netns (%q %v)", cmd.Path, cmd.Args)
 		return cmd.Start()
 	}); err != nil {
@@ -194,7 +194,8 @@ outer:
 		return err
 	}
 
-	// we only need to have a socket to reload ports when we run under rootless cni
+	// we only need to have a socket to reload ports when we are using
+	// rootless bridge networking (RootlessCNI is set when netStatus != nil)
 	if cfg.RootlessCNI {
 		socketfile := filepath.Join(socketDir, cfg.ContainerID)
 		// make sure to remove the file if it exists to prevent EADDRINUSE

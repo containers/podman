@@ -18,7 +18,7 @@ var (
 		Short: "Check if a container exists in local storage",
 		Long:  containerExistsDescription,
 		Example: `podman container exists --external containerID
-  podman container exists myctr || podman run --name myctr [etc...]`,
+podman container exists myctr || podman run --name myctr [etc...]`,
 		RunE:              exists,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteContainers,

@@ -26,7 +26,7 @@ var (
 		ValidArgsFunction: common.AutocompleteSystemConnections,
 		RunE:              rm,
 		Example: `podman system connection remove devl
-  podman system connection rm devl`,
+podman system connection rm devl`,
 	}
 
 	rmOpts = struct {

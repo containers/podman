@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package server
 
@@ -102,6 +102,11 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//        type: string
 	//    default: []
 	//    description: Set environment variables to the systemd unit files.
+	//  - in: query
+	//    name: templateUnitFile
+	//    type: boolean
+	//    default: false
+	//    description: Add template specifier for the systemd unit file names.
 	// produces:
 	// - application/json
 	// responses:

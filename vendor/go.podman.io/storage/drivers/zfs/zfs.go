@@ -16,11 +16,11 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	graphdriver "go.podman.io/storage/drivers"
+	"go.podman.io/storage/internal/driver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/directory"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/mount"
-	"go.podman.io/storage/pkg/parsers"
 	"golang.org/x/sys/unix"
 )
 
@@ -123,18 +123,22 @@ func parseOptions(opt []string) (zfsOptions, error) {
 	var options zfsOptions
 	options.fsName = ""
 	for _, option := range opt {
-		key, val, err := parsers.ParseKeyValueOpt(option)
+		driver, key, val, err := driver.ParseDriverOption(option)
 		if err != nil {
 			return options, err
 		}
-		key = strings.ToLower(key)
+		if driver != "" && driver != "zfs" {
+			// do not parse options meant for another storage driver
+			continue
+		}
+
 		switch key {
-		case "zfs.fsname":
+		case "fsname":
 			options.fsName = val
-		case "zfs.mountopt":
+		case "mountopt":
 			options.mountOptions = val
 		default:
-			return options, fmt.Errorf("unknown option %s", key)
+			return options, fmt.Errorf("unknown option %q (%q)", key, option)
 		}
 	}
 	return options, nil
@@ -304,13 +308,14 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
 		return err
 	}
 	if parent == "" {
-		var rootUID, rootGID int
+		rootIDs := idtools.IDPair{UID: 0, GID: 0}
 		var mountLabel string
 		if opts != nil {
-			rootUID, rootGID, err = idtools.GetRootUIDGID(opts.UIDs(), opts.GIDs())
+			rootUID, rootGID, err := idtools.GetRootUIDGID(opts.UIDs(), opts.GIDs())
 			if err != nil {
 				return fmt.Errorf("failed to get root uid/gid: %w", err)
 			}
+			rootIDs = idtools.IDPair{UID: rootUID, GID: rootGID}
 			mountLabel = opts.MountLabel
 		}
 		mountoptions := map[string]string{"mountpoint": "legacy"}
@@ -323,7 +328,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
 				d.Unlock()
 			}
 
-			if err := idtools.MkdirAllAs(mountpoint, defaultPerms, rootUID, rootGID); err != nil {
+			if err := idtools.MkdirAllAndChown(mountpoint, defaultPerms, rootIDs); err != nil {
 				return err
 			}
 			defer func() {
@@ -349,7 +354,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) error {
 
 			// this is our first mount after creation of the filesystem, and the root dir may still have root
 			// permissions instead of the remapped root uid:gid (if user namespaces are enabled):
-			if err := os.Chown(mountpoint, rootUID, rootGID); err != nil {
+			if err := os.Chown(mountpoint, rootIDs.UID, rootIDs.GID); err != nil {
 				return fmt.Errorf("modifying zfs mountpoint (%s) ownership: %w", mountpoint, err)
 			}
 

@@ -1,7 +1,8 @@
 package mount
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -84,8 +85,8 @@ func RecursiveUnmount(target string) error {
 	}
 
 	// Make the deepest mount be first
-	sort.Slice(mounts, func(i, j int) bool {
-		return len(mounts[i].Mountpoint) > len(mounts[j].Mountpoint)
+	slices.SortFunc(mounts, func(a, b *Info) int {
+		return -cmp.Compare(len(a.Mountpoint), len(b.Mountpoint))
 	})
 
 	for i, m := range mounts {

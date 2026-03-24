@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -22,7 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/version"
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
-	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/system"
 )
 
@@ -164,13 +163,13 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	// Could not find a humanize-formatter for time.Duration
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("%.0fh %.0fm %.2fs",
+	fmt.Fprintf(&buffer, "%.0fh %.0fm %.2fs",
 		uptime.hours,
 		math.Mod(uptime.minutes, 60),
 		math.Mod(uptime.seconds, 60),
-	))
+	)
 	if int64(uptime.hours) > 0 {
-		buffer.WriteString(fmt.Sprintf(" (Approximately %.2f days)", uptime.hours/24))
+		fmt.Fprintf(&buffer, " (Approximately %.2f days)", uptime.hours/24)
 	}
 	info.Uptime = buffer.String()
 
@@ -213,10 +212,6 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 // top-level "store" info
 func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	// let's say storage driver in use, number of images, number of containers
-	configFile, err := storage.DefaultConfigFile()
-	if err != nil {
-		return nil, err
-	}
 	images, err := r.store.Images()
 	if err != nil {
 		return nil, fmt.Errorf("getting number of images: %w", err)
@@ -244,7 +239,6 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 		GraphDriverName:    r.store.GraphDriverName(),
 		GraphOptions:       nil,
 		VolumePath:         r.config.Engine.VolumePath,
-		ConfigFile:         configFile,
 		TransientStore:     r.store.TransientStore(),
 	}
 

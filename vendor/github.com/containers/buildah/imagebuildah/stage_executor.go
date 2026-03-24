@@ -20,11 +20,13 @@ import (
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/internal/metadata"
+	"github.com/containers/buildah/internal/output"
 	"github.com/containers/buildah/internal/sanitize"
 	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/rusage"
+	"github.com/containers/buildah/pkg/sourcepolicy"
 	"github.com/containers/buildah/util"
 	docker "github.com/fsouza/go-dockerclient"
 	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
@@ -809,7 +811,7 @@ func (s *stageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 			args = []string{full}
 		}
 	}
-	stageMountPoints, err := s.runStageMountPoints(run.Mounts)
+	stageMountPoints, err := s.runStageMountPoints(slices.Concat(run.Mounts, s.executor.transientRunMounts))
 	if err != nil {
 		return err
 	}
@@ -842,7 +844,7 @@ func (s *stageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		NoPivot:              os.Getenv("BUILDAH_NOPIVOT") != "" || s.executor.noPivotRoot,
 		Quiet:                s.executor.quiet,
 		CompatBuiltinVolumes: types.OptionalBoolFalse,
-		RunMounts:            run.Mounts,
+		RunMounts:            slices.Concat(run.Mounts, s.executor.transientRunMounts),
 		Runtime:              s.executor.runtime,
 		Secrets:              s.executor.secrets,
 		SSHSources:           s.executor.sshsources,
@@ -874,7 +876,7 @@ func (s *stageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	}
 
 	if run.Shell {
-		if len(config.Shell) > 0 && s.builder.Format == define.Dockerv2ImageManifest {
+		if len(config.Shell) > 0 {
 			args = append(config.Shell, args...)
 		} else {
 			args = append([]string{"/bin/sh", "-c"}, args...)
@@ -978,6 +980,55 @@ func (s *stageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		}
 		from = base
 	}
+
+	// Apply source policy if one is configured and this is not "scratch" or a stage reference.
+	// Stage references are handled separately and don't need policy evaluation since they
+	// refer to images built within this same build.
+	if s.executor.sourcePolicy != nil && from != "scratch" {
+		// Check if 'from' references a previous stage by name, index, or image ID
+		isStageRef := false
+		for i, st := range s.stages[:s.index] {
+			if st.Name == from || strconv.Itoa(i) == from {
+				isStageRef = true
+				break
+			}
+		}
+		// Also check if 'from' is an image ID that was created by a previous stage
+		// (this happens when execute() resolves stage names to image IDs before calling prepare)
+		if !isStageRef {
+			s.executor.stagesLock.Lock()
+			for _, imgID := range s.executor.imageMap {
+				if imgID == from {
+					isStageRef = true
+					break
+				}
+			}
+			s.executor.stagesLock.Unlock()
+		}
+
+		if !isStageRef {
+			sourceID := sourcepolicy.ImageSourceIdentifier(from)
+			decision, matched, err := s.executor.sourcePolicy.Evaluate(sourceID)
+			if err != nil {
+				return nil, fmt.Errorf("evaluating source policy for %q: %w", from, err)
+			}
+
+			if matched {
+				switch decision.Action {
+				case sourcepolicy.ActionDeny:
+					return nil, fmt.Errorf("source %q denied by source policy: %s", from, decision.Reason)
+				case sourcepolicy.ActionConvert:
+					// Extract the new image reference from the policy decision
+					newFrom := sourcepolicy.ExtractImageRef(decision.TargetRef)
+					logrus.Debugf("source policy: converting %q to %q (%s)", from, newFrom, decision.Reason)
+					from = newFrom
+				case sourcepolicy.ActionAllow:
+					logrus.Debugf("source policy: allowing %q (%s)", from, decision.Reason)
+				}
+			}
+		}
+	}
+
 	sanitizedFrom, err := s.sanitizeFrom(from, tmpdir.GetTempDir())
 	if err != nil {
 		return nil, fmt.Errorf("invalid base image specification %q: %w", from, err)
@@ -1033,8 +1084,6 @@ func (s *stageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		Isolation:             s.executor.isolation,
 		NamespaceOptions:      s.executor.namespaceOptions,
 		ConfigureNetwork:      s.executor.configureNetwork,
-		CNIPluginPath:         s.executor.cniPluginPath,
-		CNIConfigDir:          s.executor.cniConfigDir,
 		NetworkInterface:      s.executor.networkInterface,
 		IDMappingOptions:      s.executor.idmappingOptions,
 		CommonBuildOpts:       s.executor.commonBuildOptions,
@@ -1310,11 +1359,11 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 	}
 
 	// Parse and populate buildOutputOption if needed
-	var buildOutputOptions []define.BuildOutputOption
+	var buildOutputOptions []output.BuildOutputOption
 	if lastStage && len(s.executor.buildOutputs) > 0 {
 		for _, buildOutput := range s.executor.buildOutputs {
 			logrus.Debugf("generating custom build output with options %q", buildOutput)
-			buildOutputOption, err := parse.GetBuildOutput(buildOutput)
+			buildOutputOption, err := output.GetBuildOutput(buildOutput)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("failed to parse build output %q: %w", buildOutput, err)
 			}
@@ -1361,6 +1410,7 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		logImageID(imgID)
 	}
 
+	executedLayerStep := false
 	for i, node := range children {
 		logRusage()
 		moreInstructions := i < len(children)-1
@@ -1470,6 +1520,9 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		// instruction.
 		if !s.executor.layers {
 			s.didExecute = true
+			if s.stepRequiresLayer(step) {
+				executedLayerStep = true
+			}
 			err := ib.Run(step, s, noRunsRemaining)
 			if err != nil {
 				logrus.Debugf("Error building at step %+v: %v", *step, err)
@@ -1504,7 +1557,7 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 				if err != nil {
 					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 				}
-				imgID, commitResults, err = s.commit(ctx, createdBy, false, s.output, s.executor.squash, lastStage && lastInstruction)
+				imgID, commitResults, err = s.commit(ctx, createdBy, !executedLayerStep, s.output, s.executor.squash, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
 				}
@@ -2387,6 +2440,9 @@ func (s *stageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 		if image.TopLayer != "" {
 			imageTopLayer, err = s.executor.store.Layer(image.TopLayer)
 			if err != nil {
+				if errors.Is(err, storage.ErrLayerUnknown) {
+					continue
+				}
 				return "", fmt.Errorf("getting top layer info: %w", err)
 			}
 			// Figure out which layer from this image we should
@@ -2621,7 +2677,7 @@ func (s *stageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	return results.ImageID, results, nil
 }
 
-func (s *stageExecutor) generateBuildOutput(buildOutputOpts define.BuildOutputOption) error {
+func (s *stageExecutor) generateBuildOutput(buildOutputOpts output.BuildOutputOption) error {
 	forceTimestamp := s.executor.timestamp
 	if s.executor.sourceDateEpoch != nil {
 		forceTimestamp = s.executor.sourceDateEpoch

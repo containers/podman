@@ -433,7 +433,7 @@ function clean_setup() {
         #   yet because too many tests don't clean up their containers
         if [[ $status -ne 0 ]]; then
             echo "# [teardown] $_LOG_PROMPT podman $action" >&3
-            for line in "${lines[*]}"; do
+            for line in "${lines[@]}"; do
                 echo "# $line" >&3
             done
 
@@ -441,7 +441,7 @@ function clean_setup() {
             if [[ $status -eq 124 ]]; then
                 echo "# [teardown] $_LOG_PROMPT podman system locks" >&3
                 run "${PODMAN_CMD[@]}" system locks
-                for line in "${lines[*]}"; do
+                for line in "${lines[@]}"; do
                     echo "# $line" >&3
                 done
             fi

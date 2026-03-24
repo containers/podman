@@ -1518,7 +1518,7 @@ var (
 	defaultConfigMapName  = "testConfigMap"
 	defaultSecretName     = "testSecret"
 	defaultPVCName        = "testPVC"
-	seccompLinkEPERM      = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"link","action":"SCMP_ACT_ERRNO"}]}`)
+	seccompLinkEPERM      = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"names":["link","linkat"],"action":"SCMP_ACT_ERRNO"}]}`)
 	// CPU Period in ms
 	defaultCPUPeriod = 100
 	// Default secret in JSON. Note that the values ("foo" and "bar") are base64 encoded.
@@ -1573,14 +1573,14 @@ func generateKubeYaml(kind string, object any, pathname string) error {
 
 // generateMultiDocKubeYaml writes multiple kube objects in one Yaml document.
 func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
-	var multiKube string
+	var multiKube strings.Builder
 
 	for _, k := range kubeObjects {
-		multiKube += "---\n"
-		multiKube += k
+		multiKube.WriteString("---\n")
+		multiKube.WriteString(k)
 	}
 
-	return writeYaml(multiKube, pathname)
+	return writeYaml(multiKube.String(), pathname)
 }
 
 func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) { //nolint:unparam
@@ -4433,8 +4433,9 @@ o: {{ .Options.o }}`)
 	})
 
 	It("persistentVolumeClaim - image based", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 		volName := "myVolWithStorage"
-		imageName := "quay.io/libpod/alpine_nginx:latest"
+		imageName := NGINX_IMAGE
 		pvc := getPVC(withPVCName(volName),
 			withPVCAnnotations(util.VolumeDriverAnnotation, "image"),
 			withPVCAnnotations(util.VolumeImageAnnotation, imageName),
@@ -5752,6 +5753,7 @@ spec:
 	})
 
 	It("without Ports, publish in command line - curl should succeed", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -5780,6 +5782,7 @@ spec:
 		})
 
 		It("should publish containerPort with --publish-all", func() {
+			SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 			SkipIfRootless("rootlessport can't expose privileged port 80")
 			err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
@@ -5790,6 +5793,7 @@ spec:
 	})
 
 	It("with privileged containers ports and publish in command line - curl should succeed", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -5798,6 +5802,7 @@ spec:
 	})
 
 	It("with Host Ports - curl should succeed", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -5806,6 +5811,7 @@ spec:
 	})
 
 	It("with Host Ports and publish in command line - curl should succeed only on overriding port", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -5815,6 +5821,7 @@ spec:
 	})
 
 	It("multiple publish ports", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
 		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 

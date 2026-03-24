@@ -2,8 +2,6 @@ package graphemes
 
 import (
 	"bufio"
-
-	"github.com/clipperhouse/stringish"
 )
 
 // is determines if lookup intersects propert(ies)
@@ -13,12 +11,22 @@ func (lookup property) is(properties property) bool {
 
 const _Ignore = _Extend
 
+// incbState tracks state for GB9c rule (Indic conjunct clusters)
+// Pattern: Consonant (Extend|Linker)* Linker (Extend|Linker)* × Consonant
+type incbState int
+
+const (
+	incbNone      incbState = iota // initial/reset
+	incbConsonant                  // seen Consonant, awaiting Linker
+	incbLinker                     // seen Consonant and Linker (conjunct ready)
+)
+
 // SplitFunc is a bufio.SplitFunc implementation of Unicode grapheme cluster segmentation, for use with bufio.Scanner.
 //
 // See https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries.
 var SplitFunc bufio.SplitFunc = splitFunc[[]byte]
 
-func splitFunc[T stringish.Interface](data T, atEOF bool) (advance int, token T, err error) {
+func splitFunc[T ~string | ~[]byte](data T, atEOF bool) (advance int, token T, err error) {
 	var empty T
 	if len(data) == 0 {
 		return 0, empty, nil
@@ -29,6 +37,9 @@ func splitFunc[T stringish.Interface](data T, atEOF bool) (advance int, token T,
 	var lastExIgnore property = 0     // "last excluding ignored categories"
 	var lastLastExIgnore property = 0 // "last one before that"
 	var regionalIndicatorCount int
+
+	// GB9c state: tracking Indic conjunct clusters
+	var incb incbState
 
 	// Rules are usually of the form Cat1 × Cat2; "current" refers to the first property
 	// to the right of the ×, from which we look back or forward
@@ -74,6 +85,23 @@ func splitFunc[T stringish.Interface](data T, atEOF bool) (advance int, token T,
 		if !last.is(_Ignore) {
 			lastLastExIgnore = lastExIgnore
 			lastExIgnore = last
+		}
+
+		// Update GB9c state based on what we just advanced past
+		if last.is(_InCBConsonant | _InCBLinker | _InCBExtend) {
+			switch {
+			case last.is(_InCBConsonant):
+				if incb != incbLinker {
+					incb = incbConsonant
+				}
+			case last.is(_InCBLinker):
+				if incb >= incbConsonant {
+					incb = incbLinker
+				}
+				// case last.is(_InCBExtend): stay in current state
+			}
+		} else {
+			incb = incbNone
 		}
 
 		current, w = lookup(data[pos:])
@@ -141,11 +169,14 @@ func splitFunc[T stringish.Interface](data T, atEOF bool) (advance int, token T,
 		}
 
 		// https://unicode.org/reports/tr29/#GB9c
-		// TODO(clipperhouse):
-		// It appears to be added in Unicode 15.1.0:
-		// https://unicode.org/versions/Unicode15.1.0/#Migration
-		// This package currently supports Unicode 15.0.0, so
-		// out of scope for now
+		// Do not break within certain combinations with Indic_Conjunct_Break (InCB)=Linker.
+		if incb == incbLinker && current.is(_InCBConsonant) {
+			// After matching the pattern, reset state to start tracking a new pattern
+			// The current Consonant becomes the start of the new pattern
+			incb = incbConsonant
+			pos += w
+			continue
+		}
 
 		// https://unicode.org/reports/tr29/#GB11
 		if current.is(_ExtendedPictographic) && last.is(_ZWJ) && lastLastExIgnore.is(_ExtendedPictographic) {

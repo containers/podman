@@ -31,8 +31,8 @@ var (
 		RunE:              run,
 		ValidArgsFunction: common.AutocompleteCreateRun,
 		Example: `podman run imageID ls -alF /etc
-  podman run --network=host imageID dnf -y install java
-  podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
+podman run --network=host imageID dnf -y install java
+podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 
 	containerRunCommand = &cobra.Command{
@@ -43,8 +43,8 @@ var (
 		RunE:              runCommand.RunE,
 		ValidArgsFunction: runCommand.ValidArgsFunction,
 		Example: `podman container run imageID ls -alF /etc
-	podman container run --network=host imageID dnf -y install java
-	podman container run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
+podman container run --network=host imageID dnf -y install java
+podman container run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 )
 

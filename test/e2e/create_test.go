@@ -529,7 +529,7 @@ var _ = Describe("Podman create", func() {
 		Expect(data).To(HaveLen(1))
 		Expect(data[0].Config).To(HaveField("Umask", "0002"))
 
-		session = podmanTest.Podman([]string{"create", "--umask", "0077", "--name", "fedora", fedoraMinimal})
+		session = podmanTest.Podman([]string{"create", "--umask", "0077", "--name", "fedora", FEDORA_MINIMAL})
 		session.WaitWithDefaultTimeout()
 		inspect = podmanTest.Podman([]string{"inspect", "fedora"})
 		inspect.WaitWithDefaultTimeout()

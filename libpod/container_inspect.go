@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -386,9 +386,9 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 			// env variables come in the style `name=value`
 			envName := strings.Split(envValue, "=")[0]
 
-			envSecret, ok := envSecrets[envName]
+			_, ok := envSecrets[envName]
 			if ok {
-				ctrConfig.Env[envIndex] = envSecret.Name + "=*******"
+				ctrConfig.Env[envIndex] = envName + "=*******"
 			}
 		}
 

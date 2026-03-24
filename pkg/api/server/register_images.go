@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package server
 
@@ -55,6 +55,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: platform
 	//    type: string
 	//    description: Platform in the format os[/arch[/variant]]
+	//  - in: query
+	//    name: retry
+	//    type: integer
+	//    description: Number of times to retry in case of failure when performing pull.
+	//  - in: query
+	//    name: retryDelay
+	//    type: string
+	//    description: Delay between retries in case of pull failures.
 	//  - in: body
 	//    name: inputImage
 	//    schema:
@@ -92,7 +100,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - name: filters
 	//     in: query
 	//     description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
 	//        - `dangling=true`
 	//        - `label=key` or `label="key=value"` of an image label
@@ -102,6 +110,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - name: digests
 	//     in: query
 	//     description: Not supported
+	//     type: boolean
+	//     default: false
+	//   - name: shared-size
+	//     in: query
+	//     description: Compute and show shared size as a SharedSize field on each image.
 	//     type: boolean
 	//     default: false
 	// produces:
@@ -187,7 +200,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that have at least 'number' stars.
@@ -232,6 +245,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: noprune
 	//    type: boolean
 	//    description: do not remove dangling parent images
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    default: false
+	//    description: Ignore if a specified image does not exist and do not throw an error.
 	// produces:
 	//  - application/json
 	// responses:
@@ -900,7 +918,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   - name: filters
 	//     in: query
 	//     description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
 	//        - `dangling=true`
 	//        - `label=key` or `label="key=value"` of an image label
@@ -1070,6 +1088,15 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: force
 	//    type: boolean
 	//    description: remove the image even if used by containers or has other tags
+	//  - in: query
+	//    name: ignore
+	//    type: boolean
+	//    default: false
+	//    description: Ignore if a specified image does not exist and do not throw an error.
+	//  - in: query
+	//    name: lookupManifest
+	//    type: boolean
+	//    description: Resolve to a manifest list instead of an image.
 	// produces:
 	// - application/json
 	// responses:
@@ -1089,7 +1116,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images
 	// summary: Pull images
-	// description: Pull one or more images from a container registry.
+	// description: Pull one or more images from a container registry. Error status codes can come either from the API or from the registry. Errors may be detected later even if the HTTP status 200 is returned, and in that case, the error description will be in the `error` field.
 	// parameters:
 	//   - in: query
 	//     name: reference
@@ -1097,12 +1124,17 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     type: string
 	//   - in: query
 	//     name: quiet
-	//     description: "silences extra stream data on pull"
+	//     description: "Silence extra stream data on pull. Cannot be used with 'compatMode' or 'pullProgress'."
 	//     type: boolean
 	//     default: false
 	//   - in: query
 	//     name: compatMode
-	//     description: "Return the same JSON payload as the Docker-compat endpoint."
+	//     description: "Return the same JSON payload as the Docker-compat endpoint. Cannot be used with 'pullProgress' or 'quiet'."
+	//     type: boolean
+	//     default: false
+	//   - in: query
+	//     name: pullProgress
+	//     description: "Send reports about the progress of the pull. Cannot be used with 'compatMode' or 'quiet'."
 	//     type: boolean
 	//     default: false
 	//   - in: query
@@ -1143,6 +1175,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/badParamError"
 	//   500:
 	//     $ref: '#/responses/internalError'
+	//   default:
+	//     $ref: "#/responses/errorFromRegistry"
 	r.Handle(VersionedPath("/libpod/images/pull"), s.APIHandler(libpod.ImagesPull)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/images/prune libpod ImagePruneLibpod
 	// ---
@@ -1207,7 +1241,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: filters
 	//    type: string
 	//    description: |
-	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        JSON-encoded string containing filters as a `map[string][]string` to process on the images list. Available filters:
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
 	//        - `stars=<number>` Matches images that have at least 'number' stars.

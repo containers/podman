@@ -25,7 +25,7 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersCreated,
 		Example: `podman init 3c45ef19d893
-  podman init test1`,
+podman init test1`,
 	}
 
 	containerInitCommand = &cobra.Command{
@@ -36,7 +36,7 @@ var (
 		Args:              initCommand.Args,
 		ValidArgsFunction: initCommand.ValidArgsFunction,
 		Example: `podman container init 3c45ef19d893
-  podman container init test1`,
+podman container init test1`,
 	}
 )
 

@@ -23,8 +23,8 @@ var (
 		RunE:              diffRun,
 		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman diff imageID
-  podman diff ctrID
-  podman diff --format json redis:alpine`,
+podman diff ctrID
+podman diff --format json redis:alpine`,
 	}
 
 	diffOpts = entities.DiffOptions{}

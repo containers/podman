@@ -679,11 +679,17 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		podman.add("--cgroups=split")
 	}
 
+	// Entrypoint needs special handling: an empty value is valid and means
+	// "clear the image entrypoint" (podman run --entrypoint ""), so it
+	// cannot go through lookupAndAddString which skips empty values.
+	if val, ok := container.Lookup(ContainerGroup, KeyEntrypoint); ok {
+		podman.addf("--entrypoint=%s", val)
+	}
+
 	stringKeys := map[string]string{
 		KeyTimezone:    "--tz",
 		KeyPidsLimit:   "--pids-limit",
 		KeyShmSize:     "--shm-size",
-		KeyEntrypoint:  "--entrypoint",
 		KeyWorkingDir:  "--workdir",
 		KeyIP:          "--ip",
 		KeyIP6:         "--ip6",
@@ -1144,7 +1150,7 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 			if opts.Len() > 2 {
 				opts.WriteString(",")
 			}
-			opts.WriteString(fmt.Sprintf("uid=%d", uid))
+			fmt.Fprintf(&opts, "uid=%d", uid)
 		}
 
 		if volume.HasKey(VolumeGroup, "Group") {
@@ -1152,7 +1158,7 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 			if opts.Len() > 2 {
 				opts.WriteString(",")
 			}
-			opts.WriteString(fmt.Sprintf("gid=%d", gid))
+			fmt.Fprintf(&opts, "gid=%d", gid)
 		}
 
 		copy, ok := volume.LookupBoolean(VolumeGroup, KeyCopy)
@@ -1186,14 +1192,10 @@ func ConvertVolume(volume *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, i
 
 		mountOpts, ok := volume.Lookup(VolumeGroup, KeyOptions)
 		if ok && len(mountOpts) != 0 {
-			if devValid {
-				if opts.Len() > 2 {
-					opts.WriteString(",")
-				}
-				opts.WriteString(mountOpts)
-			} else {
-				return nil, warnings, fmt.Errorf("key Options can't be used without Device")
+			if opts.Len() > 2 {
+				opts.WriteString(",")
 			}
+			opts.WriteString(mountOpts)
 		}
 	}
 
@@ -1699,9 +1701,12 @@ func ConvertPod(podUnit *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service.Setv(ServiceGroup,
 		"Type", "forking",
-		"Restart", "on-failure",
 		"PIDFile", "%t/%N.pid",
 	)
+
+	if !podUnit.HasKey(ServiceGroup, "Restart") {
+		service.Set(ServiceGroup, "Restart", "on-failure")
+	}
 
 	return service, warnings, nil
 }

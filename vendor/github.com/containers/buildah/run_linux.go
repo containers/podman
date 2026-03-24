@@ -285,7 +285,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 		devices = append(devices, device...)
 	}
-	devices = append(append(devices, options.Devices...), b.Devices...)
+	devices = slices.Concat(devices, options.Devices, b.Devices)
 
 	// Mount devices, if any, and if we're rootless attempt to work around not
 	// being able to create device nodes by bind-mounting them from the host, like podman does.
@@ -512,10 +512,6 @@ rootless=%d
 	runArtifacts, err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, options.CompatBuiltinVolumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
 	if err != nil {
 		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
-	}
-	if runArtifacts.SSHAuthSock != "" {
-		sshenv := "SSH_AUTH_SOCK=" + runArtifacts.SSHAuthSock
-		spec.Process.Env = append(spec.Process.Env, sshenv)
 	}
 
 	// Create any mount points that we need that aren't already present in

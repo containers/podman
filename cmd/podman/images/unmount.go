@@ -28,8 +28,8 @@ var (
 		RunE:              unmount,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman unmount imgID
-  podman unmount imgID1 imgID2 imgID3
-  podman unmount --all`,
+podman unmount imgID1 imgID2 imgID3
+podman unmount --all`,
 	}
 )
 

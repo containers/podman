@@ -136,7 +136,7 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 			}
 			storageConfig.LabelOpts = []string{fmt.Sprintf("filetype:%s", context["type"])}
 		}
-		if _, err := r.storageService.CreateContainerStorage(ctx, r.imageContext, imgString, image.ID(), volume.config.StorageName, volume.config.StorageID, storageConfig); err != nil {
+		if _, err := r.storageService.CreateContainerStorage(ctx, &r.imageContext, imgString, image.ID(), volume.config.StorageName, volume.config.StorageID, storageConfig); err != nil {
 			return nil, fmt.Errorf("creating backing storage for image driver: %w", err)
 		}
 		defer func() {

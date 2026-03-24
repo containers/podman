@@ -104,7 +104,8 @@ Enable IPv6 (Dual Stack) networking. If no subnets are given, it allocates an ip
 
 #### **--label**=*label*
 
-Set metadata for a network (e.g., --label mykey=value).
+Set metadata for the network (e.g., `--label mykey=value`). Can be used multiple times.
+These labels can be viewed in `podman network inspect` or `podman network ls`.
 
 #### **--opt**, **-o**=*option*
 

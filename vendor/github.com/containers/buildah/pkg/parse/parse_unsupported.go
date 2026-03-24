@@ -1,6 +1,6 @@
 //go:build !linux && !darwin
 
-package parse
+package parse //nolint:revive,nolintlint
 
 import (
 	"errors"

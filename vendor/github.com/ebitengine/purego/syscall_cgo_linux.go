@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build cgo && !(amd64 || arm64 || loong64)
+//go:build cgo && !(386 || amd64 || arm || arm64 || loong64 || ppc64le || riscv64 || s390x)
 
 package purego
 
@@ -17,5 +17,5 @@ func syscall_syscall15X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a
 }
 
 func NewCallback(_ any) uintptr {
-	panic("purego: NewCallback on Linux is only supported on amd64/arm64/loong64")
+	panic("purego: NewCallback on Linux is only supported on 386/amd64/arm64/arm/loong64/ppc64le/riscv64/s390x")
 }

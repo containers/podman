@@ -45,6 +45,7 @@ The test currently depend on:
  - tar
  - docker
  - systemd/systemctl
+ - yq
 
 Most of these are only required for a few tests so it is not a big issue if not everything is installed. Only a few test should fail then.
 

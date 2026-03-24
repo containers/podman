@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
+	"github.com/containers/podman/v6/cmd/podman/system"
 	"github.com/containers/podman/v6/cmd/podman/validate"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/shutdown"
@@ -41,6 +42,21 @@ Description:
 
 {{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
+// indentExamples is a Cobra template function registered via cobra.AddTemplateFunc.
+// It prepends two spaces to every non-empty line in a command's Example string
+// so that examples are consistently indented in --help output.
+// Example strings in source must be flush-left (no leading whitespace);
+// this is enforced by TestExampleFormat.
+func indentExamples(s string) string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = "  " + line
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 // UsageTemplate is the usage template for podman commands
 // This blocks the displaying of the global options. The main podman
 // command should not use this.
@@ -52,7 +68,7 @@ Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
 Examples:
-  {{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+{{.Example | indentExamples}}{{end}}{{if .HasAvailableSubCommands}}
 
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
@@ -94,6 +110,8 @@ var (
 )
 
 func init() {
+	cobra.AddTemplateFunc("indentExamples", indentExamples)
+
 	// Hooks are called before PersistentPreRunE(). These hooks affect global
 	// state and are executed after processing the command-line, but before
 	// actually running the command.
@@ -366,12 +384,22 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// Prep the engines
 	if _, err := registry.NewImageEngine(cmd, args); err != nil {
 		// Note: this is gross, but it is the hand we are dealt
-		if registry.IsRemote() && errors.As(err, &bindings.ConnectError{}) && cmd.Name() == "info" && cmd.Parent() == cmd.Root() {
-			clientDesc, err := getClientInfo()
-			// we eat the error here. if this fails, they just don't any client info
-			if err == nil {
-				b, _ := yaml.Marshal(clientDesc)
-				fmt.Println(string(b))
+		if registry.IsRemote() && errors.As(err, &bindings.ConnectError{}) && cmd.Parent() == cmd.Root() {
+			switch cmd.Name() {
+			case "info":
+				clientDesc, err := getClientInfo()
+				// we eat the error here. if this fails, they just don't any client info
+				if err == nil {
+					b, _ := yaml.Marshal(clientDesc)
+					fmt.Println(string(b))
+				}
+			case "version":
+				versions, err := define.GetVersion()
+				if err == nil {
+					if printErr := system.PrintVersion(cmd, &entities.SystemVersionReport{Client: &versions}); printErr != nil {
+						logrus.Debugf("Failed to print client version information: %v", printErr)
+					}
+				}
 			}
 		}
 		return err
@@ -546,6 +574,10 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	tlsCAFileFlagName := "tls-ca"
 	lFlags.StringVar(&podmanConfig.TLSCAFile, tlsCAFileFlagName, podmanConfig.TLSCAFile, "path to TLS certificate Authority PEM file for remote.")
 	_ = cmd.RegisterFlagCompletionFunc(tlsCAFileFlagName, completion.AutocompleteDefault)
+
+	tlsDetailsFlagName := "tls-details"
+	lFlags.StringVar(&podmanConfig.TLSDetailsFile, tlsDetailsFlagName, "", "Path to a containers-tls-details.yaml(5) file")
+	_ = cmd.RegisterFlagCompletionFunc(tlsDetailsFlagName, completion.AutocompleteDefault)
 
 	// Flags that control or influence any kind of output.
 	outFlagName := "out"

@@ -33,8 +33,8 @@ var (
 		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: common.AutocompleteRunlabelCommand,
 		Example: `podman container runlabel run imageID
-  podman container runlabel install imageID arg1 arg2
-  podman container runlabel --display run myImage`,
+podman container runlabel install imageID arg1 arg2
+podman container runlabel --display run myImage`,
 	}
 )
 

@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package generate
 
@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v6/pkg/signal"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/openshift/imagebuilder"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
@@ -332,16 +331,11 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		s.LogConfiguration.Driver = rtc.Containers.LogDriver
 	}
 	if len(rtc.Containers.LogTag) > 0 {
-		if s.LogConfiguration.Driver != define.JSONLogging {
-			if s.LogConfiguration.Options == nil {
-				s.LogConfiguration.Options = make(map[string]string)
-			}
-
-			if _, exists := s.LogConfiguration.Options["tag"]; !exists {
-				s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
-			}
-		} else {
-			logrus.Warnf("log_tag %q is not allowed with %q log_driver", rtc.Containers.LogTag, define.JSONLogging)
+		if s.LogConfiguration.Options == nil {
+			s.LogConfiguration.Options = make(map[string]string)
+		}
+		if _, exists := s.LogConfiguration.Options["tag"]; !exists {
+			s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
 		}
 	}
 
@@ -379,9 +373,11 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 
 	tmpSystemd := conf.Systemd
 	tmpMounts := conf.Mounts
+	tmpEnvSecrets := conf.EnvSecrets
 
 	conf.Systemd = nil
 	conf.Mounts = []string{}
+	conf.EnvSecrets = nil
 
 	if specg == nil {
 		specg = &specgen.SpecGenerator{}
@@ -401,6 +397,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 
 	conf.Systemd = tmpSystemd
 	conf.Mounts = tmpMounts
+	conf.EnvSecrets = tmpEnvSecrets
 
 	if conf.Spec != nil {
 		if conf.Spec.Linux != nil && conf.Spec.Linux.Resources != nil {
@@ -513,6 +510,14 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	specg.HealthConfig = conf.HealthCheckConfig
 	specg.StartupHealthConfig = conf.StartupHealthCheckConfig
 	specg.HealthCheckOnFailureAction = conf.HealthCheckOnFailureAction
+
+	if len(tmpEnvSecrets) > 0 {
+		envSecrets := make(map[string]string, len(tmpEnvSecrets))
+		for target, secret := range tmpEnvSecrets {
+			envSecrets[target] = secret.Name
+		}
+		specg.EnvSecrets = envSecrets
+	}
 
 	specg.IDMappings = &conf.IDMappings
 	specg.ContainerCreateCommand = conf.CreateCommand

@@ -31,8 +31,8 @@ var (
 		},
 		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman container restore ctrID
-  podman container restore imageID
-  podman container restore --all`,
+podman container restore imageID
+podman container restore --all`,
 	}
 )
 
@@ -149,6 +149,10 @@ func restore(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	restoreOptions.PublishPorts = inputPorts
+
+	if notImport && len(restoreOptions.PublishPorts) > 0 {
+		return fmt.Errorf("--publish can only be used with image or --import")
+	}
 
 	argLen := len(args)
 	if restoreOptions.Import != "" {

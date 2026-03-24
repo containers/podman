@@ -22,8 +22,8 @@ var (
 		Args:              validate.IDOrLatestArgs,
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman attach ctrID
-  podman attach 1234
-  podman attach --no-stdin foobar`,
+podman attach 1234
+podman attach --no-stdin foobar`,
 	}
 
 	containerAttachCommand = &cobra.Command{
@@ -34,8 +34,8 @@ var (
 		Args:              validate.IDOrLatestArgs,
 		ValidArgsFunction: attachCommand.ValidArgsFunction,
 		Example: `podman container attach ctrID
-	podman container attach 1234
-	podman container attach --no-stdin foobar`,
+podman container attach 1234
+podman container attach --no-stdin foobar`,
 	}
 )
 

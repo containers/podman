@@ -316,14 +316,14 @@ func isUnambiguousName(imageName string) bool {
 	}
 
 	// Otherwise we require a fully qualified name
-	firstSlash := strings.Index(imageName, "/")
-	if firstSlash == -1 {
+	before, _, ok := strings.Cut(imageName, "/")
+	if !ok {
 		// No domain or path, not fully qualified
 		return false
 	}
 
 	// What is before the first slash can be a domain or a path
-	domain := imageName[:firstSlash]
+	domain := before
 
 	// If its a domain (has dot or port or is "localhost") it is considered fq
 	if strings.ContainsAny(domain, ".:") || domain == "localhost" {

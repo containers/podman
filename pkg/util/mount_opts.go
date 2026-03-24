@@ -28,12 +28,13 @@ type getDefaultMountOptionsFn func(path string) (defaultMountOptions, error)
 // they are sensible and follow convention. The isTmpfs variable controls
 // whether extra, tmpfs-specific options will be allowed.
 // The sourcePath variable, if not empty, contains a bind mount source.
-func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
+// Returns the processed options, a boolean indicating if nocreate was specified, and an error.
+func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, bool, error) {
 	return processOptionsInternal(options, isTmpfs, sourcePath, getDefaultMountOptions)
 }
 
-func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, getDefaultMountOptions getDefaultMountOptionsFn) ([]string, error) {
-	var foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference bool
+func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, getDefaultMountOptions getDefaultMountOptionsFn) ([]string, bool, error) {
+	var foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy, foundNoSwap, foundNoDereference, foundNoCreate bool
 
 	recursiveBind := true
 
@@ -59,7 +60,7 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		}
 		if strings.HasPrefix(key, "idmap") {
 			if foundIdmap {
-				return nil, fmt.Errorf("the 'idmap' option can only be set once: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("the 'idmap' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundIdmap = true
 			newOptions = append(newOptions, opt)
@@ -69,7 +70,7 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		switch key {
 		case "copy", "nocopy":
 			if foundCopy {
-				return nil, fmt.Errorf("only one of 'nocopy' and 'copy' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'nocopy' and 'copy' can be used: %w", ErrDupeMntOption)
 			}
 			foundCopy = true
 		case "O":
@@ -79,51 +80,51 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 			newOptions = append(newOptions, opt)
 		case "exec", "noexec":
 			if foundExec {
-				return nil, fmt.Errorf("only one of 'noexec' and 'exec' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'noexec' and 'exec' can be used: %w", ErrDupeMntOption)
 			}
 			foundExec = true
 		case "suid", "nosuid":
 			if foundSuid {
-				return nil, fmt.Errorf("only one of 'nosuid' and 'suid' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'nosuid' and 'suid' can be used: %w", ErrDupeMntOption)
 			}
 			foundSuid = true
 		case "nodev", "dev":
 			if foundDev {
-				return nil, fmt.Errorf("only one of 'nodev' and 'dev' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'nodev' and 'dev' can be used: %w", ErrDupeMntOption)
 			}
 			foundDev = true
 		case "rw", "ro":
 			if foundWrite {
-				return nil, fmt.Errorf("only one of 'rw' and 'ro' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'rw' and 'ro' can be used: %w", ErrDupeMntOption)
 			}
 			foundWrite = true
 		case "private", "rprivate", "slave", "rslave", "shared", "rshared", "unbindable", "runbindable":
 			if foundProp {
-				return nil, fmt.Errorf("only one root propagation mode can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one root propagation mode can be used: %w", ErrDupeMntOption)
 			}
 			foundProp = true
 		case "size":
 			if !isTmpfs {
-				return nil, fmt.Errorf("the 'size' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'size' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundSize {
-				return nil, fmt.Errorf("only one tmpfs size can be specified: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one tmpfs size can be specified: %w", ErrDupeMntOption)
 			}
 			foundSize = true
 		case "mode":
 			if !isTmpfs {
-				return nil, fmt.Errorf("the 'mode' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'mode' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundMode {
-				return nil, fmt.Errorf("only one tmpfs mode can be specified: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one tmpfs mode can be specified: %w", ErrDupeMntOption)
 			}
 			foundMode = true
 		case "tmpcopyup":
 			if !isTmpfs {
-				return nil, fmt.Errorf("the 'tmpcopyup' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'tmpcopyup' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundCopyUp {
-				return nil, fmt.Errorf("the 'tmpcopyup' or 'notmpcopyup' option can only be set once: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("the 'tmpcopyup' or 'notmpcopyup' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundCopyUp = true
 		case "consistency":
@@ -132,10 +133,10 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 			continue
 		case "notmpcopyup":
 			if !isTmpfs {
-				return nil, fmt.Errorf("the 'notmpcopyup' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'notmpcopyup' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundCopyUp {
-				return nil, fmt.Errorf("the 'tmpcopyup' or 'notmpcopyup' option can only be set once: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("the 'tmpcopyup' or 'notmpcopyup' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundCopyUp = true
 			// do not propagate notmpcopyup to the OCI runtime
@@ -143,20 +144,20 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		case "noswap":
 
 			if !isTmpfs {
-				return nil, fmt.Errorf("the 'noswap' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'noswap' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if rootless.IsRootless() {
-				return nil, fmt.Errorf("the 'noswap' option is only allowed with rootful tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'noswap' option is only allowed with rootful tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundNoSwap {
-				return nil, fmt.Errorf("the 'tmpswap' option can only be set once: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("the 'tmpswap' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundNoSwap = true
 			newOptions = append(newOptions, opt)
 			continue
 		case "no-dereference":
 			if foundNoDereference {
-				return nil, fmt.Errorf("the 'no-dereference' option can only be set once: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("the 'no-dereference' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundNoDereference = true
 		case define.TypeBind:
@@ -164,31 +165,35 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 			fallthrough
 		case "rbind":
 			if isTmpfs {
-				return nil, fmt.Errorf("the 'bind' and 'rbind' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'bind' and 'rbind' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundBind {
-				return nil, fmt.Errorf("only one of 'rbind' and 'bind' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'rbind' and 'bind' can be used: %w", ErrDupeMntOption)
 			}
 			foundBind = true
 		case "z", "Z":
 			if isTmpfs {
-				return nil, fmt.Errorf("the 'z' and 'Z' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'z' and 'Z' options are not allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
 			if foundZ {
-				return nil, fmt.Errorf("only one of 'z' and 'Z' can be used: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("only one of 'z' and 'Z' can be used: %w", ErrDupeMntOption)
 			}
 			foundZ = true
 		case "U":
 			if foundU {
-				return nil, fmt.Errorf("the 'U' option can only be set once: %w", ErrDupeMntOption)
+				return nil, false, fmt.Errorf("the 'U' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundU = true
 		case "noatime":
 			if !isTmpfs {
-				return nil, fmt.Errorf("the 'noatime' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+				return nil, false, fmt.Errorf("the 'noatime' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
 			}
+		case "nocreate":
+			// nocreate is handled separately and not passed to the runtime
+			foundNoCreate = true
+			continue
 		default:
-			return nil, fmt.Errorf("unknown mount option %q: %w", opt, ErrBadMntOption)
+			return nil, false, fmt.Errorf("unknown mount option %q: %w", opt, ErrBadMntOption)
 		}
 		newOptions = append(newOptions, opt)
 	}
@@ -202,7 +207,7 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 	}
 	defaults, err := getDefaultMountOptions(sourcePath)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if !foundExec && defaults.noexec {
 		newOptions = append(newOptions, "noexec")
@@ -220,7 +225,7 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		newOptions = append(newOptions, "rbind")
 	}
 
-	return newOptions, nil
+	return newOptions, foundNoCreate, nil
 }
 
 func ParseDriverOpts(option string) (string, string, error) {

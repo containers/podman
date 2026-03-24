@@ -2,6 +2,7 @@ package images
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -26,11 +27,11 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/entities/types"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/util"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
 	gzip "github.com/klauspost/pgzip"
+	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
 	imageTypes "go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"
@@ -47,8 +48,8 @@ type devino struct {
 var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)
 
 type BuildResponse struct {
-	Stream string                 `json:"stream,omitempty"`
-	Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
+	Stream string            `json:"stream,omitempty"`
+	Error  *jsonstream.Error `json:"errorDetail,omitempty"`
 	// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
 	ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
 	Aux          json.RawMessage `json:"aux,omitempty"`
@@ -430,6 +431,9 @@ func prepareParams(options types.BuildOptions) (url.Values, error) {
 	for _, volume := range options.CommonBuildOpts.Volumes {
 		params.Add("volume", convertVolumeSrcPath(volume))
 	}
+	for _, mount := range options.TransientRunMounts {
+		params.Add("transientRunMounts", mount)
+	}
 
 	for _, group := range options.GroupAdd {
 		params.Add("groupadd", group)
@@ -481,6 +485,13 @@ func prepareParams(options types.BuildOptions) (url.Values, error) {
 	if options.SourceDateEpoch != nil {
 		t := options.SourceDateEpoch
 		params.Set("sourcedateepoch", strconv.FormatInt(t.Unix(), 10))
+	}
+	if options.SourcePolicyFile != "" {
+		rawSourcePolicy, err := os.ReadFile(options.SourcePolicyFile)
+		if err != nil {
+			return nil, fmt.Errorf("loading source policy: %w", err)
+		}
+		params.Set("sourcePolicy", string(bytes.TrimSpace(rawSourcePolicy)))
 	}
 	if options.RewriteTimestamp {
 		params.Set("rewritetimestamp", "1")

@@ -14,7 +14,7 @@ var existsCmd = &cobra.Command{
 	RunE:              exists,
 	ValidArgsFunction: common.AutocompleteSecrets,
 	Example: `podman secret exists ID
-  podman secret exists SECRET || podman secret create SECRET <secret source>`,
+podman secret exists SECRET || podman secret create SECRET <secret source>`,
 }
 
 func init() {

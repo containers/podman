@@ -304,6 +304,9 @@ function _run_altbuild() {
                 mips64le)
             _build_altbuild_archs "${arches[@]}"
             ;;
+        Alt*RISCV64*Cross)
+            _build_altbuild_archs "riscv64"
+            ;;
         *)
             die "Unknown/Unsupported \$$ALT_NAME '$ALT_NAME'"
     esac

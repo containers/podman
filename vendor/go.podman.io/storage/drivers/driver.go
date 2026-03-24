@@ -388,6 +388,7 @@ func init() {
 
 // MustRegister registers an InitFunc for the driver, or panics.
 // It is suitable for package’s init() sections.
+// If you are adding a call to this, update also isKnownDriverName in storage/internal/opts/driver.go.
 func MustRegister(name string, initFunc InitFunc) {
 	if err := Register(name, initFunc); err != nil {
 		panic(fmt.Sprintf("failed to register containers/storage graph driver %q: %v", name, err))
@@ -395,6 +396,7 @@ func MustRegister(name string, initFunc InitFunc) {
 }
 
 // Register registers an InitFunc for the driver.
+// If you are adding a call to this, update also isKnownDriverName in storage/internal/opts/driver.go.
 func Register(name string, initFunc InitFunc) error {
 	if _, exists := drivers[name]; exists {
 		return fmt.Errorf("name already registered %s", name)

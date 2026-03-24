@@ -3,6 +3,9 @@
 package integration
 
 import (
+	"os"
+	"path/filepath"
+
 	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,14 +43,14 @@ var _ = Describe("Podman container clone", func() {
 		create := podmanTest.Podman([]string{"create", ALPINE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).To(ExitCleanly())
-		clone := podmanTest.Podman([]string{"container", "clone", create.OutputToString(), "new_name", fedoraMinimal})
+		clone := podmanTest.Podman([]string{"container", "clone", create.OutputToString(), "new_name", FEDORA_MINIMAL})
 		clone.WaitWithDefaultTimeout()
 		Expect(clone).To(ExitCleanly())
 
 		ctrInspect := podmanTest.Podman([]string{"inspect", clone.OutputToString()})
 		ctrInspect.WaitWithDefaultTimeout()
 		Expect(ctrInspect).To(ExitCleanly())
-		Expect(ctrInspect.InspectContainerToJSON()[0]).To(HaveField("ImageName", fedoraMinimal))
+		Expect(ctrInspect.InspectContainerToJSON()[0]).To(HaveField("ImageName", FEDORA_MINIMAL))
 		Expect(ctrInspect.InspectContainerToJSON()[0]).To(HaveField("Name", "new_name"))
 	})
 
@@ -297,6 +300,26 @@ var _ = Describe("Podman container clone", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).Should(ContainSubstring("12=3"))
+	})
+
+	It("podman container clone with secret env", func() {
+		secretsString := "somesecretdata"
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0o755)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("secret", "create", "mysecret", secretFilePath)
+
+		session := podmanTest.PodmanExitCleanly("run", "--secret", "source=mysecret,type=env", "--name", "secr", ALPINE, "printenv", "mysecret")
+		Expect(session.OutputToString()).To(Equal(secretsString))
+
+		podmanTest.PodmanExitCleanly("container", "clone", "secr")
+
+		session = podmanTest.PodmanExitCleanly("start", "-a", "secr-clone")
+		Expect(session.OutputToString()).To(Equal(secretsString))
+
+		cloneData := podmanTest.PodmanExitCleanly("inspect", "secr-clone").InspectContainerToJSON()[0]
+		Expect(cloneData.Config.Env).To(ContainElement("mysecret=*******"))
 	})
 
 	It("podman container clone container with healthcheck", func() {

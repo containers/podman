@@ -91,7 +91,8 @@ func (g *unitGroup) addLine(line *unitLine) {
 }
 
 func (g *unitGroup) prependLine(line *unitLine) {
-	n := []*unitLine{line}
+	n := make([]*unitLine, 0, 1+len(g.lines))
+	n = append(n, line)
 	g.lines = append(n, g.lines...)
 }
 
@@ -100,7 +101,8 @@ func (g *unitGroup) addComment(line *unitLine) {
 }
 
 func (g *unitGroup) prependComment(line *unitLine) {
-	n := []*unitLine{line}
+	n := make([]*unitLine, 0, 1+len(g.comments))
+	n = append(n, line)
 	g.comments = append(n, g.comments...)
 }
 

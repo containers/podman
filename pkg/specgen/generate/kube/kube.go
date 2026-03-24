@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package kube
 
@@ -28,10 +28,8 @@ import (
 	"github.com/containers/podman/v6/pkg/specgen/generate"
 	systemdDefine "github.com/containers/podman/v6/pkg/systemd/define"
 	"github.com/containers/podman/v6/pkg/util"
-	"github.com/docker/docker/pkg/meminfo"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
@@ -39,6 +37,7 @@ import (
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
 	itypes "go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/system"
 	"sigs.k8s.io/yaml"
 	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
 )
@@ -248,6 +247,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	s.LogConfiguration.Options = make(map[string]string)
+	s.LogConfiguration.Labels = make(map[string]string)
 	for _, o := range opts.LogOptions {
 		opt, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
@@ -264,18 +264,17 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				return nil, err
 			}
 			s.LogConfiguration.Size = logSize
-		default:
-			switch len(val) {
-			case 0:
-				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
-			default:
-				// tags for journald only
-				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
-					s.LogConfiguration.Options[opt] = val
-				} else {
-					logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
-				}
+		case "label":
+			labelKey, labelVal, hasVal := strings.Cut(val, "=")
+			if !hasVal {
+				return nil, fmt.Errorf("invalid log label %q", o)
 			}
+			s.LogConfiguration.Labels[labelKey] = labelVal
+		default:
+			if len(val) == 0 {
+				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
+			}
+			s.LogConfiguration.Options[opt] = val
 		}
 	}
 
@@ -1273,7 +1272,7 @@ func getContainerResources(container v1.Container) (v1.ResourceRequirements, err
 	requests := container.Resources.Requests
 
 	if limits == nil || limits.Memory().IsZero() {
-		mi, err := meminfo.Read()
+		mi, err := system.ReadMemInfo()
 		if err != nil {
 			return result, err
 		}

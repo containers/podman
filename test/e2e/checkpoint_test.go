@@ -119,6 +119,11 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(inspectOut[0].State.CheckpointLog).To(ContainSubstring("userdata/dump.log"))
 		Expect(inspectOut[0].State).To(HaveField("RestoreLog", ""))
 
+		// Restoring with --publish should fail without --import (#28031)
+		result = podmanTest.Podman([]string{"container", "restore", "-p", "8080:8080", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitWithError(125, "--publish can only be used with image or --import"))
+
 		result = podmanTest.Podman([]string{
 			"container",
 			"restore",

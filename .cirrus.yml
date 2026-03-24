@@ -31,7 +31,7 @@ env:
     DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20251211t152018z-f43f42d14"
+    IMAGE_SUFFIX: "c20260319t182308z-f43f42d14"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -73,7 +73,10 @@ timeout_in: 20m
 
 gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
 
-aws_credentials: ENCRYPTED[b4127fef212e5bc38dd3d96eff17440f2c62d6d04219fa97fa7acdcd81475352e70a34863705b5e01289fdc4012d5ee2]
+aws_credentials:
+  role_arn: arn:aws:iam::449134212816:role/podman-ci-role
+  role_session_name: cirrus
+  region: us-east-1
 
 
 validate-source_task:
@@ -257,6 +260,8 @@ alt_build_task:
             ALT_NAME: 'Alt Arch. MIPS Cross'
       - env:
             ALT_NAME: 'Alt Arch. MIPS64 Cross'
+      - env:
+            ALT_NAME: 'Alt Arch. RISCV64 Cross'
       - env:
             ALT_NAME: 'Alt Arch. Other Cross'
     # This task cannot make use of the shared repo.tar.zst artifact.
@@ -797,7 +802,7 @@ podman_machine_aarch64_task:
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
-    timeout_in: 40m
+    timeout_in: 60m
     env:
         TEST_FLAVOR: "machine-linux"
         TEST_BUILD_TAGS: ""

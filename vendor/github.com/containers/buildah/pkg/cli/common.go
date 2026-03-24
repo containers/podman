@@ -42,10 +42,12 @@ type UserNSResults struct {
 
 // NameSpaceResults represents the results for Namespace flags
 type NameSpaceResults struct {
-	Cgroup        string
-	IPC           string
-	Network       string
-	CNIConfigDir  string
+	Cgroup  string
+	IPC     string
+	Network string
+	// Deprecated: CNIConfigDir is no longer used and is expected to be empty.
+	CNIConfigDir string
+	// Deprecated: CNIPlugInPath is no longer used and is expected to be empty.
 	CNIPlugInPath string
 	PID           string
 	UTS           string
@@ -130,6 +132,8 @@ type BudResults struct {
 	SourceDateEpoch     string
 	RewriteTimestamp    bool
 	CreatedAnnotation   bool
+	SourcePolicyFile    string
+	TransientRunMounts  []string
 }
 
 // FromAndBugResults represents the results for common flags
@@ -193,10 +197,6 @@ func GetNameSpaceFlags(flags *NameSpaceResults) pflag.FlagSet {
 	fs.StringVar(&flags.Cgroup, "cgroupns", "", "'private', or 'host'")
 	fs.StringVar(&flags.IPC, string(specs.IPCNamespace), "", "'private', `path` of IPC namespace to join, or 'host'")
 	fs.StringVar(&flags.Network, string(specs.NetworkNamespace), "", "'private', 'none', 'ns:path' of network namespace to join, or 'host'")
-	fs.StringVar(&flags.CNIConfigDir, "cni-config-dir", "", "`directory` of CNI configuration files")
-	_ = fs.MarkHidden("cni-config-dir")
-	fs.StringVar(&flags.CNIPlugInPath, "cni-plugin-path", "", "`path` of CNI network plugins")
-	_ = fs.MarkHidden("cni-plugin-path")
 	fs.StringVar(&flags.PID, string(specs.PIDNamespace), "", "private, `path` of PID namespace to join, or 'host'")
 	fs.StringVar(&flags.UTS, string(specs.UTSNamespace), "", "private, :`path` of UTS namespace to join, or 'host'")
 	return fs
@@ -300,6 +300,7 @@ newer:   only pull base and SBOM scanner images when newer images exist on the r
 	fs.BoolVar(&flags.Rm, "rm", true, "remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/build.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
+	fs.StringArrayVar(&flags.TransientRunMounts, "mount", []string{}, "set transient mounts for each RUN instruction, e.g. type=secret,id=mysecret")
 	fs.StringVar(&flags.SbomPreset, "sbom", "", "scan working container using `preset` configuration")
 	fs.StringVar(&flags.SbomScannerImage, "sbom-scanner-image", "", "scan working container using scanner command from `image`")
 	fs.StringArrayVar(&flags.SbomScannerCommand, "sbom-scanner-command", nil, "scan working container using `command` in scanner image")
@@ -314,6 +315,7 @@ newer:   only pull base and SBOM scanner images when newer images exist on the r
 	if err := fs.MarkHidden("signature-policy"); err != nil {
 		panic(fmt.Sprintf("error marking the signature-policy flag as hidden: %v", err))
 	}
+	fs.StringVar(&flags.SourcePolicyFile, "source-policy-file", "", "`pathname` of source policy file for controlling source references during build")
 	fs.BoolVar(&flags.SkipUnusedStages, "skip-unused-stages", true, "skips stages in multi-stage builds which do not affect the final target")
 	sourceDateEpochUsageDefault := ", defaults to current time"
 	if v := os.Getenv(internal.SourceDateEpochName); v != "" {
@@ -366,6 +368,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["logfile"] = commonComp.AutocompleteDefault
 	flagCompletion["manifest"] = commonComp.AutocompleteDefault
 	flagCompletion["metadata-file"] = commonComp.AutocompleteDefault
+	flagCompletion["mount"] = commonComp.AutocompleteNone
 	flagCompletion["os"] = commonComp.AutocompleteNone
 	flagCompletion["os-feature"] = commonComp.AutocompleteNone
 	flagCompletion["os-version"] = commonComp.AutocompleteNone
@@ -383,6 +386,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["secret"] = commonComp.AutocompleteNone
 	flagCompletion["sign-by"] = commonComp.AutocompleteNone
 	flagCompletion["signature-policy"] = commonComp.AutocompleteNone
+	flagCompletion["source-policy-file"] = commonComp.AutocompleteDefault
 	flagCompletion["ssh"] = commonComp.AutocompleteNone
 	flagCompletion["source-date-epoch"] = commonComp.AutocompleteNone
 	flagCompletion["tag"] = commonComp.AutocompleteNone

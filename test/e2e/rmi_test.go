@@ -88,6 +88,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image that is a parent of another image", func() {
+		SkipIfNotAMD64() // List of images is different
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		session := podmanTest.Podman([]string{"run", "--name", "c_test", CIRROS_IMAGE, "true"})
 		session.WaitWithDefaultTimeout()
@@ -119,6 +120,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image that is created from another named imaged", func() {
+		SkipIfNotAMD64() // List of images is different
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"create", "--name", "c_test1", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
@@ -151,6 +153,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with cached images", func() {
+		SkipIfNotAMD64() // List of images is different
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dockerfile := fmt.Sprintf(`FROM %s
 		RUN mkdir hello
@@ -218,6 +221,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi -a with parent|child images", func() {
+		SkipIfNotAMD64() // List of images is different
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dockerfile := fmt.Sprintf(`FROM %s AS base
 RUN touch /1

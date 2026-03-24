@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package libpod
 
@@ -67,7 +67,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		SignaturePolicyPath:   options.SignaturePolicyPath,
 		ReportWriter:          options.ReportWriter,
 		Squash:                options.Squash,
-		SystemContext:         c.runtime.imageContext,
+		SystemContext:         &c.runtime.imageContext,
 		PreferredManifestType: options.PreferredManifestType,
 		OverrideChanges:       append(append([]string{}, options.Changes...), options.CommitOptions.OverrideChanges...),
 		OverrideConfig:        options.CommitOptions.OverrideConfig,

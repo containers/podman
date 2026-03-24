@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package compat
 
@@ -24,7 +24,7 @@ import (
 	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
-	"github.com/docker/docker/api/types/mount"
+	"github.com/moby/moby/api/types/mount"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
@@ -127,6 +127,10 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)
 	if err != nil {
+		if errors.Is(err, define.ErrCtrExists) || errors.Is(err, storage.ErrDuplicateName) {
+			utils.Error(w, http.StatusConflict, fmt.Errorf("container create: %w", err))
+			return
+		}
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("container create: %w", err))
 		return
 	}
@@ -148,8 +152,6 @@ func stringMaptoArray(m map[string]string) []string {
 // cliOpts converts a compat input struct to cliopts
 func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.ContainerCreateOptions, []string, error) {
 	var (
-		capAdd     []string
-		cappDrop   []string
 		entrypoint *string
 		init       bool
 		specPorts  []types.PortMapping
@@ -219,7 +221,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// expose ports
 	expose := make([]string, 0, len(cc.Config.ExposedPorts))
 	for p := range cc.Config.ExposedPorts {
-		expose = append(expose, fmt.Sprintf("%s/%s", p.Port(), p.Proto()))
+		expose = append(expose, p.String())
 	}
 
 	// mounts type=tmpfs/bind,source=...,target=...=,opt=val
@@ -255,6 +257,9 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 				addField(&builder, "tmpfs-mode", strconv.FormatUint(uint64(m.TmpfsOptions.Mode), 8))
 			}
 		case mount.TypeVolume:
+			if m.VolumeOptions != nil {
+				addField(&builder, "subpath", m.VolumeOptions.Subpath)
+			}
 			// All current VolumeOpts are handled above
 			// See vendor/github.com/containers/common/pkg/parse/parse.go:ValidateVolumeOpts()
 		}
@@ -265,7 +270,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// dns
 	dns := make([]net.IP, 0, len(cc.HostConfig.DNS))
 	for _, d := range cc.HostConfig.DNS {
-		dns = append(dns, net.ParseIP(d))
+		dns = append(dns, net.IP(d.AsSlice()))
 	}
 
 	// publish
@@ -279,12 +284,16 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 			if err != nil {
 				return nil, nil, err
 			}
+			hostIP := ""
+			if pb.HostIP.IsValid() {
+				hostIP = pb.HostIP.String()
+			}
 			tmpPort := types.PortMapping{
-				HostIP:        pb.HostIP,
-				ContainerPort: uint16(port.Int()),
+				HostIP:        hostIP,
+				ContainerPort: port.Num(),
 				HostPort:      uint16(hostport),
 				Range:         0,
-				Protocol:      port.Proto(),
+				Protocol:      string(port.Proto()),
 			}
 			specPorts = append(specPorts, tmpPort)
 		}
@@ -329,7 +338,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// This field is deprecated since API v1.44 where
 	// EndpointSettings.MacAddress is used instead (and has precedence
 	// below).  Let's still use it for backwards compat.
-	containerMacAddress := cc.MacAddress //nolint:staticcheck
+	containerMacAddress := cc.MacAddress
 
 	// network names
 	switch {
@@ -341,40 +350,22 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 			if endpoint != nil {
 				netOpts.Aliases = endpoint.Aliases
 
-				// if IP address is provided
-				if len(endpoint.IPAddress) > 0 {
-					staticIP := net.ParseIP(endpoint.IPAddress)
-					if staticIP == nil {
-						return nil, nil, fmt.Errorf("failed to parse the ip address %q", endpoint.IPAddress)
-					}
-					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
-				}
-
 				if endpoint.IPAMConfig != nil {
 					// if IPAMConfig.IPv4Address is provided
-					if len(endpoint.IPAMConfig.IPv4Address) > 0 {
-						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv4Address)
-						if staticIP == nil {
-							return nil, nil, fmt.Errorf("failed to parse the ipv4 address %q", endpoint.IPAMConfig.IPv4Address)
-						}
+					if endpoint.IPAMConfig.IPv4Address.IsValid() {
+						staticIP := net.IP(endpoint.IPAMConfig.IPv4Address.AsSlice())
 						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 					}
+
 					// if IPAMConfig.IPv6Address is provided
-					if len(endpoint.IPAMConfig.IPv6Address) > 0 {
-						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv6Address)
-						if staticIP == nil {
-							return nil, nil, fmt.Errorf("failed to parse the ipv6 address %q", endpoint.IPAMConfig.IPv6Address)
-						}
+					if endpoint.IPAMConfig.IPv6Address.IsValid() {
+						staticIP := net.IP(endpoint.IPAMConfig.IPv6Address.AsSlice())
 						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 					}
 				}
 				// If MAC address is provided
-				if len(endpoint.MacAddress) > 0 {
-					staticMac, err := net.ParseMAC(endpoint.MacAddress)
-					if err != nil {
-						return nil, nil, fmt.Errorf("failed to parse the mac address %q", endpoint.MacAddress)
-					}
-					netOpts.StaticMAC = types.HardwareAddr(staticMac)
+				if len(endpoint.MacAddress) != 0 {
+					netOpts.StaticMAC = types.HardwareAddr(net.HardwareAddr(endpoint.MacAddress))
 				} else if len(containerMacAddress) > 0 {
 					// docker-compose only sets one mac address for the container on the container config
 					// If there are more than one network attached it will end up on the first one,
@@ -421,8 +412,8 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	cliOpts := entities.ContainerCreateOptions{
 		// Attach:            nil, // don't need?
 		Authfile:     "",
-		CapAdd:       append(capAdd, cc.HostConfig.CapAdd...),
-		CapDrop:      append(cappDrop, cc.HostConfig.CapDrop...),
+		CapAdd:       cc.HostConfig.CapAdd,
+		CapDrop:      cc.HostConfig.CapDrop,
 		CgroupParent: cc.HostConfig.CgroupParent,
 		CIDFile:      cc.HostConfig.ContainerIDFile,
 		CPUPeriod:    uint64(cc.HostConfig.CPUPeriod),

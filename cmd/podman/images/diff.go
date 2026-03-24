@@ -20,7 +20,7 @@ var (
 		RunE:              diffRun,
 		ValidArgsFunction: common.AutocompleteImages,
 		Example: `podman image diff myImage
-  podman image diff --format json redis:alpine`,
+podman image diff --format json redis:alpine`,
 	}
 	diffOpts *entities.DiffOptions
 )

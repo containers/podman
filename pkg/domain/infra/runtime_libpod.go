@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build !remote && (linux || freebsd)
 
 package infra
 
@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/domain/entities"
@@ -20,6 +18,7 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/types"
 )
@@ -192,6 +191,11 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if fs.Changed("registries-conf") {
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
 	}
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(cfg.TLSDetailsFile)
+	if err != nil {
+		return nil, err
+	}
+	options = append(options, libpod.WithBaseTLSConfig(baseTLSConfig))
 
 	if cfg.CdiSpecDirs != nil {
 		options = append(options, libpod.WithCDISpecDirs(cfg.CdiSpecDirs))
@@ -286,25 +290,4 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 		options.HostGIDMapping = false
 	}
 	return &options, nil
-}
-
-// StartWatcher starts a new SIGHUP go routine for the current config.
-func StartWatcher(rt *libpod.Runtime) {
-	// Set up the signal notifier
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGHUP)
-
-	go func() {
-		for {
-			// Block until the signal is received
-			logrus.Debugf("waiting for SIGHUP to reload configuration")
-			<-ch
-			if err := rt.Reload(); err != nil {
-				logrus.Errorf("Unable to reload configuration: %v", err)
-				continue
-			}
-		}
-	}()
-
-	logrus.Debugf("registered SIGHUP watcher for config")
 }

@@ -119,7 +119,6 @@ func (r *Runtime) Search(ctx context.Context, term string, options *SearchOption
 
 	sem := semaphore.NewWeighted(searchMaxParallel)
 	wg := sync.WaitGroup{}
-	wg.Add(len(searchRegistries))
 	data := make([]searchOutputData, len(searchRegistries))
 
 	for i := range searchRegistries {
@@ -127,12 +126,11 @@ func (r *Runtime) Search(ctx context.Context, term string, options *SearchOption
 			return nil, err
 		}
 		index := i
-		go func() {
+		wg.Go(func() {
 			defer sem.Release(1)
-			defer wg.Done()
 			searchOutput, err := r.searchImageInRegistry(ctx, term, searchRegistries[index], options)
 			data[index] = searchOutputData{data: searchOutput, err: err}
-		}()
+		})
 	}
 
 	wg.Wait()

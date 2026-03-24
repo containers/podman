@@ -297,8 +297,8 @@ var _ = Describe("Podman mount", func() {
 	})
 
 	It("podman mount with json format", func() {
-		podmanTest.AddImageToRWStore(fedoraMinimal)
-		mount := podmanTest.Podman([]string{"image", "mount", fedoraMinimal})
+		podmanTest.AddImageToRWStore(FEDORA_MINIMAL)
+		mount := podmanTest.Podman([]string{"image", "mount", FEDORA_MINIMAL})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(ExitCleanly())
 
@@ -307,14 +307,14 @@ var _ = Describe("Podman mount", func() {
 		Expect(j).Should(ExitCleanly())
 		Expect(j.OutputToString()).To(BeValidJSON())
 
-		umount := podmanTest.Podman([]string{"image", "umount", fedoraMinimal})
+		umount := podmanTest.Podman([]string{"image", "umount", FEDORA_MINIMAL})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount).Should(ExitCleanly())
 	})
 
 	It("podman umount --all", func() {
-		podmanTest.AddImageToRWStore(fedoraMinimal)
-		mount := podmanTest.Podman([]string{"image", "mount", fedoraMinimal})
+		podmanTest.AddImageToRWStore(FEDORA_MINIMAL)
+		mount := podmanTest.Podman([]string{"image", "mount", FEDORA_MINIMAL})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(ExitCleanly())
 
@@ -326,14 +326,14 @@ var _ = Describe("Podman mount", func() {
 
 	It("podman mount many", func() {
 		Skip("Issue where using short name when we have a lookaside store")
-		podmanTest.AddImageToRWStore(fedoraMinimal)
+		podmanTest.AddImageToRWStore(FEDORA_MINIMAL)
 		podmanTest.AddImageToRWStore(BB)
 
-		mount1 := podmanTest.Podman([]string{"image", "mount", fedoraMinimal, ALPINE, "busybox"})
+		mount1 := podmanTest.Podman([]string{"image", "mount", FEDORA_MINIMAL, ALPINE, "busybox"})
 		mount1.WaitWithDefaultTimeout()
 		Expect(mount1).Should(ExitCleanly())
 
-		umount := podmanTest.Podman([]string{"image", "umount", fedoraMinimal, ALPINE})
+		umount := podmanTest.Podman([]string{"image", "umount", FEDORA_MINIMAL, ALPINE})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount).Should(ExitCleanly())
 
@@ -351,14 +351,14 @@ var _ = Describe("Podman mount", func() {
 		Expect(mount).Should(ExitCleanly())
 		Expect(mount.OutputToString()).To(Equal(""))
 
-		mount1 = podmanTest.Podman([]string{"image", "mount", fedoraMinimal, ALPINE, "busybox"})
+		mount1 = podmanTest.Podman([]string{"image", "mount", FEDORA_MINIMAL, ALPINE, "busybox"})
 		mount1.WaitWithDefaultTimeout()
 		Expect(mount1).Should(ExitCleanly())
 
 		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(ExitCleanly())
-		Expect(mount.OutputToString()).To(ContainSubstring(fedoraMinimal))
+		Expect(mount.OutputToString()).To(ContainSubstring(FEDORA_MINIMAL))
 		Expect(mount.OutputToString()).To(ContainSubstring(ALPINE))
 
 		umount = podmanTest.Podman([]string{"image", "umount", "--all"})
@@ -370,7 +370,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(mount).Should(ExitCleanly())
 		Expect(mount.OutputToString()).To(Equal(""))
 
-		umount = podmanTest.Podman([]string{"image", "umount", fedoraMinimal, ALPINE})
+		umount = podmanTest.Podman([]string{"image", "umount", FEDORA_MINIMAL, ALPINE})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount).Should(ExitCleanly())
 
@@ -381,7 +381,7 @@ var _ = Describe("Podman mount", func() {
 		mount = podmanTest.Podman([]string{"image", "mount"})
 		mount.WaitWithDefaultTimeout()
 		Expect(mount).Should(ExitCleanly())
-		Expect(mount.OutputToString()).To(ContainSubstring(fedoraMinimal))
+		Expect(mount.OutputToString()).To(ContainSubstring(FEDORA_MINIMAL))
 		Expect(mount.OutputToString()).To(ContainSubstring(ALPINE))
 
 		umount = podmanTest.Podman([]string{"image", "umount", "--all"})

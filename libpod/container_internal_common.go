@@ -762,18 +762,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
 		return nil, nil, fmt.Errorf("setting up OCI Hooks: %w", err)
 	}
-	if len(c.config.EnvSecrets) > 0 {
-		manager, err := c.runtime.SecretsManager()
-		if err != nil {
-			return nil, nil, err
-		}
-		for name, secr := range c.config.EnvSecrets {
-			_, data, err := manager.LookupSecretData(secr.Name)
-			if err != nil {
-				return nil, nil, err
-			}
-			g.AddProcessEnv(name, string(data))
-		}
+	if err := c.injectEnvSecrets(&g); err != nil {
+		return nil, nil, err
 	}
 
 	// Pass down the LISTEN_* environment (see #10443).
@@ -1118,7 +1108,7 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 
 	commitOptions := buildah.CommitOptions{
 		Squash:        true,
-		SystemContext: c.runtime.imageContext,
+		SystemContext: &c.runtime.imageContext,
 	}
 
 	// Create checkpoint image
@@ -1610,7 +1600,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
 					}
 				}
-				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
+				// Normally interfaces have a length of 1, only for some special configs we could get more.
 				// For now just use the first interface to get the ips this should be good enough for most cases.
 				break
 			}
@@ -2593,7 +2583,7 @@ func (c *Container) groupEntry(groupname, gid string, list []string) string {
 // Returns password entry (as a string that can be appended to /etc/passwd) and
 // any error that occurred.
 func (c *Container) generatePasswdEntry() (string, error) {
-	passwdString := ""
+	var passwdString strings.Builder
 
 	addedUID := 0
 	for _, userid := range c.config.HostUsers {
@@ -2606,14 +2596,14 @@ func (c *Container) generatePasswdEntry() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		passwdString += entry
+		passwdString.WriteString(entry)
 	}
 	if c.config.AddCurrentUserPasswdEntry {
 		entry, uid, _, err := c.generateCurrentUserPasswdEntry()
 		if err != nil {
 			return "", err
 		}
-		passwdString += entry
+		passwdString.WriteString(entry)
 		addedUID = uid
 	}
 	if c.config.User != "" {
@@ -2621,10 +2611,10 @@ func (c *Container) generatePasswdEntry() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		passwdString += entry
+		passwdString.WriteString(entry)
 	}
 
-	return passwdString, nil
+	return passwdString.String(), nil
 }
 
 // generateCurrentUserPasswdEntry generates an /etc/passwd entry for the user
@@ -3131,6 +3121,10 @@ func (c *Container) relabel(src, mountLabel string, shared bool) error {
 		logrus.Debugf("Labeling not supported on %q", src)
 		return nil
 	}
+
+	if errors.Is(err, unix.EPERM) {
+		return fmt.Errorf("failed to change selinux label: insufficient permissions, possibly due to a file owned by another user (current user: uid %d): %w", rootless.GetRootlessUID(), err)
+	}
 	return err
 }
 
@@ -3172,6 +3166,24 @@ func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
 		return currentValue, nil
 	}
 	return oomScoreValue, nil
+}
+
+func (c *Container) injectEnvSecrets(g *generate.Generator) error {
+	if len(c.config.EnvSecrets) > 0 {
+		manager, err := c.runtime.SecretsManager()
+		if err != nil {
+			return err
+		}
+		for name, secr := range c.config.EnvSecrets {
+			logrus.Debugf("generateSpec: Injecting secret %s as env %s", secr.Name, name)
+			_, data, err := manager.LookupSecretData(secr.Name)
+			if err != nil {
+				return err
+			}
+			g.AddProcessEnv(name, string(data))
+		}
+	}
+	return nil
 }
 
 func getAllCDIDeviceNames(registry *cdi.Cache, c *ContainerConfig) ([]string, error) {

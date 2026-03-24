@@ -23,8 +23,8 @@ var (
 		RunE:              unshare,
 		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman unshare id
-  podman unshare cat /proc/self/uid_map
-  podman unshare podman-script.sh`,
+podman unshare cat /proc/self/uid_map
+podman unshare podman-script.sh`,
 	}
 )
 

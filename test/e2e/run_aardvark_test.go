@@ -12,6 +12,10 @@ import (
 )
 
 var _ = Describe("Podman run networking", func() {
+	BeforeEach(func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28272
+	})
+
 	It("Aardvark Test 1: One container", func() {
 		netName := createNetworkName("Test")
 		session := podmanTest.Podman([]string{"network", "create", netName})

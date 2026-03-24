@@ -19,6 +19,7 @@ import (
 	"github.com/containers/buildah/internal/metadata"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/buildah/pkg/sourcepolicy"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/buildah/util"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -81,6 +82,7 @@ type executor struct {
 	runtime                        string
 	runtimeArgs                    []string
 	transientMounts                []Mount
+	transientRunMounts             []string
 	compression                    archive.Compression
 	output                         string
 	outputFormat                   string
@@ -92,15 +94,14 @@ type executor struct {
 	out                            io.Writer
 	err                            io.Writer
 	signaturePolicyPath            string
+	sourcePolicy                   *sourcepolicy.Policy
 	skipUnusedStages               types.OptionalBool
 	systemContext                  *types.SystemContext
 	reportWriter                   io.Writer
 	isolation                      define.Isolation
 	namespaceOptions               []define.NamespaceOption
 	configureNetwork               define.NetworkConfigurationPolicy
-	cniPluginPath                  string
-	cniConfigDir                   string
-	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
+	// networkInterface is the libnetwork network interface used to setup netavark networks.
 	networkInterface                        nettypes.ContainerNetwork
 	idmappingOptions                        *define.IDMappingOptions
 	commonBuildOptions                      *define.CommonBuildOptions
@@ -121,6 +122,7 @@ type executor struct {
 	containerMap                            map[string]*buildah.Builder // Used to map from image names to only-created-for-the-rootfs containers.
 	baseMap                                 map[string]struct{}         // Holds the names of every base image, as given.
 	rootfsMap                               map[string]struct{}         // Holds the names of every stage whose rootfs is referenced in a COPY or ADD instruction.
+	afterDependency                         map[string]string           // Maps stage names to their --after dependency.
 	blobDirectory                           string
 	excludes                                []string
 	groupAdd                                []string
@@ -226,6 +228,15 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		return nil, err
 	}
 
+	// Load source policy if specified
+	var srcPolicy *sourcepolicy.Policy
+	if options.SourcePolicyFile != "" {
+		srcPolicy, err = sourcepolicy.LoadFromFile(options.SourcePolicyFile)
+		if err != nil {
+			return nil, fmt.Errorf("loading source policy: %w", err)
+		}
+	}
+
 	writer := options.ReportWriter
 	if options.Quiet {
 		writer = io.Discard
@@ -270,11 +281,13 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		runtime:                                 options.Runtime,
 		runtimeArgs:                             options.RuntimeArgs,
 		transientMounts:                         transientMounts,
+		transientRunMounts:                      options.TransientRunMounts,
 		compression:                             options.Compression,
 		output:                                  options.Output,
 		outputFormat:                            options.OutputFormat,
 		additionalTags:                          options.AdditionalTags,
 		signaturePolicyPath:                     options.SignaturePolicyPath,
+		sourcePolicy:                            srcPolicy,
 		skipUnusedStages:                        options.SkipUnusedStages,
 		systemContext:                           options.SystemContext,
 		log:                                     options.Log,
@@ -287,8 +300,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		inheritAnnotations:                      options.InheritAnnotations,
 		namespaceOptions:                        options.NamespaceOptions,
 		configureNetwork:                        options.ConfigureNetwork,
-		cniPluginPath:                           options.CNIPluginPath,
-		cniConfigDir:                            options.CNIConfigDir,
 		networkInterface:                        options.NetworkInterface,
 		idmappingOptions:                        options.IDMappingOptions,
 		commonBuildOptions:                      options.CommonBuildOpts,
@@ -530,9 +541,20 @@ func (b *executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 }
 
 func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageExecutor, stages imagebuilder.Stages, stageIndex int) (imageID string, commitResults *buildah.CommitResults, onlyBaseImage bool, err error) {
+	var prependInstructions, appendInstructions []string
 	stage := stages[stageIndex]
 	ib := stage.Builder
 	node := stage.Node
+
+	// Wait for any --after deps before ib.From(node) which may try to access images
+	// via local transports (like oci-archive:) populated by those deps.
+	if afterDep, ok := b.afterDependency[stage.Name]; ok {
+		logrus.Debugf("stage %d (%s): waiting for --after dependency %q", stageIndex, stage.Name, afterDep)
+		if isStage, err := b.waitForStage(ctx, afterDep, stages[:stageIndex]); isStage && err != nil {
+			return "", nil, false, fmt.Errorf("waiting for --after=%s: %w", afterDep, err)
+		}
+	}
+
 	base, err := ib.From(node)
 	if err != nil {
 		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
@@ -544,36 +566,29 @@ func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageE
 	output := ""
 	if stageIndex == len(stages)-1 {
 		output = b.output
-		// Check if any labels were passed in via the API, and add a final line
-		// to the Dockerfile that would provide the same result.
+		// Check if any labels were passed in via the API, and add an instruction at
+		// the end of the Dockerfile stage that would provide the intended result.
 		// Reason: Docker adds label modification as a last step which can be
 		// processed like regular steps, and if no modification is done to
 		// layers, its easier to reuse cached layers.
 		if len(b.labels) > 0 {
-			var labelLine string
-			labels := slices.Clone(b.labels)
-			for _, labelSpec := range labels {
+			labelLine := "LABEL"
+			for _, labelSpec := range b.labels {
 				key, value, _ := strings.Cut(labelSpec, "=")
 				// check only for an empty key since docker allows empty values
 				if key != "" {
 					labelLine += fmt.Sprintf(" %q=%q", key, value)
 				}
 			}
-			if len(labelLine) > 0 {
-				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
-				if err != nil {
-					return "", nil, false, fmt.Errorf("while adding additional LABEL step: %w", err)
-				}
-				stage.Node.Children = append(stage.Node.Children, additionalNode.Children...)
-			}
+			appendInstructions = slices.Concat(appendInstructions, []string{labelLine})
 		}
 	}
 
-	// If this stage is starting out with environment variables that were
-	// passed in via our API, we should include them in the history, since
-	// they affect RUN instructions in this stage.
+	// If we were given environment variables to set via the API, add them as instructions
+	// at the beginning of the stage so that they affect subsequent RUN instructions and
+	// factor into the image history.
 	if len(b.envs) > 0 {
-		var envLine string
+		envLine := "ENV"
 		for _, envSpec := range b.envs {
 			key, value, hasValue := strings.Cut(envSpec, "=")
 			if hasValue {
@@ -582,14 +597,25 @@ func (b *executor) buildStage(ctx context.Context, cleanupStages map[int]*stageE
 				return "", nil, false, fmt.Errorf("BUG: unresolved environment variable: %q", key)
 			}
 		}
-		if len(envLine) > 0 {
-			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("ENV" + envLine + "\n"))
-			if err != nil {
-				return "", nil, false, fmt.Errorf("while adding additional ENV step: %w", err)
-			}
-			// make this the first instruction in the stage after its FROM instruction
-			stage.Node.Children = append(additionalNode.Children, stage.Node.Children...)
+		prependInstructions = slices.Concat([]string{envLine}, prependInstructions)
+	}
+
+	// If we're supposed to be appending or prepending instructions to this stage, add them now.
+	if len(prependInstructions) > 0 {
+		addLines := strings.Join(prependInstructions, "\n")
+		additionalNodes, err := imagebuilder.ParseDockerfile(strings.NewReader(addLines))
+		if err != nil {
+			return "", nil, false, fmt.Errorf("while adding additional steps %q: %w", prependInstructions, err)
 		}
+		stage.Node.Children = append(additionalNodes.Children, stage.Node.Children...)
+	}
+	if len(appendInstructions) > 0 {
+		addLines := strings.Join(appendInstructions, "\n")
+		additionalNodes, err := imagebuilder.ParseDockerfile(strings.NewReader(addLines))
+		if err != nil {
+			return "", nil, false, fmt.Errorf("while adding additional steps %q: %w", appendInstructions, err)
+		}
+		stage.Node.Children = append(stage.Node.Children, additionalNodes.Children...)
 	}
 
 	b.stagesLock.Lock()
@@ -794,6 +820,8 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	// dependencyInfo is used later to mark if a particular
 	// stage is needed by target or not.
 	dependencyMap := make(map[string]*stageDependencyInfo)
+	// Initialize afterDependency map to track --after= dependency per stage
+	b.afterDependency = make(map[string]string)
 	// Build maps of every named base image and every referenced stage root
 	// filesystem.  Individual stages can use them to determine whether or
 	// not they can skip certain steps near the end of their stages.
@@ -825,7 +853,7 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							// append heading args so if --build-arg key=value is not
 							// specified but default value is set in Containerfile
 							// via `ARG key=value` so default value can be used.
-							userArgs = append(builtinArgs, append(userArgs, headingArgs...)...)
+							userArgs = slices.Concat(builtinArgs, userArgs, headingArgs)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
@@ -842,6 +870,40 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 									currentStageInfo.Needs = append(currentStageInfo.Needs, baseWithArg)
 								}
 							}
+						}
+					}
+					// Parse any --after= flag for explicit stage dependency
+					for _, flag := range child.Flags {
+						if after, ok := strings.CutPrefix(flag, "--after="); ok {
+							// only allow one --after flag per FROM for now; nothing necessarily
+							// semantically wrong with multiple --after, but keeping it conservative until a
+							// use case shows up
+							if _, exists := b.afterDependency[stage.Name]; exists {
+								return "", nil, fmt.Errorf("FROM --after=%s: only one --after flag is allowed per FROM instruction", after)
+							}
+							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
+							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
+							userArgs := argsMapToSlice(stage.Builder.Args)
+							userArgs = slices.Concat(builtinArgs, userArgs, headingArgs)
+							afterResolved, err := imagebuilder.ProcessWord(after, userArgs)
+							if err != nil {
+								return "", nil, fmt.Errorf("while replacing arg variables with values for --after=%q: %w", after, err)
+							}
+							// If --after=<index> convert index to name
+							if index, err := strconv.Atoi(afterResolved); err == nil && index >= 0 && index < stageIndex {
+								afterResolved = stages[index].Name
+							}
+							if depInfo, ok := dependencyMap[afterResolved]; !ok {
+								return "", nil, fmt.Errorf("FROM --after=%s: stage %q not found", after, afterResolved)
+							} else if depInfo.Position >= stageIndex {
+								return "", nil, fmt.Errorf("FROM --after=%s: cannot depend on later stage %q", after, afterResolved)
+							}
+							// Mark the stage as a dep so we actually build it
+							currentStageInfo := dependencyMap[stage.Name]
+							currentStageInfo.Needs = append(currentStageInfo.Needs, afterResolved)
+							// And mark it on the stage executor itself so it knows to wait before even pulling
+							b.afterDependency[stage.Name] = afterResolved
+							logrus.Debugf("stage %d: explicit dependency on %q via --after", stageIndex, afterResolved)
 						}
 					}
 				case "ADD", "COPY":
@@ -864,7 +926,7 @@ func (b *executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							// append heading args so if --build-arg key=value is not
 							// specified but default value is set in Containerfile
 							// via `ARG key=value` so default value can be used.
-							userArgs = append(builtinArgs, append(userArgs, headingArgs...)...)
+							userArgs = slices.Concat(builtinArgs, userArgs, headingArgs)
 							baseWithArg, err := imagebuilder.ProcessWord(stageName, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", stageName, err)

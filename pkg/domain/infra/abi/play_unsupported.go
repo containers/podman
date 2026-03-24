@@ -1,4 +1,4 @@
-//go:build !linux && !remote
+//go:build freebsd && !remote
 
 package abi
 

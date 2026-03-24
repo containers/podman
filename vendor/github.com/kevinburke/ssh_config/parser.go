@@ -105,9 +105,7 @@ func (p *sshParser) parseKV() sshParserStateFn {
 		comment = tok.val
 	}
 	if strings.ToLower(key.val) == "match" {
-		// https://github.com/kevinburke/ssh_config/issues/6
-		p.raiseErrorf(val, "ssh_config: Match directive parsing is unsupported")
-		return nil
+		return p.parseMatch(val, hasEquals, comment)
 	}
 	if strings.ToLower(key.val) == "host" {
 		strPatterns := strings.Split(val.val, " ")
@@ -163,6 +161,73 @@ func (p *sshParser) parseKV() sshParserStateFn {
 	}
 	lastHost.Nodes = append(lastHost.Nodes, kv)
 	return p.parseStart
+}
+
+func (p *sshParser) parseMatch(val *token, hasEquals bool, comment string) sshParserStateFn {
+	// val.val contains everything after "Match ", e.g. "Host *.example.com"
+	// or "all".
+	trimmed := strings.TrimRightFunc(val.val, unicode.IsSpace)
+	spaceBeforeComment := val.val[len(trimmed):]
+	fields := strings.Fields(trimmed)
+	if len(fields) == 0 {
+		p.raiseErrorf(val, "ssh_config: Match directive requires at least one criterion")
+		return nil
+	}
+	criterion := strings.ToLower(fields[0])
+
+	switch criterion {
+	case "all":
+		// "Match all" is equivalent to "Host *" — matches everything.
+		p.config.Hosts = append(p.config.Hosts, &Host{
+			Patterns:           []*Pattern{matchAll},
+			Nodes:              make([]Node, 0),
+			EOLComment:         comment,
+			spaceBeforeComment: spaceBeforeComment,
+			hasEquals:          hasEquals,
+			isMatch:            true,
+			matchKeyword:       fields[0], // preserve original case
+		})
+		return p.parseStart
+
+	case "host":
+		patterns := make([]*Pattern, 0)
+		for _, s := range fields[1:] {
+			if s == "" {
+				continue
+			}
+			pat, err := NewPattern(s)
+			if err != nil {
+				p.raiseErrorf(val, fmt.Sprintf("Invalid host pattern: %v", err))
+				return nil
+			}
+			patterns = append(patterns, pat)
+		}
+		if len(patterns) == 0 {
+			p.raiseErrorf(val, "ssh_config: Match Host requires at least one pattern")
+			return nil
+		}
+		p.config.Hosts = append(p.config.Hosts, &Host{
+			Patterns:           patterns,
+			Nodes:              make([]Node, 0),
+			EOLComment:         comment,
+			spaceBeforeComment: spaceBeforeComment,
+			hasEquals:          hasEquals,
+			isMatch:            true,
+			matchKeyword:       fields[0], // preserve original case
+		})
+		return p.parseStart
+
+	case "exec":
+		// Match Exec runs arbitrary commands. Supporting it would allow
+		// untrusted SSH config files to execute code on the parsing
+		// machine. Reject it explicitly.
+		p.raiseErrorf(val, "ssh_config: Match Exec is not supported")
+		return nil
+
+	default:
+		p.raiseErrorf(val, fmt.Sprintf("ssh_config: unsupported Match criterion %q", criterion))
+		return nil
+	}
 }
 
 func (p *sshParser) parseComment() sshParserStateFn {

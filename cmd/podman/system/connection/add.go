@@ -33,11 +33,10 @@ var (
 		RunE:              add,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman system connection add laptop server.fubar.com
-  podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
-  podman system connection add --identity ~/.ssh/dev_rsa --port 22 production root@server.fubar.com
-  podman system connection add debug tcp://localhost:8080
-  podman system connection add production-tls --tls-ca=ca.crt --tls-cert=tls.crt --tls-key=tls.key tcp://localhost:8080
-  `,
+podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
+podman system connection add --identity ~/.ssh/dev_rsa --port 22 production root@server.fubar.com
+podman system connection add debug tcp://localhost:8080
+podman system connection add production-tls --tls-ca=ca.crt --tls-cert=tls.crt --tls-key=tls.key tcp://localhost:8080`,
 	}
 
 	createCmd = &cobra.Command{

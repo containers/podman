@@ -23,6 +23,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman disable healthcheck with --no-healthcheck on valid container", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -32,6 +33,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman run/create override image healthcheck configuration", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		podmanTest.PodmanExitCleanly("run", "-dt", "--name", "hc", "--health-start-period", "10s", "--health-interval", "10s", "--health-timeout", "10s", "--health-retries", "2", HEALTHCHECK_IMAGE)
 		hc := podmanTest.PodmanExitCleanly("container", "inspect", "--format", "{{.Config.Healthcheck.StartPeriod}}--{{.Config.Healthcheck.Interval}}--{{.Config.Healthcheck.Timeout}}--{{.Config.Healthcheck.Retries}}", "hc")
 		Expect(hc.OutputToString()).To(Equal("10s--10s--10s--2"))
@@ -46,6 +48,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman disable healthcheck with --no-healthcheck must not show starting on status", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -77,6 +80,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck from image's config (not container config)", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		// Regression test for #12226: a health check may be defined in
 		// the container or the container-config of an image.
 		session := podmanTest.Podman([]string{"create", "-q", "--name", "hc", "quay.io/libpod/healthcheck:config-only", "ls"})
@@ -89,6 +93,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman disable healthcheck with --health-cmd=none on valid container", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "none", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -124,6 +129,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck that should fail", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		session := podmanTest.Podman([]string{"run", "-q", "-dt", "--name", "hc", "quay.io/libpod/badhealthcheck:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -134,6 +140,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck on stopped container", func() {
+		SkipIfNotAMD64() // https://github.com/containers/podman/issues/28269
 		session := podmanTest.Podman([]string{"run", "--name", "hc", HEALTHCHECK_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
