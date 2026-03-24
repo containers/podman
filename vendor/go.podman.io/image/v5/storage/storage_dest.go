@@ -841,6 +841,8 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) (string, error)
 	// ordinaryImageID is a digest of a config, which is a JSON value.
 	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
 	tocIDInput.WriteString("@With TOC:")
+	tocIDInput.WriteString(ordinaryImageID)
+	tocIDInput.WriteByte('|') // "|" can not be present in a digest, so this is an unambiguous separator.
 	hasLayerPulledByTOC := false
 	for i, li := range layerInfos {
 		trusted, ok := s.trustedLayerIdentityDataLocked(i, li.Digest)

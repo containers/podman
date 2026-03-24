@@ -690,6 +690,8 @@ type MachineConfig struct {
 	Provider string `toml:"provider,omitempty"`
 	// Rosetta is the flag to enable Rosetta in the podman-machine VM on Apple Silicon
 	Rosetta bool `toml:"rosetta,omitempty"`
+	// ImportNativeCA imports the host's trusted CA certificates into the machine
+	ImportNativeCA bool `toml:"import_native_ca,omitempty"`
 }
 
 // FarmConfig represents the "farm" TOML config tables.

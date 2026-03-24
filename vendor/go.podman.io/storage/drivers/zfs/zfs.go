@@ -187,6 +187,12 @@ func (d *Driver) Cleanup() error {
 	return nil
 }
 
+// SyncMode returns the sync mode configured for the driver.
+// ZFS does not support sync mode configuration, always returns SyncModeNone.
+func (d *Driver) SyncMode() graphdriver.SyncMode {
+	return graphdriver.SyncModeNone
+}
+
 // Status returns information about the ZFS filesystem. It returns a two dimensional array of information
 // such as pool name, dataset name, disk usage, parent quota and compression used.
 // Currently it return 'Zpool', 'Zpool Health', 'Parent Dataset', 'Space Used By Parent',
