@@ -96,6 +96,7 @@ func SystemCheck(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			utils.Error(w, http.StatusBadRequest,
 				fmt.Errorf("failed to parse unreferenced_layer_max_age parameter %q for %s: %w", query.UnreferencedLayerMaximumAge, r.URL.String(), err))
+			return
 		}
 		unreferencedLayerMaximumAge = &duration
 	}
