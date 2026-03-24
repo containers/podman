@@ -51,8 +51,9 @@ var (
 	stopOptions = entities.StopOptions{
 		Filters: make(map[string][]string),
 	}
-	stopCidFiles = []string{}
-	stopTimeout  int
+	stopCidFiles  = []string{}
+	stopTimeout   int
+	stopAsService bool
 )
 
 func stopFlags(cmd *cobra.Command) {
@@ -72,6 +73,10 @@ func stopFlags(cmd *cobra.Command) {
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
 	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
+
+	serviceFlagName := "service"
+	flags.BoolVar(&stopAsService, serviceFlagName, false, "Stop as service (do not mark as stopped by user)")
+	_ = flags.MarkHidden(serviceFlagName)
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cidfile")
@@ -97,9 +102,11 @@ func init() {
 }
 
 func stop(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	if registry.IsRemote() && stopAsService {
+		return fmt.Errorf("--service is not supported on remote connections")
+	}
+
+	var errs utils.OutputErrors
 	args = utils.RemoveSlash(args)
 
 	if cmd.Flag("time").Changed {
@@ -126,7 +133,15 @@ func stop(cmd *cobra.Command, args []string) error {
 		stopOptions.Filters[fname] = append(stopOptions.Filters[fname], filter)
 	}
 
-	responses, err := registry.ContainerEngine().ContainerStop(context.Background(), args, stopOptions)
+	var (
+		responses []*entities.StopReport
+		err       error
+	)
+	if stopAsService {
+		responses, err = registry.ContainerEngine().ContainerStopService(context.Background(), args, stopOptions)
+	} else {
+		responses, err = registry.ContainerEngine().ContainerStop(context.Background(), args, stopOptions)
+	}
 	if err != nil {
 		return err
 	}
