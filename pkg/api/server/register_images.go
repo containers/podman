@@ -1124,12 +1124,17 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     type: string
 	//   - in: query
 	//     name: quiet
-	//     description: "silences extra stream data on pull"
+	//     description: "Silence extra stream data on pull. Cannot be used with 'compatMode' or 'pullProgress'."
 	//     type: boolean
 	//     default: false
 	//   - in: query
 	//     name: compatMode
-	//     description: "Return the same JSON payload as the Docker-compat endpoint."
+	//     description: "Return the same JSON payload as the Docker-compat endpoint. Cannot be used with 'pullProgress' or 'quiet'."
+	//     type: boolean
+	//     default: false
+	//   - in: query
+	//     name: pullProgress
+	//     description: "Send reports about the progress of the pull. Cannot be used with 'compatMode' or 'quiet'."
 	//     type: boolean
 	//     default: false
 	//   - in: query
