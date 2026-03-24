@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -83,10 +84,10 @@ func getMachineMountsAndVMType(connectionURI string, parsedConnection *url.URL) 
 
 // IsPathAvailableOnMachine checks if a local path is available on the machine through mounted directories.
 // If the path is available, it returns a LocalAPIMap with the corresponding remote path.
-func IsPathAvailableOnMachine(mounts []*vmconfigs.Mount, vmType define.VMType, path string) (*LocalAPIMap, bool) {
-	pathABS, err := filepath.Abs(path)
+func IsPathAvailableOnMachine(mounts []*vmconfigs.Mount, vmType define.VMType, localPath string) (*LocalAPIMap, bool) {
+	pathABS, err := filepath.Abs(localPath)
 	if err != nil {
-		logrus.Debugf("Failed to get absolute path for %s: %v", path, err)
+		logrus.Debugf("Failed to get absolute path for %s: %v", localPath, err)
 		return nil, false
 	}
 
@@ -107,19 +108,18 @@ func IsPathAvailableOnMachine(mounts []*vmconfigs.Mount, vmType define.VMType, p
 
 	for _, mount := range mounts {
 		mountSource := filepath.Clean(mount.Source)
+		logrus.Debugf("looking if %s is in mount %s (with target %s)", pathABS, mountSource, mount.Target)
 		relPath, err := filepath.Rel(mountSource, pathABS)
 		if err != nil {
 			logrus.Debugf("Failed to get relative path: %v", err)
 			continue
+		} else {
+			logrus.Debugf("Yes, filepath.Rel returned %s", relPath)
 		}
 		// If relPath starts with ".." or is absolute, pathABS is not under mountSource
 		if relPath == "." || (!strings.HasPrefix(relPath, "..") && !filepath.IsAbs(relPath)) {
-			target := filepath.Join(mount.Target, relPath)
-			converted_path, err := specgen.ConvertWinMountPath(target)
-			if err != nil {
-				logrus.Debugf("Failed to convert Windows mount path: %v", err)
-				return nil, false
-			}
+			// Target is a Linux path, we should use path.Join rather than filepath.Join
+			converted_path := path.Join(mount.Target, filepath.ToSlash(relPath))
 			logrus.Debugf("Converted client path: %q", converted_path)
 			return &LocalAPIMap{
 				ClientPath: pathABS,
