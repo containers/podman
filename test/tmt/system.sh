@@ -19,7 +19,6 @@ rpm -q \
     podman \
     podman-tests \
     skopeo \
-    slirp4netns \
     systemd
 
 export system_service_cmd="/usr/bin/podman system service --timeout=0 &"
