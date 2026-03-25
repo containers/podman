@@ -5,8 +5,10 @@ package libpod
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
+	"github.com/containers/podman/v6/pkg/namespaces"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,6 +67,17 @@ func (r *Runtime) Migrate(newRuntime string) error {
 		if ctr.config.ConmonPidFile == oldLocation {
 			logrus.Infof("Changing conmon PID file for %s", ctr.ID())
 			ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
+			needsWrite = true
+		}
+
+		// Migrate slirp4netns containers to pasta
+		if ctr.config.NetMode == "slirp4netns" || strings.HasPrefix(string(ctr.config.NetMode), "slirp4netns:") {
+			logrus.Infof("Migrating container %s from slirp4netns to pasta", ctr.ID())
+			if opts, ok := ctr.config.NetworkOptions["slirp4netns"]; ok && len(opts) > 0 {
+				logrus.Warnf("Container %s: dropping slirp4netns options %v; see podman-run(1) pasta section for equivalent options", ctr.ID(), opts)
+			}
+			ctr.config.NetMode = namespaces.NetworkMode("pasta")
+			delete(ctr.config.NetworkOptions, "slirp4netns")
 			needsWrite = true
 		}
 
