@@ -58,6 +58,23 @@ t GET images/$iid/json 200 \
   .Id=sha256:$iid \
   .RepoTags[0]=$IMAGE
 
+t GET "distribution/$IMAGE/json" 200 \
+  .Descriptor.digest~"sha256:[0-9a-f]\\{64\\}" \
+  .Descriptor.mediaType~".*"
+t GET "/distribution/$IMAGE/json" 200 \
+  .Descriptor.digest~"sha256:[0-9a-f]\\{64\\}" \
+  .Descriptor.mediaType~".*"
+t GET "/distribution/NoCAPITALcharAllowed/json" 400
+t GET "/distribution/quay.io/idonotexist/idonotexist:dummy/json" 401
+
+# Exercise the single-manifest path using a digest from the multi-arch test image.
+single_manifest_digest=sha256:6953980e46925f8ac2c09fc7ecf9f353c2cac49f87e7e60ed78287d55a14c296
+t GET "distribution/quay.io/libpod/testimage@$single_manifest_digest/json" 200 \
+  .Descriptor.digest="$single_manifest_digest" \
+  .Descriptor.mediaType="application/vnd.oci.image.manifest.v1+json" \
+  .Platforms[0].architecture~".*" \
+  .Platforms[0].os~".*"
+
 # Test VirtualSize field is present in API v1.43 for single image inspect (backward compatibility)
 t GET /v1.43/images/$iid/json 200 \
   .VirtualSize~[0-9]\\+
