@@ -81,6 +81,12 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(badMemSession.errorToString()).To(ContainSubstring(fmt.Sprintf("greater than total system memory (%d MB)", systemMem)))
 		Expect(badMemSession).To(Exit(125))
+
+		badCPU := initMachine{}
+		badCPUSession, err := mb.setCmd(badCPU.withCPUs(9999999)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(badCPUSession).To(Exit(125))
+		Expect(badCPUSession.errorToString()).To(ContainSubstring("greater than number of host CPUs"))
 	})
 
 	It("init volume check", func() {
