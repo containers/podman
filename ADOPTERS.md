@@ -7,6 +7,7 @@
 | ![End User](https://img.shields.io/badge/End_User-blue) | Amadeus IT Group | https://amadeus.com |
 | ![End User](https://img.shields.io/badge/End_User-blue) | IBM | https://www.ibm.com |
 | ![End User](https://img.shields.io/badge/End_User-blue) | NTT Global | https://www.global.ntt |
+| ![Integration](https://img.shields.io/badge/Integration-red) | Avassa Edge Platform | https://www.avassa.io |
 | ![Integration](https://img.shields.io/badge/Integration-red) | HashiCorp Nomad | https://www.nomadproject.io |
 | ![Integration](https://img.shields.io/badge/Integration-red) | HashiCorp Terraform | https://www.terraform.io |
 | ![Integration](https://img.shields.io/badge/Integration-red) | HashiCorp Vagrant | https://www.vagrantup.com |
