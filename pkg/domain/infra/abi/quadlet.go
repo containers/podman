@@ -647,6 +647,11 @@ func generateQuadletFilter(filter string, filterValues []string) (func(q *entiti
 			res := util.StringMatchRegexSlice(q.Name, filterValues)
 			return res
 		}, nil
+	case "status":
+		return func(q *entities.ListQuadlet) bool {
+			res := util.StringMatchRegexSlice(q.Status, filterValues)
+			return res
+		}, nil
 	default:
 		return nil, fmt.Errorf("%s is not a valid filter", filter)
 	}
