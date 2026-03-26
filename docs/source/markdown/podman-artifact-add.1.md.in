@@ -32,10 +32,6 @@ Append files to an existing artifact. This option cannot be used with the **--ty
 
 Set the media type of the artifact file instead of allowing detection to determine the type
 
-#### **--help**
-
-Print usage statement.
-
 #### **--replace**
 
 If an artifact with the same name already exists, replace and remove it. The default is **false**.
