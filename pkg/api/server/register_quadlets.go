@@ -196,7 +196,7 @@ func (s *APIServer) registerQuadletHandlers(r *mux.Router) error {
 	//    name: force
 	//    type: boolean
 	//    default: false
-	//    description: Remove running quadlet by stopping it first
+	//    description: Remove running quadlet by stopping it first (or in case of uninstantiated template quadlet, remove its instances first)
 	//  - in: query
 	//    name: ignore
 	//    type: boolean
