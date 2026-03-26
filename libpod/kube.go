@@ -315,7 +315,7 @@ func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
 			APIVersion: "v1",
 		},
 		ObjectMeta: v12.ObjectMeta{
-			Name:              v.Name(),
+			Name:              fixKubeVolumeName(v.Name()),
 			Labels:            v.Labels(),
 			Annotations:       annotations,
 			CreationTimestamp: v12.Now(),
@@ -1260,7 +1260,7 @@ func fixKubeVolumeName(source string) string {
 	// Replace underscores with dashes.
 	// Force all letters to lower case
 	// Thus, /mnt/data/ will become mnt-data
-	return strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.Trim(source, "/"), "/", "-"), "_", "-"))
+	return strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.Trim(source, "/"), "/", "-"), ".", "-"), "_", "-"))
 }
 
 func convertVolumePathToName(hostSourcePath string) (string, error) {
