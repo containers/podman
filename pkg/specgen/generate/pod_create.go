@@ -355,6 +355,10 @@ func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOp
 			return nil, err
 		}
 
+		if len(spec.InfraContainerSpec.Image) > 0 {
+			spec.InfraImage = spec.InfraContainerSpec.Image
+		}
+
 		// track name before unmarshal so we do not overwrite w/ infra
 		name := spec.Name
 		err = json.Unmarshal(matching, spec)
@@ -368,8 +372,5 @@ func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOp
 	// need to reset hostname, name etc of both pod and infra
 	spec.Hostname = ""
 
-	if len(spec.InfraContainerSpec.Image) > 0 {
-		spec.InfraImage = spec.InfraContainerSpec.Image
-	}
 	return pod, nil
 }
