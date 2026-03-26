@@ -110,7 +110,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 			RegistryConfig:  getServiceConfig(runtime),
 			RuncCommit:      dockerSystem.Commit{},
 			Runtimes:        getRuntimes(configInfo),
-			SecurityOptions: getSecOpts(sysInfo),
+			SecurityOptions: getSecOpts(sysInfo, configInfo),
 			ServerVersion:   versionInfo.Version,
 			SwapLimit:       sysInfo.SwapLimit,
 			Swarm: swarm.Info{
@@ -169,14 +169,17 @@ func getGraphStatus(storeInfo map[string]string) [][2]string {
 	return graphStatus
 }
 
-func getSecOpts(sysInfo *sysinfo.SysInfo) []string {
+func getSecOpts(sysInfo *sysinfo.SysInfo, c *config.Config) []string {
 	var secOpts []string
 	if sysInfo.AppArmor {
 		secOpts = append(secOpts, "name=apparmor")
 	}
 	if sysInfo.Seccomp {
-		// FIXME: get profile name...
-		secOpts = append(secOpts, fmt.Sprintf("name=seccomp,profile=%s", "default"))
+		profile := "default"
+		if c.Containers.SeccompProfile != "" && c.Containers.SeccompProfile != config.SeccompDefaultPath {
+			profile = c.Containers.SeccompProfile
+		}
+		secOpts = append(secOpts, fmt.Sprintf("name=seccomp,profile=%s", profile))
 	}
 	if rootless.IsRootless() {
 		secOpts = append(secOpts, "name=rootless")
