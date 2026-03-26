@@ -75,21 +75,102 @@ var _ = Describe("Podman run dns", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
-	It("podman run mutually excludes --dns* and --network", func() {
-		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "container:ALPINE", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "conflicting options: dns and the network mode: container"))
-
-		session = podmanTest.Podman([]string{"run", "--dns-opt=1.2.3.4", "--network", "container:ALPINE", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "conflicting options: dns and the network mode: container"))
-
-		session = podmanTest.Podman([]string{"run", "--dns-search=foobar.com", "--network", "none", ALPINE})
+	It("podman run --dns with --network none is rejected", func() {
+		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "none", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(125, "conflicting options: dns and the network mode: none"))
+	})
 
-		session = podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "host", ALPINE})
+	It("podman run --dns-search with --network none is rejected", func() {
+		session := podmanTest.Podman([]string{"run", "--dns-search=foobar.com", "--network", "none", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "conflicting options: dns and the network mode: none"))
+	})
+
+	It("podman run --dns-opt with --network none is rejected", func() {
+		session := podmanTest.Podman([]string{"run", "--dns-opt=debug", "--network", "none", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "conflicting options: dns and the network mode: none"))
+	})
+
+	It("podman run --dns with --network host is allowed", func() {
+		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "host", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run --dns with --network container works", func() {
+		ctrName := "dnsContainerSrc"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--dns=1.1.1.1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"run", "--dns=8.8.8.8", "--network", "container:" + ctrName, ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 8.8.8.8")))
+		Expect(session.OutputToStringArray()).To(Not(ContainElement(HavePrefix("nameserver 1.1.1.1"))))
+	})
+
+	It("podman run --network container without dns flags keeps dependency resolv.conf", func() {
+		ctrName := "dnsContainerDefaultShareSrc"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--dns=1.1.1.1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"run", "--network", "container:" + ctrName, ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 1.1.1.1")))
+	})
+
+	It("podman run --dns-search with --network container inherits dependency nameserver", func() {
+		ctrName := "dnsSearchContainerSrc"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--dns=1.1.1.1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"run", "--dns-search=example.com", "--network", "container:" + ctrName, ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 1.1.1.1")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search example.com")))
+	})
+
+	It("podman run --dns-opt with --network container inherits dependency nameserver", func() {
+		ctrName := "dnsOptContainerSrc"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--dns=1.1.1.1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"run", "--dns-opt=debug", "--network", "container:" + ctrName, ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 1.1.1.1")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("options debug")))
+	})
+
+	It("podman run combined dns flags with --network container works", func() {
+		ctrName := "dnsCombinedContainerSrc"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{
+			"run",
+			"--dns=8.8.8.8",
+			"--dns-search=example.com",
+			"--dns-opt=debug",
+			"--network",
+			"container:" + ctrName,
+			ALPINE,
+			"cat",
+			"/etc/resolv.conf",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver 8.8.8.8")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search example.com")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("options debug")))
 	})
 })

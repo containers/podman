@@ -267,7 +267,7 @@ pod when that pod is not running.
 
 @@option network
 
-Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none** or **container:**_id_.
+Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none**.
 
 If used together with **--pod**, the container does not join the pod's network namespace.
 

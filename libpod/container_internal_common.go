@@ -1972,7 +1972,7 @@ func (c *Container) makeBindMounts() error {
 			// We share a net namespace.
 			// We want /etc/resolv.conf and /etc/hosts from the
 			// other container. Unless we're not creating both of
-			// them.
+			// them or custom DNS options are specified.
 			depCtr, err := c.getRootNetNsDepCtr()
 			if err != nil {
 				return fmt.Errorf("fetching network namespace dependency container for container %s: %w", c.ID(), err)
@@ -1984,13 +1984,21 @@ func (c *Container) makeBindMounts() error {
 				return fmt.Errorf("fetching bind mounts from dependency %s of container %s: %w", depCtr.ID(), c.ID(), err)
 			}
 
+			customDNS := len(c.config.DNSServer) > 0 || len(c.config.DNSSearch) > 0 || len(c.config.DNSOption) > 0
+
 			// The other container may not have a resolv.conf or /etc/hosts
 			// If it doesn't, don't copy them
-			resolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]
-			if !c.config.UseImageResolvConf && exists {
-				err := c.mountIntoRootDirs(resolvconf.DefaultResolvConf, resolvPath)
-				if err != nil {
-					return fmt.Errorf("assigning mounts to container %s: %w", c.ID(), err)
+			if !c.config.UseImageResolvConf {
+				if customDNS {
+					// Custom DNS options specified, create a separate resolv.conf
+					if err := c.createResolvConf(); err != nil {
+						return fmt.Errorf("creating resolv.conf for container %s: %w", c.ID(), err)
+					}
+				} else if resolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]; exists {
+					err := c.mountIntoRootDirs(resolvconf.DefaultResolvConf, resolvPath)
+					if err != nil {
+						return fmt.Errorf("assigning mounts to container %s: %w", c.ID(), err)
+					}
 				}
 			}
 
@@ -2181,7 +2189,27 @@ func (c *Container) addResolvConf() error {
 	var (
 		networkNameServers   []string
 		networkSearchDomains []string
+		baseNameServers      []string
+		baseSearchDomains    []string
+		baseOptions          []string
 	)
+
+	if c.config.NetNsCtr != "" {
+		depCtr, err := c.getRootNetNsDepCtr()
+		if err != nil {
+			logrus.Warnf("Unable to get root network namespace dependency for container %s: %v", c.ID(), err)
+		} else {
+			bindMounts, err := depCtr.BindMounts()
+			if err != nil {
+				logrus.Warnf("Unable to get bind mounts from dependency container %s for container %s: %v", depCtr.ID(), c.ID(), err)
+			} else if depResolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]; exists {
+				baseNameServers, baseSearchDomains, baseOptions, err = readResolvConfEntries(depResolvPath)
+				if err != nil {
+					logrus.Warnf("Unable to read dependency resolv.conf %q for container %s: %v", depResolvPath, c.ID(), err)
+				}
+			}
+		}
+	}
 
 	netStatus := c.getNetworkStatus()
 	for _, status := range netStatus {
@@ -2220,12 +2248,16 @@ func (c *Container) addResolvConf() error {
 		// when no network name servers use host servers
 		// for aardvark dns we only want our single server in there
 		if len(networkNameServers) == 0 {
-			keepHostServers = true
+			if len(baseNameServers) > 0 {
+				nameservers = append(nameservers, baseNameServers...)
+			} else {
+				keepHostServers = true
+			}
 		}
 		if len(networkNameServers) > 0 {
 			// add the nameservers from the networks status
 			nameservers = networkNameServers
-		} else {
+		} else if len(nameservers) == 0 {
 			// pasta and slirp4netns have a built in DNS forwarder.
 			nameservers = c.addSpecialDNS(nameservers)
 		}
@@ -2234,12 +2266,15 @@ func (c *Container) addResolvConf() error {
 	// Set DNS search domains
 	var search []string
 	keepHostSearches := false
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches.Get()) > 0 {
+	switch {
+	case len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches.Get()) > 0:
 		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches.Get()))
 		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches.Get()...)
 		customSearch = append(customSearch, c.config.DNSSearch...)
 		search = customSearch
-	} else {
+	case len(baseSearchDomains) > 0:
+		search = baseSearchDomains
+	default:
 		search = networkSearchDomains
 		keepHostSearches = true
 	}
@@ -2247,6 +2282,9 @@ func (c *Container) addResolvConf() error {
 	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions.Get()))
 	options = append(options, c.runtime.config.Containers.DNSOptions.Get()...)
 	options = append(options, c.config.DNSOption...)
+	if len(options) == 0 && len(baseOptions) > 0 {
+		options = baseOptions
+	}
 
 	var namespaces []spec.LinuxNamespace
 	if c.config.Spec.Linux != nil {
@@ -2267,6 +2305,38 @@ func (c *Container) addResolvConf() error {
 	}
 
 	return nil
+}
+
+func readResolvConfEntries(path string) ([]string, []string, []string, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var (
+		nameservers []string
+		searches    []string
+		options     []string
+	)
+
+	for _, line := range strings.Split(string(contents), "\n") {
+		beforeComment, _, _ := strings.Cut(line, "#")
+		fields := strings.Fields(beforeComment)
+		if len(fields) < 2 {
+			continue
+		}
+
+		switch fields[0] {
+		case "nameserver":
+			nameservers = append(nameservers, fields[1])
+		case "search":
+			searches = fields[1:]
+		case "options":
+			options = fields[1:]
+		}
+	}
+
+	return nameservers, searches, options, nil
 }
 
 // Check if a container uses IPv6.
