@@ -57,4 +57,14 @@ var _ = Describe("Podman generate spec", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
+
+	It("generate spec for pod with no infra container", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--share", "none", "--name", "podspecgen2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"generate", "spec", "--compact", "podspecgen2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
 })
