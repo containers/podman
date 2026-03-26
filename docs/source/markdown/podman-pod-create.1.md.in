@@ -124,7 +124,7 @@ Assign a name to the pod.
 
 @@option network
 
-Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none** or **container:**_id_.
+Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none**.
 
 @@option network-alias
 

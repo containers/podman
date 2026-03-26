@@ -286,7 +286,7 @@ Print usage statement
 
 @@option network
 
-Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none** or **container:**_id_.
+Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none**.
 
 If used together with **--pod**, the container joins the pod's network namespace.
 
