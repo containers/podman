@@ -1,7 +1,7 @@
 % podman-artifact-ls 1
 
 ## NAME
-podman\-artifact\-ls - List OCI artifacts in local store
+podman\-artifact\-ls - List OCI artifacts in local store (alias list)
 
 ## SYNOPSIS
 **podman artifact ls** [*options*]
