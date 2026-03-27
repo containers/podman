@@ -2199,15 +2199,12 @@ func (c *Container) addResolvConf() error {
 		depCtr, err := c.getRootNetNsDepCtr()
 		if err != nil {
 			logrus.Warnf("Unable to get root network namespace dependency for container %s: %v", c.ID(), err)
-		} else {
-			bindMounts, err := depCtr.BindMounts()
+		} else if bindMounts, err := depCtr.BindMounts(); err != nil {
+			logrus.Warnf("Unable to get bind mounts from dependency container %s for container %s: %v", depCtr.ID(), c.ID(), err)
+		} else if depResolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]; exists {
+			baseNameServers, baseSearchDomains, baseOptions, err = readResolvConfEntries(depResolvPath)
 			if err != nil {
-				logrus.Warnf("Unable to get bind mounts from dependency container %s for container %s: %v", depCtr.ID(), c.ID(), err)
-			} else if depResolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]; exists {
-				baseNameServers, baseSearchDomains, baseOptions, err = readResolvConfEntries(depResolvPath)
-				if err != nil {
-					logrus.Warnf("Unable to read dependency resolv.conf %q for container %s: %v", depResolvPath, c.ID(), err)
-				}
+				logrus.Warnf("Unable to read dependency resolv.conf %q for container %s: %v", depResolvPath, c.ID(), err)
 			}
 		}
 	}
@@ -2251,7 +2248,8 @@ func (c *Container) addResolvConf() error {
 		if len(networkNameServers) == 0 {
 			if len(baseNameServers) > 0 {
 				nameservers = append(nameservers, baseNameServers...)
-			} else {
+			}
+			if len(nameservers) == 0 {
 				keepHostServers = true
 			}
 		}
