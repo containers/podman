@@ -407,8 +407,8 @@ func histogramSplit(b []byte, h []uint16) {
 	for i, t := range x {
 		v0 := &h[t]
 		v1 := &h[y[i]]
-		v3 := &h[w[i]]
 		v2 := &h[z[i]]
+		v3 := &h[w[i]]
 		*v0++
 		*v1++
 		*v2++
