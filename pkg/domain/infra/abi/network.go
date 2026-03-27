@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/common/libnetwork/pasta"
-	"go.podman.io/common/libnetwork/slirp4netns"
 	"go.podman.io/common/libnetwork/types"
 	netutil "go.podman.io/common/libnetwork/util"
 )
@@ -180,7 +179,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 }
 
 func (ic *ContainerEngine) NetworkCreate(_ context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
-	if slices.Contains([]string{"none", "host", "bridge", "private", slirp4netns.BinaryName, pasta.BinaryName, "container", "ns", "default"}, network.Name) {
+	if slices.Contains([]string{"none", "host", "bridge", "private", pasta.BinaryName, "container", "ns", "default"}, network.Name) {
 		return nil, fmt.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
 	}
 	network, err := ic.Libpod.Network().NetworkCreate(network, createOptions)

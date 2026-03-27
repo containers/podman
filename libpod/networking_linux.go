@@ -5,6 +5,7 @@ package libpod
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/rootless"
@@ -28,8 +29,8 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 			}
 		}
 	}()
-	if ctr.config.NetMode.IsSlirp4netns() {
-		return nil, r.setupSlirp4netns(ctr, ctrNS)
+	if strings.HasPrefix(string(ctr.config.NetMode), "slirp4netns") {
+		return nil, fmt.Errorf("slirp4netns support has been removed, run `podman system migrate` to update this container to use pasta")
 	}
 	if ctr.config.NetMode.IsPasta() {
 		return nil, r.setupPasta(ctr, ctrNS)
@@ -63,7 +64,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 	// not set up port because they are still active
 	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
 		// set up port forwarder for rootless netns
-		// TODO: support slirp4netns port forwarder as well
 		// make sure to fix this in container.handleRestartPolicy() as well
 		// Important we have to call this after r.setUpNetwork() so that
 		// we can use the proper netStatus
