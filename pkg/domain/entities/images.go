@@ -9,6 +9,7 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/signature/signer"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 type ImageSummary = entitiesTypes.ImageSummary
@@ -79,6 +80,10 @@ type ImagePullOptions struct {
 	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
 	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
 	OciDecryptConfig *encconfig.DecryptConfig
+	// UIDMap and GIDMap are used for pulling image layers with the correct
+	// UID/GID mappings, avoiding a post-pull chown.
+	UIDMap []idtools.IDMap
+	GIDMap []idtools.IDMap
 }
 
 // ImagePullStatus contains the status of the image pull
