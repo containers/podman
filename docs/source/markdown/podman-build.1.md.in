@@ -353,6 +353,8 @@ the help of emulation provided by packages like `qemu-user-static`.
 
 @@option runtime-flag
 
+@@option save-stages
+
 #### **--sbom**=*preset*
 
 Generate SBOMs (Software Bills Of Materials) for the output image by scanning
@@ -465,6 +467,8 @@ Sign the image using a GPG key with the specified FINGERPRINT. (This option is n
 @@option squash-all
 
 @@option ssh
+
+@@option stage-labels
 
 #### **--stdin**
 

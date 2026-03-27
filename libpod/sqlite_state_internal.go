@@ -555,7 +555,7 @@ func (s *SQLiteState) removeContainerWithTx(id string, tx *sql.Tx) error {
 }
 
 // networkModify allows you to modify or add a new network, to add a new network use the new bool
-func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new, disconnect bool) error {
+func (s *SQLiteState) networkModify(ctr *Container, network types.NamedPerNetworkOptions, new, disconnect bool) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -564,7 +564,7 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 		return define.ErrCtrRemoved
 	}
 
-	if network == "" {
+	if network.Name == "" {
 		return fmt.Errorf("network names must not be empty: %w", define.ErrInvalidArg)
 	}
 
@@ -579,7 +579,13 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 		return define.ErrNoSuchCtr
 	}
 
-	_, ok := newCfg.Networks[network]
+	ok := false
+	for _, net := range newCfg.Networks {
+		if net.Name == network.Name {
+			ok = true
+			break
+		}
+	}
 	if new && ok {
 		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrNetworkConnected)
 	}
@@ -588,12 +594,15 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 	}
 
 	if !disconnect {
-		if newCfg.Networks == nil {
-			newCfg.Networks = make(map[string]types.PerNetworkOptions)
-		}
-		newCfg.Networks[network] = opts
+		newCfg.Networks = append(newCfg.Networks, network)
 	} else {
-		delete(newCfg.Networks, network)
+		newNetworks := make([]types.NamedPerNetworkOptions, 0, len(newCfg.Networks)-1)
+		for _, net := range newCfg.Networks {
+			if net.Name != network.Name {
+				newNetworks = append(newNetworks, net)
+			}
+		}
+		newCfg.Networks = newNetworks
 	}
 
 	if err := s.rewriteContainerConfig(ctr, newCfg); err != nil {
