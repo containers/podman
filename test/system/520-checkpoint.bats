@@ -121,13 +121,14 @@ function setup() {
     run_podman container restore -a
     is "$output" "$ctrID"
 
-    # checkpoint/restore $input must print $input
+    # checkpoint/restore $input must print the ID
     cname=c-$(safename)
     run_podman run -d --name $cname $IMAGE top
+    cid="$output"
     run_podman container checkpoint $cname
-    is "$output" $cname
+    is "$output" "$cid"
     run_podman container restore $cname
-    is "$output" $cname
+    is "$output" "$cid"
 
     run_podman rm -t 0 -f $ctrID $cname
 }

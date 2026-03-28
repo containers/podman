@@ -94,8 +94,6 @@ func cleanup(_ *cobra.Command, args []string) error {
 		case r.CleanErr != nil:
 			logrus.Errorf("Cleaning up container: %v", r.CleanErr)
 			errs = append(errs, r.CleanErr)
-		case r.RawInput != "":
-			fmt.Println(r.RawInput)
 		default:
 			fmt.Println(r.Id)
 		}
