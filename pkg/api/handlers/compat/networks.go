@@ -123,7 +123,9 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 		ipamConfig := dockerNetwork.IPAMConfig{
 			Subnet:  subnet,
 			Gateway: gateway,
-			// TODO add range
+		}
+		if ipRange, ok := leaseRangeToIPRangePrefix(sub.LeaseRange); ok {
+			ipamConfig.IPRange = ipRange
 		}
 		ipamConfigs = append(ipamConfigs, ipamConfig)
 	}
@@ -505,4 +507,40 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 		prunedNetworks = append(prunedNetworks, pr.Name)
 	}
 	utils.WriteResponse(w, http.StatusOK, response{NetworksDeleted: prunedNetworks})
+}
+
+// leaseRangeToIPRangePrefix converts a LeaseRange back to a CIDR prefix for the Docker
+// compat API. This is the reverse of the conversion done in createNetwork, where an
+// IPRange CIDR (e.g. "192.168.0.128/25") is expanded to [FirstIP, LastIP].
+// It only succeeds for IPv4 ranges that form a valid aligned CIDR block.
+func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
+	if lr == nil || lr.StartIP == nil || lr.EndIP == nil {
+		return netip.Prefix{}, false
+	}
+	start4 := lr.StartIP.To4()
+	end4 := lr.EndIP.To4()
+	if start4 == nil || end4 == nil {
+		// IPv6 not handled: no lossless round-trip without storing the original CIDR
+		return netip.Prefix{}, false
+	}
+	startU := uint32(start4[0])<<24 | uint32(start4[1])<<16 | uint32(start4[2])<<8 | uint32(start4[3])
+	endU := uint32(end4[0])<<24 | uint32(end4[1])<<16 | uint32(end4[2])<<8 | uint32(end4[3])
+	if endU < startU {
+		return netip.Prefix{}, false
+	}
+	count := endU - startU + 1
+	// Verify the range is a power of two (required for a valid CIDR block).
+	if count&(count-1) != 0 {
+		return netip.Prefix{}, false
+	}
+	// Verify that startU is aligned to the block size.
+	if count > 1 && startU&(count-1) != 0 {
+		return netip.Prefix{}, false
+	}
+	prefixBits := 32
+	for n := count; n > 1; n >>= 1 {
+		prefixBits--
+	}
+	startAddr, _ := netip.AddrFromSlice(start4)
+	return netip.PrefixFrom(startAddr.Unmap(), prefixBits), true
 }
