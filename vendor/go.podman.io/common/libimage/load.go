@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -110,6 +112,11 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 			return loadedImages, err
 		}
 		logrus.Debugf("Error loading %s (%s): %v", path, transportName, err)
+		// Surface ENOSPC immediately — no point trying other formats.
+		// The error arrives as a string from a subprocess, so check the message.
+		if strings.Contains(err.Error(), "no space left on device") {
+			return nil, fmt.Errorf("loading image: %w", syscall.ENOSPC)
+		}
 		loadErrors = append(loadErrors, fmt.Errorf("%s: %v", transportName, err))
 	}
 
