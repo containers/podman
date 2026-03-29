@@ -510,6 +510,13 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 		return err
 	}
 
+	// errCh receives deferredErr after all deferred cleanup in this function
+	// has completed. The goroutine below reads from errCh so that it never
+	// races with the deferred functions that may still be writing deferredErr
+	// when holdConnOpen is closed by the caller.
+	errCh := make(chan error, 1)
+	defer func() { errCh <- deferredErr }()
+
 	defer func() {
 		if !pipes.startClosed {
 			errorhandling.CloseQuiet(pipes.startPipe)
@@ -608,7 +615,11 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 		// Can't be a defer, because this would block the function from
 		// returning.
 		<-holdConnOpen
-		hijackWriteErrorAndClose(deferredErr, c.ID(), isTerminal, httpCon, httpBuf)
+		// Block until all deferred cleanups in attachExecHTTP have run and
+		// the final deferredErr value has been sent to errCh. This avoids
+		// the data race that would occur if we read deferredErr directly
+		// while deferred functions in this function may still be writing it.
+		hijackWriteErrorAndClose(<-errCh, c.ID(), isTerminal, httpCon, httpBuf)
 	}()
 
 	stdoutChan := make(chan error)
