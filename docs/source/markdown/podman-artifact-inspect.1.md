@@ -35,10 +35,6 @@ Valid placeholders for the Go template are listed below:
 | .Name            | Artifact name (string)                 |
 | .TotalSizeBytes  | Total Size of the artifact in bytes    |
 
-#### **--help**, **-h**
-
-Print usage statement
-
 ## EXAMPLES
 
 Inspect an OCI image in the local store.
