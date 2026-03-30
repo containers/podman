@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -339,6 +340,35 @@ Name=my-container
 	assert.Len(t, comments, 2)
 	assert.Equal(t, "# comment", comments[0])
 	assert.Equal(t, "; another comment", comments[1])
+}
+
+func TestLookupQuoteStripping(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`"hello"`, "hello"},
+		{`hello`, "hello"},
+		{`"hello`, `"hello`},
+		{`/bin/sh -c "echo "hello""`, `/bin/sh -c "echo "hello""`},
+		{`"/bin/sh -c "echo "hello"""`, `/bin/sh -c "echo "hello""`},
+		{`""`, ""},
+		{`hello"`, `hello"`},
+		{`/bin/sh -c "echo 'hello world!'"`, `/bin/sh -c "echo 'hello world!'"`},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("Lookup(%q)", tt.input), func(t *testing.T) {
+			unitData := "[Container]\nKey=" + tt.input + "\n"
+			f := NewUnitFile()
+			err := f.Parse(unitData)
+			assert.NoError(t, err)
+
+			val, ok := f.Lookup("Container", "Key")
+			assert.True(t, ok)
+			assert.Equal(t, tt.expected, val)
+		})
+	}
 }
 
 func FuzzParser(f *testing.F) {
