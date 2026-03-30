@@ -626,6 +626,19 @@ func WithSdNotifyMode(mode string) CtrCreateOption {
 	}
 }
 
+// WithSdNotifySocket sets the host path to the systemd notify socket (e.g. from
+// NOTIFY_SOCKET) when using sd-notify container mode.
+func WithSdNotifySocket(socket string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.SdNotifySocket = socket
+		return nil
+	}
+}
+
 // WithShmSize sets the size of /dev/shm tmpfs mount.
 func WithShmSize(size int64) CtrCreateOption {
 	return func(ctr *Container) error {

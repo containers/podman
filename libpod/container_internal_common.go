@@ -751,11 +751,10 @@ func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 	return &execUser, nil
 }
 
-// mountNotifySocket mounts the NOTIFY_SOCKET into the container if it's set
-// and if the sdnotify mode is set to container.  It also sets c.notifySocket
-// to avoid redundantly looking up the env variable.
+// mountNotifySocket mounts the NOTIFY_SOCKET into the container if the host
+// notify socket path is stored in config and sdnotify mode is container.
 func (c *Container) mountNotifySocket(g generate.Generator) error {
-	if c.notifySocket == "" {
+	if c.config.SdNotifySocket == "" {
 		return nil
 	}
 	if c.config.SdNotifyMode != define.SdNotifyModeContainer {
