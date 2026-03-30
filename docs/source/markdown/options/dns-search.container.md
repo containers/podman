@@ -4,5 +4,5 @@
 ####> are applicable to all of those.
 #### **--dns-search**=*domain*
 
-Set custom DNS search domains. Invalid if using **--dns-search** with **--network** that is set to **none** or **container:**_id_.
+Set custom DNS search domains. Invalid if using **--dns-search** with **--network** that is set to **none**.
 Use **--dns-search=.** to remove the search domain.
