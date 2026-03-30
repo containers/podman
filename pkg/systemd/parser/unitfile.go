@@ -609,14 +609,20 @@ func (f *UnitFile) LookupLast(groupName string, key string) (string, bool) {
 }
 
 // Look up the last instance of the named key in the group (if any)
-// The result have no trailing whitespace and line continuations are applied
+// The result have no trailing whitespace and line continuations are applied.
+// Surrounding matched double-quote pairs are stripped, but unmatched quotes
+// are preserved to avoid mangling embedded shell syntax.
 func (f *UnitFile) Lookup(groupName string, key string) (string, bool) {
 	v, ok := f.LookupLast(groupName, key)
 	if !ok {
 		return "", false
 	}
 
-	return strings.Trim(strings.TrimRightFunc(v, unicode.IsSpace), "\""), true
+	v = strings.TrimRightFunc(v, unicode.IsSpace)
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		v = v[1 : len(v)-1]
+	}
+	return v, true
 }
 
 // Lookup the last instance of a key and convert the value to a bool

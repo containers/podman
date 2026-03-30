@@ -917,6 +917,7 @@ BOGUS=foo
 		Entry("exec.container", "exec.container"),
 		Entry("group-add.container", "group-add.container"),
 		Entry("health.container", "health.container"),
+		Entry("health-cmd-shell-quotes.container", "health-cmd-shell-quotes.container"),
 		Entry("host.container", "host.container"),
 		Entry("httpproxy-false.container", "httpproxy-false.container"),
 		Entry("httpproxy-true.container", "httpproxy-true.container"),
