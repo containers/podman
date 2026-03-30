@@ -243,6 +243,9 @@ type HistoryResponse struct {
 
 type ExecCreateConfig struct {
 	dockerContainer.ExecCreateRequest
+	// DetachKeys shadows the embedded string field so the JSON decoder
+	// can distinguish "field absent" (nil) from "explicitly set to empty" (*"").
+	DetachKeys *string `json:"DetachKeys"`
 }
 
 type ExecStartConfig struct {
