@@ -1790,6 +1790,8 @@ func AutocompleteSDNotify(_ *cobra.Command, _ []string, _ string) ([]string, cob
 
 var containerStatuses = []string{"created", "running", "paused", "stopped", "exited", "unknown"}
 
+var quadletStatuses = []string{"Not loaded", "active/running", "inactive/dead", "failed/failed", "activating/start", "deactivating/stop"}
+
 // AutocompletePsFilters - Autocomplete ps filter options.
 func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
@@ -1833,6 +1835,9 @@ func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([
 func AutocompleteQuadletFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getQuadlets(cmd, s) },
+		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
+			return quadletStatuses, cobra.ShellCompDirectiveNoFileComp
+		},
 	}
 	return completeKeyValues(toComplete, kv)
 }
