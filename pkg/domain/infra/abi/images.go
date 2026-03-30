@@ -483,6 +483,11 @@ func (ir *ImageEngine) Load(ctx context.Context, options entities.ImageLoadOptio
 
 	loadedImages, err := ir.Libpod.LibimageRuntime().Load(ctx, options.Input, loadOptions)
 	if err != nil {
+		// Surface ENOSPC immediately — no point wrapping in a generic error.
+		// The error string arrives from a subprocess, so we check the message.
+		if strings.Contains(err.Error(), "no space left on device") {
+			return nil, fmt.Errorf("loading image: %w", syscall.ENOSPC)
+		}
 		return nil, err
 	}
 	return &entities.ImageLoadReport{Names: loadedImages}, nil
