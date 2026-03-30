@@ -80,6 +80,7 @@ type BuildQuery struct {
 	IDMappingOptions        string             `schema:"idmappingoptions"`
 	IdentityLabel           bool               `schema:"identitylabel"`
 	Ignore                  bool               `schema:"ignore"`
+	IgnoreFile              string             `schema:"ignorefile"`
 	InheritLabels           types.OptionalBool `schema:"inheritlabels"`
 	InheritAnnotations      types.OptionalBool `schema:"inheritannotations"`
 	Isolation               string             `schema:"isolation"`
@@ -287,6 +288,17 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 				}
 			}
 		}
+	}
+
+	// Process dockerignore only if no explicit ignorefile was specified
+	if ignorefile := query.Get("ignorefile"); ignorefile != "" {
+		buildContext.IgnoreFile = filepath.Join(buildContext.ContextDirectory, ignorefile)
+	} else {
+		_, ignoreFile, err := util.ParseDockerignore(buildContext.ContainerFiles, buildContext.ContextDirectory)
+		if err != nil {
+			return nil, utils.GetInternalServerError(fmt.Errorf("processing ignore file: %w", err))
+		}
+		buildContext.IgnoreFile = ignoreFile
 	}
 
 	return buildContext, nil
@@ -990,13 +1002,6 @@ func getLocalBuildContext(r *http.Request, query url.Values, anchorDir string, _
 		return nil, utils.GetGenericBadRequestError(err)
 	}
 
-	// Process dockerignore
-	_, ignoreFile, err := util.ParseDockerignore(buildContext.ContainerFiles, buildContext.ContextDirectory)
-	if err != nil {
-		return nil, utils.GetInternalServerError(fmt.Errorf("processing ignore file: %w", err))
-	}
-	buildContext.IgnoreFile = ignoreFile
-
 	return buildContext, nil
 }
 
@@ -1096,13 +1101,6 @@ func getBuildContext(r *http.Request, query url.Values, anchorDir string, multip
 	if err != nil {
 		return nil, err
 	}
-
-	// Process dockerignore
-	_, ignoreFile, err := util.ParseDockerignore(buildContext.ContainerFiles, buildContext.ContextDirectory)
-	if err != nil {
-		return nil, utils.GetInternalServerError(fmt.Errorf("processing ignore file: %w", err))
-	}
-	buildContext.IgnoreFile = ignoreFile
 
 	return buildContext, nil
 }
