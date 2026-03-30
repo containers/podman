@@ -76,9 +76,7 @@ The [protocol:keyfile] specifies the encryption protocol, which can be JWE (RFC7
 
 Manifest Type (oci, v2s2, or v2s1) to use when pushing an image.
 
-#### **--quiet**, **-q**
-
-When writing the output image, suppress progress output
+@@option quiet
 
 #### **--remove-signatures**
 

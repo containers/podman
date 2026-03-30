@@ -34,9 +34,7 @@ $ podman artifact pull quay.io/foobar/artifact:special
 
 Print the usage statement.
 
-#### **--quiet**, **-q**
-
-Suppress output information when pulling images
+@@option quiet
 
 @@option retry
 

@@ -24,9 +24,7 @@ $ podman artifact push quay.io/artifact/foobar1:latest
 
 @@option digestfile
 
-#### **--quiet**, **-q**
-
-When writing the output image, suppress progress output
+@@option quiet
 
 @@option retry
 
