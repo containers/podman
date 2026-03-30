@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/pkg/machine"
+	"github.com/containers/podman/v6/pkg/machine/certificates"
 	"github.com/containers/podman/v6/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/env"
@@ -109,6 +110,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	}
 
 	mc.Version = vmconfigs.MachineConfigVersion
+	mc.ImportNativeCA = opts.ImportNativeCA
 
 	createOpts := machineDefine.CreateVMOpts{
 		Name:   opts.Name,
@@ -643,6 +645,17 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		return err
 	}
 
+	// Import native CA certificates if enabled
+	if mc.ImportNativeCA {
+		if err := certificates.ImportNativeCertificates(mc, mp.VMType()); err != nil {
+			// Warn the user but continue the machine startup process
+			logrus.Warnf("Failed to import native CA certificates: %v", err)
+			fmt.Println("Warning: Failed to import host trusted CA certificates. The machine will start without them.")
+		} else if !opts.Quiet {
+			fmt.Println("The host trusted CA certificates have been imported successfully")
+		}
+	}
+
 	// mount the volumes to the VM
 	if err := mp.MountVolumesToVM(mc, opts.Quiet); err != nil {
 		return err
@@ -717,6 +730,10 @@ func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefin
 			return fmt.Errorf("new disk size must be larger than %d GB", mc.Resources.DiskSize)
 		}
 		mc.Resources.DiskSize = *opts.DiskSize
+	}
+
+	if opts.ImportNativeCA != nil {
+		mc.ImportNativeCA = *opts.ImportNativeCA
 	}
 
 	if err := mp.SetProviderAttrs(mc, opts); err != nil {
