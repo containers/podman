@@ -88,9 +88,9 @@ func (r *Runtime) Volumes(filters ...VolumeFilter) ([]*Volume, error) {
 
 	volsFiltered := make([]*Volume, 0, len(vols))
 	for _, vol := range vols {
-		include := false
+		include := true
 		for _, filter := range filters {
-			include = include || filter(vol)
+			include = include && filter(vol)
 		}
 
 		if include {
