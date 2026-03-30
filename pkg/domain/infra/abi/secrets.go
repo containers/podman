@@ -33,7 +33,7 @@ func (ic *ContainerEngine) SecretCreate(_ context.Context, name string, reader i
 	if options.Driver == "" {
 		options.Driver = cfg.Secrets.Driver
 	}
-	if len(options.DriverOpts) == 0 {
+	if len(options.DriverOpts) == 0 && options.Driver == cfg.Secrets.Driver {
 		options.DriverOpts = cfg.Secrets.Opts
 	}
 	if options.DriverOpts == nil {
