@@ -9,7 +9,7 @@ podman\-quadlet - Allows users to manage Quadlets
 ## DESCRIPTION
 `podman quadlet` is a set of subcommands that manage Quadlets.
 
-Podman Quadlets allow users to manage containers, pods, volumes, networks, and images declaratively via systemd unit files, streamlining container management on Linux systems without the complexity of full orchestration tools like Kubernetes. The syntax of quadlet files is described in **podman-systemd.unit**(5).
+Podman Quadlets allow users to manage containers, pods, volumes, networks, and images declaratively using systemd unit files. This simplifies container management on Linux systems without requiring full orchestration tools like Kubernetes. The syntax of quadlet files is described in **podman-systemd.unit**(5).
 
 ## SUBCOMMANDS
 
