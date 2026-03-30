@@ -742,6 +742,23 @@ var _ = Describe("Podman artifact", func() {
 		session = podmanTest.PodmanExitCleanly("artifact", "inspect", artifactDigest[:12], "-f", "{{.Name}}")
 		Expect(session.OutputToString()).To(Equal(artifact1Name))
 	})
+
+	It("podman artifact ls shows latest tag for untagged artifact", func() {
+		artifactFile, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Add artifact without an explicit tag — podman should default to :latest
+		artifactName := "localhost/test/untagged-artifact"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifactName, artifactFile)
+
+		// Verify the TAG column shows "latest" in the default ls output
+		listSession := podmanTest.PodmanExitCleanly("artifact", "ls")
+		Expect(listSession.OutputToString()).To(ContainSubstring("latest"))
+
+		// Confirm via --format that the Tag field is "latest"
+		tagSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.Tag}}")
+		Expect(tagSession.OutputToString()).To(Equal("latest"))
+	})
 })
 
 func digestToFilename(digest string) string {
