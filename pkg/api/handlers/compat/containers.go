@@ -309,9 +309,16 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	}
 	stateStr := state.String()
 
-	// Some docker states are not the same as ours. This makes sure the state string stays true to the Docker API
-	if state == define.ContainerStateCreated {
+	// Some docker states are not the same as ours. This makes sure the state string stays true to the Docker API.
+	// "stopped" and "stopping" are podman-internal states with no Docker equivalent;
+	// map them to the nearest Docker state so the compat API never leaks internal states.
+	switch state {
+	case define.ContainerStateCreated:
 		stateStr = define.ContainerStateConfigured.String()
+	case define.ContainerStateStopped:
+		stateStr = define.ContainerStateExited.String()
+	case define.ContainerStateStopping:
+		stateStr = define.ContainerStateRunning.String()
 	}
 
 	switch state {
