@@ -399,7 +399,7 @@ github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs/v4 v4.0.0
 ## explicit; go 1.14
 github.com/mistifyio/go-zfs/v4
-# github.com/moby/buildkit v0.28.0
+# github.com/moby/buildkit v0.28.1
 ## explicit; go 1.25.5
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
@@ -441,10 +441,10 @@ github.com/moby/moby/client/internal
 github.com/moby/moby/client/internal/timestamp
 github.com/moby/moby/client/pkg/jsonmessage
 github.com/moby/moby/client/pkg/versions
-# github.com/moby/moby/v2 v2.0.0-beta.6
-## explicit; go 1.25.0
+# github.com/moby/moby/v2 v2.0.0-beta.8
+## explicit; go 1.25.5
 github.com/moby/moby/v2/pkg/homedir
-# github.com/moby/patternmatcher v0.6.0
+# github.com/moby/patternmatcher v0.6.1
 ## explicit; go 1.19
 github.com/moby/patternmatcher
 # github.com/moby/sys/capability v0.4.0
