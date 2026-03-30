@@ -743,9 +743,8 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		pspec.User = processUser
 	}
 
-	// Set process capabilities for exec - use the container's capabilities
-	if pspec.Capabilities == nil {
-		pspec.Capabilities = c.config.Spec.Process.Capabilities
+	if err := c.setProcessCapabilitiesExec(options, user, execUser, pspec); err != nil {
+		return nil, err
 	}
 
 	hasHomeSet := false
