@@ -904,8 +904,7 @@ rm -rf $TMPD
 
 podman container rm -fa
 
-# 18951: Make sure container create supports the platform parameter.  Force an
-# initial architecture to make sure the test runs on all platforms.
+# 18951: Make sure container create supports the platform parameter.
 podman pull --platform=linux/amd64 $IMAGE
 t POST containers/create?platform=linux/amd64 \
   Image=$IMAGE \
@@ -914,3 +913,26 @@ t POST containers/create?platform=linux/aarch64 \
   Image=$IMAGE \
   404
 podman rmi -f $IMAGE
+
+# Test health status in /containers/json (GH #27786)
+podman create --name healthcheck-test-created --health-cmd "true" $IMAGE top
+t GET containers/json?all=true\&filters='{"name":["healthcheck-test-created"]}' 200 \
+  .[0].Health=null
+podman rm -f healthcheck-test-created
+
+podman run -d --name healthcheck-test-running --health-cmd "true" --health-interval 1s $IMAGE top
+# Give it a moment to initialize and run health check
+sleep 3
+t GET containers/json?filters='{"name":["healthcheck-test-running"]}' 200 \
+  .[0].Health.Status="healthy"
+t GET containers/healthcheck-test-running/json 200 \
+  .State.Health.Status="healthy"
+
+# Verify that health status is preserved after container is stopped
+podman stop -t0 healthcheck-test-running
+t GET "containers/json?all=true&filters={\"name\":[\"healthcheck-test-running\"]}" 200 \
+  .[0].Health.Status="healthy"
+t GET containers/healthcheck-test-running/json 200 \
+  .State.Health.Status="healthy"
+
+podman rm -f healthcheck-test-running
