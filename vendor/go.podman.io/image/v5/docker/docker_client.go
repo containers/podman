@@ -1030,7 +1030,7 @@ func (c *dockerClient) fetchManifest(ctx context.Context, ref dockerReference, t
 	}
 	res, err := c.makeRequest(ctx, http.MethodGet, path, headers, nil, v2Auth, nil)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("fetching manifest %s in %s: %w", tagOrDigest, ref.ref.Name(), err)
 	}
 	logrus.Debugf("Content-Type from manifest GET is %q", res.Header.Get("Content-Type"))
 	defer res.Body.Close()
@@ -1040,7 +1040,7 @@ func (c *dockerClient) fetchManifest(ctx context.Context, ref dockerReference, t
 
 	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("reading manifest body %s in %s: %w", tagOrDigest, ref.ref.Name(), err)
 	}
 	return manblob, simplifyContentType(res.Header.Get("Content-Type")), nil
 }

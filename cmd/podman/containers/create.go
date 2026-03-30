@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/utils"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/namespaces"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/containers/podman/v6/pkg/util"
@@ -399,6 +400,37 @@ func pullImage(cmd *cobra.Command, imageName string, cliVals *entities.Container
 		}
 
 		pullOptions.RetryDelay = val
+	}
+
+	if cliVals.UserNS != "" {
+		usernsMode := namespaces.UsernsMode(cliVals.UserNS)
+		switch {
+		case usernsMode.IsKeepID():
+			keepIDOpts, err := usernsMode.GetKeepIDOptions()
+			if err != nil {
+				return "", err
+			}
+			mapping, _, _, err := util.GetKeepIDMapping(keepIDOpts)
+			if err != nil {
+				return "", err
+			}
+			pullOptions.UIDMap = mapping.UIDMap
+			pullOptions.GIDMap = mapping.GIDMap
+		case usernsMode.IsNoMap():
+			mapping, _, _, err := util.GetNoMapMapping()
+			if err != nil {
+				return "", err
+			}
+			pullOptions.UIDMap = mapping.UIDMap
+			pullOptions.GIDMap = mapping.GIDMap
+		default:
+			mapping, err := util.ParseIDMapping(usernsMode, cliVals.UIDMap, cliVals.GIDMap, cliVals.SubUIDName, cliVals.SubGIDName)
+			if err != nil {
+				return "", err
+			}
+			pullOptions.UIDMap = mapping.UIDMap
+			pullOptions.GIDMap = mapping.GIDMap
+		}
 	}
 
 	if cliVals.Creds != "" {

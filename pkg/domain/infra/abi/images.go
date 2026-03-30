@@ -294,6 +294,8 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 	pullOptions.Writer = options.Writer
 	pullOptions.OciDecryptConfig = options.OciDecryptConfig
+	pullOptions.UIDMap = options.UIDMap
+	pullOptions.GIDMap = options.GIDMap
 	pullOptions.MaxRetries = options.Retry
 
 	if options.RetryDelay != "" {
