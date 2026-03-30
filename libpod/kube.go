@@ -31,6 +31,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/manifest"
 )
 
 // GenerateForKube takes a slice of libpod containers and generates
@@ -1073,7 +1074,33 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 		}
 		dns.Options = dnsOptions
 	}
+	if hc := c.config.HealthCheckConfig; hc != nil {
+		kubeContainer.LivenessProbe = healthConfigToProbe(hc)
+	}
+
 	return kubeContainer, kubeVolumes, &dns, annotations, nil
+}
+
+// healthConfigToProbe converts a container's Schema2HealthConfig into a
+// Kubernetes Probe for use as a LivenessProbe in generated kube YAML.
+func healthConfigToProbe(hc *manifest.Schema2HealthConfig) *v1.Probe {
+	if hc == nil || len(hc.Test) == 0 {
+		return nil
+	}
+	// Test[0] is the type: NONE, CMD, or CMD-SHELL. NONE means disabled.
+	if hc.Test[0] == define.HealthConfigTestNone {
+		return nil
+	}
+	probe := &v1.Probe{
+		Handler: v1.Handler{
+			Exec: &v1.ExecAction{Command: hc.Test[1:]},
+		},
+		InitialDelaySeconds: int32(hc.StartPeriod.Seconds()),
+		TimeoutSeconds:      int32(hc.Timeout.Seconds()),
+		PeriodSeconds:       int32(hc.Interval.Seconds()),
+		FailureThreshold:    int32(hc.Retries),
+	}
+	return probe
 }
 
 // portMappingToContainerPort takes a portmapping and converts
