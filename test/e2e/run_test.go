@@ -33,6 +33,20 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman run --env-file with - prefix ignores missing file", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--env-file=-/tmp/doesnotexist.env", ALPINE, "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+	})
+
+	It("podman run --label-file with - prefix ignores missing file", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--label-file=-/tmp/doesnotexist.label", ALPINE, "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+	})
+
 	// This test may seem entirely pointless, it is not.  Due to compatibility
 	// and historical reasons, the container name generator uses a globally
 	// scoped RNG, seeded from a global state.  An easy way to check if its
