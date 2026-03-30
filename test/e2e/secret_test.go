@@ -504,6 +504,25 @@ var _ = Describe("Podman secret", func() {
 		Expect(exists).Should(ExitWithError(1, ""))
 	})
 
+	It("podman secret create with non-default driver does not inherit default driver opts", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0o755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create a secret with driver=shell but no --driver-opts.
+		// Before the fix, the file driver's default "path" opt bled
+		// into the shell driver, causing "invalid shell driver option".
+		// After the fix, the shell driver correctly receives no
+		// foreign opts and fails only because its required commands
+		// (store, lookup, list, delete) are not configured.
+		session := podmanTest.Podman([]string{
+			"secret", "create", "-d", "shell",
+			"shell-secret", secretFilePath,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "missing config value"))
+	})
+
 	It("podman secret create from stdin", func() {
 		secretData := "mysecretdata"
 		secretName := "stdin-secret-" + stringid.GenerateRandomID()
