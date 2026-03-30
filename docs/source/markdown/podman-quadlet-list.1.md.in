@@ -22,7 +22,8 @@ Supported filters:
 
 | Filter     | Description                                                                                      |
 |------------|--------------------------------------------------------------------------------------------------|
-| name       | Filter by quadlet name.                                                                          |
+| name       | Filter by quadlet name                                                                           |
+| status     | Filter by quadlet status. Valid values: `Not loaded`, `active/running`, `inactive/dead`, `failed/failed`, `activating/start`, `deactivating/stop` |
 
 #### **--format**=*format*
 

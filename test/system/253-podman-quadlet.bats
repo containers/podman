@@ -75,6 +75,14 @@ EOF
     run_podman quadlet list --filter name=alpine*
     assert "$output" =~ "alpine-quadlet.container" "matching filter should contain alpine-quadlet.container"
 
+    # Test quadlet list with status filter
+    run_podman quadlet list --filter status=inactive/dead
+    assert "$output" =~ "alpine-quadlet.container" "status filter should contain alpine-quadlet.container"
+
+    # Test quadlet list with non-matching status filter
+    run_podman quadlet list --filter status=running
+    assert "$output" !~ "alpine-quadlet.container" "non-matching status filter should not contain alpine-quadlet.container"
+
     # Test quadlet print
     run_podman quadlet print alpine-quadlet.container
     assert "$output" == "$(<$quadlet_file)" "print output matches quadlet file"
