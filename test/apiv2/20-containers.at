@@ -81,6 +81,7 @@ t GET /containers/json?all=true 200 \
   length=1 \
   .[0].Id~[0-9a-f]\\{64\\} \
   .[0].Image=$IMAGE \
+  .[0].State="exited" \
   .[0].Mounts~.*/tmp \
   .[0].NetworkSettings.$network_expect
 
