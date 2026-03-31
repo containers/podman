@@ -2059,7 +2059,7 @@ the `--volume` option of `podman build`, and has the form
 
 If `HOST-DIR` starts with `.`, Quadlet resolves the path relative to the location of the unit file.
 
-Note: unlike the `[Container]` section's `Volume=`, this option does not support named volumes or `.volume` Quadlet unit references, because `podman build --volume` only supports host directory bind mounts.
+Note: `podman build --volume` only supports host directory bind mounts. Because of this, `.volume` references and named volumes may not work as expected, even though Quadlet resolves them.
 
 This key can be listed multiple times.
 
