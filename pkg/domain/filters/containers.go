@@ -32,7 +32,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		}, nil
 	case "label!":
 		return func(c *libpod.Container) bool {
-			return !filters.MatchLabelFilters(filterValues, c.Labels())
+			return filters.MatchNegatedLabelFilters(filterValues, c.Labels())
 		}, nil
 	case "name":
 		// we only have to match one name
@@ -309,7 +309,7 @@ func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, _ *
 		}, nil
 	case "label!":
 		return func(c *libpod.Container) bool {
-			return !filters.MatchLabelFilters(filterValues, c.Labels())
+			return filters.MatchNegatedLabelFilters(filterValues, c.Labels())
 		}, nil
 	case "until":
 		return prepareUntilFilterFunc(filterValues)
@@ -478,7 +478,11 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 		}, nil
 	case "label":
 		return func(listContainer *types.ListContainer) bool {
-			return !filters.MatchLabelFilters(filterValues, listContainer.Labels)
+			return filters.MatchLabelFilters(filterValues, listContainer.Labels)
+		}, nil
+	case "label!":
+		return func(listContainer *types.ListContainer) bool {
+			return filters.MatchNegatedLabelFilters(filterValues, listContainer.Labels)
 		}, nil
 	case "pod":
 		var pods []*libpod.Pod
