@@ -511,8 +511,10 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 
 // leaseRangeToIPRangePrefix converts a LeaseRange back to a CIDR prefix for the Docker
 // compat API. This is the reverse of the conversion done in createNetwork, where an
-// IPRange CIDR (e.g. "192.168.0.128/25") is expanded to [FirstIP, LastIP].
-// It only succeeds for IPv4 ranges that form a valid aligned CIDR block.
+// IPRange CIDR (e.g. "192.168.0.128/25") is expanded to [FirstIP, LastIP] via
+// FirstIPInSubnet/LastIPInSubnet. FirstIPInSubnet returns network+1 (first usable host),
+// so StartIP is one greater than the network address. LastIPInSubnet returns the broadcast.
+// Only succeeds for IPv4 ranges that form a valid aligned CIDR block.
 func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
 	if lr == nil || lr.StartIP == nil || lr.EndIP == nil {
 		return netip.Prefix{}, false
@@ -528,19 +530,31 @@ func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
 	if endU < startU {
 		return netip.Prefix{}, false
 	}
-	count := endU - startU + 1
-	// Verify the range is a power of two (required for a valid CIDR block).
-	if count&(count-1) != 0 {
+	// For /32, FirstIPInSubnet returns the address unchanged; StartIP == EndIP.
+	if startU == endU {
+		startAddr, _ := netip.AddrFromSlice(start4)
+		return netip.PrefixFrom(startAddr.Unmap(), 32), true
+	}
+	// For all other subnets, FirstIPInSubnet increments the network address by 1,
+	// so recover the network address by subtracting 1 from StartIP.
+	if startU == 0 {
 		return netip.Prefix{}, false
 	}
-	// Verify that startU is aligned to the block size.
-	if count > 1 && startU&(count-1) != 0 {
+	netU := startU - 1
+	size := endU - netU + 1
+	// Verify size is a power of two (required for a valid CIDR block).
+	if size&(size-1) != 0 {
+		return netip.Prefix{}, false
+	}
+	// Verify the network address is aligned to the block size.
+	if netU&(size-1) != 0 {
 		return netip.Prefix{}, false
 	}
 	prefixBits := 32
-	for n := count; n > 1; n >>= 1 {
+	for n := size; n > 1; n >>= 1 {
 		prefixBits--
 	}
-	startAddr, _ := netip.AddrFromSlice(start4)
-	return netip.PrefixFrom(startAddr.Unmap(), prefixBits), true
+	netBytes := []byte{byte(netU >> 24), byte(netU >> 16), byte(netU >> 8), byte(netU)}
+	netAddr, _ := netip.AddrFromSlice(netBytes)
+	return netip.PrefixFrom(netAddr.Unmap(), prefixBits), true
 }
