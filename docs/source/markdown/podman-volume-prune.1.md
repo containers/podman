@@ -27,6 +27,11 @@ Provide filter values.
 
 The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
+Filters with different `keys` are combined with `AND`.
+Filters with the same `key` are combined with `OR`,
+with the only exceptions being `label` and `label!`,
+which are combined with `AND`.
+
 Supported filters:
 
 | Filter      | Description                                                                                                |

@@ -5,9 +5,12 @@
 #### **--filter**, **-f**=*filter*
 
 Filter what volumes are shown in the output.
-Multiple filters can be given with multiple uses of the --filter flag.
-Filters with the same key work inclusive, with the only exception being `label`
-which is exclusive. Filters with different keys always work exclusive.
+
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+
+Filters with different `keys` are combined with `AND`.
+Filters with the same `key` are combined with `OR`,
+with the only exception being `label`, which uses `AND`.
 
 Volumes can be filtered by the following attributes:
 

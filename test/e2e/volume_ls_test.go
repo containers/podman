@@ -213,6 +213,13 @@ var _ = Describe("Podman volume ls", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol3Name))
+
+		// Filters with different keys
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=b=c", "--filter", "name=vol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		Expect(session.OutputToStringArray()[0]).To(Equal(vol1Name))
 	})
 
 	It("podman ls volume with --filter since/after", func() {
