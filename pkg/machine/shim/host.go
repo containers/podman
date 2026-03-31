@@ -691,11 +691,6 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		machine.PrintRootlessWarning(mc.Name)
 	}
 
-	err = mp.PostStartNetworking(mc, opts.NoInfo)
-	if err != nil {
-		return err
-	}
-
 	stateF := func() (machineDefine.Status, error) {
 		return mp.State(mc, true)
 	}
@@ -711,6 +706,12 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 			return fmt.Errorf("%s: ssh error: %v", msg, sshError)
 		}
 		return errors.New(msg)
+	}
+
+	// Start networking after VM readiness check to ensure SSH is working
+	err = mp.PostStartNetworking(mc, opts.NoInfo)
+	if err != nil {
+		return err
 	}
 
 	// now that the machine has transitioned into the running state, we don't need a goroutine listening for SIGINT or SIGTERM to handle state

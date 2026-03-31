@@ -16,11 +16,13 @@ import (
 	"time"
 
 	winio "github.com/Microsoft/go-winio"
+	"github.com/containers/winquit/pkg/winquit"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/env"
 	"go.podman.io/podman/v6/pkg/machine/sockets"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"go.podman.io/storage/pkg/fileutils"
 )
 
@@ -261,4 +263,77 @@ func GetWinProxyStateDir(name string, vmtype define.VMType) (string, error) {
 
 func GetEnvSetString(env string, val string) string {
 	return fmt.Sprintf("$Env:%s=\"%s\"", env, val)
+}
+
+func GetServer9pPIDFile(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) (*define.VMFile, error) {
+	return dirs.RuntimeDir.AppendToNewVMFile(fmt.Sprintf("server9p-%s.pid", mc.Name), nil)
+}
+
+func StopServer9p(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) error {
+	pidFile, err := GetServer9pPIDFile(mc, dirs)
+	if err != nil {
+		return err
+	}
+	pid, err := pidFile.ReadPIDFrom()
+	if err != nil {
+		// PID file doesn't exist or is invalid - server might not be running
+		logrus.Debugf("Server9p PID file not found or invalid (server may not be running): %v", err)
+		return nil
+	}
+
+	// Validate PID is positive before attempting to stop
+	if pid <= 0 {
+		logrus.Warnf("Invalid PID %d from server9p PID file, skipping stop", pid)
+		// Clean up invalid PID file
+		if err := pidFile.Delete(); err != nil {
+			logrus.Warnf("Failed to clean up invalid server9p PID file: %v", err)
+		}
+		return nil
+	}
+
+	if err = waitOnProcess(pid, "server9p"); err != nil {
+		return err
+	}
+
+	if err := pidFile.Delete(); err != nil {
+		logrus.Warnf("Failed to clean up server9p PID file: %v", err)
+	}
+	return nil
+}
+
+func waitOnProcess(processID int, processName string) error {
+	logrus.Infof("Going to stop %s (PID %d)", processName, processID)
+
+	p, err := os.FindProcess(processID)
+	if err != nil {
+		// FindProcess on Windows will return an error when the process is not found
+		// if a process can not be found then it has already exited and there is
+		// nothing left to do, so return without error
+		//nolint:nilerr
+		return nil
+	}
+
+	// Gracefully quit and force kill after 30 seconds
+	if err := winquit.QuitProcess(processID, 30*time.Second); err != nil {
+		return err
+	}
+
+	logrus.Debugf("completed grace quit || kill of %s (PID %d)", processName, processID)
+
+	// Make sure the process is gone (Hard kills are async)
+	done := make(chan struct{})
+	go func() {
+		_, _ = p.Wait()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-done:
+		logrus.Debugf("verified %s termination (PID %d)", processName, processID)
+	case <-time.After(10 * time.Second):
+		// Very unlikely but track just in case
+		logrus.Errorf("was not able to kill %s (PID %d)", processName, processID)
+	}
+
+	return nil
 }

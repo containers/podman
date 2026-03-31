@@ -49,7 +49,7 @@ func CleanupGVProxy(f define.VMFile) error {
 	if err != nil {
 		return fmt.Errorf("unable to convert pid to integer: %v", err)
 	}
-	if err := waitOnProcess(proxyPid); err != nil {
+	if err := waitOnProcess(proxyPid, "gvproxy"); err != nil {
 		return err
 	}
 	return removeGVProxyPIDFile(f)

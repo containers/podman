@@ -178,6 +178,14 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 		hwConfig.Network = true
 	}
 
+	// Add vsock port numbers to mounts
+	err = createShares(mc)
+	if err != nil {
+		return err
+	}
+
+	// GenerateISO MUST be executed after creating shares to ensure we know the vsock ports
+	// to generate the 9p-vsock@.service unit files for the cloud-init user data file
 	if mc.CloudInit {
 		// Generate cloud-init ISO
 		iso, err := cloudinit.GenerateISO(mc)
@@ -185,12 +193,6 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 			return fmt.Errorf("generating cloud-init ISO: %w", err)
 		}
 		hwConfig.DVDDiskPath = iso.GetPath()
-	}
-
-	// Add vsock port numbers to mounts
-	err = createShares(mc)
-	if err != nil {
-		return err
 	}
 
 	if builder != nil {
@@ -605,6 +607,15 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	}
 	callbackFuncs.Add(startCallback)
 
+	// If we are not using user mode networking, we need to retrieve the VM IP address
+	if !mc.HyperVHypervisor.UserModeNetworking {
+		ip, err := getVMIPAddress(mc.Name)
+		if err != nil {
+			return nil, nil, fmt.Errorf("retrieving VM's IP: %w", err)
+		}
+		mc.IPAddress = ip
+	}
+
 	return nil, waitReady, err
 }
 
@@ -644,9 +655,26 @@ func (h HyperVStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error 
 	}
 
 	if hardStop {
-		return vm.StopWithForce()
+		err = vm.StopWithForce()
+	} else {
+		err = vm.Stop()
 	}
-	return vm.Stop()
+	if err != nil {
+		return err
+	}
+
+	// Stop the 9p server if it's running
+	// If we do not succeed do not return an error so to not block the VM stop
+	dirs, err := env.GetMachineDirs(h.VMType())
+	if err != nil {
+		logrus.Warnf("Failed to get machine dirs for server9p cleanup: %v", err)
+		return nil
+	}
+	err = machine.StopServer9p(mc, dirs)
+	if err != nil {
+		logrus.Warnf("Failed to stop server9p (VM is stopped): %v", err)
+	}
+	return nil
 }
 
 // TODO should this be plumbed higher into the code stack?
@@ -782,16 +810,6 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
-	// If we are not using user mode networking, we need to retrieve the VM IP address
-	if !mc.HyperVHypervisor.UserModeNetworking {
-		ip, err := getVMIPAddress(mc.Name)
-		if err != nil {
-			return fmt.Errorf("retrieving VM's IP: %w", err)
-		}
-		mc.IPAddress = ip
-		return nil
-	}
-
 	if len(mc.Mounts) == 0 {
 		return nil
 	}
@@ -804,14 +822,19 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 	if err != nil {
 		return err
 	}
-	// GvProxy PID file path is now derived
-	gvproxyPIDFile, err := machine.GetGVProxyPIDFile(mc, dirs)
-	if err != nil {
-		return err
-	}
-	gvproxyPID, err = gvproxyPIDFile.ReadPIDFrom()
-	if err != nil {
-		return err
+	// If user mode networking is enabled, we need to get the GvProxy PID
+	// to pass to the 9p server.
+	// If cloud-init is enabled, we do not need to pass the GvProxy PID to the 9p server.
+	if !mc.CloudInit && mc.HyperVHypervisor.UserModeNetworking {
+		// GvProxy PID file path is now derived
+		gvproxyPIDFile, err := machine.GetGVProxyPIDFile(mc, dirs)
+		if err != nil {
+			return err
+		}
+		gvproxyPID, err = gvproxyPIDFile.ReadPIDFrom()
+		if err != nil {
+			return err
+		}
 	}
 
 	executable, err = os.Executable()
@@ -831,14 +854,16 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 		}
 		p9ServerArgs = append(p9ServerArgs, "--serve", fmt.Sprintf("%s:%s", mount.Source, winio.VsockServiceID(uint32(*mount.VSockNumber)).String()))
 	}
-	p9ServerArgs = append(p9ServerArgs, fmt.Sprintf("%d", gvproxyPID))
+	if gvproxyPID > 0 {
+		p9ServerArgs = append(p9ServerArgs, fmt.Sprintf("%d", gvproxyPID))
+	}
 
 	logrus.Debugf("Going to start 9p server using command: %s %v", executable, p9ServerArgs)
 
 	fsCmd := exec.Command(executable, p9ServerArgs...)
 
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		log, err := logCommandToFile(fsCmd, "podman-machine-server9.log")
+		log, err := logCommandToFile(fsCmd, fmt.Sprintf("machine-server9p-%s.log", mc.Name))
 		if err != nil {
 			return err
 		}
@@ -849,10 +874,40 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 	if err != nil {
 		return fmt.Errorf("unable to start 9p server: %v", err)
 	}
-	logrus.Infof("Started podman 9p server as PID %d", fsCmd.Process.Pid)
+	server9pPID := fsCmd.Process.Pid
+	logrus.Infof("Started 9p server as PID %d", server9pPID)
 
-	// Note: No callback is needed to stop the 9p server, because it will stop when
-	// gvproxy stops
+	// Register an immediate cleanup that kills by PID in case anything
+	// below fails before StopServer9p becomes usable (PID file not yet written).
+	killServer9p := func() error {
+		if p, err := os.FindProcess(server9pPID); err == nil {
+			if err := p.Kill(); err != nil {
+				logrus.Warnf("Failed to kill server9p process %d: %v", server9pPID, err)
+			}
+		}
+		return nil
+	}
+	callbackFuncs.Add(killServer9p)
+
+	// Note: To keep compatibility with upstream podman, when using ignition, no callback is needed to stop the 9p server, because it will stop when
+	// gvproxy stops. When using cloud-init, we need to store the PID file to clean up on VM stop.
+	if mc.CloudInit {
+		// Store the PID file for cleanup on stop
+		serverPIDFile, err := machine.GetServer9pPIDFile(mc, dirs)
+		if err != nil {
+			return fmt.Errorf("unable to get server9p PID file: %w", err)
+		}
+		if err := os.WriteFile(serverPIDFile.GetPath(), []byte(fmt.Sprintf("%d", server9pPID)), 0o644); err != nil {
+			return fmt.Errorf("unable to write server9p PID file: %w", err)
+		}
+		cleanupPIDFile := func() error {
+			if err := serverPIDFile.Delete(); err != nil {
+				logrus.Warnf("Failed to clean up server9p PID file: %v", err)
+			}
+			return nil
+		}
+		callbackFuncs.Add(cleanupPIDFile)
+	}
 
 	// Finalize starting shares after we are confident gvproxy is still alive.
 	err = startShares(mc)
