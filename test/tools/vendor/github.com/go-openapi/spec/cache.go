@@ -1,40 +1,28 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
 import (
+	"maps"
 	"sync"
 )
 
-// ResolutionCache a cache for resolving urls
+// ResolutionCache a cache for resolving urls.
 type ResolutionCache interface {
-	Get(string) (interface{}, bool)
-	Set(string, interface{})
+	Get(uri string) (any, bool)
+	Set(uri string, data any)
 }
 
 type simpleCache struct {
 	lock  sync.RWMutex
-	store map[string]interface{}
+	store map[string]any
 }
 
-func (s *simpleCache) ShallowClone() ResolutionCache {
-	store := make(map[string]interface{}, len(s.store))
+func (s *simpleCache) ShallowClone() ResolutionCache { //nolint:ireturn // returns the public interface type by design
+	store := make(map[string]any, len(s.store))
 	s.lock.RLock()
-	for k, v := range s.store {
-		store[k] = v
-	}
+	maps.Copy(store, s.store)
 	s.lock.RUnlock()
 
 	return &simpleCache{
@@ -42,8 +30,8 @@ func (s *simpleCache) ShallowClone() ResolutionCache {
 	}
 }
 
-// Get retrieves a cached URI
-func (s *simpleCache) Get(uri string) (interface{}, bool) {
+// Get retrieves a cached URI.
+func (s *simpleCache) Get(uri string) (any, bool) {
 	s.lock.RLock()
 	v, ok := s.store[uri]
 
@@ -51,8 +39,8 @@ func (s *simpleCache) Get(uri string) (interface{}, bool) {
 	return v, ok
 }
 
-// Set caches a URI
-func (s *simpleCache) Set(uri string, data interface{}) {
+// Set caches a URI.
+func (s *simpleCache) Set(uri string, data any) {
 	s.lock.Lock()
 	s.store[uri] = data
 	s.lock.Unlock()
@@ -68,8 +56,8 @@ var (
 	//
 	// All subsequent utilizations of this cache are produced from a shallow
 	// clone of this initial version.
-	resCache  *simpleCache
-	onceCache sync.Once
+	resCache  *simpleCache //nolint:gochecknoglobals // package-level lazy cache for $ref resolution
+	onceCache sync.Once    //nolint:gochecknoglobals // guards lazy init of resCache
 
 	_ ResolutionCache = &simpleCache{}
 )
@@ -80,13 +68,13 @@ func initResolutionCache() {
 }
 
 func defaultResolutionCache() *simpleCache {
-	return &simpleCache{store: map[string]interface{}{
+	return &simpleCache{store: map[string]any{
 		"http://swagger.io/v2/schema.json":       MustLoadSwagger20Schema(),
 		"http://json-schema.org/draft-04/schema": MustLoadJSONSchemaDraft04(),
 	}}
 }
 
-func cacheOrDefault(cache ResolutionCache) ResolutionCache {
+func cacheOrDefault(cache ResolutionCache) ResolutionCache { //nolint:ireturn // returns the public interface type by design
 	onceCache.Do(initResolutionCache)
 
 	if cache != nil {

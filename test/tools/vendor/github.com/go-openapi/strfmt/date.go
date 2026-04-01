@@ -1,58 +1,43 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package strfmt
 
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits // registers date format in the default registry
 	d := Date{}
-	// register this format in the default registry
 	Default.Add("date", &d, IsDate)
 }
 
-// IsDate returns true when the string is a valid date
+// IsDate returns true when the string is a valid date.
 func IsDate(str string) bool {
 	_, err := time.Parse(RFC3339FullDate, str)
 	return err == nil
 }
 
 const (
-	// RFC3339FullDate represents a full-date as specified by RFC3339
+	// RFC3339FullDate represents a full-date as specified by RFC3339.
 	// See: http://goo.gl/xXOvVd
 	RFC3339FullDate = "2006-01-02"
 )
 
-// Date represents a date from the API
+// Date represents a date from the API.
 //
-// swagger:strfmt date
+// swagger:strfmt date.
 type Date time.Time
 
-// String converts this date into a string
+// String converts this date into a string.
 func (d Date) String() string {
 	return time.Time(d).Format(RFC3339FullDate)
 }
 
-// UnmarshalText parses a text representation into a date type
+// UnmarshalText parses a text representation into a date type.
 func (d *Date) UnmarshalText(text []byte) error {
 	if len(text) == 0 {
 		return nil
@@ -65,13 +50,13 @@ func (d *Date) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// MarshalText serializes this date type to string
+// MarshalText serializes this date type to string.
 func (d Date) MarshalText() ([]byte, error) {
 	return []byte(d.String()), nil
 }
 
 // Scan scans a Date value from database driver type.
-func (d *Date) Scan(raw interface{}) error {
+func (d *Date) Scan(raw any) error {
 	switch v := raw.(type) {
 	case []byte:
 		return d.UnmarshalText(v)
@@ -84,7 +69,7 @@ func (d *Date) Scan(raw interface{}) error {
 		*d = Date{}
 		return nil
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Date from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Date from: %#v: %w", v, ErrFormat)
 	}
 }
 
@@ -93,12 +78,12 @@ func (d Date) Value() (driver.Value, error) {
 	return driver.Value(d.String()), nil
 }
 
-// MarshalJSON returns the Date as JSON
+// MarshalJSON returns the Date as JSON.
 func (d Date) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(d).Format(RFC3339FullDate))
 }
 
-// UnmarshalJSON sets the Date from JSON
+// UnmarshalJSON sets the Date from JSON.
 func (d *Date) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
@@ -113,28 +98,6 @@ func (d *Date) UnmarshalJSON(data []byte) error {
 	}
 	*d = Date(tt)
 	return nil
-}
-
-func (d Date) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(bson.M{"data": d.String()})
-}
-
-func (d *Date) UnmarshalBSON(data []byte) error {
-	var m bson.M
-	if err := bson.Unmarshal(data, &m); err != nil {
-		return err
-	}
-
-	if data, ok := m["data"].(string); ok {
-		rd, err := time.ParseInLocation(RFC3339FullDate, data, DefaultTimeLocation)
-		if err != nil {
-			return err
-		}
-		*d = Date(rd)
-		return nil
-	}
-
-	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -162,12 +125,12 @@ func (d *Date) GobDecode(data []byte) error {
 	return d.UnmarshalBinary(data)
 }
 
-// MarshalBinary implements the encoding.BinaryMarshaler interface.
+// MarshalBinary implements the encoding.[encoding.BinaryMarshaler] interface.
 func (d Date) MarshalBinary() ([]byte, error) {
 	return time.Time(d).MarshalBinary()
 }
 
-// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+// UnmarshalBinary implements the encoding.[encoding.BinaryUnmarshaler] interface.
 func (d *Date) UnmarshalBinary(data []byte) error {
 	var original time.Time
 
@@ -181,7 +144,7 @@ func (d *Date) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Equal checks if two Date instances are equal
+// Equal checks if two Date instances are equal.
 func (d Date) Equal(d2 Date) bool {
 	return time.Time(d).Equal(time.Time(d2))
 }

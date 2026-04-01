@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package generator
 
@@ -19,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -43,7 +34,7 @@ func (s responses) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s responses) Less(i, j int) bool { return s[i].Code < s[j].Code }
 
 // sortedResponses produces a sorted list of responses.
-// TODO: this is redundant with the definition given in struct.go
+// TODO: this is redundant with the definition given in struct.go.
 func sortedResponses(input map[int]spec.Response) responses {
 	var res responses
 	for k, v := range input {
@@ -58,7 +49,7 @@ func sortedResponses(input map[int]spec.Response) responses {
 // GenerateServerOperation generates a parameter model, parameter validator, http handler implementations for a given operation.
 //
 // It also generates an operation handler interface that uses the parameter model for handling a valid request.
-// Allows for specifying a list of tags to include only certain tags for the generation
+// Allows for specifying a list of tags to include only certain tags for the generation.
 func GenerateServerOperation(operationNames []string, opts *GenOpts) error {
 	if err := opts.CheckOpts(); err != nil {
 		return err
@@ -149,7 +140,7 @@ type operationGenerator struct {
 	GenOpts              *GenOpts
 }
 
-// Generate a single operation
+// Generate a single operation.
 func (o *operationGenerator) Generate() error {
 	defaultImports := o.GenOpts.defaultImports()
 
@@ -198,7 +189,7 @@ func (o *operationGenerator) Generate() error {
 	for _, pp := range operations {
 		op := pp
 		if o.GenOpts.DumpData {
-			_ = dumpData(swag.ToDynamicJSON(op))
+			_ = dumpData(os.Stdout, swag.ToDynamicJSON(op))
 			continue
 		}
 		if err := o.GenOpts.renderOperation(&op); err != nil {
@@ -238,7 +229,7 @@ type codeGenOpBuilder struct {
 	GenOpts             *GenOpts
 }
 
-// paramMappings yields a map of safe parameter names for an operation
+// paramMappings yields a map of safe parameter names for an operation.
 func paramMappings(params map[string]spec.Parameter) (map[string]map[string]string, string) {
 	idMapping := map[string]map[string]string{
 		"query":    make(map[string]string, len(params)),
@@ -247,13 +238,13 @@ func paramMappings(params map[string]spec.Parameter) (map[string]map[string]stri
 		"header":   make(map[string]string, len(params)),
 		"body":     make(map[string]string, len(params)),
 	}
-	debugLog("paramMappings: map=%v", params)
+	debugLogf("paramMappings: map=%v", params)
 
 	// In order to avoid unstable generation, adopt same naming convention
 	// for all parameters with same name across locations.
-	seenIDs := make(map[string]interface{}, len(params))
+	seenIDs := make(map[string]any, len(params))
 	for id, p := range params {
-		debugLog("paramMappings: params: id=%s, In=%q, Name=%q", id, p.In, p.Name)
+		debugLogf("paramMappings: params: id=%s, In=%q, Name=%q", id, p.In, p.Name)
 		// guard against possible validation failures and/or skipped issues
 		if _, found := idMapping[p.In]; !found {
 			log.Printf(`warning: parameter named %q has an invalid "in": %q. Skipped`, p.Name, p.In)
@@ -265,7 +256,11 @@ func paramMappings(params map[string]spec.Parameter) (map[string]map[string]stri
 		}
 
 		if val, ok := seenIDs[p.Name]; ok {
-			previous := val.(struct{ id, in string })
+			previous, ok := val.(struct{ id, in string })
+			if !ok {
+				panic(fmt.Errorf("internal error: invalid paramMapping: got %T", val))
+			}
+
 			idMapping[p.In][p.Name] = swag.ToGoName(id)
 			// rewrite the previously found one
 			idMapping[previous.in][p.Name] = swag.ToGoName(previous.id)
@@ -286,7 +281,7 @@ func paramMappings(params map[string]spec.Parameter) (map[string]map[string]stri
 //
 // NOTE: this merely protects the timeout field in the client parameter struct,
 // fields "Context" and "HTTPClient" remain exposed to name conflicts.
-func renameTimeout(seenIDs map[string]interface{}, timeoutName string) string {
+func renameTimeout(seenIDs map[string]any, timeoutName string) string {
 	if seenIDs == nil {
 		return timeoutName
 	}
@@ -314,8 +309,9 @@ func renameTimeout(seenIDs map[string]interface{}, timeoutName string) string {
 	return renameTimeout(seenIDs, next)
 }
 
+//nolint:gocognit,gocyclo,cyclop,maintidx // TODO(fredbi): refactor
 func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
-	debugLog("[%s %s] parsing operation (id: %q)", b.Method, b.Path, b.Operation.ID)
+	debugLogf("[%s %s] parsing operation (id: %q)", b.Method, b.Path, b.Operation.ID)
 	// NOTE: we assume flatten is enabled by default (i.e. complex constructs are resolved from the models package),
 	// but do not assume the spec is necessarily fully flattened (i.e. all schemas moved to definitions).
 	//
@@ -394,7 +390,11 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 				}
 			}
 			name = swag.ToJSONName(b.Name + " " + name)
-			isSuccess := v.Code/100 == 2
+			const (
+				httpStatusCodeDivider = 100
+				httpStatusCodeSuccess = 2
+			)
+			isSuccess := v.Code/httpStatusCodeDivider == httpStatusCodeSuccess
 			gr, err := b.MakeResponse(receiver, name, isSuccess, resolver, v.Code, v.Response)
 			if err != nil {
 				return GenOperation{}, err
@@ -520,6 +520,7 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 
 		PrincipalIsNullable: b.GenOpts.PrincipalIsNullable(),
 		ExternalDocs:        trimExternalDoc(operation.ExternalDocs),
+		ReturnErrors:        b.GenOpts.ReturnErrors,
 	}, nil
 }
 
@@ -541,7 +542,7 @@ func schemeOrDefault(schemes []string, defaultScheme string) []string {
 }
 
 func (b *codeGenOpBuilder) MakeResponse(receiver, name string, isSuccess bool, resolver *typeResolver, code int, resp spec.Response) (GenResponse, error) {
-	debugLog("[%s %s] making id %q", b.Method, b.Path, b.Operation.ID)
+	debugLogf("[%s %s] making id %q", b.Method, b.Path, b.Operation.ID)
 
 	// assume minimal flattening has been carried on, so there is not $ref in response (but some may remain in response schema)
 	examples := make(GenResponseExamples, 0, len(resp.Examples))
@@ -566,6 +567,7 @@ func (b *codeGenOpBuilder) MakeResponse(receiver, name string, isSuccess bool, r
 		StrictResponders: b.GenOpts.StrictResponders,
 		OperationName:    b.Name,
 		Examples:         examples,
+		ReturnErrors:     b.GenOpts.ReturnErrors,
 	}
 
 	// prepare response headers
@@ -668,15 +670,16 @@ func (b *codeGenOpBuilder) MakeHeaderItem(receiver, paramName, indexVar, path, v
 	return res, nil
 }
 
-// HasValidations resolves the validation status for simple schema objects
+// HasValidations resolves the validation status for simple schema objects.
 func (b *codeGenOpBuilder) HasValidations(sh spec.CommonValidations, rt resolvedType) (hasValidations bool, hasSliceValidations bool) {
 	hasSliceValidations = sh.HasArrayValidations() || sh.HasEnum()
 	hasValidations = sh.HasNumberValidations() || sh.HasStringValidations() || hasSliceValidations || hasFormatValidation(rt)
-	return
+
+	return hasValidations, hasSliceValidations
 }
 
 func (b *codeGenOpBuilder) MakeParameterItem(receiver, paramName, indexVar, path, valueExpression, location string, resolver *typeResolver, items, _ *spec.Items) (GenItems, error) {
-	debugLog("making parameter item recv=%s param=%s index=%s valueExpr=%s path=%s location=%s", receiver, paramName, indexVar, valueExpression, path, location)
+	debugLogf("making parameter item recv=%s param=%s index=%s valueExpr=%s path=%s location=%s", receiver, paramName, indexVar, valueExpression, path, location)
 	var res GenItems
 	res.resolvedType = simpleResolvedType(items.Type, items.Format, items.Items, &items.CommonValidations)
 
@@ -715,7 +718,7 @@ func (b *codeGenOpBuilder) MakeParameterItem(receiver, paramName, indexVar, path
 }
 
 func (b *codeGenOpBuilder) MakeParameter(receiver string, resolver *typeResolver, param spec.Parameter, idMapping map[string]map[string]string) (GenParameter, error) {
-	debugLog("[%s %s] making parameter %q", b.Method, b.Path, param.Name)
+	debugLogf("[%s %s] making parameter %q", b.Method, b.Path, param.Name)
 
 	// assume minimal flattening has been carried on, so there is not $ref in response (but some may remain in response schema)
 
@@ -778,7 +781,7 @@ func (b *codeGenOpBuilder) MakeParameter(receiver string, resolver *typeResolver
 			SchemaValidations: param.Validations(),
 		}
 
-		res.ZeroValue = res.resolvedType.Zero()
+		res.ZeroValue = res.Zero()
 
 		hasChildValidations := false
 		if param.Items != nil {
@@ -805,7 +808,7 @@ func (b *codeGenOpBuilder) MakeParameter(receiver string, resolver *typeResolver
 	return res, nil
 }
 
-// MakeBodyParameter constructs a body parameter schema
+// MakeBodyParameter constructs a body parameter schema.
 func (b *codeGenOpBuilder) MakeBodyParameter(res *GenParameter, resolver *typeResolver, sch *spec.Schema) error {
 	// resolve schema model
 	schema, ers := b.buildOperationSchema(res.Path, b.Operation.ID+"ParamsBody", swag.ToGoName(b.Operation.ID+" Body"), res.ReceiverName, res.IndexVar, sch, resolver)
@@ -843,7 +846,9 @@ func (b *codeGenOpBuilder) MakeBodyParameter(res *GenParameter, resolver *typeRe
 // MakeBodyParameterItemsAndMaps clones the .Items schema structure (resp. .AdditionalProperties) as a .GenItems structure
 // for compatibility with simple param templates.
 //
-// Constructed children assume simple structures: any complex object is assumed to be resolved by a model or extra schema definition
+// Constructed children assume simple structures: any complex object is assumed to be resolved by a model or extra schema definition.
+//
+//nolint:gocognit // TODO(fredbi): refactor
 func (b *codeGenOpBuilder) MakeBodyParameterItemsAndMaps(res *GenParameter, it *GenSchema) *GenItems {
 	items := new(GenItems)
 	if it != nil {
@@ -964,7 +969,7 @@ func (b *codeGenOpBuilder) setBodyParamValidation(p *GenParameter) {
 			// composition of primitive fields must be properly identified: hack this through
 			_, isPrimitive := primitives[s.GoType]
 			_, isFormatter := customFormatters[s.GoType]
-			isComposedPrimitive := s.IsPrimitive && !(isPrimitive || isFormatter)
+			isComposedPrimitive := s.IsPrimitive && !isPrimitive && !isFormatter
 
 			hasSimpleBodyParams = !s.IsComplexObject && !s.IsAliased && !isComposedPrimitive && !doNot
 			hasModelBodyParams = (s.IsComplexObject || s.IsAliased || isComposedPrimitive) && !doNot
@@ -972,12 +977,12 @@ func (b *codeGenOpBuilder) setBodyParamValidation(p *GenParameter) {
 			if s.IsArray && s.Items != nil {
 				it := s.Items
 				doNot = it.IsInterface || it.IsStream || it.IsBase64
-				hasSimpleBodyItems = !it.IsComplexObject && !(it.IsAliased || doNot)
+				hasSimpleBodyItems = !it.IsComplexObject && !it.IsAliased && !doNot
 				hasModelBodyItems = (it.IsComplexObject || it.IsAliased) && !doNot
 			}
 			if s.IsMap && s.AdditionalProperties != nil {
 				it := s.AdditionalProperties
-				hasSimpleBodyMap = !it.IsComplexObject && !(it.IsAliased || doNot)
+				hasSimpleBodyMap = !it.IsComplexObject && !it.IsAliased && !doNot
 				hasModelBodyMap = !hasSimpleBodyMap && !doNot
 			}
 		}
@@ -991,7 +996,7 @@ func (b *codeGenOpBuilder) setBodyParamValidation(p *GenParameter) {
 	}
 }
 
-// makeSecuritySchemes produces a sorted list of security schemes for this operation
+// makeSecuritySchemes produces a sorted list of security schemes for this operation.
 func (b *codeGenOpBuilder) makeSecuritySchemes(receiver string) GenSecuritySchemes {
 	return gatherSecuritySchemes(b.SecurityDefinitions, b.Name, b.Principal, receiver, b.GenOpts.PrincipalIsNullable())
 }
@@ -1024,11 +1029,19 @@ func (b *codeGenOpBuilder) makeSecurityRequirements(_ string) []GenSecurityRequi
 	return securityRequirements
 }
 
-// cloneSchema returns a deep copy of a schema
+// cloneSchema returns a deep copy of a schema.
 func (b *codeGenOpBuilder) cloneSchema(schema *spec.Schema) *spec.Schema {
 	savedSchema := &spec.Schema{}
-	schemaRep, _ := json.Marshal(schema)
-	_ = json.Unmarshal(schemaRep, savedSchema)
+	schemaRep, err := json.Marshal(schema)
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.Unmarshal(schemaRep, savedSchema)
+	if err != nil {
+		panic(err)
+	}
+
 	return savedSchema
 }
 
@@ -1064,7 +1077,7 @@ func (b *codeGenOpBuilder) liftExtraSchemas(resolver, rslv *typeResolver, bs *sp
 
 	// rebuild schema within local package
 	if err = pg.makeGenSchema(); err != nil {
-		return
+		return nil, err
 	}
 
 	// lift nested extra schemas (inlined types)
@@ -1078,7 +1091,7 @@ func (b *codeGenOpBuilder) liftExtraSchemas(resolver, rslv *typeResolver, bs *sp
 		}
 	}
 	schema = &pg.GenSchema
-	return
+	return schema, nil
 }
 
 // buildOperationSchema constructs a schema for an operation (for body params or responses).
@@ -1129,9 +1142,7 @@ func (b *codeGenOpBuilder) buildOperationSchema(schemaPath, containerName, schem
 	if err := sc.makeGenSchema(); err != nil {
 		return GenSchema{}, err
 	}
-	for alias, pkg := range findImports(&sc.GenSchema) {
-		b.Imports[alias] = pkg
-	}
+	maps.Copy(b.Imports, findImports(&sc.GenSchema))
 
 	if sch.Ref.String() == "" && len(sc.ExtraSchemas) > 0 {
 		newSchema, err := b.liftExtraSchemas(resolver, br, bs, &sc)
@@ -1208,7 +1219,7 @@ func intersectTags(left, right []string) []string {
 	return filtered
 }
 
-// analyze tags for an operation
+// analyze tags for an operation.
 func (b *codeGenOpBuilder) analyzeTags() (string, []string, bool) {
 	var (
 		filter         []string
@@ -1248,7 +1259,8 @@ func (b *codeGenOpBuilder) analyzeTags() (string, []string, bool) {
 		tag = renameOperationPackage(intersected, tag)
 	}
 
-	if matches := versionedPkgRex.FindStringSubmatch(tag); len(matches) > 2 {
+	const boundMatchSubExpressions = 2
+	if matches := versionedPkgRex.FindStringSubmatch(tag); len(matches) > boundMatchSubExpressions {
 		// rename packages like "v1", "v2" ... as they hold a special meaning for go
 		tag = "version" + matches[2]
 	}
@@ -1268,13 +1280,13 @@ func maxInt(a, b int) int {
 }
 
 // deconflictTag ensures generated packages for operations based on tags do not conflict
-// with other imports
+// with other imports.
 func deconflictTag(seenTags []string, pkg string) string {
 	return deconflictPkg(pkg, func(pkg string) string { return renameOperationPackage(seenTags, pkg) })
 }
 
 // deconflictPrincipal ensures that whenever an external principal package is added, it doesn't conflict
-// with standard imports
+// with standard imports.
 func deconflictPrincipal(pkg string) string {
 	switch pkg {
 	case "principal":
@@ -1284,7 +1296,7 @@ func deconflictPrincipal(pkg string) string {
 	}
 }
 
-// deconflictPkg renames package names which conflict with standard imports
+// deconflictPkg renames package names which conflict with standard imports.
 func deconflictPkg(pkg string, renamer func(string) string) string {
 	switch pkg {
 	// package conflict with variables

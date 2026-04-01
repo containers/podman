@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package runtime
 
@@ -22,14 +11,14 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
 func defaultCloser() error { return nil }
 
 type byteStreamOpt func(opts *byteStreamOpts)
 
-// ClosesStream when the bytestream consumer or producer is finished
+// ClosesStream when the bytestream consumer or producer is finished.
 func ClosesStream(opts *byteStreamOpts) {
 	opts.Close = true
 }
@@ -43,18 +32,19 @@ type byteStreamOpts struct {
 // The consumer consumes from a provided reader into the data passed by reference.
 //
 // Supported output underlying types and interfaces, prioritized in this order:
-// - io.ReaderFrom (for maximum control)
-// - io.Writer (performs io.Copy)
-// - encoding.BinaryUnmarshaler
-// - *string
-// - *[]byte
+//
+//   - [io.ReaderFrom] (for maximum control)
+//   - [io.Writer] (performs [io.Copy])
+//   - [encoding.BinaryUnmarshaler]
+//   - *string
+//   - *[]byte
 func ByteStreamConsumer(opts ...byteStreamOpt) Consumer {
 	var vals byteStreamOpts
 	for _, opt := range opts {
 		opt(&vals)
 	}
 
-	return ConsumerFunc(func(reader io.Reader, data interface{}) error {
+	return ConsumerFunc(func(reader io.Reader, data any) error {
 		if reader == nil {
 			return errors.New("ByteStreamConsumer requires a reader") // early exit
 		}
@@ -135,20 +125,21 @@ func ByteStreamConsumer(opts ...byteStreamOpt) Consumer {
 // The producer takes input data then writes to an output writer (essentially as a pipe).
 //
 // Supported input underlying types and interfaces, prioritized in this order:
-// - io.WriterTo (for maximum control)
-// - io.Reader (performs io.Copy). A ReadCloser is closed before exiting.
-// - encoding.BinaryMarshaler
+//
+// - [io.WriterTo] (for maximum control)
+// - [io.Reader] (performs [io.Copy]). A ReadCloser is closed before exiting.
+// - [encoding.BinaryMarshaler]
 // - error (writes as a string)
 // - []byte
 // - string
-// - struct, other slices: writes as JSON
+// - struct, other slices: writes as JSON.
 func ByteStreamProducer(opts ...byteStreamOpt) Producer {
 	var vals byteStreamOpts
 	for _, opt := range opts {
 		opt(&vals)
 	}
 
-	return ProducerFunc(func(writer io.Writer, data interface{}) error {
+	return ProducerFunc(func(writer io.Writer, data any) error {
 		if writer == nil {
 			return errors.New("ByteStreamProducer requires a writer") // early exit
 		}
@@ -206,7 +197,7 @@ func ByteStreamProducer(opts ...byteStreamOpt) Producer {
 				return err
 
 			case t.Kind() == reflect.Struct || t.Kind() == reflect.Slice:
-				b, err := swag.WriteJSON(data)
+				b, err := jsonutils.WriteJSON(data)
 				if err != nil {
 					return err
 				}

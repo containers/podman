@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
 import (
@@ -9,7 +12,7 @@ import (
 	"strings"
 )
 
-// SpecDifference encapsulates the details of an individual diff in part of a spec
+// SpecDifference encapsulates the details of an individual diff in part of a spec.
 type SpecDifference struct {
 	DifferenceLocation DifferenceLocation `json:"location"`
 	Code               SpecChangeCode     `json:"code"`
@@ -17,10 +20,10 @@ type SpecDifference struct {
 	DiffInfo           string             `json:"info,omitempty"`
 }
 
-// SpecDifferences list of differences
+// SpecDifferences list of differences.
 type SpecDifferences []SpecDifference
 
-// Matches returns true if the diff matches another
+// Matches returns true if the diff matches another.
 func (sd SpecDifference) Matches(other SpecDifference) bool {
 	return sd.Code == other.Code &&
 		sd.Compatibility == other.Compatibility &&
@@ -28,28 +31,40 @@ func (sd SpecDifference) Matches(other SpecDifference) bool {
 		equalLocations(sd.DifferenceLocation, other.DifferenceLocation)
 }
 
-func equalLocations(a, b DifferenceLocation) bool {
-	return a.Method == b.Method &&
-		a.Response == b.Response &&
-		a.URL == b.URL &&
-		equalNodes(a.Node, b.Node)
+// ReportAllDiffs lists all the diffs between two specs.
+func (sd SpecDifferences) ReportAllDiffs(fmtJSON bool) (io.Reader, error, error) {
+	if fmtJSON {
+		b, err := JSONMarshal(sd)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't print results: %w", err), nil
+		}
+		out, err := prettyprint(b)
+		return out, err, nil
+	}
+	numDiffs := len(sd)
+	if numDiffs == 0 {
+		return bytes.NewBufferString("No changes identified\n"), nil, nil
+	}
+
+	var out bytes.Buffer
+	if numDiffs != sd.BreakingChangeCount() {
+		fmt.Fprintln(&out, "NON-BREAKING CHANGES:\n=====================")
+		_, _ = out.ReadFrom(sd.reportChanges(NonBreaking))
+		if sd.WarningChangeCount() > 0 {
+			fmt.Fprintln(&out, "\nNON-BREAKING CHANGES WITH WARNING:\n==================================")
+			_, _ = out.ReadFrom(sd.reportChanges(Warning))
+		}
+	}
+
+	more, err, warn := sd.ReportCompatibility()
+	if err != nil {
+		return nil, err, warn
+	}
+	_, _ = out.ReadFrom(more)
+	return &out, nil, warn
 }
 
-func equalNodes(a, b *Node) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return a.Field == b.Field &&
-		a.IsArray == b.IsArray &&
-		a.TypeName == b.TypeName &&
-		equalNodes(a.ChildNode, b.ChildNode)
-
-}
-
-// BreakingChangeCount Calculates the breaking change count
+// BreakingChangeCount Calculates the breaking change count.
 func (sd SpecDifferences) BreakingChangeCount() int {
 	count := 0
 	for _, eachDiff := range sd {
@@ -60,7 +75,7 @@ func (sd SpecDifferences) BreakingChangeCount() int {
 	return count
 }
 
-// WarningChangeCount Calculates the warning change count
+// WarningChangeCount Calculates the warning change count.
 func (sd SpecDifferences) WarningChangeCount() int {
 	count := 0
 	for _, eachDiff := range sd {
@@ -71,7 +86,7 @@ func (sd SpecDifferences) WarningChangeCount() int {
 	return count
 }
 
-// FilterIgnores returns a copy of the list without the items in the specified ignore list
+// FilterIgnores returns a copy of the list without the items in the specified ignore list.
 func (sd SpecDifferences) FilterIgnores(ignores SpecDifferences) SpecDifferences {
 	newDiffs := SpecDifferences{}
 	for _, eachDiff := range sd {
@@ -82,7 +97,7 @@ func (sd SpecDifferences) FilterIgnores(ignores SpecDifferences) SpecDifferences
 	return newDiffs
 }
 
-// Contains Returns true if the item contains the specified item
+// Contains Returns true if the item contains the specified item.
 func (sd SpecDifferences) Contains(diff SpecDifference) bool {
 	for _, eachDiff := range sd {
 		if eachDiff.Matches(diff) {
@@ -92,7 +107,7 @@ func (sd SpecDifferences) Contains(diff SpecDifference) bool {
 	return false
 }
 
-// String std string renderer
+// String std string renderer.
 func (sd SpecDifference) String() string {
 	isResponse := sd.DifferenceLocation.Response > 0
 	hasMethod := len(sd.DifferenceLocation.Method) > 0
@@ -134,17 +149,7 @@ func (sd SpecDifference) String() string {
 	// return fmt.Sprintf("%s%s%s - %s%s", prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo)
 }
 
-func (sd SpecDifferences) addDiff(diff SpecDifference) SpecDifferences {
-	context := Request
-	if diff.DifferenceLocation.Response > 0 {
-		context = Response
-	}
-	diff.Compatibility = getCompatibilityForChange(diff.Code, context)
-
-	return append(sd, diff)
-}
-
-// ReportCompatibility lists and spec
+// ReportCompatibility lists and spec.
 func (sd *SpecDifferences) ReportCompatibility() (io.Reader, error, error) {
 	var out bytes.Buffer
 	breakingCount := sd.BreakingChangeCount()
@@ -160,6 +165,36 @@ func (sd *SpecDifferences) ReportCompatibility() (io.Reader, error, error) {
 	}
 	fmt.Fprintf(&out, "compatibility test OK. No breaking changes identified.\n")
 	return &out, nil, nil
+}
+
+func equalLocations(a, b DifferenceLocation) bool {
+	return a.Method == b.Method &&
+		a.Response == b.Response &&
+		a.URL == b.URL &&
+		equalNodes(a.Node, b.Node)
+}
+
+func equalNodes(a, b *Node) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Field == b.Field &&
+		a.IsArray == b.IsArray &&
+		a.TypeName == b.TypeName &&
+		equalNodes(a.ChildNode, b.ChildNode)
+}
+
+func (sd SpecDifferences) addDiff(diff SpecDifference) SpecDifferences {
+	context := Request
+	if diff.DifferenceLocation.Response > 0 {
+		context = Response
+	}
+	diff.Compatibility = getCompatibilityForChange(diff.Code, context)
+
+	return append(sd, diff)
 }
 
 func (sd SpecDifferences) reportChanges(compat Compatibility) io.Reader {
@@ -180,37 +215,4 @@ func (sd SpecDifferences) reportChanges(compat Compatibility) io.Reader {
 		fmt.Fprintln(&out, eachDiff)
 	}
 	return &out
-}
-
-// ReportAllDiffs lists all the diffs between two specs
-func (sd SpecDifferences) ReportAllDiffs(fmtJSON bool) (io.Reader, error, error) {
-	if fmtJSON {
-		b, err := JSONMarshal(sd)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't print results: %v", err), nil
-		}
-		out, err := prettyprint(b)
-		return out, err, nil
-	}
-	numDiffs := len(sd)
-	if numDiffs == 0 {
-		return bytes.NewBuffer([]byte("No changes identified\n")), nil, nil
-	}
-
-	var out bytes.Buffer
-	if numDiffs != sd.BreakingChangeCount() {
-		fmt.Fprintln(&out, "NON-BREAKING CHANGES:\n=====================")
-		_, _ = out.ReadFrom(sd.reportChanges(NonBreaking))
-		if sd.WarningChangeCount() > 0 {
-			fmt.Fprintln(&out, "\nNON-BREAKING CHANGES WITH WARNING:\n==================================")
-			_, _ = out.ReadFrom(sd.reportChanges(Warning))
-		}
-	}
-
-	more, err, warn := sd.ReportCompatibility()
-	if err != nil {
-		return nil, err, warn
-	}
-	_, _ = out.ReadFrom(more)
-	return &out, nil, warn
 }

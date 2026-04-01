@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/go-openapi/spec"
 )
 
-// Node is the position od a diff in a spec
+// Node is the position od a diff in a spec.
 type Node struct {
 	Field     string `json:"name,omitempty"`
 	TypeName  string `json:"type,omitempty"`
@@ -14,7 +17,7 @@ type Node struct {
 	ChildNode *Node  `json:"child,omitempty"`
 }
 
-// String std string render
+// String std string render.
 func (n *Node) String() string {
 	name := n.Field
 	if n.IsArray {
@@ -28,9 +31,8 @@ func (n *Node) String() string {
 	return name
 }
 
-// AddLeafNode Adds (recursive) a Child to the first non-nil child found
+// AddLeafNode Adds (recursive) a Child to the first non-nil child found.
 func (n *Node) AddLeafNode(toAdd *Node) *Node {
-
 	if n.ChildNode == nil {
 		n.ChildNode = toAdd
 	} else {
@@ -40,7 +42,7 @@ func (n *Node) AddLeafNode(toAdd *Node) *Node {
 	return n
 }
 
-// Copy deep copy of this node and children
+// Copy deep copy of this node and children.
 func (n Node) Copy() *Node {
 	newChild := n.ChildNode
 	if newChild != nil {

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package analysis
 
 import (
@@ -11,10 +14,10 @@ import (
 	"github.com/go-openapi/analysis/internal/flatten/schutils"
 	"github.com/go-openapi/analysis/internal/flatten/sortref"
 	"github.com/go-openapi/spec"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/mangling"
 )
 
-// InlineSchemaNamer finds a new name for an inlined type
+// InlineSchemaNamer finds a new name for an inlined type.
 type InlineSchemaNamer struct {
 	Spec           *spec.Swagger
 	Operations     map[string]operations.OpRef
@@ -22,7 +25,7 @@ type InlineSchemaNamer struct {
 	opts           *FlattenOpts
 }
 
-// Name yields a new name for the inline schema
+// Name yields a new name for the inline schema.
 func (isn *InlineSchemaNamer) Name(key string, schema *spec.Schema, aschema *AnalyzedSchema) error {
 	debugLog("naming inlined schema at %s", key)
 
@@ -43,7 +46,7 @@ func (isn *InlineSchemaNamer) Name(key string, schema *spec.Schema, aschema *Ana
 		debugLog("rewriting schema to ref: key=%s with new name: %s", key, newName)
 		if err := replace.RewriteSchemaToRef(isn.Spec, key,
 			spec.MustCreateRef(path.Join(definitionsPath, newName))); err != nil {
-			return fmt.Errorf("error while creating definition %q from inline schema: %w", newName, err)
+			return ErrInlineDefinition(newName, err)
 		}
 
 		// rewrite any dependent $ref pointing to this place,
@@ -54,7 +57,7 @@ func (isn *InlineSchemaNamer) Name(key string, schema *spec.Schema, aschema *Ana
 		for k, v := range an.references.allRefs {
 			r, erd := replace.DeepestRef(isn.opts.Swagger(), isn.opts.ExpandOpts(false), v)
 			if erd != nil {
-				return fmt.Errorf("at %s, %w", k, erd)
+				return ErrAtKey(k, erd)
 			}
 
 			if isn.opts.flattenContext != nil {
@@ -105,7 +108,7 @@ func (isn *InlineSchemaNamer) Name(key string, schema *spec.Schema, aschema *Ana
 	return nil
 }
 
-// uniqifyName yields a unique name for a definition
+// uniqifyName yields a unique name for a definition.
 func uniqifyName(definitions spec.Definitions, name string) (string, bool) {
 	isOAIGen := false
 	if name == "" {
@@ -227,19 +230,24 @@ func namesForOperation(parts sortref.SplitKey, operations map[string]operations.
 	return baseNames, startIndex
 }
 
+const (
+	minStartIndex = 2
+	minSegments   = 2
+)
+
 func namesForDefinition(parts sortref.SplitKey) ([][]string, int) {
 	nm := parts.DefinitionName()
 	if nm != "" {
-		return [][]string{{parts.DefinitionName()}}, 2
+		return [][]string{{parts.DefinitionName()}}, minStartIndex
 	}
 
 	return [][]string{}, 0
 }
 
-// partAdder knows how to interpret a schema when it comes to build a name from parts
+// partAdder knows how to interpret a schema when it comes to build a name from parts.
 func partAdder(aschema *AnalyzedSchema) sortref.PartAdder {
 	return func(part string) []string {
-		segments := make([]string, 0, 2)
+		segments := make([]string, 0, minSegments)
 
 		if part == "items" || part == "additionalItems" {
 			if aschema.IsTuple || aschema.IsTupleWithExtra {
@@ -265,8 +273,9 @@ func mangler(o *FlattenOpts) func(string) string {
 	if o.KeepNames {
 		return func(in string) string { return in }
 	}
+	mangler := mangling.NewNameMangler()
 
-	return swag.ToJSONName
+	return mangler.ToJSONName
 }
 
 func nameFromRef(ref spec.Ref, o *FlattenOpts) string {

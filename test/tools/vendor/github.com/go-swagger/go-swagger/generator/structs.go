@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package generator
 
 import (
@@ -24,11 +27,13 @@ type GenCommon struct {
 }
 
 // GenDefinition contains all the properties to generate a
-// definition from a swagger spec
+// definition from a swagger spec.
 type GenDefinition struct {
 	GenCommon
 	GenSchema
+
 	Package        string
+	CliPackage     string
 	Imports        map[string]string
 	DefaultImports map[string]string
 	ExtraSchemas   GenSchemaList
@@ -37,7 +42,7 @@ type GenDefinition struct {
 }
 
 // GenDefinitions represents a list of operations to generate
-// this implements a sort by operation id
+// this implements a sort by operation id.
 type GenDefinitions []GenDefinition
 
 func (g GenDefinitions) Len() int           { return len(g) }
@@ -47,14 +52,15 @@ func (g GenDefinitions) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 // GenSchemaList is a list of schemas for generation.
 //
 // It can be sorted by name to get a stable struct layout for
-// version control and such
+// version control and such.
 type GenSchemaList []GenSchema
 
 // GenSchema contains all the information needed to generate the code
-// for a schema
+// for a schema.
 type GenSchema struct {
 	resolvedType
 	sharedValidations
+
 	Example                    string
 	OriginalName               string
 	Name                       string
@@ -94,7 +100,7 @@ type GenSchema struct {
 	Parents                    []string
 	IncludeValidator           bool
 	IncludeModel               bool
-	Default                    interface{}
+	Default                    any
 	WantsMarshalBinary         bool // do we generate MarshalBinary interface?
 	StructTags                 []string
 	ExtraImports               map[string]string // non-standard imports detected when using external types
@@ -102,30 +108,11 @@ type GenSchema struct {
 	WantsRootedErrorPath       bool
 }
 
-func (g GenSchema) renderMarshalTag() string {
-	if g.HasBaseType {
-		return "-"
-	}
-
-	var result strings.Builder
-
-	result.WriteString(g.OriginalName)
-
-	if !g.Required && g.IsEmptyOmitted {
-		result.WriteString(",omitempty")
-	}
-
-	if g.IsJSONString {
-		result.WriteString(",string")
-	}
-
-	return result.String()
-}
-
-// PrintTags takes care of rendering tags for a struct field
+// PrintTags takes care of rendering tags for a struct field.
 func (g GenSchema) PrintTags() string {
-	tags := make(map[string]string, 3)
-	orderedTags := make([]string, 0, 3)
+	const sensibleDefaultTagsAlloc = 3
+	tags := make(map[string]string, sensibleDefaultTagsAlloc)
+	orderedTags := make([]string, 0, sensibleDefaultTagsAlloc)
 
 	tags["json"] = g.renderMarshalTag()
 	orderedTags = append(orderedTags, "json")
@@ -191,7 +178,7 @@ func (g GenSchema) PrintTags() string {
 	return strconv.Quote(completeTag)
 }
 
-// UnderlyingType tells the go type or the aliased go type
+// UnderlyingType tells the go type or the aliased go type.
 func (g GenSchema) UnderlyingType() string {
 	if g.IsAliased {
 		return g.AliasedType
@@ -199,9 +186,29 @@ func (g GenSchema) UnderlyingType() string {
 	return g.GoType
 }
 
-// ToString returns a string conversion expression for the schema
+// ToString returns a string conversion expression for the schema.
 func (g GenSchema) ToString() string {
 	return g.resolvedType.ToString(g.ValueExpression)
+}
+
+func (g GenSchema) renderMarshalTag() string {
+	if g.HasBaseType {
+		return "-"
+	}
+
+	var result strings.Builder
+
+	result.WriteString(g.OriginalName)
+
+	if !g.Required && g.IsEmptyOmitted {
+		result.WriteString(",omitempty")
+	}
+
+	if g.IsJSONString {
+		result.WriteString(",string")
+	}
+
+	return result.String()
 }
 
 func (g GenSchemaList) Len() int      { return len(g) }
@@ -236,12 +243,12 @@ type sharedValidations struct {
 	HasContextValidations bool
 	Required              bool
 	HasSliceValidations   bool
-	ItemsEnum             []interface{}
+	ItemsEnum             []any
 
 	// NOTE: "patternProperties" and "dependencies" not supported by Swagger 2.0
 }
 
-// GenResponse represents a response object for code generation
+// GenResponse represents a response object for code generation.
 type GenResponse struct {
 	Package       string
 	ModelsPackage string
@@ -261,27 +268,28 @@ type GenResponse struct {
 	Imports        map[string]string
 	DefaultImports map[string]string
 
-	Extensions map[string]interface{}
+	Extensions map[string]any
 
 	StrictResponders bool
 	OperationName    string
 	Examples         GenResponseExamples
+	ReturnErrors     bool
 }
 
-// GenResponseExamples is a sortable collection []GenResponseExample
+// GenResponseExamples is a sortable collection []GenResponseExample.
 type GenResponseExamples []GenResponseExample
 
 func (g GenResponseExamples) Len() int           { return len(g) }
 func (g GenResponseExamples) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenResponseExamples) Less(i, j int) bool { return g[i].MediaType < g[j].MediaType }
 
-// GenResponseExample captures an example provided for a response for some mime type
+// GenResponseExample captures an example provided for a response for some mime type.
 type GenResponseExample struct {
 	MediaType string
-	Example   interface{}
+	Example   any
 }
 
-// GenHeader represents a header on a response for code generation
+// GenHeader represents a header on a response for code generation.
 type GenHeader struct {
 	resolvedType
 	sharedValidations
@@ -297,7 +305,7 @@ type GenHeader struct {
 
 	Title       string
 	Description string
-	Default     interface{}
+	Default     any
 	HasDefault  bool
 
 	CollectionFormat string
@@ -318,19 +326,19 @@ func (h *GenHeader) ItemsDepth() string {
 	return ""
 }
 
-// ToString returns a string conversion expression for the header
+// ToString returns a string conversion expression for the header.
 func (h GenHeader) ToString() string {
 	return h.resolvedType.ToString(h.ValueExpression)
 }
 
-// GenHeaders is a sorted collection of headers for codegen
+// GenHeaders is a sorted collection of headers for codegen.
 type GenHeaders []GenHeader
 
 func (g GenHeaders) Len() int           { return len(g) }
 func (g GenHeaders) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenHeaders) Less(i, j int) bool { return g[i].Name < g[j].Name }
 
-// HasSomeDefaults returns true is at least one header has a default value set
+// HasSomeDefaults returns true is at least one header has a default value set.
 func (g GenHeaders) HasSomeDefaults() bool {
 	// NOTE: this is currently used by templates to avoid empty constructs
 	for _, header := range g {
@@ -373,7 +381,7 @@ type GenParameter struct {
 	// Unused
 	// BodyParam *GenParameter
 
-	Default         interface{}
+	Default         any
 	HasDefault      bool
 	ZeroValue       string
 	AllowEmptyValue bool
@@ -393,37 +401,37 @@ type GenParameter struct {
 	HasSimpleBodyMap    bool
 	HasModelBodyMap     bool
 
-	Extensions map[string]interface{}
+	Extensions map[string]any
 }
 
-// IsQueryParam returns true when this parameter is a query param
+// IsQueryParam returns true when this parameter is a query param.
 func (g *GenParameter) IsQueryParam() bool {
 	return g.Location == "query"
 }
 
-// IsPathParam returns true when this parameter is a path param
+// IsPathParam returns true when this parameter is a path param.
 func (g *GenParameter) IsPathParam() bool {
 	return g.Location == "path"
 }
 
-// IsFormParam returns true when this parameter is a form param
+// IsFormParam returns true when this parameter is a form param.
 func (g *GenParameter) IsFormParam() bool {
 	return g.Location == "formData"
 }
 
-// IsHeaderParam returns true when this parameter is a header param
+// IsHeaderParam returns true when this parameter is a header param.
 func (g *GenParameter) IsHeaderParam() bool {
 	return g.Location == "header"
 }
 
-// IsBodyParam returns true when this parameter is a body param
+// IsBodyParam returns true when this parameter is a body param.
 func (g *GenParameter) IsBodyParam() bool {
-	return g.Location == "body"
+	return g.Location == body
 }
 
-// IsFileParam returns true when this parameter is a file param
+// IsFileParam returns true when this parameter is a file param.
 func (g *GenParameter) IsFileParam() bool {
-	return g.SwaggerType == "file"
+	return g.SwaggerType == file
 }
 
 // ItemsDepth returns a string "items.items..." with as many items as the level of nesting of the array.
@@ -433,24 +441,24 @@ func (g *GenParameter) ItemsDepth() string {
 	return ""
 }
 
-// UnderlyingType tells the go type or the aliased go type
+// UnderlyingType tells the go type or the aliased go type.
 func (g GenParameter) UnderlyingType() string {
 	return g.GoType
 }
 
-// ToString returns a string conversion expression for the parameter
+// ToString returns a string conversion expression for the parameter.
 func (g GenParameter) ToString() string {
 	return g.resolvedType.ToString(g.ValueExpression)
 }
 
-// GenParameters represents a sorted parameter collection
+// GenParameters represents a sorted parameter collection.
 type GenParameters []GenParameter
 
 func (g GenParameters) Len() int           { return len(g) }
 func (g GenParameters) Less(i, j int) bool { return g[i].Name < g[j].Name }
 func (g GenParameters) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 
-// HasSomeDefaults returns true is at least one parameter has a default value set
+// HasSomeDefaults returns true is at least one parameter has a default value set.
 func (g GenParameters) HasSomeDefaults() bool {
 	// NOTE: this is currently used by templates to avoid empty constructs
 	for _, param := range g {
@@ -461,7 +469,7 @@ func (g GenParameters) HasSomeDefaults() bool {
 	return false
 }
 
-// GenItems represents the collection items for a collection parameter
+// GenItems represents the collection items for a collection parameter.
 type GenItems struct {
 	sharedValidations
 	resolvedType
@@ -497,19 +505,20 @@ func (g *GenItems) ItemsDepth() string {
 	return strings.Repeat("items.", i)
 }
 
-// UnderlyingType tells the go type or the aliased go type
+// UnderlyingType tells the go type or the aliased go type.
 func (g GenItems) UnderlyingType() string {
 	return g.GoType
 }
 
-// ToString returns a string conversion expression for the item
+// ToString returns a string conversion expression for the item.
 func (g GenItems) ToString() string {
 	return g.resolvedType.ToString(g.ValueExpression)
 }
 
-// GenOperationGroup represents a named (tagged) group of operations
+// GenOperationGroup represents a named (tagged) group of operations.
 type GenOperationGroup struct {
 	GenCommon
+
 	Name       string
 	Operations GenOperations
 
@@ -524,14 +533,14 @@ type GenOperationGroup struct {
 	ClientOptions *GenClientOptions
 }
 
-// GenOperationGroups is a sorted collection of operation groups
+// GenOperationGroups is a sorted collection of operation groups.
 type GenOperationGroups []GenOperationGroup
 
 func (g GenOperationGroups) Len() int           { return len(g) }
 func (g GenOperationGroups) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenOperationGroups) Less(i, j int) bool { return g[i].Name < g[j].Name }
 
-// GenStatusCodeResponses a container for status code responses
+// GenStatusCodeResponses a container for status code responses.
 type GenStatusCodeResponses []GenResponse
 
 func (g GenStatusCodeResponses) Len() int           { return len(g) }
@@ -553,7 +562,7 @@ func (g GenStatusCodeResponses) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteRune('{')
 	for i, v := range responses {
-		rb, err := json.Marshal(v)
+		rb, err := json.Marshal(v) //nolint:musttag // OK: we leave json fields identical to go fields. Dumpdata is used for debug.
 		if err != nil {
 			return nil, err
 		}
@@ -567,13 +576,13 @@ func (g GenStatusCodeResponses) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// UnmarshalJSON unmarshals this GenStatusCodeResponses from json
+// UnmarshalJSON unmarshals this GenStatusCodeResponses from json.
 func (g *GenStatusCodeResponses) UnmarshalJSON(data []byte) error {
 	var dd map[string]GenResponse
-	if err := json.Unmarshal(data, &dd); err != nil {
+	if err := json.Unmarshal(data, &dd); err != nil { //nolint:musttag // OK: we leave json fields identical to go fields. Dumpdata is used for debug.
 		return err
 	}
-	var gg GenStatusCodeResponses
+	gg := make(GenStatusCodeResponses, 0, len(dd))
 	for _, v := range dd {
 		gg = append(gg, v)
 	}
@@ -582,9 +591,10 @@ func (g *GenStatusCodeResponses) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// GenOperation represents an operation for code generation
+// GenOperation represents an operation for code generation.
 type GenOperation struct {
 	GenCommon
+
 	Package      string
 	ReceiverName string
 	Name         string
@@ -636,16 +646,17 @@ type GenOperation struct {
 	ConsumesMediaTypes   []string
 	TimeoutName          string
 
-	Extensions map[string]interface{}
+	Extensions map[string]any
 
 	StrictResponders bool
+	ReturnErrors     bool
 	ExternalDocs     *spec.ExternalDocumentation
 	Produces         []string // original produces for operation (for doc)
 	Consumes         []string // original consumes for operation (for doc)
 }
 
 // GenOperations represents a list of operations to generate
-// this implements a sort by operation id
+// this implements a sort by operation id.
 type GenOperations []GenOperation
 
 func (g GenOperations) Len() int           { return len(g) }
@@ -653,9 +664,10 @@ func (g GenOperations) Less(i, j int) bool { return g[i].Name < g[j].Name }
 func (g GenOperations) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 
 // GenApp represents all the meta data needed to generate an application
-// from a swagger spec
+// from a swagger spec.
 type GenApp struct {
 	GenCommon
+
 	APIPackage                 string
 	ServerPackageAlias         string
 	ImplementationPackageAlias string
@@ -695,7 +707,7 @@ type GenApp struct {
 	GenOpts         *GenOpts
 }
 
-// UseGoStructFlags returns true when no strategy is specified or it is set to "go-flags"
+// UseGoStructFlags returns true when no strategy is specified or it is set to "go-flags".
 func (g *GenApp) UseGoStructFlags() bool {
 	if g.GenOpts == nil {
 		return true
@@ -703,12 +715,12 @@ func (g *GenApp) UseGoStructFlags() bool {
 	return g.GenOpts.FlagStrategy == "" || g.GenOpts.FlagStrategy == "go-flags"
 }
 
-// UsePFlags returns true when the flag strategy is set to pflag
+// UsePFlags returns true when the flag strategy is set to pflag.
 func (g *GenApp) UsePFlags() bool {
 	return g.GenOpts != nil && strings.HasPrefix(g.GenOpts.FlagStrategy, "pflag")
 }
 
-// UseFlags returns true when the flag strategy is set to flag
+// UseFlags returns true when the flag strategy is set to flag.
 func (g *GenApp) UseFlags() bool {
 	return g.GenOpts != nil && strings.HasPrefix(g.GenOpts.FlagStrategy, "flag")
 }
@@ -723,12 +735,22 @@ func (g *GenApp) UseModernMode() bool {
 	return g.GenOpts == nil || g.GenOpts.CompatibilityMode == "" || g.GenOpts.CompatibilityMode == "modern"
 }
 
-// GenSerGroups sorted representation of serializer groups
+// GenSerGroups sorted representation of serializer groups.
 type GenSerGroups []GenSerGroup
 
 func (g GenSerGroups) Len() int           { return len(g) }
 func (g GenSerGroups) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenSerGroups) Less(i, j int) bool { return g[i].Name < g[j].Name }
+
+// NumSerializers yields the total number of serializer entries in this group.
+func (g GenSerGroups) NumSerializers() int {
+	n := 0
+	for _, group := range g {
+		n += len(group.AllSerializers)
+	}
+
+	return n
+}
 
 // GenSerGroup represents a group of serializers: this links a serializer to a list of
 // prioritized media types (mime).
@@ -739,14 +761,14 @@ type GenSerGroup struct {
 	AllSerializers GenSerializers
 }
 
-// GenSerializers sorted representation of serializers
+// GenSerializers sorted representation of serializers.
 type GenSerializers []GenSerializer
 
 func (g GenSerializers) Len() int           { return len(g) }
 func (g GenSerializers) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenSerializers) Less(i, j int) bool { return g[i].MediaType < g[j].MediaType }
 
-// GenSerializer represents a single serializer for a particular media type
+// GenSerializer represents a single serializer for a particular media type.
 type GenSerializer struct {
 	AppName        string // Application name
 	ReceiverName   string
@@ -756,7 +778,7 @@ type GenSerializer struct {
 	Parameters     []string // parameters supported by this serializer
 }
 
-// GenSecurityScheme represents a security scheme for code generation
+// GenSecurityScheme represents a security scheme for code generation.
 type GenSecurityScheme struct {
 	AppName             string
 	ID                  string
@@ -777,24 +799,24 @@ type GenSecurityScheme struct {
 	Flow             string
 	AuthorizationURL string
 	TokenURL         string
-	Extensions       map[string]interface{}
+	Extensions       map[string]any
 	ScopesDesc       []GenSecurityScope
 }
 
-// GenSecuritySchemes sorted representation of serializers
+// GenSecuritySchemes sorted representation of serializers.
 type GenSecuritySchemes []GenSecurityScheme
 
 func (g GenSecuritySchemes) Len() int           { return len(g) }
 func (g GenSecuritySchemes) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenSecuritySchemes) Less(i, j int) bool { return g[i].ID < g[j].ID }
 
-// GenSecurityRequirement represents a security requirement for an operation
+// GenSecurityRequirement represents a security requirement for an operation.
 type GenSecurityRequirement struct {
 	Name   string
 	Scopes []string
 }
 
-// GenSecurityScope represents a scope descriptor for an OAuth2 security scheme
+// GenSecurityScope represents a scope descriptor for an OAuth2 security scheme.
 type GenSecurityScope struct {
 	Name        string
 	Description string

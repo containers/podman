@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
@@ -18,10 +7,10 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
-// PathItemProps the path item specific properties
+// PathItemProps the path item specific properties.
 type PathItemProps struct {
 	Get        *Operation  `json:"get,omitempty"`
 	Put        *Operation  `json:"put,omitempty"`
@@ -45,8 +34,8 @@ type PathItem struct {
 	PathItemProps
 }
 
-// JSONLookup look up a value by the json property name
-func (p PathItem) JSONLookup(token string) (interface{}, error) {
+// JSONLookup look up a value by the json property name.
+func (p PathItem) JSONLookup(token string) (any, error) {
 	if ex, ok := p.Extensions[token]; ok {
 		return &ex, nil
 	}
@@ -57,7 +46,7 @@ func (p PathItem) JSONLookup(token string) (interface{}, error) {
 	return r, err
 }
 
-// UnmarshalJSON hydrates this items instance with the data from JSON
+// UnmarshalJSON hydrates this items instance with the data from JSON.
 func (p *PathItem) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &p.Refable); err != nil {
 		return err
@@ -68,7 +57,7 @@ func (p *PathItem) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &p.PathItemProps)
 }
 
-// MarshalJSON converts this items object to JSON
+// MarshalJSON converts this items object to JSON.
 func (p PathItem) MarshalJSON() ([]byte, error) {
 	b3, err := json.Marshal(p.Refable)
 	if err != nil {
@@ -82,6 +71,6 @@ func (p PathItem) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	concated := swag.ConcatJSON(b3, b4, b5)
+	concated := jsonutils.ConcatJSON(b3, b4, b5)
 	return concated, nil
 }
