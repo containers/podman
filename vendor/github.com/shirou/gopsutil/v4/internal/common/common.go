@@ -334,7 +334,7 @@ func PathExists(filename string) bool {
 
 // PathExistsWithContents returns the filename exists and it is not empty
 func PathExistsWithContents(filename string) bool {
-	info, err := os.Stat(filename) //nolint:gosec // filename is constructed from system paths, not user input
+	info, err := os.Stat(filename)
 	if err != nil {
 		return false
 	}
