@@ -49,6 +49,9 @@ func rm(_ *cobra.Command, args []string) error {
 	if len(args) < 1 && !removeOptions.All {
 		return errors.New("at least one quadlet file must be selected")
 	}
+	if len(args) > 0 && removeOptions.All {
+		return errors.New("-a or --all cannot be used when combined with individual quadlets")
+	}
 	var errs utils.OutputErrors
 	removeReport, err := registry.ContainerEngine().QuadletRemove(registry.Context(), args, removeOptions)
 	if err != nil {
