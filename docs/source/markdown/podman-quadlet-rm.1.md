@@ -21,6 +21,8 @@ of a single application.
 
 Remove all Quadlets for the current user.
 
+Note: The `--all` or `-a` flag cannot be used when combined with individual Quadlets in the same command (e.g. `podman quadlet rm --all foo.container`); doing so will result in an error.
+
 #### **--force**, **-f**
 
 Remove running quadlets.
