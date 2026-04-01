@@ -297,8 +297,8 @@ github.com/opencontainers/runc v1.4.1 h1:eg1A930KKiZ3IShaYHPRiDi6uMrHMnd7OiElHBL
 github.com/opencontainers/runc v1.4.1/go.mod h1:ufk5PTTsy5pnGBAvTh50e+eqGk01pYH2YcVxh557Qlk=
 github.com/opencontainers/runtime-spec v1.3.0 h1:YZupQUdctfhpZy3TM39nN9Ika5CBWT5diQ8ibYCRkxg=
 github.com/opencontainers/runtime-spec v1.3.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
-github.com/opencontainers/runtime-tools v0.9.1-0.20251205004911-5e639034dcdc h1:82NlZLiQEB6Wp+nmASMlkHsEXz3Q0pXJbK7QO6ck5lo=
-github.com/opencontainers/runtime-tools v0.9.1-0.20251205004911-5e639034dcdc/go.mod h1:DKDEfzxvRkoQ6n9TGhxQgg2IM1lY4aM0eaQP4e3oElw=
+github.com/opencontainers/runtime-tools v0.9.1-0.20260316125833-8a4db579f5c8 h1:2NAWFjN0PmdIe3XojVL9wf3lJ1//VqAgc7MOSYHQslE=
+github.com/opencontainers/runtime-tools v0.9.1-0.20260316125833-8a4db579f5c8/go.mod h1:DKDEfzxvRkoQ6n9TGhxQgg2IM1lY4aM0eaQP4e3oElw=
 github.com/opencontainers/selinux v1.13.1 h1:A8nNeceYngH9Ow++M+VVEwJVpdFmrlxsN22F+ISDCJE=
 github.com/opencontainers/selinux v1.13.1/go.mod h1:S10WXZ/osk2kWOYKy1x2f/eXF5ZHJoUs8UU/2caNRbg=
 github.com/openshift/imagebuilder v1.2.20 h1:oMGLqJ9Z3xHitzBCL+HECg/c9KCV/Rh7IKJqbSaBnqk=

@@ -44,6 +44,7 @@ func parseArch(arch string) (rspec.Arch, error) {
 		"ppc":         rspec.ArchPPC,
 		"ppc64":       rspec.ArchPPC64,
 		"ppc64le":     rspec.ArchPPC64LE,
+		"riscv64":     rspec.ArchRISCV64,
 		"s390":        rspec.ArchS390,
 		"s390x":       rspec.ArchS390X,
 	}
