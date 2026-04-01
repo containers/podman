@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !386 && !arm && !mips && !mipsle
-// +build !386,!arm,!mips,!mipsle
 
 package vecnet
 
