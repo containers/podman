@@ -22,6 +22,8 @@ func arches() []rspec.Arch {
 		return []rspec.Arch{rspec.ArchMIPSEL, rspec.ArchMIPSEL64, rspec.ArchMIPSEL64N32}
 	case "mipsel64n32":
 		return []rspec.Arch{rspec.ArchMIPSEL, rspec.ArchMIPSEL64, rspec.ArchMIPSEL64N32}
+	case "riscv64":
+		return []rspec.Arch{rspec.ArchRISCV64}
 	case "s390x":
 		return []rspec.Arch{rspec.ArchS390, rspec.ArchS390X}
 	default:
