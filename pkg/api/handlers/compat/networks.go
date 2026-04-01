@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math/bits"
 	"net"
 	"net/http"
 	"net/netip"
@@ -522,39 +523,42 @@ func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
 	start4 := lr.StartIP.To4()
 	end4 := lr.EndIP.To4()
 	if start4 == nil || end4 == nil {
-		// IPv6 not handled: no lossless round-trip without storing the original CIDR
+		// IPv6 not supported: no lossless round-trip without storing the original CIDR
 		return netip.Prefix{}, false
 	}
-	startU := uint32(start4[0])<<24 | uint32(start4[1])<<16 | uint32(start4[2])<<8 | uint32(start4[3])
-	endU := uint32(end4[0])<<24 | uint32(end4[1])<<16 | uint32(end4[2])<<8 | uint32(end4[3])
+
+	toUint32 := func(ip []byte) uint32 {
+		return uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
+	}
+	startU := toUint32(start4)
+	endU := toUint32(end4)
+
 	if endU < startU {
 		return netip.Prefix{}, false
 	}
-	// For /32, FirstIPInSubnet returns the address unchanged; StartIP == EndIP.
+
+	// For /32, FirstIPInSubnet returns the address unchanged so StartIP == EndIP.
 	if startU == endU {
-		startAddr, _ := netip.AddrFromSlice(start4)
-		return netip.PrefixFrom(startAddr.Unmap(), 32), true
+		addr, _ := netip.AddrFromSlice(start4)
+		return netip.PrefixFrom(addr.Unmap(), 32), true
 	}
+
 	// For all other subnets, FirstIPInSubnet increments the network address by 1,
-	// so recover the network address by subtracting 1 from StartIP.
+	// so the actual network address is StartIP - 1.
 	if startU == 0 {
 		return netip.Prefix{}, false
 	}
 	netU := startU - 1
 	size := endU - netU + 1
-	// Verify size is a power of two (required for a valid CIDR block).
-	if size&(size-1) != 0 {
+
+	// size must be a power of two (valid CIDR block) and the network address
+	// must be aligned to that block size.
+	if bits.OnesCount32(size) != 1 || netU&(size-1) != 0 {
 		return netip.Prefix{}, false
 	}
-	// Verify the network address is aligned to the block size.
-	if netU&(size-1) != 0 {
-		return netip.Prefix{}, false
-	}
-	prefixBits := 32
-	for n := size; n > 1; n >>= 1 {
-		prefixBits--
-	}
+
+	prefixLen := 32 - bits.TrailingZeros32(size)
 	netBytes := []byte{byte(netU >> 24), byte(netU >> 16), byte(netU >> 8), byte(netU)}
 	netAddr, _ := netip.AddrFromSlice(netBytes)
-	return netip.PrefixFrom(netAddr.Unmap(), prefixBits), true
+	return netip.PrefixFrom(netAddr.Unmap(), prefixLen), true
 }
