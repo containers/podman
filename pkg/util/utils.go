@@ -112,6 +112,10 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 		if len(e) == 0 || e[0] == '#' {
 			continue
 		}
+		e = strings.Trim(e, "/")
+		if len(e) == 0 {
+			continue
+		}
 		excludes = append(excludes, e)
 	}
 	return excludes, ignoreFile, nil

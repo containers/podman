@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"testing"
@@ -863,4 +865,32 @@ func TestGetRootlessStateDir(t *testing.T) {
 	dir, err := GetRootlessStateDir()
 	assert.NoError(t, err)
 	assert.NotEqual(t, dir, "libpod/tmp")
+}
+
+// https://github.com/containers/podman/issues/25458
+func TestParseDockerignoreLeadingTrailingSlashes(t *testing.T) {
+	contextDir := t.TempDir()
+
+	for _, tt := range []struct {
+		name     string
+		ignore   string
+		expected []string
+	}{
+		{"leading slash", "/.git/\n", []string{".git"}},
+		{"trailing slash", "target/\n", []string{"target"}},
+		{"both slashes", "/build/\n", []string{"build"}},
+		{"no slashes", "vendor\n", []string{"vendor"}},
+		{"slash only line", "/\n", []string{}},
+		{"multiple patterns", "/.git/\n/target/\nvendor\n", []string{".git", "target", "vendor"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ignorePath := filepath.Join(contextDir, ".containerignore")
+			err := os.WriteFile(ignorePath, []byte(tt.ignore), 0o644)
+			assert.NoError(t, err)
+
+			excludes, _, err := ParseDockerignore(nil, contextDir)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, excludes)
+		})
+	}
 }
