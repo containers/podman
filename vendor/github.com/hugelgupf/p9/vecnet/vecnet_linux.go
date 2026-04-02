@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !386
-// +build !386
 
 package vecnet
 
