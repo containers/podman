@@ -4,4 +4,4 @@
 ####> are applicable to all of those.
 #### **--quiet**, **-q**
 
-Suppress output messages (which indicate which instruction is being processed, and progress of the instruction).
+Suppress informational output messages (which indicate which instruction is being processed, and the progress of the instruction).  Print only the final error message or successful completion information, such as the image or container ID.
