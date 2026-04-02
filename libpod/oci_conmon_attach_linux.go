@@ -10,7 +10,7 @@ import (
 )
 
 func openUnixSocket(path string) (*net.UnixConn, error) {
-	fd, err := unix.Open(path, unix.O_PATH, 0)
+	fd, err := unix.Open(path, unix.O_PATH|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return nil, err
 	}

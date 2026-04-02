@@ -153,7 +153,7 @@ func addDevice(g *generate.Generator, device string) error {
 	} else if src == "/dev/fuse" {
 		// if the user is asking for fuse inside the container
 		// make sure the module is loaded.
-		f, err := unix.Open(src, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+		f, err := unix.Open(src, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 		if err == nil {
 			unix.Close(f)
 		}
