@@ -118,7 +118,7 @@ func NewPIDHandleFromString(pid int, pidData string) (PIDHandle, error) {
 			return nil, err
 		}
 		defer unix.Close(fd)
-		pidfd, err := openByHandleAt(fd, fh, 0)
+		pidfd, err := openByHandleAt(fd, fh, unix.O_CLOEXEC)
 		if err != nil {
 			if err == unix.ESTALE {
 				h.normalHandle.pidData = noSuchProcessID
