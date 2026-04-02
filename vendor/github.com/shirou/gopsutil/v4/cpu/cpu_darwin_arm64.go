@@ -6,24 +6,38 @@ package cpu
 import (
 	"encoding/binary"
 	"fmt"
+	"sync"
 	"unsafe"
 
 	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
+// Keep IOKit and CoreFoundation libraries open for the process lifetime.
+// See: https://github.com/shirou/gopsutil/issues/1832
+var (
+	cpuLibOnce sync.Once
+	cpuIOKit   *common.IOKitLib
+	cpuCF      *common.CoreFoundationLib
+	cpuLibErr  error
+)
+
+func initCPULibraries() {
+	cpuIOKit, cpuLibErr = common.NewIOKitLib()
+	if cpuLibErr != nil {
+		return
+	}
+	cpuCF, cpuLibErr = common.NewCoreFoundationLib()
+}
+
 // https://github.com/shoenig/go-m1cpu/blob/v0.1.6/cpu.go
 func getFrequency() (float64, error) {
-	iokit, err := common.NewIOKitLib()
-	if err != nil {
-		return 0, err
+	cpuLibOnce.Do(initCPULibraries)
+	if cpuLibErr != nil {
+		return 0, cpuLibErr
 	}
-	defer iokit.Close()
 
-	corefoundation, err := common.NewCoreFoundationLib()
-	if err != nil {
-		return 0, err
-	}
-	defer corefoundation.Close()
+	iokit := cpuIOKit
+	corefoundation := cpuCF
 
 	matching := iokit.IOServiceMatching("AppleARMIODevice")
 

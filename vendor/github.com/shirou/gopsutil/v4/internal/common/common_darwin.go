@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -16,6 +17,7 @@ import (
 type library struct {
 	handle uintptr
 	fnMap  map[string]any
+	mu     sync.RWMutex
 }
 
 // library paths
@@ -41,15 +43,29 @@ func (lib *library) Dlsym(symbol string) (uintptr, error) {
 	return purego.Dlsym(lib.handle, symbol)
 }
 
+// getFunc resolves a function pointer from the library, caching it in fnMap.
+// Thread-safe via double-checked locking to support shared library handles.
 func getFunc[T any](lib *library, symbol string) T {
-	var dlfun *dlFunc[T]
+	// Fast path: read lock only
+	lib.mu.RLock()
 	if f, ok := lib.fnMap[symbol].(*dlFunc[T]); ok {
-		dlfun = f
-	} else {
-		dlfun = newDlfunc[T](symbol)
-		dlfun.init(lib.handle)
-		lib.fnMap[symbol] = dlfun
+		lib.mu.RUnlock()
+		return f.fn
 	}
+	lib.mu.RUnlock()
+
+	// Slow path: write lock for first-time resolution
+	lib.mu.Lock()
+	defer lib.mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if f, ok := lib.fnMap[symbol].(*dlFunc[T]); ok {
+		return f.fn
+	}
+
+	dlfun := newDlfunc[T](symbol)
+	dlfun.init(lib.handle)
+	lib.fnMap[symbol] = dlfun
 	return dlfun.fn
 }
 

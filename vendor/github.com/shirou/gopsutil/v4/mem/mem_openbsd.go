@@ -38,19 +38,6 @@ func VirtualMemoryWithContext(_ context.Context) (*VirtualMemoryStat, error) {
 	}
 	p := uint64(uvmexp.Pagesize)
 
-	ret := &VirtualMemoryStat{
-		Total:    uint64(uvmexp.Npages) * p,
-		Free:     uint64(uvmexp.Free) * p,
-		Active:   uint64(uvmexp.Active) * p,
-		Inactive: uint64(uvmexp.Inactive) * p,
-		Cached:   0, // not available
-		Wired:    uint64(uvmexp.Wired) * p,
-	}
-
-	ret.Available = ret.Inactive + ret.Cached + ret.Free
-	ret.Used = ret.Total - ret.Available
-	ret.UsedPercent = float64(ret.Used) / float64(ret.Total) * 100.0
-
 	mib := []int32{CTLVfs, VfsGeneric, VfsBcacheStat}
 	buf, length, err := common.CallSyscall(mib)
 	if err != nil {
@@ -64,7 +51,23 @@ func VirtualMemoryWithContext(_ context.Context) (*VirtualMemoryStat, error) {
 	if err := binary.Read(br, binary.LittleEndian, &bcs); err != nil {
 		return nil, err
 	}
-	ret.Buffers = uint64(bcs.Numbufpages) * p
+	// On OpenBSD, the buffer cache is the closest equivalent to both
+	// Linux's Buffers and Cached memory.
+	bcache := uint64(bcs.Numbufpages) * p
+
+	ret := &VirtualMemoryStat{
+		Total:    uint64(uvmexp.Npages) * p,
+		Free:     uint64(uvmexp.Free) * p,
+		Active:   uint64(uvmexp.Active) * p,
+		Inactive: uint64(uvmexp.Inactive) * p,
+		Cached:   bcache,
+		Buffers:  bcache,
+		Wired:    uint64(uvmexp.Wired) * p,
+	}
+
+	ret.Available = ret.Inactive + ret.Cached + ret.Free
+	ret.Used = ret.Total - ret.Available
+	ret.UsedPercent = float64(ret.Used) / float64(ret.Total) * 100.0
 
 	return ret, nil
 }

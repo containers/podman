@@ -18,13 +18,6 @@ import (
 	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
-// WillBeDeletedOptOutMemAvailableCalc is a context key to opt out of calculating Mem.Used.
-// This is not documented, and will be removed in Mar. 2026. This constant will be removed
-// in the future, but it is currently public. The reason is that making it public allows
-// developers to notice its removal when their build fails.
-// See https://github.com/shirou/gopsutil/issues/1873
-const WillBeDeletedOptOutMemAvailableCalc = "optOutMemAvailableCalc"
-
 func VirtualMemory() (*VirtualMemoryStat, error) {
 	return VirtualMemoryWithContext(context.Background())
 }
@@ -325,16 +318,7 @@ func fillFromMeminfoWithContext(ctx context.Context) (*VirtualMemoryStat, *ExVir
 			ret.Available = ret.Cached + ret.Free
 		}
 	}
-	// Opt-Out of calculating Mem.Used if the context has the context key set to true.
-	// This is used for backward compatibility with applications that expect the old calculation method.
-	// However, we plan to standardize on using MemAvailable in the future.
-	// Therefore, please avoid using this opt-out unless it is absolutely necessary.
-	// see https://github.com/shirou/gopsutil/issues/1873
-	if val, ok := ctx.Value(WillBeDeletedOptOutMemAvailableCalc).(bool); ok && val {
-		ret.Used = ret.Total - ret.Free - ret.Buffers - ret.Cached
-	} else {
-		ret.Used = ret.Total - ret.Available
-	}
+	ret.Used = ret.Total - ret.Available
 
 	ret.UsedPercent = float64(ret.Used) / float64(ret.Total) * 100.0
 

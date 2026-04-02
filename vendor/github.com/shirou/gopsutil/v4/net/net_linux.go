@@ -348,6 +348,7 @@ type connTmp struct {
 	pid      int32
 	boundPid int32
 	path     string
+	inode    string
 }
 
 func ConnectionsWithContext(ctx context.Context, kind string) ([]ConnectionStat, error) {
@@ -405,6 +406,19 @@ func connectionsPidMaxWithoutUidsWithContext(ctx context.Context, kind string, p
 	return statsFromInodesWithContext(ctx, root, pid, tmap, inodes, skipUids)
 }
 
+// connectionDedupKey builds a key to deduplicate connections.
+// For inet sockets, the tuple (type, src, dst, status) is sufficient.
+// For unix sockets, unnamed sockets share the same empty address,
+// so pid, fd, and inode must be included to avoid incorrect deduplication.
+// The inode is especially important when pid/fd are unavailable (e.g.,
+// unprivileged queries where inode-to-pid mapping fails).
+func connectionDedupKey(family uint32, c connTmp) string {
+	if family == syscall.AF_UNIX {
+		return fmt.Sprintf("%d-%d-%s-%d-%s:%d-%s:%d-%s", c.pid, c.fd, c.inode, c.sockType, c.laddr.IP, c.laddr.Port, c.raddr.IP, c.raddr.Port, c.status)
+	}
+	return fmt.Sprintf("%d-%s:%d-%s:%d-%s", c.sockType, c.laddr.IP, c.laddr.Port, c.raddr.IP, c.raddr.Port, c.status)
+}
+
 func statsFromInodesWithContext(ctx context.Context, root string, pid int32, tmap []netConnectionKindType, inodes map[string][]inodeMap, skipUids bool) ([]ConnectionStat, error) {
 	dupCheckMap := make(map[string]struct{})
 	var ret []ConnectionStat
@@ -412,7 +426,6 @@ func statsFromInodesWithContext(ctx context.Context, root string, pid int32, tma
 	var err error
 	for _, t := range tmap {
 		var path string
-		var connKey string
 		var ls []connTmp
 		if pid == 0 {
 			path = fmt.Sprintf("%s/net/%s", root, t.filename)
@@ -429,10 +442,7 @@ func statsFromInodesWithContext(ctx context.Context, root string, pid int32, tma
 			return nil, err
 		}
 		for _, c := range ls {
-			// Build TCP key to id the connection uniquely
-			// socket type, src ip, src port, dst ip, dst port and state should be enough
-			// to prevent duplications.
-			connKey = fmt.Sprintf("%d-%s:%d-%s:%d-%s", c.sockType, c.laddr.IP, c.laddr.Port, c.raddr.IP, c.raddr.Port, c.status)
+			connKey := connectionDedupKey(t.family, c)
 			if _, ok := dupCheckMap[connKey]; ok {
 				continue
 			}
@@ -728,6 +738,7 @@ func processInet(file string, kind netConnectionKindType, inodes map[string][]in
 			raddr:    ra,
 			status:   status,
 			pid:      pid,
+			inode:    inode,
 		})
 	}
 
@@ -785,6 +796,7 @@ func processUnix(file string, kind netConnectionKindType, inodes map[string][]in
 				pid:    pair.pid,
 				status: "NONE",
 				path:   path,
+				inode:  inode,
 			})
 		}
 	}
