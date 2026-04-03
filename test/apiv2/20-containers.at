@@ -928,6 +928,18 @@ t GET containers/json?all=true\&filters='{"name":["no-healthcheck"]}' 200 \
   .[0].Health.Status="none"
 podman rm -f no-healthcheck
 
+# Test health status with explicit v1.52 API
+podman create --name healthcheck-v152 --health-cmd "true" $IMAGE top
+t GET v1.52/containers/json?all=true\&filters='{"name":["healthcheck-v152"]}' 200 \
+  .[0].Health.Status="starting"
+podman rm -f healthcheck-v152
+
+# Test health status is HIDDEN for API versions < 1.52
+podman create --name healthcheck-v144 --health-cmd "true" $IMAGE top
+t GET v1.44/containers/json?all=true\&filters='{"name":["healthcheck-v144"]}' 200 \
+  .[0].Health=null
+podman rm -f healthcheck-v144
+
 podman run -d --name healthcheck-test-running --health-cmd "true" --health-interval 1s $IMAGE top
 # Give it a moment to initialize and run health check
 sleep 3
