@@ -999,6 +999,12 @@ func (c *Container) completeNetworkSetup() error {
 		return c.addHosts()
 	}
 	if c.config.NetNsCtr != "" {
+		// With container network mode, we share the network namespace.
+		// If custom DNS options are set, populate the separate resolv.conf
+		// that was created in makeBindMounts.
+		if len(c.config.DNSServer) > 0 || len(c.config.DNSSearch) > 0 || len(c.config.DNSOption) > 0 {
+			return c.addResolvConf()
+		}
 		return nil
 	}
 	if c.config.PostConfigureNetNS {
