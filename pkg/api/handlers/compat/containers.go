@@ -18,6 +18,7 @@ import (
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/api/handlers"
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
+	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/filters"
@@ -165,8 +166,13 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	list := make([]*handlers.Container, 0, len(containers))
+	// only include health if API version is >= 1.52 or no version is given (latest)
+	includeHealth := false
+	if _, err := utils.SupportedVersion(r, ">= 1.52"); err == nil || errors.Is(err, apiutil.ErrVersionNotGiven) {
+		includeHealth = true
+	}
 	for _, ctnr := range containers {
-		api, err := LibpodToContainer(ctnr, query.Size)
+		api, err := LibpodToContainer(ctnr, query.Size, includeHealth)
 		if err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) {
 				// container was removed between the initial fetch of the list and conversion
@@ -293,7 +299,7 @@ func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *h
 	}
 }
 
-func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error) {
+func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handlers.Container, error) {
 	imageID, imageName := l.Image()
 
 	var (
@@ -425,6 +431,21 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
+	var healthSummary *container.HealthSummary
+	if includeHealth {
+		healthSummary = &container.HealthSummary{
+			Status: container.NoHealthcheck,
+		}
+		if l.HasHealthCheck() {
+			if inspect.State.Health != nil && inspect.State.Health.Status != "" {
+				healthSummary.Status = container.HealthStatus(inspect.State.Health.Status)
+				healthSummary.FailingStreak = inspect.State.Health.FailingStreak
+			} else {
+				healthSummary.Status = container.Starting
+			}
+		}
+	}
+
 	return &handlers.Container{
 		Summary: container.Summary{
 			ID:         l.ID(),
@@ -439,6 +460,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			Labels:     l.Labels(),
 			State:      container.ContainerState(stateStr),
 			Status:     status,
+			Health:     healthSummary,
 			// FIXME: this seems broken, the field is never shown in the API output.
 			HostConfig: struct {
 				NetworkMode string            `json:",omitempty"`

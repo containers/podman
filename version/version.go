@@ -40,7 +40,7 @@ var APIVersion = map[Tree]map[Level]semver.Version{
 		MinimalAPI: semver.MustParse("4.0.0"),
 	},
 	Compat: {
-		CurrentAPI: semver.MustParse("1.44.0"),
+		CurrentAPI: semver.MustParse("1.52.0"),
 		MinimalAPI: semver.MustParse("1.24.0"),
 	},
 }
