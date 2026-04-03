@@ -713,6 +713,17 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 			reports = append(reports, &report)
 			continue
 		}
+
+		// `conn.ListUnitsByNamesContext(ctx, allServiceNames)` does not handle
+		// uninstantiated template files, they need to be handled separately.
+		if strings.Contains(serviceName, "@.") {
+			report.UnitName = serviceName
+			report.Status = "Template"
+
+			reports = append(reports, &report)
+			continue
+		}
+
 		partialReports[serviceName] = report
 		allServiceNames = append(allServiceNames, serviceName)
 	}
