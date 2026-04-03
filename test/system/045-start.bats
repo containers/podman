@@ -63,7 +63,7 @@ load helpers
 
     # Start via filtered names
     run_podman start --filter restart-policy=on-failure $c2 $c3
-    is "$output" "$c2" "--filter finds container 2"
+    is "$output" "$c2_id" "--filter finds container 2"
 
     # Nothing on match
     run_podman start --filter restart-policy=none --all
@@ -101,11 +101,12 @@ load helpers
     run_podman start --all
     is "$output" "$ctrID"
 
-    # start $input must print $input
+    # start $input must print the id of $input
     cname=$(random_string)
     run_podman create --name $cname $IMAGE top
+    ctrID="$output"
     run_podman start $cname
-    is "$output" $cname
+    is "$output" "$ctrID"
 
     run_podman rm -t 0 -f $ctrID $cname
 }

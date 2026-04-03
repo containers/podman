@@ -36,7 +36,7 @@ var _ = Describe("Podman pod start", func() {
 
 	It("podman pod start single pod by name", func() {
 		name := "foobar99"
-		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
+		_, ec, podid := podmanTest.CreatePod(map[string][]string{"--name": {name}})
 		Expect(ec).To(Equal(0))
 
 		session := podmanTest.Podman([]string{"create", "--pod", name, ALPINE, "ls"})
@@ -46,7 +46,7 @@ var _ = Describe("Podman pod start", func() {
 		session = podmanTest.Podman([]string{"pod", "start", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).Should(ContainSubstring(name))
+		Expect(session.OutputToString()).Should(ContainSubstring(podid))
 	})
 
 	It("podman pod start multiple pods", func() {
@@ -68,8 +68,8 @@ var _ = Describe("Podman pod start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
-		Expect(session.OutputToString()).Should(ContainSubstring("foobar99"))
-		Expect(session.OutputToString()).Should(ContainSubstring("foobar100"))
+		Expect(session.OutputToString()).Should(ContainSubstring(podid1))
+		Expect(session.OutputToString()).Should(ContainSubstring(podid2))
 	})
 
 	It("multiple pods in conflict", func() {
