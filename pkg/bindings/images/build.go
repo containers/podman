@@ -188,6 +188,15 @@ func prepareParams(options types.BuildOptions) (url.Values, error) {
 		}
 		params.Set("excludes", bArgs)
 	}
+	if options.IgnoreFile != "" {
+		ignoreFile := options.IgnoreFile
+		if absIgnore, err := filepath.Abs(ignoreFile); err == nil {
+			if relPath, ok := strings.CutPrefix(absIgnore, options.ContextDirectory+string(filepath.Separator)); ok {
+				ignoreFile = relPath
+			}
+		}
+		params.Set("ignorefile", ignoreFile)
+	}
 	if cpuPeriod := options.CommonBuildOpts.CPUPeriod; cpuPeriod > 0 {
 		params.Set("cpuperiod", strconv.Itoa(int(cpuPeriod)))
 	}
@@ -1041,7 +1050,7 @@ func build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	buildFilePaths.excludes = options.Excludes
-	if len(buildFilePaths.excludes) == 0 {
+	if len(buildFilePaths.excludes) == 0 && options.IgnoreFile == "" {
 		buildFilePaths.excludes, _, err = util.ParseDockerignore(buildFilePaths.newContainerFiles, options.ContextDirectory)
 		if err != nil {
 			return nil, err
