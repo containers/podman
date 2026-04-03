@@ -3,6 +3,7 @@
 package compat
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -527,11 +528,8 @@ func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
 		return netip.Prefix{}, false
 	}
 
-	toUint32 := func(ip []byte) uint32 {
-		return uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
-	}
-	startU := toUint32(start4)
-	endU := toUint32(end4)
+	startU := binary.BigEndian.Uint32(start4)
+	endU := binary.BigEndian.Uint32(end4)
 
 	if endU < startU {
 		return netip.Prefix{}, false
@@ -548,17 +546,23 @@ func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
 	if startU == 0 {
 		return netip.Prefix{}, false
 	}
-	netU := startU - 1
-	size := endU - netU + 1
+	networkU := startU - 1
+	totalIPs := endU - networkU + 1
 
-	// size must be a power of two (valid CIDR block) and the network address
-	// must be aligned to that block size.
-	if bits.OnesCount32(size) != 1 || netU&(size-1) != 0 {
+	// A valid CIDR block size must be a power of two.
+	if bits.OnesCount32(totalIPs) != 1 {
 		return netip.Prefix{}, false
 	}
+	prefixLen := 32 - bits.TrailingZeros32(totalIPs)
 
-	prefixLen := 32 - bits.TrailingZeros32(size)
-	netBytes := []byte{byte(netU >> 24), byte(netU >> 16), byte(netU >> 8), byte(netU)}
-	netAddr, _ := netip.AddrFromSlice(netBytes)
-	return netip.PrefixFrom(netAddr.Unmap(), prefixLen), true
+	var netBytes [4]byte
+	binary.BigEndian.PutUint32(netBytes[:], networkU)
+	networkAddr, _ := netip.AddrFromSlice(netBytes[:])
+	proposedPrefix := netip.PrefixFrom(networkAddr.Unmap(), prefixLen)
+
+	// Verify network boundary alignment: network address must be at the subnet boundary.
+	if proposedPrefix.Masked() != proposedPrefix {
+		return netip.Prefix{}, false
+	}
+	return proposedPrefix, true
 }
