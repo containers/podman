@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libimage/manifests"
+	cp "go.podman.io/image/v5/copy"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/manifest"
@@ -256,9 +257,8 @@ func checkRegistrySourcesAllows(forWhat string, dest types.ImageReference) (inse
 	return false, nil
 }
 
-func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpec string) (string, error) {
+func (b *Builder) addManifest(ctx context.Context, systemContext *types.SystemContext, manifestName string, imageSpec string) (string, error) {
 	var create bool
-	systemContext := &types.SystemContext{}
 	var list manifests.List
 	runtime, err := libimage.RuntimeFromStore(b.store, &libimage.RuntimeOptions{SystemContext: systemContext})
 	if err != nil {
@@ -482,8 +482,18 @@ func (b *Builder) CommitResults(ctx context.Context, dest types.ImageReference, 
 		systemContext.OSChoice = b.OS()
 	}
 
+	sourceCtx := getSystemContext(b.store, nil, "")
+	sourceCtx.BaseTLSConfig = systemContext.BaseTLSConfig
 	var manifestBytes []byte
-	if manifestBytes, err = retryCopyImage(ctx, policyContext, maybeCachedDest, maybeCachedSrc, dest, getCopyOptions(b.store, options.ReportWriter, nil, systemContext, "", false, options.SignBy, options.OciEncryptLayers, options.OciEncryptConfig, nil, destinationTimestamp), options.MaxRetries, options.RetryDelay); err != nil {
+	if manifestBytes, err = retryCopyImage(ctx, policyContext, maybeCachedDest, maybeCachedSrc, dest, &cp.Options{
+		ReportWriter:         options.ReportWriter,
+		SourceCtx:            sourceCtx,
+		DestinationCtx:       systemContext,
+		SignBy:               options.SignBy,
+		OciEncryptConfig:     options.OciEncryptConfig,
+		OciEncryptLayers:     options.OciEncryptLayers,
+		DestinationTimestamp: destinationTimestamp,
+	}, options.MaxRetries, options.RetryDelay); err != nil {
 		return nil, fmt.Errorf("copying layers and metadata for container %q: %w", b.ContainerID, err)
 	}
 	// If we've got more names to attach, and we know how to do that for
@@ -578,7 +588,7 @@ func (b *Builder) CommitResults(ctx context.Context, dest types.ImageReference, 
 	}
 
 	if options.Manifest != "" {
-		manifestID, err := b.addManifest(ctx, options.Manifest, imgID)
+		manifestID, err := b.addManifest(ctx, options.SystemContext, options.Manifest, imgID)
 		if err != nil {
 			return nil, err
 		}

@@ -36,6 +36,7 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/parse"
 	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
@@ -442,6 +443,14 @@ func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name strin
 		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(insecure)
 		ctx.OCIInsecureSkipTLSVerify = insecure
 		ctx.DockerDaemonInsecureSkipTLSVerify = insecure
+	}
+	tlsDetails, err := flags.GetString("tls-details")
+	if err == nil {
+		baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(tlsDetails)
+		if err != nil {
+			return nil, err
+		}
+		ctx.BaseTLSConfig = baseTLSConfig.TLSConfig()
 	}
 	disableCompression, err := flags.GetBool("disable-compression")
 	if err == nil {

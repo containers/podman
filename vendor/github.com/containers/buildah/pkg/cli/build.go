@@ -19,6 +19,7 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal/output"
+	"github.com/containers/buildah/pkg/download"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -140,6 +141,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	contextDir := ""
 	cliArgs := inputArgs
 
+	systemContext, err := parse.SystemContextFromOptions(c)
+	if err != nil {
+		return options, nil, nil, fmt.Errorf("building system context: %w", err)
+	}
+
 	// Nothing provided, we assume the current working directory as build
 	// context
 	if len(cliArgs) == 0 {
@@ -149,7 +155,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		}
 	} else {
 		// The context directory could be a URL.  Try to handle that.
-		tempDir, subDir, err := define.TempDirForURL("", "buildah", cliArgs[0])
+		tempDir, subDir, err := download.TempDirForURL("", "buildah", cliArgs[0], systemContext.BaseTLSConfig)
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("prepping temporary context directory: %w", err)
 		}
@@ -199,11 +205,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		reporter = iopts.Logwriter
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(c)
-	if err != nil {
-		return options, nil, nil, fmt.Errorf("building system context: %w", err)
-	}
-
 	isolation, err := parse.IsolationOption(iopts.Isolation)
 	if err != nil {
 		return options, nil, nil, err
@@ -221,6 +222,10 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	if (c.Flag("rm").Changed || c.Flag("force-rm").Changed) && (!c.Flag("layers").Changed && !c.Flag("no-cache").Changed) {
 		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
+	}
+
+	if iopts.StageLabels && !iopts.SaveStages {
+		return options, nil, nil, errors.New(`"--stage-labels" requires "--save-stages"`)
 	}
 
 	if c.Flag("compress").Changed {
@@ -441,6 +446,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Runtime:                 iopts.Runtime,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           iopts.RusageLogFile,
+		SaveStages:              iopts.SaveStages,
 		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
@@ -448,6 +454,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		SkipUnusedStages:        skipUnusedStages,
 		SourceDateEpoch:         sourceDateEpoch,
 		Squash:                  iopts.Squash,
+		StageLabels:             iopts.StageLabels,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,
 		Timestamp:               timestamp,
