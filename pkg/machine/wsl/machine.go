@@ -323,7 +323,7 @@ func attemptFeatureInstall(reExec, admin bool) error {
 		"If you prefer, you may abort now, and perform a manual installation using the \"wsl --install\" command."
 
 	if !reExec && winutil.MessageBox(message, "Podman Machine", false) != 1 {
-		return fmt.Errorf("the WSL installation aborted: %w", define.ErrRelaunchAttempt)
+		return fmt.Errorf("the WSL installation aborted: %w", define.ErrRelaunchSucceeded)
 	}
 
 	if !reExec && !admin {
@@ -341,16 +341,16 @@ func launchElevate(operation string) error {
 		if eerr, ok := err.(*winutil.ExitCodeError); ok {
 			if eerr.Code == ErrorSuccessRebootRequired {
 				fmt.Println("Reboot is required to continue installation, please reboot at your convenience")
-				return define.ErrRelaunchAttempt
+				return define.ErrRelaunchSucceeded
 			}
 		}
 
 		fmt.Fprintf(os.Stderr, "Elevated process failed with error: %v\n\n", err)
 		winutil.DumpOutputFile()
 		fmt.Fprintf(os.Stderr, wslInstallError, operation)
-		return fmt.Errorf("%w: %w", err, define.ErrRelaunchAttempt)
+		return fmt.Errorf("elevated process failed to %s: %w", operation, err)
 	}
-	return define.ErrRelaunchAttempt
+	return define.ErrRelaunchSucceeded
 }
 
 func installWsl() error {

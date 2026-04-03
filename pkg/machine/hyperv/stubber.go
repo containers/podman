@@ -268,7 +268,7 @@ func launchElevate(message string) error {
 		windows.DumpOutputFile()
 		return fmt.Errorf("elevated process failed with error: %w", err)
 	}
-	return define.ErrRelaunchAttempt
+	return define.ErrRelaunchSucceeded
 }
 
 // createErrorLogCallback creates a callback function that logs errors to file when --reexec is detected

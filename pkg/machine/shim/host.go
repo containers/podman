@@ -76,10 +76,11 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 
 	callbackFuncs := machine.CleanUp()
 	defer func() {
-		// Do not clean up on relaunch: the elevated child process
-		// completed init successfully and is using the resources
-		// (e.g. the disk image) that cleanup would remove.
-		if !errors.Is(err, machineDefine.ErrRelaunchAttempt) {
+		// ErrRelaunchSucceeded is not a real error: it signals that
+		// an elevated child process completed the operation successfully.
+		// Skip cleanup so we don't remove resources (e.g. the disk image)
+		// that the child process created and that are now in use.
+		if !errors.Is(err, machineDefine.ErrRelaunchSucceeded) {
 			callbackFuncs.CleanIfErr(&err)
 		}
 	}()

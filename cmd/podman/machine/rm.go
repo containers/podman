@@ -63,11 +63,10 @@ func rm(_ *cobra.Command, args []string) error {
 	}
 
 	if err := shim.Remove(mc, vmProvider, destroyOptions); err != nil {
-		// The removal is partially complete and podman should
-		// exit gracefully with no error and no success message.
-		// Examples:
-		// - reexec for limited admin operations, returning to parent
-		if errors.Is(err, define.ErrRelaunchAttempt) {
+		// ErrRelaunchSucceeded is not a real error: it signals that
+		// an elevated child process completed the removal successfully.
+		// Exit gracefully.
+		if errors.Is(err, define.ErrRelaunchSucceeded) {
 			return nil
 		}
 		return err
