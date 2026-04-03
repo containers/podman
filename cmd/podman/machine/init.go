@@ -284,12 +284,19 @@ func initMachine(cmd *cobra.Command, args []string) error {
 
 	err = shim.Init(initOpts, machineProvider)
 	if err != nil {
-		// The installation is partially complete and podman should
-		// exit gracefully with no error and no success message.
-		// Examples:
-		// - a user has chosen to perform their own reboot
-		// - reexec for limited admin operations, returning to parent
-		if errors.Is(err, define.ErrInitRelaunchAttempt) {
+		// ErrRelaunchSucceeded is not a real error: it signals that
+		// an elevated child process completed init successfully.
+		// Exit gracefully with a success message.
+		//
+		// This can happen with WSL when installing the WSL features
+		// or with HyperV when adding entries to the Registry
+		if errors.Is(err, define.ErrRelaunchSucceeded) {
+			fmt.Println("Machine init complete")
+			if now {
+				fmt.Printf("Machine %q started successfully\n", initOpts.Name)
+				return nil
+			}
+			printStartCommand(initOpts.Name)
 			return nil
 		}
 		return err
@@ -299,15 +306,21 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	fmt.Println("Machine init complete")
 
 	if now {
+		// Pass reexec flag from init to start
+		startOpts.ReExec = initOpts.ReExec
 		return start(cmd, args)
 	}
 
+	printStartCommand(initOpts.Name)
+	return err
+}
+
+func printStartCommand(machineName string) {
 	extra := ""
-	if initOpts.Name != defaultMachineName {
-		extra = " " + initOpts.Name
+	if machineName != defaultMachineName {
+		extra = " " + machineName
 	}
 	fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
-	return err
 }
 
 // checkMaxMemory gets the total system memory and compares it to the variable.  if the variable

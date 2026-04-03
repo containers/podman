@@ -75,7 +75,15 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	)
 
 	callbackFuncs := machine.CleanUp()
-	defer callbackFuncs.CleanIfErr(&err)
+	defer func() {
+		// ErrRelaunchSucceeded is not a real error: it signals that
+		// an elevated child process completed the operation successfully.
+		// Skip cleanup so we don't remove resources (e.g. the disk image)
+		// that the child process created and that are now in use.
+		if !errors.Is(err, machineDefine.ErrRelaunchSucceeded) {
+			callbackFuncs.CleanIfErr(&err)
+		}
+	}()
 	go callbackFuncs.CleanOnSignal()
 
 	dirs, err := env.GetMachineDirs(mp.VMType())
@@ -159,20 +167,22 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	}
 	mc.ImagePath = imagePath
 
-	// TODO The following stanzas should be re-written in a differeent place.  It should have a custom
-	// parser for our image pulling.  It would be nice if init just got an error and mydisk back.
-	//
-	// Eventual valid input:
-	// "" <- means take the default
-	// "http|https://path"
-	// "/path
-	// "docker://quay.io/something/someManifest
-
-	if err := diskpull.GetDisk(opts.Image, dirs, mc.ImagePath, mp.VMType(), mc.Name, opts.SkipTlsVerify); err != nil {
-		return err
+	// If the process was re-executed with elevation, the image has already been pulled
+	// in the parent process, so skip disk pulling here.
+	if !opts.ReExec {
+		// TODO The following stanzas should be re-written in a differeent place.  It should have a custom
+		// parser for our image pulling.  It would be nice if init just got an error and mydisk back.
+		//
+		// Eventual valid input:
+		// "" <- means take the default
+		// "http|https://path"
+		// "/path
+		// "docker://quay.io/something/someManifest
+		if err := diskpull.GetDisk(opts.Image, dirs, mc.ImagePath, mp.VMType(), mc.Name, opts.SkipTlsVerify); err != nil {
+			return err
+		}
+		callbackFuncs.Add(mc.ImagePath.Delete)
 	}
-
-	callbackFuncs.Add(mc.ImagePath.Delete)
 
 	logrus.Debugf("imagePath is %q", imagePath.GetPath())
 
@@ -460,8 +470,10 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 	if err != nil {
 		return err
 	}
-	mc.Lock()
-	defer mc.Unlock()
+	if !opts.ReExec {
+		mc.Lock()
+		defer mc.Unlock()
+	}
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
 	}
@@ -732,8 +744,10 @@ func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.R
 	if err != nil {
 		return err
 	}
-	mc.Lock()
-	defer mc.Unlock()
+	if !opts.ReExec {
+		mc.Lock()
+		defer mc.Unlock()
+	}
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
 	}
