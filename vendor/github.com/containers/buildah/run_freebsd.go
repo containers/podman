@@ -504,11 +504,14 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 		mynetns = containerName
 	}
 
-	networks := make(map[string]nettypes.PerNetworkOptions, len(configureNetworks))
+	networks := make([]nettypes.NamedPerNetworkOptions, 0, len(configureNetworks))
 	for i, network := range configureNetworks {
-		networks[network] = nettypes.PerNetworkOptions{
-			InterfaceName: fmt.Sprintf("eth%d", i),
-		}
+		networks = append(networks, nettypes.NamedPerNetworkOptions{
+			Name: network,
+			PerNetworkOptions: nettypes.PerNetworkOptions{
+				InterfaceName: fmt.Sprintf("eth%d", i),
+			},
+		})
 	}
 
 	opts := nettypes.NetworkOptions{

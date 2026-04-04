@@ -1550,8 +1550,9 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 			// so we should commit this container to create
 			// an image, but only if it's the last stage,
 			// or if it's used as the basis for a later
-			// stage.
-			if lastStage || imageIsUsedLater {
+			// stage or we are forcing saving stages by
+			// --save-stages
+			if lastStage || imageIsUsedLater || s.executor.saveStages {
 				logCommit(s.output, i)
 				createdBy, err := s.getCreatedBy(node, addedContentSummary, lastStage && lastInstruction)
 				if err != nil {

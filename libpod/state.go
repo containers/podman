@@ -83,11 +83,12 @@ type State interface { //nolint:interfacebloat
 	AllContainers(loadState bool) ([]*Container, error)
 
 	// Get networks the container is currently connected to.
-	GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error)
-	// Add the container to the given network with the given options
-	NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error
-	// Modify the container network with the given options.
-	NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error
+	GetNetworks(ctr *Container) ([]types.NamedPerNetworkOptions, error)
+	// Add the container to the given network with the given options.
+	NetworkConnect(ctr *Container, network types.NamedPerNetworkOptions) error
+	// Overwrite the container network with the name network.Name.
+	// Effectively replaced the options of the named network.
+	NetworkModify(ctr *Container, network types.NamedPerNetworkOptions) error
 	// Remove the container from the given network, removing all aliases for
 	// the container in that network in the process.
 	NetworkDisconnect(ctr *Container, network string) error

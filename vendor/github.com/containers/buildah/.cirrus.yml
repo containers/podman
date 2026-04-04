@@ -36,7 +36,7 @@ env:
     DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20260310t170224z-f43f42d14"
+    IMAGE_SUFFIX: "c20260319t182308z-f43f42d14"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}" # Used temporarily for rust-podman-sequoia. After that RPM is available in stable Fedora releases, we can stop testing against Rawhide again.

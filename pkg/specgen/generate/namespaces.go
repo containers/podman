@@ -4,6 +4,7 @@ package generate
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/containers/podman/v6/libpod"
@@ -107,7 +108,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	case "cgroup":
 		return specgen.ParseCgroupNamespace(cfg.Containers.CgroupNS)
 	case "net":
-		ns, _, _, err := specgen.ParseNetworkFlag(nil)
+		ns, _, _, _, err := specgen.ParseNetworkFlag(nil)
 		return ns, err
 	}
 
@@ -371,7 +372,37 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			s.Networks[rtConfig.Network.DefaultNetwork] = opts
 			delete(s.Networks, "default")
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "bridge", s.Networks))
+
+		finalNetworks := make([]types.NamedPerNetworkOptions, 0, len(s.Networks))
+		if s.NetworkOrder != nil {
+			if len(s.NetworkOrder) != len(s.Networks) {
+				return nil, fmt.Errorf("the NetworkOrder struct must have the same length as Networks: %d vs %d", len(s.NetworkOrder), len(s.Networks))
+			}
+			for _, n := range s.NetworkOrder {
+				network, ok := s.Networks[n]
+				if !ok {
+					return nil, fmt.Errorf("key found in NetworkOrder that is not in the Networks map: %s", n)
+				}
+				finalNetworks = append(finalNetworks, types.NamedPerNetworkOptions{
+					Name:              n,
+					PerNetworkOptions: network,
+				})
+			}
+		} else {
+			keys := make([]string, 0, len(s.Networks))
+			for key := range s.Networks {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			for _, key := range keys {
+				finalNetworks = append(finalNetworks, types.NamedPerNetworkOptions{
+					Name:              key,
+					PerNetworkOptions: s.Networks[key],
+				})
+			}
+		}
+
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "bridge", finalNetworks))
 	}
 
 	if s.UseImageHosts != nil && *s.UseImageHosts {
