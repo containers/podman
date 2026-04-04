@@ -818,12 +818,18 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 		Errors:  make(map[string]error),
 		Removed: []string{},
 	}
-	removeList := []string{}
-	reverseMap, appMap, err := buildAppMap(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()))
+
+	installDir := systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless())
+
+	reverseMap, appMap, err := buildAppMap(installDir)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build app map: %w", err)
 	}
-	expandQuadletList := []string{}
+
+	// Use sets for deduplication
+	removeSet := make(map[string]struct{})
+	expandQuadletSet := make(map[string]struct{})
+
 	// Process all `.app` files in arguments, if `.app` file
 	// is found then expand it to its respective quadlet files
 	// and remove it from the processing list.
@@ -835,31 +841,34 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			if ok {
 				for _, file := range files {
 					if !systemdquadlet.IsExtSupported(file) {
-						removeList = append(removeList, file)
+						removeSet[file] = struct{}{}
 					} else {
-						expandQuadletList = append(expandQuadletList, file)
+						expandQuadletSet[file] = struct{}{}
 					}
 				}
 			}
 			// also add .app file itself to the remove list so it can
 			// be cleaned after removal of all components in the list
-			if !slices.Contains(removeList, quadlet) {
-				removeList = append(removeList, quadlet)
-			}
+			removeSet[quadlet] = struct{}{}
 		} else {
-			expandQuadletList = append(expandQuadletList, quadlet)
+			expandQuadletSet[quadlet] = struct{}{}
 		}
 	}
-	quadlets = expandQuadletList
+
+	if len(quadlets) == 0 && !options.All {
+		return nil, errors.New("must provide at least 1 quadlet to remove")
+	}
+	// Convert expandQuadletSet to slice
+	quadlets = make([]string, 0, len(expandQuadletSet))
+	for quadlet := range expandQuadletSet {
+		quadlets = append(quadlets, quadlet)
+	}
+
 	allQuadletPaths := make([]string, 0, len(quadlets))
 	allServiceNames := make([]string, 0, len(quadlets))
 	runningQuadlets := make([]string, 0, len(quadlets))
 	serviceNameToQuadletName := make(map[string]string)
 	needReload := options.ReloadSystemd
-
-	if len(quadlets) == 0 && !options.All {
-		return nil, errors.New("must provide at least 1 quadlet to remove")
-	}
 
 	// Is systemd available to the current user?
 	// We cannot proceed if not.
@@ -871,7 +880,12 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 
 	if options.All {
 		allQuadlets := getAllQuadletPaths()
-		quadlets = allQuadlets
+		for _, quadlet := range allQuadlets {
+			if _, exists := expandQuadletSet[quadlet]; !exists {
+				quadlets = append(quadlets, quadlet)
+				expandQuadletSet[quadlet] = struct{}{}
+			}
+		}
 	}
 
 	// We are using index wise iteration here instead of `range`
@@ -896,30 +910,43 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			}
 			continue
 		}
-		value, ok := reverseMap[quadlet]
+		// Use base filename for reverseMap lookup since map keys are filenames, not full paths
+		quadletBaseName := filepath.Base(quadlet)
+		value, ok := reverseMap[quadletBaseName]
 		if ok {
 			// If this is part of app and we are cleaning entire .app
 			// make sure to add .app file itself to the removal list
 			// if it does not already exists.
-			if !slices.Contains(removeList, value) {
-				removeList = append(removeList, value)
-			}
-			appFilePath := filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), value)
+			removeSet[value] = struct{}{}
+			appFilePath := filepath.Join(installDir, value)
 			filesToRemove, err := getAssetListFromFile(appFilePath)
 			if err != nil {
 				return nil, fmt.Errorf("unable to get list of files to remove: %w", err)
 			}
 			for _, entry := range filesToRemove {
 				if !systemdquadlet.IsExtSupported(entry) {
-					removeList = append(removeList, entry)
-					if !slices.Contains(removeList, value) {
-						// In the last also clean .<quadlet>.app file
-						removeList = append(removeList, value)
-					}
+					removeSet[entry] = struct{}{}
 					continue
 				}
-				if !slices.Contains(quadlets, entry) {
-					quadlets = append(quadlets, entry)
+				var entryToAdd string
+				// Note: We treat --all and specific arguments (e.g. foo.container)
+				// as mutually exclusive here. The loop that runs to expand
+				// .app, adds filenames to expandQuadletSet. While the
+				// options.All uses getAllQuadletPaths() to add full paths.
+				// The dedup check won't detect these refer to the same file,
+				// so a quadlet could be processed twice.
+				// Given this is low-risk, --all is highly unlikely to used
+				// with explicit .app arguments such as:
+				// 'podman quadlet rm --all --force foo.app'
+				// Documenting the behavior is preferred over normalizing all entries to full paths.
+				if options.All {
+					entryToAdd = filepath.Join(installDir, entry)
+				} else {
+					entryToAdd = entry
+				}
+				if _, exists := expandQuadletSet[entryToAdd]; !exists {
+					quadlets = append(quadlets, entryToAdd)
+					expandQuadletSet[entryToAdd] = struct{}{}
 				}
 			}
 		}
@@ -995,10 +1022,20 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 					continue
 				}
 			}
-			for _, entry := range removeList {
-				os.Remove(filepath.Join(systemdquadlet.GetInstallUnitDirPath(rootless.IsRootless()), entry))
-			}
 			report.Removed = append(report.Removed, quadletName)
+		}
+	}
+
+	// Remove .app and .asset files after the main quadlet removal loop
+	// This ensures they are cleaned up properly since they are not included in allQuadletPaths
+	for entry := range removeSet {
+		entryPath := filepath.Join(installDir, entry)
+		if err := os.Remove(entryPath); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Warnf("Failed to remove metadata file %s: %v", entry, err)
+			}
+		} else {
+			logrus.Debugf("Removed metadata file %s", entry)
 		}
 	}
 
