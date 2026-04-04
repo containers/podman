@@ -794,6 +794,22 @@ function pasta_test_do() {
     die "Timed out waiting for pid $pid to terminate"
 }
 
+# https://github.com/containers/podman/issues/23737
+@test "podman restart with pasta and published ports" {
+    skip_if_no_ipv4 "IPv4 not routable on the host"
+
+    local port=$(random_free_port "" "" tcp)
+    local cname="c-pasta-restart-$(safename)"
+
+    run_podman create --name="$cname" --net=pasta -p "${port}:80/tcp" $IMAGE top -d 120
+    run_podman start "$cname"
+
+    # This was failing before the fix with "address already in use"
+    run_podman restart -t 1 "$cname"
+
+    run_podman rm -t 0 -f "$cname"
+}
+
 ### Options ####################################################################
 @test "Unsupported protocol in port forwarding" {
     local port=$(random_free_port "" "" tcp)
