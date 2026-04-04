@@ -23,6 +23,8 @@ import (
 	"github.com/containers/buildah/pkg/volumes"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/namespaces"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/containers/podman/v6/pkg/domain/entities/reports"
 	domainUtils "github.com/containers/podman/v6/pkg/domain/utils"
 	"github.com/containers/podman/v6/pkg/errorhandling"
@@ -294,6 +296,36 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 	pullOptions.Writer = options.Writer
 	pullOptions.OciDecryptConfig = options.OciDecryptConfig
+	if options.UserNS != "" {
+		usernsMode := namespaces.UsernsMode(options.UserNS)
+		switch {
+		case usernsMode.IsKeepID():
+			keepIDOpts, err := usernsMode.GetKeepIDOptions()
+			if err != nil {
+				return nil, err
+			}
+			mapping, _, _, err := util.GetKeepIDMapping(keepIDOpts)
+			if err != nil {
+				return nil, err
+			}
+			pullOptions.UIDMap = mapping.UIDMap
+			pullOptions.GIDMap = mapping.GIDMap
+		case usernsMode.IsNoMap():
+			mapping, _, _, err := util.GetNoMapMapping()
+			if err != nil {
+				return nil, err
+			}
+			pullOptions.UIDMap = mapping.UIDMap
+			pullOptions.GIDMap = mapping.GIDMap
+		default:
+			mapping, err := util.ParseIDMapping(usernsMode, options.UIDMap, options.GIDMap, options.SubUIDName, options.SubGIDName)
+			if err != nil {
+				return nil, err
+			}
+			pullOptions.UIDMap = mapping.UIDMap
+			pullOptions.GIDMap = mapping.GIDMap
+		}
+	}
 	pullOptions.MaxRetries = options.Retry
 
 	if options.RetryDelay != "" {

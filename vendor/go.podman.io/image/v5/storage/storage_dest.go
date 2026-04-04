@@ -37,7 +37,9 @@ import (
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/chunked"
 	"go.podman.io/storage/pkg/chunked/toc"
+	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/ioutils"
+	storagetypes "go.podman.io/storage/types"
 )
 
 var (
@@ -58,6 +60,8 @@ type storageImageDestination struct {
 	stubs.AlwaysSupportsSignatures
 
 	imageRef              storageReference
+	uidMap                []idtools.IDMap
+	gidMap                []idtools.IDMap
 	directory             string                   // Temporary directory where we store blobs until Commit() time
 	nextTempFileID        atomic.Int32             // A counter that we use for computing filenames to assign to blobs
 	manifest              []byte                   // (Per-instance) manifest contents, or nil if not yet known.
@@ -184,8 +188,29 @@ func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*
 			fileSizes:              make(map[digest.Digest]int64),
 		},
 	}
+	if sys != nil {
+		dest.uidMap = sys.UIDMap
+		dest.gidMap = sys.GIDMap
+	}
 	dest.Compat = impl.AddCompat(dest)
 	return dest, nil
+}
+
+// idMappingOptions returns the IDMappingOptions for layer creation.
+// When custom UID/GID maps are set, they are used directly.
+// Otherwise, HostUIDMapping/HostGIDMapping are set to true so that
+// populateLayerOptions does not silently inherit mappings from a parent layer.
+func (s *storageImageDestination) idMappingOptions() storagetypes.IDMappingOptions {
+	if len(s.uidMap) > 0 || len(s.gidMap) > 0 {
+		return storagetypes.IDMappingOptions{
+			UIDMap: s.uidMap,
+			GIDMap: s.gidMap,
+		}
+	}
+	return storagetypes.IDMappingOptions{
+		HostUIDMapping: true,
+		HostGIDMapping: true,
+	}
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -1134,6 +1159,9 @@ func (s *storageImageDestination) createNewLayer(index int, trusted trustedLayer
 		args := storage.ApplyStagedLayerOptions{
 			ID:          newLayerID,
 			ParentLayer: parentLayer,
+			LayerOptions: &storage.LayerOptions{
+				IDMappingOptions: s.idMappingOptions(),
+			},
 
 			DiffOutput: diffOutput,
 			DiffOptions: &graphdriver.ApplyDiffWithDifferOpts{
@@ -1274,12 +1302,14 @@ func (s *storageImageDestination) createNewLayer(index int, trusted trustedLayer
 	defer file.Close()
 	// Build the new layer using the diff, regardless of where it came from.
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-	layer, _, err := s.imageRef.transport.store.PutLayer(newLayerID, parentLayer, nil, "", false, &storage.LayerOptions{
-		OriginalDigest: trustedOriginalDigest,
-		OriginalSize:   trustedOriginalSize, // nil in many cases
+	layerOptions := &storage.LayerOptions{
+		IDMappingOptions: s.idMappingOptions(),
+		OriginalDigest:   trustedOriginalDigest,
+		OriginalSize:     trustedOriginalSize, // nil in many cases
 		// This might be "" if trusted.layerIdentifiedByTOC; in that case PutLayer will compute the value from the stream.
 		UncompressedDigest: trusted.diffID,
-	}, file)
+	}
+	layer, _, err := s.imageRef.transport.store.PutLayer(newLayerID, parentLayer, nil, "", false, layerOptions, file)
 	if err != nil && !errors.Is(err, storage.ErrDuplicateID) {
 		return nil, fmt.Errorf("adding layer with blob %s: %w", trusted.logString(), err)
 	}
