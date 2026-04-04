@@ -257,4 +257,10 @@ t POST networks/netcon/connect Container=c1 200 OK
 # cleanup
 podman network rm -f netcon
 
+# IPRange is populated in IPAM config when a network is created with --ip-range
+podman network create --subnet 10.10.61.0/24 --ip-range 10.10.61.128/25 iprange-test
+t GET networks/iprange-test 200 \
+  .IPAM.Config[0].IPRange="10.10.61.128/25"
+podman network rm -f iprange-test
+
 # vim: filetype=sh
