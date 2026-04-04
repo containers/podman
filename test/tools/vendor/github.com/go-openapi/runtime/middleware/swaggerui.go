@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package middleware
 
 import (
@@ -8,7 +11,7 @@ import (
 	"path"
 )
 
-// SwaggerUIOpts configures the SwaggerUI middleware
+// SwaggerUIOpts configures the [SwaggerUI] [middleware].
 type SwaggerUIOpts struct {
 	// BasePath for the API, defaults to: /
 	BasePath string
@@ -44,7 +47,7 @@ type SwaggerUIOpts struct {
 	Favicon16 string
 }
 
-// EnsureDefaults in case some options are missing
+// EnsureDefaults in case some options are missing.
 func (r *SwaggerUIOpts) EnsureDefaults() {
 	r.ensureDefaults()
 
@@ -87,9 +90,9 @@ func (r *SwaggerUIOpts) ensureDefaults() {
 	}
 }
 
-// SwaggerUI creates a middleware to serve a documentation site for a swagger spec.
+// SwaggerUI creates a [middleware] to serve a documentation site for a swagger spec.
 //
-// This allows for altering the spec before starting the http listener.
+// This allows for altering the spec before starting the [http] listener.
 func SwaggerUI(opts SwaggerUIOpts, next http.Handler) http.Handler {
 	opts.EnsureDefaults()
 

@@ -1,12 +1,15 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package spec
 
 import (
 	"fmt"
 
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
-func resolveAnyWithBase(root interface{}, ref *Ref, result interface{}, options *ExpandOptions) error {
+func resolveAnyWithBase(root any, ref *Ref, result any, options *ExpandOptions) error {
 	options = optionsOrDefault(options)
 	resolver := defaultSchemaLoader(root, options, nil, nil)
 
@@ -17,8 +20,8 @@ func resolveAnyWithBase(root interface{}, ref *Ref, result interface{}, options 
 	return nil
 }
 
-// ResolveRefWithBase resolves a reference against a context root with preservation of base path
-func ResolveRefWithBase(root interface{}, ref *Ref, options *ExpandOptions) (*Schema, error) {
+// ResolveRefWithBase resolves a reference against a context root with preservation of base path.
+func ResolveRefWithBase(root any, ref *Ref, options *ExpandOptions) (*Schema, error) {
 	result := new(Schema)
 
 	if err := resolveAnyWithBase(root, ref, result, options); err != nil {
@@ -31,8 +34,8 @@ func ResolveRefWithBase(root interface{}, ref *Ref, options *ExpandOptions) (*Sc
 // ResolveRef resolves a reference for a schema against a context root
 // ref is guaranteed to be in root (no need to go to external files)
 //
-// ResolveRef is ONLY called from the code generation module
-func ResolveRef(root interface{}, ref *Ref) (*Schema, error) {
+// ResolveRef is ONLY called from the code generation module.
+func ResolveRef(root any, ref *Ref) (*Schema, error) {
 	res, _, err := ref.GetPointer().Get(root)
 	if err != nil {
 		return nil, err
@@ -43,9 +46,9 @@ func ResolveRef(root interface{}, ref *Ref) (*Schema, error) {
 		return &sch, nil
 	case *Schema:
 		return sch, nil
-	case map[string]interface{}:
+	case map[string]any:
 		newSch := new(Schema)
-		if err = swag.DynamicJSONToStruct(sch, newSch); err != nil {
+		if err = jsonutils.FromDynamicJSON(sch, newSch); err != nil {
 			return nil, err
 		}
 		return newSch, nil
@@ -54,8 +57,8 @@ func ResolveRef(root interface{}, ref *Ref) (*Schema, error) {
 	}
 }
 
-// ResolveParameterWithBase resolves a parameter reference against a context root and base path
-func ResolveParameterWithBase(root interface{}, ref Ref, options *ExpandOptions) (*Parameter, error) {
+// ResolveParameterWithBase resolves a parameter reference against a context root and base path.
+func ResolveParameterWithBase(root any, ref Ref, options *ExpandOptions) (*Parameter, error) {
 	result := new(Parameter)
 
 	if err := resolveAnyWithBase(root, &ref, result, options); err != nil {
@@ -65,13 +68,13 @@ func ResolveParameterWithBase(root interface{}, ref Ref, options *ExpandOptions)
 	return result, nil
 }
 
-// ResolveParameter resolves a parameter reference against a context root
-func ResolveParameter(root interface{}, ref Ref) (*Parameter, error) {
+// ResolveParameter resolves a parameter reference against a context root.
+func ResolveParameter(root any, ref Ref) (*Parameter, error) {
 	return ResolveParameterWithBase(root, ref, nil)
 }
 
-// ResolveResponseWithBase resolves response a reference against a context root and base path
-func ResolveResponseWithBase(root interface{}, ref Ref, options *ExpandOptions) (*Response, error) {
+// ResolveResponseWithBase resolves response a reference against a context root and base path.
+func ResolveResponseWithBase(root any, ref Ref, options *ExpandOptions) (*Response, error) {
 	result := new(Response)
 
 	err := resolveAnyWithBase(root, &ref, result, options)
@@ -82,13 +85,13 @@ func ResolveResponseWithBase(root interface{}, ref Ref, options *ExpandOptions) 
 	return result, nil
 }
 
-// ResolveResponse resolves response a reference against a context root
-func ResolveResponse(root interface{}, ref Ref) (*Response, error) {
+// ResolveResponse resolves response a reference against a context root.
+func ResolveResponse(root any, ref Ref) (*Response, error) {
 	return ResolveResponseWithBase(root, ref, nil)
 }
 
-// ResolvePathItemWithBase resolves response a path item against a context root and base path
-func ResolvePathItemWithBase(root interface{}, ref Ref, options *ExpandOptions) (*PathItem, error) {
+// ResolvePathItemWithBase resolves response a path item against a context root and base path.
+func ResolvePathItemWithBase(root any, ref Ref, options *ExpandOptions) (*PathItem, error) {
 	result := new(PathItem)
 
 	if err := resolveAnyWithBase(root, &ref, result, options); err != nil {
@@ -100,16 +103,16 @@ func ResolvePathItemWithBase(root interface{}, ref Ref, options *ExpandOptions) 
 
 // ResolvePathItem resolves response a path item against a context root and base path
 //
-// Deprecated: use ResolvePathItemWithBase instead
-func ResolvePathItem(root interface{}, ref Ref, options *ExpandOptions) (*PathItem, error) {
+// Deprecated: use ResolvePathItemWithBase instead.
+func ResolvePathItem(root any, ref Ref, options *ExpandOptions) (*PathItem, error) {
 	return ResolvePathItemWithBase(root, ref, options)
 }
 
 // ResolveItemsWithBase resolves parameter items reference against a context root and base path.
 //
-// NOTE: stricly speaking, this construct is not supported by Swagger 2.0.
+// NOTE: strictly speaking, this construct is not supported by Swagger 2.0.
 // Similarly, $ref are forbidden in response headers.
-func ResolveItemsWithBase(root interface{}, ref Ref, options *ExpandOptions) (*Items, error) {
+func ResolveItemsWithBase(root any, ref Ref, options *ExpandOptions) (*Items, error) {
 	result := new(Items)
 
 	if err := resolveAnyWithBase(root, &ref, result, options); err != nil {
@@ -121,7 +124,7 @@ func ResolveItemsWithBase(root interface{}, ref Ref, options *ExpandOptions) (*I
 
 // ResolveItems resolves parameter items reference against a context root and base path.
 //
-// Deprecated: use ResolveItemsWithBase instead
-func ResolveItems(root interface{}, ref Ref, options *ExpandOptions) (*Items, error) {
+// Deprecated: use ResolveItemsWithBase instead.
+func ResolveItems(root any, ref Ref, options *ExpandOptions) (*Items, error) {
 	return ResolveItemsWithBase(root, ref, options)
 }

@@ -1,32 +1,46 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
 import (
 	"fmt"
 	"reflect"
-	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/go-openapi/spec"
 )
 
-// StringType For identifying string types
+// StringType For identifying string types.
 const StringType = "string"
 
-// URLMethodResponse encapsulates these three elements to act as a map key
+// URLMethodResponse encapsulates these three elements to act as a map key.
 type URLMethodResponse struct {
 	Path     string `json:"path"`
 	Method   string `json:"method"`
 	Response string `json:"response"`
 }
 
-// MarshalText - for serializing as a map key
+// MarshalText - for serializing as a map key.
 func (p URLMethod) MarshalText() (text []byte, err error) {
-	return []byte(fmt.Sprintf("%s %s", p.Path, p.Method)), nil
+	return fmt.Appendf([]byte{}, "%s %s", p.Path, p.Method), nil
 }
 
-// URLMethods allows iteration of endpoints based on url and method
+// URLMethods allows iteration of endpoints based on url and method.
 type URLMethods map[URLMethod]*PathItemOp
 
-// SpecAnalyser contains all the differences for a Spec
+// PropertyDefn combines a property with its required-ness.
+type PropertyDefn struct {
+	Schema   *spec.Schema
+	Required bool
+}
+
+// PropertyMap a unified map including all AllOf fields.
+type PropertyMap map[string]PropertyDefn
+
+// SpecAnalyser contains all the differences for a Spec.
 type SpecAnalyser struct {
 	Diffs                 SpecDifferences
 	urlMethods1           URLMethods
@@ -38,17 +52,19 @@ type SpecAnalyser struct {
 	ReferencedDefinitions map[string]bool
 
 	schemasCompared map[string]struct{}
+	titler          cases.Caser
 }
 
-// NewSpecAnalyser returns an empty SpecDiffs
+// NewSpecAnalyser returns an empty SpecDiffs.
 func NewSpecAnalyser() *SpecAnalyser {
 	return &SpecAnalyser{
 		Diffs:                 SpecDifferences{},
 		ReferencedDefinitions: map[string]bool{},
+		titler:                cases.Title(language.English, cases.NoLower),
 	}
 }
 
-// Analyse the differences in two specs
+// Analyse the differences in two specs.
 func (sd *SpecAnalyser) Analyse(spec1, spec2 *spec.Swagger) error {
 	sd.schemasCompared = make(map[string]struct{})
 	sd.Definitions1 = spec1.Definitions
@@ -67,6 +83,84 @@ func (sd *SpecAnalyser) Analyse(spec1, spec2 *spec.Swagger) error {
 	sd.AnalyseDefinitions()
 
 	return nil
+}
+
+// AnalyseDefinitions check for changes to definition objects not referenced in any endpoint.
+func (sd *SpecAnalyser) AnalyseDefinitions() {
+	alreadyReferenced := map[string]bool{}
+	for k := range sd.ReferencedDefinitions {
+		alreadyReferenced[k] = true
+	}
+	location := DifferenceLocation{Node: &Node{Field: "Spec Definitions"}}
+	for name1, sch := range sd.Definitions1 {
+		schema1 := sch
+		if _, ok := alreadyReferenced[name1]; !ok {
+			childLocation := location.AddNode(&Node{Field: name1})
+			if schema2, ok := sd.Definitions2[name1]; ok {
+				sd.compareSchema(childLocation, &schema1, &schema2)
+			} else {
+				sd.addDiffs(childLocation, []TypeDiff{{Change: DeletedDefinition}})
+			}
+		}
+	}
+	for name2 := range sd.Definitions2 {
+		if _, ok := sd.Definitions1[name2]; !ok {
+			childLocation := location.AddNode(&Node{Field: name2})
+			sd.addDiffs(childLocation, []TypeDiff{{Change: AddedDefinition}})
+		}
+	}
+}
+
+// CompareProps computes type specific property diffs.
+func (sd *SpecAnalyser) CompareProps(type1, type2 *spec.SchemaProps) []TypeDiff {
+	diffs := []TypeDiff{}
+
+	diffs = CheckToFromPrimitiveType(diffs, type1, type2)
+
+	if len(diffs) > 0 {
+		return diffs
+	}
+
+	if isArray(type1) {
+		maxItemDiffs := CompareIntValues("MaxItems", type1.MaxItems, type2.MaxItems, WidenedType, NarrowedType)
+		diffs = append(diffs, maxItemDiffs...)
+		minItemsDiff := CompareIntValues("MinItems", type1.MinItems, type2.MinItems, NarrowedType, WidenedType)
+		diffs = append(diffs, minItemsDiff...)
+	}
+
+	if len(diffs) > 0 {
+		return diffs
+	}
+
+	diffs = CheckRefChange(diffs, type1, type2)
+	if len(diffs) > 0 {
+		return diffs
+	}
+
+	if !isPrimitiveType(type1.Type) || !isPrimitiveType(type2.Type) {
+		return diffs
+	}
+
+	// check primitive type hierarchy change eg string -> integer = NarrowedChange
+	if type1.Type[0] != type2.Type[0] ||
+		type1.Format != type2.Format {
+		diff := getTypeHierarchyChange(primitiveTypeString(type1.Type[0], type1.Format), primitiveTypeString(type2.Type[0], type2.Format))
+		diffs = addTypeDiff(diffs, diff)
+	}
+
+	diffs = CheckStringTypeChanges(diffs, type1, type2)
+
+	if len(diffs) > 0 {
+		return diffs
+	}
+
+	diffs = checkNumericTypeChanges(diffs, type1, type2)
+
+	if len(diffs) > 0 {
+		return diffs
+	}
+
+	return diffs
 }
 
 func (sd *SpecAnalyser) analyseSpecMetadata(spec1, spec2 *spec.Swagger) {
@@ -107,7 +201,7 @@ func (sd *SpecAnalyser) analyseSpecMetadata(spec1, spec2 *spec.Swagger) {
 	}
 
 	// host should be able to change without any issues?
-	sd.analyseMetaDataProperty(spec1.Info.Description, spec2.Info.Description, ChangedDescripton, NonBreaking)
+	sd.analyseMetaDataProperty(spec1.Info.Description, spec2.Info.Description, ChangedDescription, NonBreaking)
 
 	// // host should be able to change without any issues?
 	sd.analyseMetaDataProperty(spec1.Host, spec2.Host, ChangedHostURL, Breaking)
@@ -128,34 +222,7 @@ func (sd *SpecAnalyser) analyseEndpoints() {
 	sd.findAddedEndpoints()
 }
 
-// AnalyseDefinitions check for changes to definition objects not referenced in any endpoint
-func (sd *SpecAnalyser) AnalyseDefinitions() {
-	alreadyReferenced := map[string]bool{}
-	for k := range sd.ReferencedDefinitions {
-		alreadyReferenced[k] = true
-	}
-	location := DifferenceLocation{Node: &Node{Field: "Spec Definitions"}}
-	for name1, sch := range sd.Definitions1 {
-		schema1 := sch
-		if _, ok := alreadyReferenced[name1]; !ok {
-			childLocation := location.AddNode(&Node{Field: name1})
-			if schema2, ok := sd.Definitions2[name1]; ok {
-				sd.compareSchema(childLocation, &schema1, &schema2)
-			} else {
-				sd.addDiffs(childLocation, []TypeDiff{{Change: DeletedDefinition}})
-			}
-		}
-	}
-	for name2 := range sd.Definitions2 {
-		if _, ok := sd.Definitions1[name2]; !ok {
-			childLocation := location.AddNode(&Node{Field: name2})
-			sd.addDiffs(childLocation, []TypeDiff{{Change: AddedDefinition}})
-		}
-	}
-}
-
 func (sd *SpecAnalyser) analyseEndpointData() {
-
 	for URLMethod, op2 := range sd.urlMethods2 {
 		if op1, ok := sd.urlMethods1[URLMethod]; ok {
 			addedTags, deletedTags, _ := fromStringArray(op1.Operation.Tags).DiffsTo(op2.Operation.Tags)
@@ -168,8 +235,7 @@ func (sd *SpecAnalyser) analyseEndpointData() {
 				sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: location, Code: DeletedTag, DiffInfo: fmt.Sprintf(`"%s"`, eachDeletedTag)})
 			}
 
-			sd.compareDescripton(location, op1.Operation.Description, op2.Operation.Description)
-
+			sd.compareDescription(location, op1.Operation.Description, op2.Operation.Description)
 		}
 	}
 }
@@ -178,132 +244,204 @@ func (sd *SpecAnalyser) analyseRequestParams() {
 	locations := []string{"query", "path", "body", "header", "formData"}
 
 	for _, paramLocation := range locations {
-		rootNode := getNameOnlyDiffNode(strings.Title(paramLocation))
-		for URLMethod, op2 := range sd.urlMethods2 {
-			if op1, ok := sd.urlMethods1[URLMethod]; ok {
+		rootNode := getNameOnlyDiffNode(sd.titler.String(paramLocation))
 
-				params1 := getParams(op1.ParentPathItem.Parameters, op1.Operation.Parameters, paramLocation)
-				params2 := getParams(op2.ParentPathItem.Parameters, op2.Operation.Parameters, paramLocation)
+		sd.titler.Reset()
+		sd.analyseSingleParam(paramLocation, rootNode)
+	}
+}
 
-				location := DifferenceLocation{URL: URLMethod.Path, Method: URLMethod.Method, Node: rootNode}
+func (sd *SpecAnalyser) analyseSingleParam(paramLocation string, rootNode *Node) {
+	for URLMethod, op2 := range sd.urlMethods2 {
+		op1, isMethodInBothSpecs := sd.urlMethods1[URLMethod]
+		if !isMethodInBothSpecs {
+			continue
+		}
 
-				// detect deleted params
-				for paramName1, param1 := range params1 {
-					if _, ok := params2[paramName1]; !ok {
-						childLocation := location.AddNode(getSchemaDiffNode(paramName1, &param1.SimpleSchema))
-						code := DeletedOptionalParam
-						if param1.Required {
-							code = DeletedRequiredParam
-						}
-						sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: childLocation, Code: code})
-					}
-				}
-				// detect added changed params
-				for paramName2, param2 := range params2 {
-					// changed?
-					if param1, ok := params1[paramName2]; ok {
-						sd.compareParams(URLMethod, paramLocation, paramName2, param1, param2)
-					} else {
-						// Added
-						childLocation := location.AddNode(getSchemaDiffNode(paramName2, &param2.SimpleSchema))
-						code := AddedOptionalParam
-						if param2.Required {
-							code = AddedRequiredParam
-						}
-						sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: childLocation, Code: code})
-					}
-				}
+		params1 := getParams(op1.ParentPathItem.Parameters, op1.Operation.Parameters, paramLocation)
+		params2 := getParams(op2.ParentPathItem.Parameters, op2.Operation.Parameters, paramLocation)
+		location := DifferenceLocation{URL: URLMethod.Path, Method: URLMethod.Method, Node: rootNode}
+
+		// detect deleted params
+		for paramName1, param1 := range params1 {
+			if _, isParamNameInBothSpecs := params2[paramName1]; isParamNameInBothSpecs {
+				continue
 			}
+
+			childLocation := location.AddNode(getSchemaDiffNode(paramName1, &param1.SimpleSchema))
+			code := DeletedOptionalParam
+			if param1.Required {
+				code = DeletedRequiredParam
+			}
+
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: childLocation, Code: code})
+		}
+
+		// detect added changed params
+		for paramName2, param2 := range params2 {
+			// changed?
+			param1, isParamNameInBothSpecs := params1[paramName2]
+			if isParamNameInBothSpecs {
+				sd.compareParams(URLMethod, paramLocation, paramName2, param1, param2)
+
+				continue
+			}
+
+			// Added
+			childLocation := location.AddNode(getSchemaDiffNode(paramName2, &param2.SimpleSchema))
+			code := AddedOptionalParam
+			if param2.Required {
+				code = AddedRequiredParam
+			}
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: childLocation, Code: code})
 		}
 	}
 }
 
 func (sd *SpecAnalyser) analyseResponseParams() {
-	// Loop through url+methods in spec 2 - check deleted and changed
 	for eachURLMethodFrom2, op2 := range sd.urlMethods2 {
+		// Loop through url+methods in spec 2 - check deleted and changed
+		sd.analysePathItemOperation(eachURLMethodFrom2, op2)
+	}
+}
 
-		// present in both specs? Use key from spec 2 to lookup in spec 1
-		if op1, ok := sd.urlMethods1[eachURLMethodFrom2]; ok {
-			// compare responses for url and method
-			op1Responses := op1.Operation.Responses.StatusCodeResponses
-			op2Responses := op2.Operation.Responses.StatusCodeResponses
+func (sd *SpecAnalyser) analysePathItemOperation(urlMethodFrom2 URLMethod, op2 *PathItemOp) {
+	// present in both specs? Use key from spec 2 to lookup in spec 1
+	op1, isPresentInBothSpecs := sd.urlMethods1[urlMethodFrom2]
+	if !isPresentInBothSpecs {
+		return
+	}
 
-			// deleted responses
-			for code1 := range op1Responses {
-				if _, ok := op2Responses[code1]; !ok {
-					location := DifferenceLocation{
-						URL:      eachURLMethodFrom2.Path,
-						Method:   eachURLMethodFrom2.Method,
-						Response: code1,
-						Node:     getNameOnlyDiffNode("NoContent"),
-					}
-					if op1Responses[code1].Schema != nil {
-						location.Node = getSchemaDiffNode("Body", op1Responses[code1].Schema)
-					}
-					sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: location, Code: DeletedResponse})
-				}
+	// compare responses for url and method
+	op1Responses := op1.Operation.Responses.StatusCodeResponses
+	op2Responses := op2.Operation.Responses.StatusCodeResponses
+
+	// deleted responses
+	for code1 := range op1Responses {
+		if _, hasSameResponseCode := op2Responses[code1]; hasSameResponseCode {
+			continue
+		}
+
+		location := DifferenceLocation{
+			URL:      urlMethodFrom2.Path,
+			Method:   urlMethodFrom2.Method,
+			Response: code1,
+			Node:     getNameOnlyDiffNode("NoContent"),
+		}
+		if op1Responses[code1].Schema != nil {
+			location.Node = getSchemaDiffNode("Body", op1Responses[code1].Schema)
+		}
+		sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: location, Code: DeletedResponse})
+	}
+
+	// Added updated Response Codes
+	for code2, op2Response := range op2Responses {
+		op1Response, isUpdatedResponseCode := op1Responses[code2]
+
+		if !isUpdatedResponseCode { // op2Response
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+				DifferenceLocation: DifferenceLocation{
+					URL:      urlMethodFrom2.Path,
+					Method:   urlMethodFrom2.Method,
+					Response: code2,
+					Node:     getSchemaDiffNode("Body", op2Response.Schema),
+				},
+				Code: AddedResponse,
+			})
+
+			continue
+		}
+
+		op1Headers := op1Response.Headers
+		headerRootNode := getNameOnlyDiffNode("Headers")
+
+		// iterate Spec2 Headers looking for added and updated.
+		location := DifferenceLocation{
+			URL:      urlMethodFrom2.Path,
+			Method:   urlMethodFrom2.Method,
+			Response: code2,
+			Node:     headerRootNode,
+		}
+
+		for op2HeaderName, op2Header := range op2Response.Headers {
+			if op1Header, isHeaderInBothSpecs := op1Headers[op2HeaderName]; isHeaderInBothSpecs {
+				diffs := sd.CompareProps(forHeader(op1Header), forHeader(op2Header))
+				sd.addDiffs(location, diffs)
+
+				continue
 			}
-			// Added updated Response Codes
-			for code2, op2Response := range op2Responses {
-				if op1Response, ok := op1Responses[code2]; ok {
-					op1Headers := op1Response.ResponseProps.Headers
-					headerRootNode := getNameOnlyDiffNode("Headers")
 
-					// Iterate Spec2 Headers looking for added and updated
-					location := DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: headerRootNode}
-					for op2HeaderName, op2Header := range op2Response.ResponseProps.Headers {
-						if op1Header, ok := op1Headers[op2HeaderName]; ok {
-							diffs := sd.CompareProps(forHeader(op1Header), forHeader(op2Header))
-							sd.addDiffs(location, diffs)
-						} else {
-							sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-								DifferenceLocation: location.AddNode(getSchemaDiffNode(op2HeaderName, &op2Header.SimpleSchema)),
-								Code:               AddedResponseHeader})
-						}
-					}
-					for op1HeaderName := range op1Response.ResponseProps.Headers {
-						if _, ok := op2Response.ResponseProps.Headers[op1HeaderName]; !ok {
-							op1Header := op1Response.ResponseProps.Headers[op1HeaderName]
-							sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-								DifferenceLocation: location.AddNode(getSchemaDiffNode(op1HeaderName, &op1Header.SimpleSchema)),
-								Code:               DeletedResponseHeader})
-						}
-					}
-					schem := op1Response.Schema
-					node := getNameOnlyDiffNode("NoContent")
-					if schem != nil {
-						node = getSchemaDiffNode("Body", &schem.SchemaProps)
-					}
-					responseLocation := DifferenceLocation{URL: eachURLMethodFrom2.Path,
-						Method:   eachURLMethodFrom2.Method,
-						Response: code2,
-						Node:     node}
-					sd.compareDescripton(responseLocation, op1Response.Description, op2Response.Description)
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+				DifferenceLocation: location.AddNode(getSchemaDiffNode(op2HeaderName, &op2Header.SimpleSchema)),
+				Code:               AddedResponseHeader,
+			})
+		}
 
-					if op1Response.Schema != nil {
-						if op2Response.Schema == nil {
-							sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-								DifferenceLocation: DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op1Response.Schema)},
-								Code:               DeletedProperty})
-						} else {
-							sd.compareSchema(
-								DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op1Response.Schema)},
-								op1Response.Schema,
-								op2Response.Schema)
-						}
-					} else if op2Response.Schema != nil {
-						sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-							DifferenceLocation: DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op2Response.Schema)},
-							Code:               AddedProperty})
-					}
-
-				} else {
-					// op2Response
-					sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-						DifferenceLocation: DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op2Response.Schema)},
-						Code:               AddedResponse})
-				}
+		for op1HeaderName := range op1Response.Headers {
+			_, isHeaderInBothSpecs := op2Response.Headers[op1HeaderName]
+			if isHeaderInBothSpecs {
+				continue
 			}
+
+			op1Header := op1Response.Headers[op1HeaderName]
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+				DifferenceLocation: location.AddNode(getSchemaDiffNode(op1HeaderName, &op1Header.SimpleSchema)),
+				Code:               DeletedResponseHeader,
+			})
+		}
+
+		schem := op1Response.Schema
+		node := getNameOnlyDiffNode("NoContent")
+		if schem != nil {
+			node = getSchemaDiffNode("Body", &schem.SchemaProps)
+		}
+		responseLocation := DifferenceLocation{
+			URL:      urlMethodFrom2.Path,
+			Method:   urlMethodFrom2.Method,
+			Response: code2,
+			Node:     node,
+		}
+
+		sd.compareDescription(responseLocation, op1Response.Description, op2Response.Description)
+
+		switch {
+		case op1Response.Schema != nil && op2Response.Schema == nil:
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+				DifferenceLocation: DifferenceLocation{
+					URL:      urlMethodFrom2.Path,
+					Method:   urlMethodFrom2.Method,
+					Response: code2,
+					Node:     getSchemaDiffNode("Body", op1Response.Schema),
+				},
+				Code: DeletedProperty,
+			})
+
+		case op1Response.Schema != nil && op2Response.Schema != nil:
+			sd.compareSchema(
+				DifferenceLocation{
+					URL:      urlMethodFrom2.Path,
+					Method:   urlMethodFrom2.Method,
+					Response: code2,
+					Node:     getSchemaDiffNode("Body", op1Response.Schema),
+				},
+				op1Response.Schema,
+				op2Response.Schema)
+
+		case op1Response.Schema == nil && op2Response.Schema != nil:
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+				DifferenceLocation: DifferenceLocation{
+					URL:      urlMethodFrom2.Path,
+					Method:   urlMethodFrom2.Method,
+					Response: code2,
+					Node:     getSchemaDiffNode("Body", op2Response.Schema),
+				},
+				Code: AddedProperty,
+			})
+
+		case op1Response.Schema == nil && op2Response.Schema == nil:
+			fallthrough
+		default:
+			continue
 		}
 	}
 }
@@ -322,58 +460,109 @@ func (sd *SpecAnalyser) analyseExtensions(spec1, spec2 *spec.Swagger) {
 	sd.analyzeOperationExtensions()
 }
 
+func (sd *SpecAnalyser) analyzeResponsesExtensions(urlMethod URLMethod, op1, op2 *PathItemOp) {
+	for code, resp := range op1.Operation.Responses.StatusCodeResponses {
+		for hdr, h := range resp.Headers {
+			op2StatusCode, ok := op2.Operation.Responses.StatusCodeResponses[code]
+			if !ok {
+				continue
+			}
+
+			_, ok = op2StatusCode.Headers[hdr]
+			if !ok {
+				continue
+			}
+
+			sd.checkAddedExtensions(
+				h.Extensions,
+				op2StatusCode.Headers[hdr].Extensions,
+				DifferenceLocation{
+					URL:    urlMethod.Path,
+					Method: urlMethod.Method,
+					Node:   getNameOnlyDiffNode("Headers"),
+				},
+				hdr,
+			)
+
+			sd.checkChangedExtensions(
+				h.Extensions,
+				op2StatusCode.Headers[hdr].Extensions,
+				DifferenceLocation{
+					URL:    urlMethod.Path,
+					Method: urlMethod.Method,
+					Node:   getNameOnlyDiffNode("Headers"),
+				},
+				hdr,
+			)
+		}
+
+		resp2 := op2.Operation.Responses.StatusCodeResponses[code]
+		sd.analyzeSchemaExtensions(resp.Schema, resp2.Schema, code, urlMethod)
+	}
+}
+
 func (sd *SpecAnalyser) analyzeOperationExtensions() {
-	pathsIterated := make(map[string]struct{})
+	pathsIterated := make(map[string]struct{}, max(len(sd.urlMethods1), len(sd.urlMethods2)))
+
 	for urlMethod, op2 := range sd.urlMethods2 {
 		pathAndMethodLoc := DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method}
-		if op1, ok := sd.urlMethods1[urlMethod]; ok {
-			if _, ok := pathsIterated[urlMethod.Path]; !ok {
-				sd.checkAddedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
-				sd.checkChangedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
-				pathsIterated[urlMethod.Path] = struct{}{}
-			}
-			sd.checkAddedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
-			sd.checkChangedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
-			sd.checkAddedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
-			sd.checkChangedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
-			sd.checkParamExtensions(op1, op2, urlMethod)
-			for code, resp := range op1.Operation.Responses.StatusCodeResponses {
-				for hdr, h := range resp.Headers {
-					op2StatusCode, ok := op2.Operation.Responses.StatusCodeResponses[code]
-					if ok {
-						if _, ok = op2StatusCode.Headers[hdr]; ok {
-							sd.checkAddedExtensions(h.Extensions, op2StatusCode.Headers[hdr].Extensions, DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method, Node: getNameOnlyDiffNode("Headers")}, hdr)
-							sd.checkChangedExtensions(h.Extensions, op2StatusCode.Headers[hdr].Extensions, DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method, Node: getNameOnlyDiffNode("Headers")}, hdr)
-						}
-					}
-				}
-
-				resp2 := op2.Operation.Responses.StatusCodeResponses[code]
-				sd.analyzeSchemaExtensions(resp.Schema, resp2.Schema, code, urlMethod)
-			}
-
+		op1, isMethodInBothSpecs := sd.urlMethods1[urlMethod]
+		if !isMethodInBothSpecs {
+			continue
 		}
+
+		if _, ok := pathsIterated[urlMethod.Path]; !ok {
+			sd.checkAddedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+			sd.checkChangedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+			pathsIterated[urlMethod.Path] = struct{}{}
+		}
+
+		sd.checkAddedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
+		sd.checkChangedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
+		sd.checkAddedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
+		sd.checkChangedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
+		sd.checkParamExtensions(op1, op2, urlMethod)
+
+		sd.analyzeResponsesExtensions(urlMethod, op1, op2)
 	}
 
-	pathsIterated = make(map[string]struct{})
+	clear(pathsIterated)
 	for urlMethod, op1 := range sd.urlMethods1 {
 		pathAndMethodLoc := DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method}
-		if op2, ok := sd.urlMethods2[urlMethod]; ok {
-			if _, ok := pathsIterated[urlMethod.Path]; !ok {
-				sd.checkDeletedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
-				pathsIterated[urlMethod.Path] = struct{}{}
-			}
-			sd.checkDeletedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
-			sd.checkDeletedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
-			for code, resp := range op1.Operation.Responses.StatusCodeResponses {
-				for hdr, h := range resp.Headers {
-					op2StatusCode, ok := op2.Operation.Responses.StatusCodeResponses[code]
-					if ok {
-						if _, ok = op2StatusCode.Headers[hdr]; ok {
-							sd.checkDeletedExtensions(h.Extensions, op2StatusCode.Headers[hdr].Extensions, DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method, Node: getNameOnlyDiffNode("Headers")}, hdr)
-						}
-					}
+		op2, isMethodInBothSpecs := sd.urlMethods2[urlMethod]
+		if !isMethodInBothSpecs {
+			continue
+		}
+
+		if _, ok := pathsIterated[urlMethod.Path]; !ok {
+			sd.checkDeletedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+			pathsIterated[urlMethod.Path] = struct{}{}
+		}
+
+		sd.checkDeletedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
+		sd.checkDeletedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
+		for code, resp := range op1.Operation.Responses.StatusCodeResponses {
+			for hdr, h := range resp.Headers {
+				op2StatusCode, ok := op2.Operation.Responses.StatusCodeResponses[code]
+				if !ok {
+					continue
 				}
+
+				_, ok = op2StatusCode.Headers[hdr]
+				if !ok {
+					continue
+				}
+
+				sd.checkDeletedExtensions(
+					h.Extensions,
+					op2StatusCode.Headers[hdr].Extensions,
+					DifferenceLocation{
+						URL:    urlMethod.Path,
+						Method: urlMethod.Method,
+						Node:   getNameOnlyDiffNode("Headers"),
+					},
+					hdr,
+				)
 			}
 		}
 	}
@@ -501,31 +690,39 @@ func (sd *SpecAnalyser) checkAddedExtensions(extensions1 spec.Extensions, extens
 
 func (sd *SpecAnalyser) checkChangedExtensions(extensions1 spec.Extensions, extensions2 spec.Extensions, diffLocation DifferenceLocation, fieldPrefix string) {
 	for extKey, ext2Val := range extensions2 {
-		if ext1Val, ok := extensions1[extKey]; ok && !reflect.DeepEqual(ext1Val, ext2Val) {
-			if fieldPrefix != "" {
-				extKey = fmt.Sprintf("%s.%s", fieldPrefix, extKey)
-			}
-			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-				DifferenceLocation: diffLocation.AddNode(&Node{Field: extKey}),
-				Code:               ChangedExtensionValue,
-				Compatibility:      Warning, // this could potentially be a breaking change
-			})
+		ext1Val, ok := extensions1[extKey]
+		if !ok || reflect.DeepEqual(ext1Val, ext2Val) {
+			continue
 		}
+
+		if fieldPrefix != "" {
+			extKey = fmt.Sprintf("%s.%s", fieldPrefix, extKey)
+		}
+
+		sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+			DifferenceLocation: diffLocation.AddNode(&Node{Field: extKey}),
+			Code:               ChangedExtensionValue,
+			Compatibility:      Warning, // this could potentially be a breaking change
+		})
 	}
 }
 
 func (sd *SpecAnalyser) checkDeletedExtensions(extensions1 spec.Extensions, extensions2 spec.Extensions, diffLocation DifferenceLocation, fieldPrefix string) {
 	for extKey := range extensions1 {
-		if _, ok := extensions2[extKey]; !ok {
-			if fieldPrefix != "" {
-				extKey = fmt.Sprintf("%s.%s", fieldPrefix, extKey)
-			}
-			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
-				DifferenceLocation: diffLocation.AddNode(&Node{Field: extKey}),
-				Code:               DeletedExtension,
-				Compatibility:      Warning, // this could potentially be a breaking change
-			})
+		_, ok := extensions2[extKey]
+		if ok {
+			continue
 		}
+
+		if fieldPrefix != "" {
+			extKey = fmt.Sprintf("%s.%s", fieldPrefix, extKey)
+		}
+
+		sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+			DifferenceLocation: diffLocation.AddNode(&Node{Field: extKey}),
+			Code:               DeletedExtension,
+			Compatibility:      Warning, // this could potentially be a breaking change
+		})
 	}
 }
 
@@ -536,65 +733,13 @@ func addTypeDiff(diffs []TypeDiff, diff TypeDiff) []TypeDiff {
 	return diffs
 }
 
-// CompareProps computes type specific property diffs
-func (sd *SpecAnalyser) CompareProps(type1, type2 *spec.SchemaProps) []TypeDiff {
-
-	diffs := []TypeDiff{}
-
-	diffs = CheckToFromPrimitiveType(diffs, type1, type2)
-
-	if len(diffs) > 0 {
-		return diffs
-	}
-
-	if isArray(type1) {
-		maxItemDiffs := CompareIntValues("MaxItems", type1.MaxItems, type2.MaxItems, WidenedType, NarrowedType)
-		diffs = append(diffs, maxItemDiffs...)
-		minItemsDiff := CompareIntValues("MinItems", type1.MinItems, type2.MinItems, NarrowedType, WidenedType)
-		diffs = append(diffs, minItemsDiff...)
-	}
-
-	if len(diffs) > 0 {
-		return diffs
-	}
-
-	diffs = CheckRefChange(diffs, type1, type2)
-	if len(diffs) > 0 {
-		return diffs
-	}
-
-	if !(isPrimitiveType(type1.Type) && isPrimitiveType(type2.Type)) {
-		return diffs
-	}
-
-	// check primitive type hierarchy change eg string -> integer = NarrowedChange
-	if type1.Type[0] != type2.Type[0] ||
-		type1.Format != type2.Format {
-		diff := getTypeHierarchyChange(primitiveTypeString(type1.Type[0], type1.Format), primitiveTypeString(type2.Type[0], type2.Format))
-		diffs = addTypeDiff(diffs, diff)
-	}
-
-	diffs = CheckStringTypeChanges(diffs, type1, type2)
-
-	if len(diffs) > 0 {
-		return diffs
-	}
-
-	diffs = checkNumericTypeChanges(diffs, type1, type2)
-
-	if len(diffs) > 0 {
-		return diffs
-	}
-
-	return diffs
-}
-
 func (sd *SpecAnalyser) compareParams(urlMethod URLMethod, location string, name string, param1, param2 spec.Parameter) {
 	diffLocation := DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method}
 
-	childLocation := diffLocation.AddNode(getNameOnlyDiffNode(strings.Title(location)))
+	childLocation := diffLocation.AddNode(getNameOnlyDiffNode(sd.titler.String(location)))
+	sd.titler.Reset()
 	paramLocation := diffLocation.AddNode(getNameOnlyDiffNode(name))
-	sd.compareDescripton(paramLocation, param1.Description, param2.Description)
+	sd.compareDescription(paramLocation, param1.Description, param2.Description)
 
 	if param1.Schema != nil && param2.Schema != nil {
 		if len(name) > 0 {
@@ -621,27 +766,29 @@ func (sd *SpecAnalyser) compareParams(urlMethod URLMethod, location string, name
 func (sd *SpecAnalyser) addTypeDiff(location DifferenceLocation, diff *TypeDiff) {
 	diffCopy := diff
 	desc := diffCopy.Description
-	if len(desc) == 0 {
-		if diffCopy.FromType != diffCopy.ToType {
-			desc = fmt.Sprintf("%s -> %s", diffCopy.FromType, diffCopy.ToType)
-		}
+	if len(desc) == 0 && diffCopy.FromType != diffCopy.ToType {
+		desc = fmt.Sprintf("%s -> %s", diffCopy.FromType, diffCopy.ToType)
 	}
+
 	sd.Diffs = sd.Diffs.addDiff(SpecDifference{
 		DifferenceLocation: location,
 		Code:               diffCopy.Change,
-		DiffInfo:           desc})
+		DiffInfo:           desc,
+	})
 }
 
-func (sd *SpecAnalyser) compareDescripton(location DifferenceLocation, desc1, desc2 string) {
-	if desc1 != desc2 {
-		code := ChangedDescripton
-		if len(desc1) > 0 {
-			code = DeletedDescripton
-		} else if len(desc2) > 0 {
-			code = AddedDescripton
-		}
-		sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: location, Code: code})
+func (sd *SpecAnalyser) compareDescription(location DifferenceLocation, desc1, desc2 string) {
+	if desc1 == desc2 {
+		return
 	}
+
+	code := ChangedDescription
+	if len(desc1) > 0 {
+		code = DeletedDescription
+	} else if len(desc2) > 0 {
+		code = AddedDescription
+	}
+	sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: location, Code: code})
 }
 
 func isPrimitiveType(item spec.StringOrArray) bool {
@@ -651,6 +798,7 @@ func isPrimitiveType(item spec.StringOrArray) bool {
 func isArrayType(item spec.StringOrArray) bool {
 	return len(item) > 0 && item[0] == ArrayType
 }
+
 func (sd *SpecAnalyser) getRefSchemaFromSpec1(ref spec.Ref) (*spec.Schema, string) {
 	return sd.schemaFromRef(ref, &sd.Definitions1)
 }
@@ -659,11 +807,10 @@ func (sd *SpecAnalyser) getRefSchemaFromSpec2(ref spec.Ref) (*spec.Schema, strin
 	return sd.schemaFromRef(ref, &sd.Definitions2)
 }
 
-// CompareSchemaFn Fn spec for comparing schemas
+// CompareSchemaFn Fn spec for comparing schemas.
 type CompareSchemaFn func(location DifferenceLocation, schema1, schema2 *spec.Schema)
 
 func (sd *SpecAnalyser) compareSchema(location DifferenceLocation, schema1, schema2 *spec.Schema) {
-
 	refDiffs := []TypeDiff{}
 	refDiffs = CheckRefChange(refDiffs, schema1, schema2)
 	if len(refDiffs) > 0 {
@@ -687,7 +834,7 @@ func (sd *SpecAnalyser) compareSchema(location DifferenceLocation, schema1, sche
 		schema2, _ = sd.schemaFromRef(getRef(schema2), &sd.Definitions2)
 	}
 
-	sd.compareDescripton(location, schema1.Description, schema2.Description)
+	sd.compareDescription(location, schema1.Description, schema2.Description)
 
 	typeDiffs := sd.CompareProps(&schema1.SchemaProps, &schema2.SchemaProps)
 	if len(typeDiffs) > 0 {
@@ -765,30 +912,6 @@ func (sd *SpecAnalyser) addDiffs(location DifferenceLocation, diffs []TypeDiff) 
 	}
 }
 
-func addChildDiffNode(location DifferenceLocation, propName string, propSchema *spec.Schema) DifferenceLocation {
-	newNode := location.Node
-	childNode := fromSchemaProps(propName, &propSchema.SchemaProps)
-	if newNode != nil {
-		newNode = newNode.Copy()
-		newNode.AddLeafNode(&childNode)
-	} else {
-		newNode = &childNode
-	}
-	return DifferenceLocation{
-		URL:      location.URL,
-		Method:   location.Method,
-		Response: location.Response,
-		Node:     newNode,
-	}
-}
-
-func fromSchemaProps(fieldName string, props *spec.SchemaProps) Node {
-	node := Node{}
-	node.TypeName, node.IsArray = getSchemaType(props)
-	node.Field = fieldName
-	return node
-}
-
 func (sd *SpecAnalyser) findAddedEndpoints() {
 	for URLMethod := range sd.urlMethods2 {
 		if _, ok := sd.urlMethods1[URLMethod]; !ok {
@@ -825,8 +948,31 @@ func (sd *SpecAnalyser) schemaFromRef(ref spec.Ref, defns *spec.Definitions) (ac
 	}
 	sd.ReferencedDefinitions[definitionName] = true
 	actualSchema = &foundSchema
-	return
+	return actualSchema, definitionName
+}
 
+func addChildDiffNode(location DifferenceLocation, propName string, propSchema *spec.Schema) DifferenceLocation {
+	newNode := location.Node
+	childNode := fromSchemaProps(propName, &propSchema.SchemaProps)
+	if newNode != nil {
+		newNode = newNode.Copy()
+		newNode.AddLeafNode(&childNode)
+	} else {
+		newNode = &childNode
+	}
+	return DifferenceLocation{
+		URL:      location.URL,
+		Method:   location.Method,
+		Response: location.Response,
+		Node:     newNode,
+	}
+}
+
+func fromSchemaProps(fieldName string, props *spec.SchemaProps) Node {
+	node := Node{}
+	node.TypeName, node.IsArray = getSchemaType(props)
+	node.Field = fieldName
+	return node
 }
 
 func schemaLocationKey(location DifferenceLocation) string {
@@ -836,12 +982,3 @@ func schemaLocationKey(location DifferenceLocation) string {
 	}
 	return k
 }
-
-// PropertyDefn combines a property with its required-ness
-type PropertyDefn struct {
-	Schema   *spec.Schema
-	Required bool
-}
-
-// PropertyMap a unified map including all AllOf fields
-type PropertyMap map[string]PropertyDefn

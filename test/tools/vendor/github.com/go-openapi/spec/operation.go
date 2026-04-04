@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
@@ -21,19 +10,19 @@ import (
 	"sort"
 
 	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
-func init() {
-	gob.Register(map[string]interface{}{})
-	gob.Register([]interface{}{})
+func init() { //nolint:gochecknoinits // registers gob types for Operation serialization
+	gob.Register(map[string]any{})
+	gob.Register([]any{})
 }
 
 // OperationProps describes an operation
 //
 // NOTES:
 // - schemes, when present must be from [http, https, ws, wss]: see validate
-// - Security is handled as a special case: see MarshalJSON function
+// - Security is handled as a special case: see MarshalJSON function.
 type OperationProps struct {
 	Description  string                 `json:"description,omitempty"`
 	Consumes     []string               `json:"consumes,omitempty"`
@@ -58,19 +47,22 @@ func (op OperationProps) MarshalJSON() ([]byte, error) {
 	type Alias OperationProps
 	if op.Security == nil {
 		return json.Marshal(&struct {
-			Security []map[string][]string `json:"security,omitempty"`
 			*Alias
+
+			Security []map[string][]string `json:"security,omitempty"`
 		}{
-			Security: op.Security,
 			Alias:    (*Alias)(&op),
+			Security: op.Security,
 		})
 	}
+
 	return json.Marshal(&struct {
-		Security []map[string][]string `json:"security"`
 		*Alias
+
+		Security []map[string][]string `json:"security"`
 	}{
-		Security: op.Security,
 		Alias:    (*Alias)(&op),
+		Security: op.Security,
 	})
 }
 
@@ -82,7 +74,15 @@ type Operation struct {
 	OperationProps
 }
 
-// SuccessResponse gets a success response model
+// NewOperation creates a new operation instance.
+// It expects an ID as parameter but not passing an ID is also valid.
+func NewOperation(id string) *Operation {
+	op := new(Operation)
+	op.ID = id
+	return op
+}
+
+// SuccessResponse gets a success response model.
 func (o *Operation) SuccessResponse() (*Response, int, bool) {
 	if o.Responses == nil {
 		return nil, 0, false
@@ -103,8 +103,8 @@ func (o *Operation) SuccessResponse() (*Response, int, bool) {
 	return o.Responses.Default, 0, false
 }
 
-// JSONLookup look up a value by the json property name
-func (o Operation) JSONLookup(token string) (interface{}, error) {
+// JSONLookup look up a value by the json property name.
+func (o Operation) JSONLookup(token string) (any, error) {
 	if ex, ok := o.Extensions[token]; ok {
 		return &ex, nil
 	}
@@ -112,7 +112,7 @@ func (o Operation) JSONLookup(token string) (interface{}, error) {
 	return r, err
 }
 
-// UnmarshalJSON hydrates this items instance with the data from JSON
+// UnmarshalJSON hydrates this items instance with the data from JSON.
 func (o *Operation) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &o.OperationProps); err != nil {
 		return err
@@ -120,7 +120,7 @@ func (o *Operation) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &o.VendorExtensible)
 }
 
-// MarshalJSON converts this items object to JSON
+// MarshalJSON converts this items object to JSON.
 func (o Operation) MarshalJSON() ([]byte, error) {
 	b1, err := json.Marshal(o.OperationProps)
 	if err != nil {
@@ -130,16 +130,8 @@ func (o Operation) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	concated := swag.ConcatJSON(b1, b2)
+	concated := jsonutils.ConcatJSON(b1, b2)
 	return concated, nil
-}
-
-// NewOperation creates a new operation instance.
-// It expects an ID as parameter but not passing an ID is also valid.
-func NewOperation(id string) *Operation {
-	op := new(Operation)
-	op.ID = id
-	return op
 }
 
 // WithID sets the ID property on this operation, allows for chaining.
@@ -148,13 +140,13 @@ func (o *Operation) WithID(id string) *Operation {
 	return o
 }
 
-// WithDescription sets the description on this operation, allows for chaining
+// WithDescription sets the description on this operation, allows for chaining.
 func (o *Operation) WithDescription(description string) *Operation {
 	o.Description = description
 	return o
 }
 
-// WithSummary sets the summary on this operation, allows for chaining
+// WithSummary sets the summary on this operation, allows for chaining.
 func (o *Operation) WithSummary(summary string) *Operation {
 	o.Summary = summary
 	return o
@@ -178,38 +170,38 @@ func (o *Operation) WithExternalDocs(description, url string) *Operation {
 	return o
 }
 
-// Deprecate marks the operation as deprecated
+// Deprecate marks the operation as deprecated.
 func (o *Operation) Deprecate() *Operation {
 	o.Deprecated = true
 	return o
 }
 
-// Undeprecate marks the operation as not deprected
+// Undeprecate marks the operation as not deprecated.
 func (o *Operation) Undeprecate() *Operation {
 	o.Deprecated = false
 	return o
 }
 
-// WithConsumes adds media types for incoming body values
+// WithConsumes adds media types for incoming body values.
 func (o *Operation) WithConsumes(mediaTypes ...string) *Operation {
 	o.Consumes = append(o.Consumes, mediaTypes...)
 	return o
 }
 
-// WithProduces adds media types for outgoing body values
+// WithProduces adds media types for outgoing body values.
 func (o *Operation) WithProduces(mediaTypes ...string) *Operation {
 	o.Produces = append(o.Produces, mediaTypes...)
 	return o
 }
 
-// WithTags adds tags for this operation
+// WithTags adds tags for this operation.
 func (o *Operation) WithTags(tags ...string) *Operation {
 	o.Tags = append(o.Tags, tags...)
 	return o
 }
 
 // AddParam adds a parameter to this operation, when a parameter for that location
-// and with that name already exists it will be replaced
+// and with that name already exists it will be replaced.
 func (o *Operation) AddParam(param *Parameter) *Operation {
 	if param == nil {
 		return o
@@ -231,7 +223,7 @@ func (o *Operation) AddParam(param *Parameter) *Operation {
 	return o
 }
 
-// RemoveParam removes a parameter from the operation
+// RemoveParam removes a parameter from the operation.
 func (o *Operation) RemoveParam(name, in string) *Operation {
 	for i, p := range o.Parameters {
 		if p.Name == name && p.In == in {
@@ -249,14 +241,14 @@ func (o *Operation) SecuredWith(name string, scopes ...string) *Operation {
 }
 
 // WithDefaultResponse adds a default response to the operation.
-// Passing a nil value will remove the response
+// Passing a nil value will remove the response.
 func (o *Operation) WithDefaultResponse(response *Response) *Operation {
 	return o.RespondsWith(0, response)
 }
 
 // RespondsWith adds a status code response to the operation.
 // When the code is 0 the value of the response will be used as default response value.
-// When the value of the response is nil it will be removed from the operation
+// When the value of the response is nil it will be removed from the operation.
 func (o *Operation) RespondsWith(code int, response *Response) *Operation {
 	if o.Responses == nil {
 		o.Responses = new(Responses)
@@ -287,7 +279,7 @@ type gobAlias struct {
 	SecurityIsEmpty bool
 }
 
-// GobEncode provides a safe gob encoder for Operation, including empty security requirements
+// GobEncode provides a safe gob encoder for Operation, including empty security requirements.
 func (o Operation) GobEncode() ([]byte, error) {
 	raw := struct {
 		Ext   VendorExtensible
@@ -301,7 +293,7 @@ func (o Operation) GobEncode() ([]byte, error) {
 	return b.Bytes(), err
 }
 
-// GobDecode provides a safe gob decoder for Operation, including empty security requirements
+// GobDecode provides a safe gob decoder for Operation, including empty security requirements.
 func (o *Operation) GobDecode(b []byte) error {
 	var raw struct {
 		Ext   VendorExtensible
@@ -318,7 +310,7 @@ func (o *Operation) GobDecode(b []byte) error {
 	return nil
 }
 
-// GobEncode provides a safe gob encoder for Operation, including empty security requirements
+// GobEncode provides a safe gob encoder for Operation, including empty security requirements.
 func (op OperationProps) GobEncode() ([]byte, error) {
 	raw := gobAlias{
 		Alias: (*opsAlias)(&op),
@@ -363,7 +355,7 @@ func (op OperationProps) GobEncode() ([]byte, error) {
 	return b.Bytes(), err
 }
 
-// GobDecode provides a safe gob decoder for Operation, including empty security requirements
+// GobDecode provides a safe gob decoder for Operation, including empty security requirements.
 func (op *OperationProps) GobDecode(b []byte) error {
 	var raw gobAlias
 

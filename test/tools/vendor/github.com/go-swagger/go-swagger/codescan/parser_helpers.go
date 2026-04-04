@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package codescan
 
 import (
@@ -5,9 +8,9 @@ import (
 )
 
 // a shared function that can be used to split given headers
-// into a title and description
+// into a title and description.
 func collectScannerTitleDescription(headers []string) (title, desc []string) {
-	hdrs := cleanupScannerLines(headers, rxUncommentHeaders, nil)
+	hdrs := cleanupScannerLines(headers, rxUncommentHeaders)
 
 	idx := -1
 	for i, line := range hdrs {
@@ -27,7 +30,7 @@ func collectScannerTitleDescription(headers []string) (title, desc []string) {
 		} else {
 			desc = nil
 		}
-		return
+		return title, desc
 	}
 
 	if len(hdrs) > 0 {
@@ -44,5 +47,5 @@ func collectScannerTitleDescription(headers []string) (title, desc []string) {
 		}
 	}
 
-	return
+	return title, desc
 }

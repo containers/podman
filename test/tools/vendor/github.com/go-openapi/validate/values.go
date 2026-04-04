@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package validate
 
@@ -23,24 +12,33 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 )
 
-// Enum validates if the data is a member of the enum
-func Enum(path, in string, data interface{}, enum interface{}) *errors.Validation {
+type valueError string
+
+func (e valueError) Error() string {
+	return string(e)
+}
+
+// ErrValue indicates that a value validation occurred.
+const ErrValue valueError = "value validation error"
+
+// Enum validates if the data is a member of the enum.
+func Enum(path, in string, data any, enum any) *errors.Validation {
 	return EnumCase(path, in, data, enum, true)
 }
 
-// EnumCase validates if the data is a member of the enum and may respect case-sensitivity for strings
-func EnumCase(path, in string, data interface{}, enum interface{}, caseSensitive bool) *errors.Validation {
+// EnumCase validates if the data is a member of the enum and may respect case-sensitivity for strings.
+func EnumCase(path, in string, data any, enum any, caseSensitive bool) *errors.Validation {
 	val := reflect.ValueOf(enum)
 	if val.Kind() != reflect.Slice {
 		return nil
 	}
 
 	dataString := convertEnumCaseStringKind(data, caseSensitive)
-	var values []interface{}
-	for i := 0; i < val.Len(); i++ {
+	values := make([]any, 0, val.Len())
+	for i := range val.Len() {
 		ele := val.Index(i)
 		enumValue := ele.Interface()
 		if data != nil {
@@ -68,8 +66,8 @@ func EnumCase(path, in string, data interface{}, enum interface{}, caseSensitive
 	return errors.EnumFail(path, in, data, values)
 }
 
-// convertEnumCaseStringKind converts interface if it is kind of string and case insensitivity is set
-func convertEnumCaseStringKind(value interface{}, caseSensitive bool) *string {
+// convertEnumCaseStringKind converts interface if it is kind of string and case insensitivity is set.
+func convertEnumCaseStringKind(value any, caseSensitive bool) *string {
 	if caseSensitive {
 		return nil
 	}
@@ -83,30 +81,30 @@ func convertEnumCaseStringKind(value interface{}, caseSensitive bool) *string {
 	return &str
 }
 
-// MinItems validates that there are at least n items in a slice
-func MinItems(path, in string, size, min int64) *errors.Validation {
-	if size < min {
-		return errors.TooFewItems(path, in, min, size)
+// MinItems validates that there are at least n items in a slice.
+func MinItems(path, in string, size, minimum int64) *errors.Validation {
+	if size < minimum {
+		return errors.TooFewItems(path, in, minimum, size)
 	}
 	return nil
 }
 
-// MaxItems validates that there are at most n items in a slice
-func MaxItems(path, in string, size, max int64) *errors.Validation {
-	if size > max {
-		return errors.TooManyItems(path, in, max, size)
+// MaxItems validates that there are at most n items in a slice.
+func MaxItems(path, in string, size, maximum int64) *errors.Validation {
+	if size > maximum {
+		return errors.TooManyItems(path, in, maximum, size)
 	}
 	return nil
 }
 
-// UniqueItems validates that the provided slice has unique elements
-func UniqueItems(path, in string, data interface{}) *errors.Validation {
+// UniqueItems validates that the provided slice has unique elements.
+func UniqueItems(path, in string, data any) *errors.Validation {
 	val := reflect.ValueOf(data)
 	if val.Kind() != reflect.Slice {
 		return nil
 	}
-	var unique []interface{}
-	for i := 0; i < val.Len(); i++ {
+	unique := make([]any, 0, val.Len())
+	for i := range val.Len() {
 		v := val.Index(i).Interface()
 		for _, u := range unique {
 			if reflect.DeepEqual(v, u) {
@@ -118,7 +116,7 @@ func UniqueItems(path, in string, data interface{}) *errors.Validation {
 	return nil
 }
 
-// MinLength validates a string for minimum length
+// MinLength validates a string for minimum length.
 func MinLength(path, in, data string, minLength int64) *errors.Validation {
 	strLen := int64(utf8.RuneCountInString(data))
 	if strLen < minLength {
@@ -127,7 +125,7 @@ func MinLength(path, in, data string, minLength int64) *errors.Validation {
 	return nil
 }
 
-// MaxLength validates a string for maximum length
+// MaxLength validates a string for maximum length.
 func MaxLength(path, in, data string, maxLength int64) *errors.Validation {
 	strLen := int64(utf8.RuneCountInString(data))
 	if strLen > maxLength {
@@ -136,9 +134,8 @@ func MaxLength(path, in, data string, maxLength int64) *errors.Validation {
 	return nil
 }
 
-// ReadOnly validates an interface for readonly
-func ReadOnly(ctx context.Context, path, in string, data interface{}) *errors.Validation {
-
+// ReadOnly validates an interface for readonly.
+func ReadOnly(ctx context.Context, path, in string, data any) *errors.Validation {
 	// read only is only validated when operationType is request
 	if op := extractOperationType(ctx); op != request {
 		return nil
@@ -157,8 +154,8 @@ func ReadOnly(ctx context.Context, path, in string, data interface{}) *errors.Va
 	return errors.ReadOnly(path, in, data)
 }
 
-// Required validates an interface for requiredness
-func Required(path, in string, data interface{}) *errors.Validation {
+// Required validates an interface for requiredness.
+func Required(path, in string, data any) *errors.Validation {
 	val := reflect.ValueOf(data)
 	if val.IsValid() {
 		if reflect.DeepEqual(reflect.Zero(val.Type()).Interface(), val.Interface()) {
@@ -169,7 +166,7 @@ func Required(path, in string, data interface{}) *errors.Validation {
 	return errors.Required(path, in, data)
 }
 
-// RequiredString validates a string for requiredness
+// RequiredString validates a string for requiredness.
 func RequiredString(path, in, data string) *errors.Validation {
 	if data == "" {
 		return errors.Required(path, in, data)
@@ -177,7 +174,7 @@ func RequiredString(path, in, data string) *errors.Validation {
 	return nil
 }
 
-// RequiredNumber validates a number for requiredness
+// RequiredNumber validates a number for requiredness.
 func RequiredNumber(path, in string, data float64) *errors.Validation {
 	if data == 0 {
 		return errors.Required(path, in, data)
@@ -185,7 +182,7 @@ func RequiredNumber(path, in string, data float64) *errors.Validation {
 	return nil
 }
 
-// Pattern validates a string against a regular expression
+// Pattern validates a string against a regular expression.
 func Pattern(path, in, data, pattern string) *errors.Validation {
 	re, err := compileRegexp(pattern)
 	if err != nil {
@@ -197,55 +194,55 @@ func Pattern(path, in, data, pattern string) *errors.Validation {
 	return nil
 }
 
-// MaximumInt validates if a number is smaller than a given maximum
-func MaximumInt(path, in string, data, max int64, exclusive bool) *errors.Validation {
-	if (!exclusive && data > max) || (exclusive && data >= max) {
-		return errors.ExceedsMaximumInt(path, in, max, exclusive, data)
+// MaximumInt validates if a number is smaller than a given maximum.
+func MaximumInt(path, in string, data, maximum int64, exclusive bool) *errors.Validation {
+	if (!exclusive && data > maximum) || (exclusive && data >= maximum) {
+		return errors.ExceedsMaximumInt(path, in, maximum, exclusive, data)
 	}
 	return nil
 }
 
-// MaximumUint validates if a number is smaller than a given maximum
-func MaximumUint(path, in string, data, max uint64, exclusive bool) *errors.Validation {
-	if (!exclusive && data > max) || (exclusive && data >= max) {
-		return errors.ExceedsMaximumUint(path, in, max, exclusive, data)
+// MaximumUint validates if a number is smaller than a given maximum.
+func MaximumUint(path, in string, data, maximum uint64, exclusive bool) *errors.Validation {
+	if (!exclusive && data > maximum) || (exclusive && data >= maximum) {
+		return errors.ExceedsMaximumUint(path, in, maximum, exclusive, data)
 	}
 	return nil
 }
 
-// Maximum validates if a number is smaller than a given maximum
-func Maximum(path, in string, data, max float64, exclusive bool) *errors.Validation {
-	if (!exclusive && data > max) || (exclusive && data >= max) {
-		return errors.ExceedsMaximum(path, in, max, exclusive, data)
+// Maximum validates if a number is smaller than a given maximum.
+func Maximum(path, in string, data, maximum float64, exclusive bool) *errors.Validation {
+	if (!exclusive && data > maximum) || (exclusive && data >= maximum) {
+		return errors.ExceedsMaximum(path, in, maximum, exclusive, data)
 	}
 	return nil
 }
 
-// Minimum validates if a number is smaller than a given minimum
-func Minimum(path, in string, data, min float64, exclusive bool) *errors.Validation {
-	if (!exclusive && data < min) || (exclusive && data <= min) {
-		return errors.ExceedsMinimum(path, in, min, exclusive, data)
+// Minimum validates if a number is smaller than a given minimum.
+func Minimum(path, in string, data, minimum float64, exclusive bool) *errors.Validation {
+	if (!exclusive && data < minimum) || (exclusive && data <= minimum) {
+		return errors.ExceedsMinimum(path, in, minimum, exclusive, data)
 	}
 	return nil
 }
 
-// MinimumInt validates if a number is smaller than a given minimum
-func MinimumInt(path, in string, data, min int64, exclusive bool) *errors.Validation {
-	if (!exclusive && data < min) || (exclusive && data <= min) {
-		return errors.ExceedsMinimumInt(path, in, min, exclusive, data)
+// MinimumInt validates if a number is smaller than a given minimum.
+func MinimumInt(path, in string, data, minimum int64, exclusive bool) *errors.Validation {
+	if (!exclusive && data < minimum) || (exclusive && data <= minimum) {
+		return errors.ExceedsMinimumInt(path, in, minimum, exclusive, data)
 	}
 	return nil
 }
 
-// MinimumUint validates if a number is smaller than a given minimum
-func MinimumUint(path, in string, data, min uint64, exclusive bool) *errors.Validation {
-	if (!exclusive && data < min) || (exclusive && data <= min) {
-		return errors.ExceedsMinimumUint(path, in, min, exclusive, data)
+// MinimumUint validates if a number is smaller than a given minimum.
+func MinimumUint(path, in string, data, minimum uint64, exclusive bool) *errors.Validation {
+	if (!exclusive && data < minimum) || (exclusive && data <= minimum) {
+		return errors.ExceedsMinimumUint(path, in, minimum, exclusive, data)
 	}
 	return nil
 }
 
-// MultipleOf validates if the provided number is a multiple of the factor
+// MultipleOf validates if the provided number is a multiple of the factor.
 func MultipleOf(path, in string, data, factor float64) *errors.Validation {
 	// multipleOf factor must be positive
 	if factor <= 0 {
@@ -257,13 +254,13 @@ func MultipleOf(path, in string, data, factor float64) *errors.Validation {
 	} else {
 		mult = data / factor
 	}
-	if !swag.IsFloat64AJSONInteger(mult) {
+	if !conv.IsFloat64AJSONInteger(mult) {
 		return errors.NotMultipleOf(path, in, factor, data)
 	}
 	return nil
 }
 
-// MultipleOfInt validates if the provided integer is a multiple of the factor
+// MultipleOfInt validates if the provided integer is a multiple of the factor.
 func MultipleOfInt(path, in string, data int64, factor int64) *errors.Validation {
 	// multipleOf factor must be positive
 	if factor <= 0 {
@@ -276,7 +273,7 @@ func MultipleOfInt(path, in string, data int64, factor int64) *errors.Validation
 	return nil
 }
 
-// MultipleOfUint validates if the provided unsigned integer is a multiple of the factor
+// MultipleOfUint validates if the provided unsigned integer is a multiple of the factor.
 func MultipleOfUint(path, in string, data, factor uint64) *errors.Validation {
 	// multipleOf factor must be positive
 	if factor == 0 {
@@ -289,7 +286,7 @@ func MultipleOfUint(path, in string, data, factor uint64) *errors.Validation {
 	return nil
 }
 
-// FormatOf validates if a string matches a format in the format registry
+// FormatOf validates if a string matches a format in the format registry.
 func FormatOf(path, in, format, data string, registry strfmt.Registry) *errors.Validation {
 	if registry == nil {
 		registry = strfmt.Default
@@ -312,24 +309,24 @@ func FormatOf(path, in, format, data string, registry strfmt.Registry) *errors.V
 // NOTE: currently, the max value is marshalled as a float64, no matter what,
 // which means there may be a loss during conversions (e.g. for very large integers)
 //
-// TODO: Normally, a JSON MAX_SAFE_INTEGER check would ensure conversion remains loss-free
-func MaximumNativeType(path, in string, val interface{}, max float64, exclusive bool) *errors.Validation {
+// NOTE: Normally, a JSON MAX_SAFE_INTEGER check would ensure conversion remains loss-free.
+func MaximumNativeType(path, in string, val any, maximum float64, exclusive bool) *errors.Validation {
 	kind := reflect.ValueOf(val).Type().Kind()
-	switch kind { //nolint:exhaustive
+	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		value := valueHelp.asInt64(val)
-		return MaximumInt(path, in, value, int64(max), exclusive)
+		return MaximumInt(path, in, value, int64(maximum), exclusive)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		value := valueHelp.asUint64(val)
-		if max < 0 {
-			return errors.ExceedsMaximum(path, in, max, exclusive, val)
+		if maximum < 0 {
+			return errors.ExceedsMaximum(path, in, maximum, exclusive, val)
 		}
-		return MaximumUint(path, in, value, uint64(max), exclusive)
+		return MaximumUint(path, in, value, uint64(maximum), exclusive)
 	case reflect.Float32, reflect.Float64:
 		fallthrough
 	default:
 		value := valueHelp.asFloat64(val)
-		return Maximum(path, in, value, max, exclusive)
+		return Maximum(path, in, value, maximum, exclusive)
 	}
 }
 
@@ -342,29 +339,29 @@ func MaximumNativeType(path, in string, val interface{}, max float64, exclusive 
 // NOTE: currently, the min value is marshalled as a float64, no matter what,
 // which means there may be a loss during conversions (e.g. for very large integers)
 //
-// TODO: Normally, a JSON MAX_SAFE_INTEGER check would ensure conversion remains loss-free
-func MinimumNativeType(path, in string, val interface{}, min float64, exclusive bool) *errors.Validation {
+// NOTE: Normally, a JSON MAX_SAFE_INTEGER check would ensure conversion remains loss-free.
+func MinimumNativeType(path, in string, val any, minimum float64, exclusive bool) *errors.Validation {
 	kind := reflect.ValueOf(val).Type().Kind()
-	switch kind { //nolint:exhaustive
+	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		value := valueHelp.asInt64(val)
-		return MinimumInt(path, in, value, int64(min), exclusive)
+		return MinimumInt(path, in, value, int64(minimum), exclusive)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		value := valueHelp.asUint64(val)
-		if min < 0 {
+		if minimum < 0 {
 			return nil
 		}
-		return MinimumUint(path, in, value, uint64(min), exclusive)
+		return MinimumUint(path, in, value, uint64(minimum), exclusive)
 	case reflect.Float32, reflect.Float64:
 		fallthrough
 	default:
 		value := valueHelp.asFloat64(val)
-		return Minimum(path, in, value, min, exclusive)
+		return Minimum(path, in, value, minimum, exclusive)
 	}
 }
 
 // MultipleOfNativeType provides native type constraint validation as a facade
-// to various numeric types version of MultipleOf constraint check.
+// to various numeric types version of [MultipleOf] constraint check.
 //
 // Assumes that any possible loss conversion during conversion has been
 // checked beforehand.
@@ -372,10 +369,10 @@ func MinimumNativeType(path, in string, val interface{}, min float64, exclusive 
 // NOTE: currently, the multipleOf factor is marshalled as a float64, no matter what,
 // which means there may be a loss during conversions (e.g. for very large integers)
 //
-// TODO: Normally, a JSON MAX_SAFE_INTEGER check would ensure conversion remains loss-free
-func MultipleOfNativeType(path, in string, val interface{}, multipleOf float64) *errors.Validation {
+// NOTE: Normally, a JSON MAX_SAFE_INTEGER check would ensure conversion remains loss-free.
+func MultipleOfNativeType(path, in string, val any, multipleOf float64) *errors.Validation {
 	kind := reflect.ValueOf(val).Type().Kind()
-	switch kind { //nolint:exhaustive
+	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		value := valueHelp.asInt64(val)
 		return MultipleOfInt(path, in, value, int64(multipleOf))
@@ -393,21 +390,21 @@ func MultipleOfNativeType(path, in string, val interface{}, multipleOf float64) 
 // IsValueValidAgainstRange checks that a numeric value is compatible with
 // the range defined by Type and Format, that is, may be converted without loss.
 //
-// NOTE: this check is about type capacity and not formal verification such as: 1.0 != 1L
-func IsValueValidAgainstRange(val interface{}, typeName, format, prefix, path string) error {
+// NOTE: this check is about type capacity and not formal verification such as: 1.0 != 1L.
+func IsValueValidAgainstRange(val any, typeName, format, prefix, path string) error {
 	kind := reflect.ValueOf(val).Type().Kind()
 
 	// What is the string representation of val
 	var stringRep string
-	switch kind { //nolint:exhaustive
+	switch kind {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		stringRep = swag.FormatUint64(valueHelp.asUint64(val))
+		stringRep = conv.FormatUinteger(valueHelp.asUint64(val))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		stringRep = swag.FormatInt64(valueHelp.asInt64(val))
+		stringRep = conv.FormatInteger(valueHelp.asInt64(val))
 	case reflect.Float32, reflect.Float64:
-		stringRep = swag.FormatFloat64(valueHelp.asFloat64(val))
+		stringRep = conv.FormatFloat(valueHelp.asFloat64(val))
 	default:
-		return fmt.Errorf("%s value number range checking called with invalid (non numeric) val type in %s", prefix, path)
+		return fmt.Errorf("%s value number range checking called with invalid (non numeric) val type in %s: %w", prefix, path, ErrValue)
 	}
 
 	var errVal error
@@ -416,22 +413,22 @@ func IsValueValidAgainstRange(val interface{}, typeName, format, prefix, path st
 	case integerType:
 		switch format {
 		case integerFormatInt32:
-			_, errVal = swag.ConvertInt32(stringRep)
+			_, errVal = conv.ConvertInt32(stringRep)
 		case integerFormatUInt32:
-			_, errVal = swag.ConvertUint32(stringRep)
+			_, errVal = conv.ConvertUint32(stringRep)
 		case integerFormatUInt64:
-			_, errVal = swag.ConvertUint64(stringRep)
+			_, errVal = conv.ConvertUint64(stringRep)
 		case integerFormatInt64:
 			fallthrough
 		default:
-			_, errVal = swag.ConvertInt64(stringRep)
+			_, errVal = conv.ConvertInt64(stringRep)
 		}
 	case numberType:
 		fallthrough
 	default:
 		switch format {
 		case numberFormatFloat, numberFormatFloat32:
-			_, errVal = swag.ConvertFloat32(stringRep)
+			_, errVal = conv.ConvertFloat32(stringRep)
 		case numberFormatDouble, numberFormatFloat64:
 			fallthrough
 		default:
@@ -441,9 +438,9 @@ func IsValueValidAgainstRange(val interface{}, typeName, format, prefix, path st
 	}
 	if errVal != nil { // We don't report the actual errVal from strconv
 		if format != "" {
-			errVal = fmt.Errorf("%s value must be of type %s with format %s in %s", prefix, typeName, format, path)
+			errVal = fmt.Errorf("%s value must be of type %s with format %s in %s: %w", prefix, typeName, format, path, ErrValue)
 		} else {
-			errVal = fmt.Errorf("%s value must be of type %s (default format) in %s", prefix, typeName, path)
+			errVal = fmt.Errorf("%s value must be of type %s (default format) in %s: %w", prefix, typeName, path, ErrValue)
 		}
 	}
 	return errVal

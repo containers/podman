@@ -1,10 +1,13 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package generator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,37 +16,91 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-openapi/swag"
 	"golang.org/x/tools/imports"
+
+	"github.com/go-openapi/swag"
 )
 
 var (
-	// DefaultLanguageFunc defines the default generation language
+	// DefaultLanguageFunc defines the default generation language.
 	DefaultLanguageFunc func() *LanguageOpts
 
 	moduleRe *regexp.Regexp
 )
 
+const defaultIndent = 2
+
+// FormatterFunc is a function that processes go code to reformat it, e.g. [golang.org/x/tools/imports.Process]).
+//
+// Formatting options allow for injecting a custom formatter for the generated code. See [WithCustomFormatter].
+type FormatterFunc func(filename string, src []byte, opts ...FormatOption) ([]byte, error)
+
+type mangleFunc func(string) string
+
 func initLanguage() {
-	DefaultLanguageFunc = GoLangOpts
+	DefaultLanguageFunc = GolangOpts
 
 	moduleRe = regexp.MustCompile(`module[ \t]+([^\s]+)`)
 }
 
-// LanguageOpts to describe a language to the code generator
-type LanguageOpts struct {
-	ReservedWords        []string
-	BaseImportFunc       func(string) string               `json:"-"`
-	ImportsFunc          func(map[string]string) string    `json:"-"`
-	ArrayInitializerFunc func(interface{}) (string, error) `json:"-"`
-	reservedWordsSet     map[string]struct{}
-	initialized          bool
-	formatFunc           func(string, []byte) ([]byte, error)
-	fileNameFunc         func(string) string // language specific source file naming rules
-	dirNameFunc          func(string) string // language specific directory naming rules
+// FormatOption allows for more flexible code formatting settings.
+type FormatOption func(*formatOptions)
+
+type formatOptions struct {
+	imports.Options
+
+	localPrefixes []string
 }
 
-// Init the language option
+// WithFormatLocalPrefixes adds local prefixes to group imports.
+func WithFormatLocalPrefixes(prefixes ...string) FormatOption {
+	return func(o *formatOptions) {
+		o.localPrefixes = append(o.localPrefixes, prefixes...)
+	}
+}
+
+// WithFormatOnly tells the formatter to skip imports processing.
+func WithFormatOnly(enabled bool) FormatOption {
+	return func(o *formatOptions) {
+		o.FormatOnly = enabled
+	}
+}
+
+var defaultFormatOptions = formatOptions{
+	Options: imports.Options{
+		TabIndent: true,
+		TabWidth:  defaultIndent,
+		Fragment:  true,
+		Comments:  true,
+	},
+	localPrefixes: []string{"github.com/go-openapi"},
+}
+
+func formatOptionsWithDefault(opts []FormatOption) formatOptions {
+	o := defaultFormatOptions
+
+	for _, apply := range opts {
+		apply(&o)
+	}
+
+	return o
+}
+
+// LanguageOpts to describe a language to the code generator.
+type LanguageOpts struct {
+	ReservedWords        []string
+	BaseImportFunc       mangleFunc                     `json:"-"`
+	ImportsFunc          func(map[string]string) string `json:"-"`
+	ArrayInitializerFunc func(any) (string, error)      `json:"-"`
+	FormatOnly           bool
+	reservedWordsSet     map[string]struct{}
+	initialized          bool
+	formatFunc           FormatterFunc
+	fileNameFunc         mangleFunc // language specific source file naming rules
+	dirNameFunc          mangleFunc // language specific directory naming rules
+}
+
+// Init the language option.
 func (l *LanguageOpts) Init() {
 	if l.initialized {
 		return
@@ -55,7 +112,7 @@ func (l *LanguageOpts) Init() {
 	}
 }
 
-// MangleName makes sure a reserved word gets a safe name
+// MangleName makes sure a reserved word gets a safe name.
 func (l *LanguageOpts) MangleName(name, suffix string) string {
 	if _, ok := l.reservedWordsSet[swag.ToFileName(name)]; !ok {
 		return name
@@ -63,7 +120,7 @@ func (l *LanguageOpts) MangleName(name, suffix string) string {
 	return strings.Join([]string{name, suffix}, "_")
 }
 
-// MangleVarName makes sure a reserved word gets a safe name
+// MangleVarName makes sure a reserved word gets a safe name.
 func (l *LanguageOpts) MangleVarName(name string) string {
 	nm := swag.ToVarName(name)
 	if _, ok := l.reservedWordsSet[nm]; !ok {
@@ -72,7 +129,7 @@ func (l *LanguageOpts) MangleVarName(name string) string {
 	return nm + "Var"
 }
 
-// MangleFileName makes sure a file name gets a safe name
+// MangleFileName makes sure a file name gets a safe name.
 func (l *LanguageOpts) MangleFileName(name string) string {
 	if l.fileNameFunc != nil {
 		return l.fileNameFunc(name)
@@ -106,15 +163,17 @@ func (l *LanguageOpts) ManglePackagePath(name string, suffix string) string {
 	return strings.Join(parts, "/")
 }
 
-// FormatContent formats a file with a language specific formatter
-func (l *LanguageOpts) FormatContent(name string, content []byte) ([]byte, error) {
+// FormatContent formats a file with a language specific formatter.
+func (l *LanguageOpts) FormatContent(name string, content []byte, opts ...FormatOption) ([]byte, error) {
 	if l.formatFunc != nil {
-		return l.formatFunc(name, content)
+		return l.formatFunc(name, content, opts...)
 	}
+
+	// unformatted content
 	return content, nil
 }
 
-// imports generate the code to import some external packages, possibly aliased
+// imports generate the code to import some external packages, possibly aliased.
 func (l *LanguageOpts) imports(imports map[string]string) string {
 	if l.ImportsFunc != nil {
 		return l.ImportsFunc(imports)
@@ -122,30 +181,328 @@ func (l *LanguageOpts) imports(imports map[string]string) string {
 	return ""
 }
 
-// arrayInitializer builds a litteral array
-func (l *LanguageOpts) arrayInitializer(data interface{}) (string, error) {
+// arrayInitializer builds a litteral array.
+func (l *LanguageOpts) arrayInitializer(data any) (string, error) {
 	if l.ArrayInitializerFunc != nil {
 		return l.ArrayInitializerFunc(data)
 	}
 	return "", nil
 }
 
-// baseImport figures out the base path to generate import statements
+// baseImport figures out the base path to generate import statements.
 func (l *LanguageOpts) baseImport(tgt string) string {
 	if l.BaseImportFunc != nil {
 		return l.BaseImportFunc(tgt)
 	}
-	debugLog("base import func is nil")
+	debugLogf("base import func is nil")
 	return ""
 }
 
-// GoLangOpts for rendering items as golang code
-func GoLangOpts() *LanguageOpts {
-	goOtherReservedSuffixes := map[string]bool{
-		// see:
-		// https://golang.org/src/go/build/syslist.go
-		// https://golang.org/doc/install/source#environment
+// GolangOpts for rendering items as golang code.
+func GolangOpts() *LanguageOpts {
+	opts := new(LanguageOpts)
+	opts.ReservedWords = []string{
+		"break", "default", "func", "interface", "select",
+		"case", "defer", "go", "map", "struct",
+		"chan", "else", "goto", "package", "switch",
+		"const", "fallthrough", "if", "range", "type",
+		"continue", "for", "import", "return", "var",
+	}
 
+	opts.formatFunc = defaultGoFormatFunc() // this default may be overridden by [GenOptsCommon]
+	opts.fileNameFunc = defaultGoFilenameFunc(goOtherReservedSuffixes())
+	opts.dirNameFunc = defaultGoDirnameFunc()
+	opts.ImportsFunc = defaultGoImportsFunc()
+	opts.ArrayInitializerFunc = defaultGoArrayInitializerFunc()
+	opts.BaseImportFunc = defaultGoBaseImportFunc()
+
+	opts.Init()
+
+	return opts
+}
+
+func defaultGoFormatFunc() FormatterFunc {
+	return func(ffn string, content []byte, fmtOpts ...FormatOption) ([]byte, error) {
+		o := formatOptionsWithDefault(fmtOpts)
+		imports.LocalPrefix = strings.Join(o.localPrefixes, ",") // regroup these packages
+		return imports.Process(ffn, content, &o.Options)
+	}
+}
+
+func defaultGoFilenameFunc(reservedSuffixes map[string]bool) mangleFunc {
+	return func(name string) string {
+		// whenever a generated file name ends with a suffix
+		// that is meaningful to go build, adds a "swagger"
+		// suffix
+		parts := strings.Split(swag.ToFileName(name), "_")
+		if reservedSuffixes[parts[len(parts)-1]] {
+			// file name ending with a reserved arch or os name
+			// are appended an innocuous suffix "swagger"
+			parts = append(parts, "swagger")
+		}
+		return strings.Join(parts, "_")
+	}
+}
+
+func defaultGoDirnameFunc() mangleFunc {
+	return func(name string) string {
+		// whenever a generated directory name is a special
+		// golang directory, append an innocuous suffix
+		switch name {
+		case "vendor", "internal":
+			return strings.Join([]string{name, "swagger"}, "_")
+		}
+		return name
+	}
+}
+
+func defaultGoImportsFunc() func(map[string]string) string {
+	return func(imports map[string]string) string {
+		if len(imports) == 0 {
+			return ""
+		}
+		result := make([]string, 0, len(imports))
+		for k, v := range imports {
+			_, name := path.Split(v)
+			if name != k {
+				result = append(result, fmt.Sprintf("\t%s %q", k, v))
+			} else {
+				result = append(result, fmt.Sprintf("\t%q", v))
+			}
+		}
+		sort.Strings(result)
+		return strings.Join(result, "\n")
+	}
+}
+
+func defaultGoArrayInitializerFunc() func(any) (string, error) {
+	return func(data any) (string, error) {
+		// ArrayInitializer constructs a Go literal initializer from any literals.
+		// e.g. []any{"a", "b"} is transformed in {"a","b",}
+		// e.g. map[string]any{ "a": "x", "b": "y"} is transformed in {"a":"x","b":"y",}.
+		//
+		// NOTE: this is currently used to construct simple slice intializers for default values.
+		// This allows for nicer slice initializers for slices of primitive types and avoid systematic use for json.Unmarshal().
+		b, err := json.Marshal(data)
+		if err != nil {
+			return "", err
+		}
+		return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(b), "}", ",}"), "[", "{"), "]", ",}"), "{,}", "{}"), nil
+	}
+}
+
+func defaultGoBaseImportFunc() mangleFunc {
+	return func(target string) string {
+		base, err := defaultGoBaseImportErr(target)
+		if err != nil {
+			fatalln(err)
+
+			return ""
+		}
+
+		return base
+	}
+}
+
+func defaultGoBaseImportErr(target string) (string, error) {
+	target = filepath.Clean(target)
+	// On Windows, filepath.Abs("") behaves differently than on Unix.
+	// Windows: yields an error, since Abs() does not know the volume.
+	// UNIX: returns current working directory
+	if target == "" {
+		target = "."
+	}
+
+	targetAbsPath, err := filepath.Abs(target)
+	if err != nil {
+		return "", fmt.Errorf("could not evaluate base import path with target %q: %w", target, err)
+	}
+
+	targetAbsPathExtended, err := filepath.EvalSymlinks(targetAbsPath)
+	if err != nil {
+		return "", fmt.Errorf("could not evaluate base import path with target %q (with symlink resolution): %w", targetAbsPath, err)
+	}
+
+	gopath := os.Getenv("GOPATH")
+	if gopath == "" {
+		homeDir, herr := os.UserHomeDir()
+		if herr != nil {
+			return "", fmt.Errorf("could not evaluate home dir for current user: %w", herr)
+		}
+
+		gopath = filepath.Join(homeDir, "go")
+	}
+
+	pth, err := exploreGoPath(gopath, targetAbsPath, targetAbsPathExtended)
+	if err != nil {
+		return "", err
+	}
+
+	mod, goModuleAbsPath, err := tryResolveModule(targetAbsPath)
+	switch {
+	case err != nil:
+		return "", fmt.Errorf("failed to resolve module using go.mod file: %w", err)
+	case mod != "":
+		relTgt := relPathToRelGoPath(goModuleAbsPath, targetAbsPath)
+		if !strings.HasSuffix(mod, relTgt) {
+			return filepath.ToSlash(mod + relTgt), nil
+		}
+
+		return filepath.ToSlash(mod), nil
+	}
+
+	if pth == "" {
+		return "", errors.New("target must reside inside a location within $GOPATH/src or be a module")
+	}
+
+	return filepath.ToSlash(pth), nil
+}
+
+func exploreGoPath(gopath, targetAbsPath, targetAbsPathExtended string) (pth string, err error) {
+	for _, gp := range filepath.SplitList(gopath) {
+		_, err := os.Stat(filepath.Join(gp, "src"))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+
+			return "", err
+		}
+
+		// EvalSymLinks also calls the Clean
+		gopathExtended, err := filepath.EvalSymlinks(gp)
+		if err != nil {
+			return "", err
+		}
+
+		gopathExtended = filepath.Join(gopathExtended, "src")
+		gp = filepath.Join(gp, "src")
+
+		// At this stage we have expanded and unexpanded target path. GOPATH is fully expanded.
+		// Expanded means symlink free.
+		// We compare both types of targetpath<s> with gopath.
+		// If any one of them coincides with gopath , it is imperative that
+		// target path lies inside gopath. How?
+		// 		- Case 1: Irrespective of symlinks paths coincide. Both non-expanded paths.
+		// 		- Case 2: Symlink in target path points to location inside GOPATH. (Expanded Target Path)
+		//    - Case 3: Symlink in target path points to directory outside GOPATH (Unexpanded target path)
+
+		// Case 1: - Do nothing case. If non-expanded paths match just generate base import path as if
+		//				   there are no symlinks.
+
+		// Case 2: - Symlink in target path points to location inside GOPATH. (Expanded Target Path)
+		//					 First if will fail. Second if will succeed.
+
+		// Case 3: - Symlink in target path points to directory outside GOPATH (Unexpanded target path)
+		// 					 First if will succeed and break.
+
+		// compares non expanded path for both
+		if ok, relativepath := checkPrefixAndFetchRelativePath(targetAbsPath, gp); ok {
+			pth = relativepath
+			break
+		}
+
+		// Compares non-expanded target path
+		if ok, relativepath := checkPrefixAndFetchRelativePath(targetAbsPath, gopathExtended); ok {
+			pth = relativepath
+			break
+		}
+
+		// Compares expanded target path.
+		if ok, relativepath := checkPrefixAndFetchRelativePath(targetAbsPathExtended, gopathExtended); ok {
+			pth = relativepath
+			break
+		}
+	}
+
+	return pth, nil
+}
+
+// resolveGoModFile walks up the directory tree starting from 'dir' until it
+// finds a go.mod file. If go.mod is found it will return the related file
+// object. If no go.mod file is found it will return an error.
+func resolveGoModFile(dir string) (*os.File, string, error) {
+	goModPath := filepath.Join(dir, "go.mod")
+	f, err := os.Open(goModPath)
+	if err != nil {
+		if os.IsNotExist(err) && dir != filepath.Dir(dir) {
+			return resolveGoModFile(filepath.Dir(dir))
+		}
+
+		return nil, "", err
+	}
+
+	return f, dir, nil
+}
+
+// relPathToRelGoPath takes a relative os path and returns the relative go
+// package path. For unix nothing will change but for windows \ will be
+// converted to /.
+func relPathToRelGoPath(modAbsPath, absPath string) string {
+	if absPath == "." {
+		return ""
+	}
+
+	path := strings.TrimPrefix(absPath, modAbsPath)
+	pathItems := strings.Split(path, string(filepath.Separator))
+	return strings.Join(pathItems, "/")
+}
+
+func tryResolveModule(baseTargetPath string) (string, string, error) {
+	f, goModAbsPath, err := resolveGoModFile(baseTargetPath)
+	switch {
+	case os.IsNotExist(err):
+		return "", "", nil
+	case err != nil:
+		return "", "", err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	src, err := io.ReadAll(f)
+	if err != nil {
+		return "", "", err
+	}
+
+	match := moduleRe.FindSubmatch(src)
+	const matchSubExpression = 2
+	if len(match) != matchSubExpression {
+		return "", "", nil
+	}
+
+	return string(match[1]), goModAbsPath, nil
+}
+
+// 1. Checks if the child path and parent path coincide.
+// 2. If they do return child path  relative to parent path.
+// 3. Everything else return false.
+func checkPrefixAndFetchRelativePath(childpath string, parentpath string) (bool, string) {
+	// Windows (local) file systems - NTFS, as well as FAT and variants
+	// are case insensitive.
+	cp, pp := childpath, parentpath
+	if goruntime.GOOS == winOS {
+		cp = strings.ToLower(cp)
+		pp = strings.ToLower(pp)
+	}
+
+	if strings.HasPrefix(cp, pp) {
+		pth, err := filepath.Rel(parentpath, childpath)
+		if err != nil {
+			fatalln(err)
+		}
+		return true, pth
+	}
+
+	return false, ""
+}
+
+func goOtherReservedSuffixes() map[string]bool {
+	// see:
+	// https://golang.org/src/go/build/syslist.go
+	// https://golang.org/doc/install/source#environment
+
+	return map[string]bool{
 		// goos
 		"aix":       true,
 		"android":   true,
@@ -194,248 +551,4 @@ func GoLangOpts() *LanguageOpts {
 		// other reserved suffixes
 		"test": true,
 	}
-
-	opts := new(LanguageOpts)
-	opts.ReservedWords = []string{
-		"break", "default", "func", "interface", "select",
-		"case", "defer", "go", "map", "struct",
-		"chan", "else", "goto", "package", "switch",
-		"const", "fallthrough", "if", "range", "type",
-		"continue", "for", "import", "return", "var",
-	}
-
-	opts.formatFunc = func(ffn string, content []byte) ([]byte, error) {
-		opts := new(imports.Options)
-		opts.TabIndent = true
-		opts.TabWidth = 2
-		opts.Fragment = true
-		opts.Comments = true
-		return imports.Process(ffn, content, opts)
-	}
-
-	opts.fileNameFunc = func(name string) string {
-		// whenever a generated file name ends with a suffix
-		// that is meaningful to go build, adds a "swagger"
-		// suffix
-		parts := strings.Split(swag.ToFileName(name), "_")
-		if goOtherReservedSuffixes[parts[len(parts)-1]] {
-			// file name ending with a reserved arch or os name
-			// are appended an innocuous suffix "swagger"
-			parts = append(parts, "swagger")
-		}
-		return strings.Join(parts, "_")
-	}
-
-	opts.dirNameFunc = func(name string) string {
-		// whenever a generated directory name is a special
-		// golang directory, append an innocuous suffix
-		switch name {
-		case "vendor", "internal":
-			return strings.Join([]string{name, "swagger"}, "_")
-		}
-		return name
-	}
-
-	opts.ImportsFunc = func(imports map[string]string) string {
-		if len(imports) == 0 {
-			return ""
-		}
-		result := make([]string, 0, len(imports))
-		for k, v := range imports {
-			_, name := path.Split(v)
-			if name != k {
-				result = append(result, fmt.Sprintf("\t%s %q", k, v))
-			} else {
-				result = append(result, fmt.Sprintf("\t%q", v))
-			}
-		}
-		sort.Strings(result)
-		return strings.Join(result, "\n")
-	}
-
-	opts.ArrayInitializerFunc = func(data interface{}) (string, error) {
-		// ArrayInitializer constructs a Go literal initializer from interface{} literals.
-		// e.g. []interface{}{"a", "b"} is transformed in {"a","b",}
-		// e.g. map[string]interface{}{ "a": "x", "b": "y"} is transformed in {"a":"x","b":"y",}.
-		//
-		// NOTE: this is currently used to construct simple slice intializers for default values.
-		// This allows for nicer slice initializers for slices of primitive types and avoid systematic use for json.Unmarshal().
-		b, err := json.Marshal(data)
-		if err != nil {
-			return "", err
-		}
-		return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(b), "}", ",}"), "[", "{"), "]", ",}"), "{,}", "{}"), nil
-	}
-
-	opts.BaseImportFunc = func(tgt string) string {
-		tgt = filepath.Clean(tgt)
-		// On Windows, filepath.Abs("") behaves differently than on Unix.
-		// Windows: yields an error, since Abs() does not know the volume.
-		// UNIX: returns current working directory
-		if tgt == "" {
-			tgt = "."
-		}
-		tgtAbsPath, err := filepath.Abs(tgt)
-		if err != nil {
-			log.Fatalf("could not evaluate base import path with target \"%s\": %v", tgt, err)
-		}
-
-		var tgtAbsPathExtended string
-		tgtAbsPathExtended, err = filepath.EvalSymlinks(tgtAbsPath)
-		if err != nil {
-			log.Fatalf("could not evaluate base import path with target \"%s\" (with symlink resolution): %v", tgtAbsPath, err)
-		}
-
-		gopath := os.Getenv("GOPATH")
-		if gopath == "" {
-			homeDir, herr := os.UserHomeDir()
-			if herr != nil {
-				log.Fatalln(herr)
-			}
-			gopath = filepath.Join(homeDir, "go")
-		}
-
-		var pth string
-		for _, gp := range filepath.SplitList(gopath) {
-			if _, derr := os.Stat(filepath.Join(gp, "src")); os.IsNotExist(derr) {
-				continue
-			}
-			// EvalSymLinks also calls the Clean
-			gopathExtended, er := filepath.EvalSymlinks(gp)
-			if er != nil {
-				panic(er)
-			}
-			gopathExtended = filepath.Join(gopathExtended, "src")
-			gp = filepath.Join(gp, "src")
-
-			// At this stage we have expanded and unexpanded target path. GOPATH is fully expanded.
-			// Expanded means symlink free.
-			// We compare both types of targetpath<s> with gopath.
-			// If any one of them coincides with gopath , it is imperative that
-			// target path lies inside gopath. How?
-			// 		- Case 1: Irrespective of symlinks paths coincide. Both non-expanded paths.
-			// 		- Case 2: Symlink in target path points to location inside GOPATH. (Expanded Target Path)
-			//    - Case 3: Symlink in target path points to directory outside GOPATH (Unexpanded target path)
-
-			// Case 1: - Do nothing case. If non-expanded paths match just generate base import path as if
-			//				   there are no symlinks.
-
-			// Case 2: - Symlink in target path points to location inside GOPATH. (Expanded Target Path)
-			//					 First if will fail. Second if will succeed.
-
-			// Case 3: - Symlink in target path points to directory outside GOPATH (Unexpanded target path)
-			// 					 First if will succeed and break.
-
-			// compares non expanded path for both
-			if ok, relativepath := checkPrefixAndFetchRelativePath(tgtAbsPath, gp); ok {
-				pth = relativepath
-				break
-			}
-
-			// Compares non-expanded target path
-			if ok, relativepath := checkPrefixAndFetchRelativePath(tgtAbsPath, gopathExtended); ok {
-				pth = relativepath
-				break
-			}
-
-			// Compares expanded target path.
-			if ok, relativepath := checkPrefixAndFetchRelativePath(tgtAbsPathExtended, gopathExtended); ok {
-				pth = relativepath
-				break
-			}
-
-		}
-
-		mod, goModuleAbsPath, err := tryResolveModule(tgtAbsPath)
-		switch {
-		case err != nil:
-			log.Fatalf("Failed to resolve module using go.mod file: %s", err)
-		case mod != "":
-			relTgt := relPathToRelGoPath(goModuleAbsPath, tgtAbsPath)
-			if !strings.HasSuffix(mod, relTgt) {
-				return filepath.ToSlash(mod + relTgt)
-			}
-			return filepath.ToSlash(mod)
-		}
-
-		if pth == "" {
-			log.Fatalln("target must reside inside a location in the $GOPATH/src or be a module")
-		}
-		return filepath.ToSlash(pth)
-	}
-	opts.Init()
-	return opts
-}
-
-// resolveGoModFile walks up the directory tree starting from 'dir' until it
-// finds a go.mod file. If go.mod is found it will return the related file
-// object. If no go.mod file is found it will return an error.
-func resolveGoModFile(dir string) (*os.File, string, error) {
-	goModPath := filepath.Join(dir, "go.mod")
-	f, err := os.Open(goModPath)
-	if err != nil {
-		if os.IsNotExist(err) && dir != filepath.Dir(dir) {
-			return resolveGoModFile(filepath.Dir(dir))
-		}
-		return nil, "", err
-	}
-	return f, dir, nil
-}
-
-// relPathToRelGoPath takes a relative os path and returns the relative go
-// package path. For unix nothing will change but for windows \ will be
-// converted to /.
-func relPathToRelGoPath(modAbsPath, absPath string) string {
-	if absPath == "." {
-		return ""
-	}
-
-	path := strings.TrimPrefix(absPath, modAbsPath)
-	pathItems := strings.Split(path, string(filepath.Separator))
-	return strings.Join(pathItems, "/")
-}
-
-func tryResolveModule(baseTargetPath string) (string, string, error) {
-	f, goModAbsPath, err := resolveGoModFile(baseTargetPath)
-	switch {
-	case os.IsNotExist(err):
-		return "", "", nil
-	case err != nil:
-		return "", "", err
-	}
-
-	src, err := io.ReadAll(f)
-	if err != nil {
-		return "", "", err
-	}
-
-	match := moduleRe.FindSubmatch(src)
-	if len(match) != 2 {
-		return "", "", nil
-	}
-
-	return string(match[1]), goModAbsPath, nil
-}
-
-// 1. Checks if the child path and parent path coincide.
-// 2. If they do return child path  relative to parent path.
-// 3. Everything else return false
-func checkPrefixAndFetchRelativePath(childpath string, parentpath string) (bool, string) {
-	// Windows (local) file systems - NTFS, as well as FAT and variants
-	// are case insensitive.
-	cp, pp := childpath, parentpath
-	if goruntime.GOOS == "windows" {
-		cp = strings.ToLower(cp)
-		pp = strings.ToLower(pp)
-	}
-
-	if strings.HasPrefix(cp, pp) {
-		pth, err := filepath.Rel(parentpath, childpath)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		return true, pth
-	}
-
-	return false, ""
 }

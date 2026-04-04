@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
 import (
@@ -9,14 +12,14 @@ import (
 	"github.com/go-openapi/spec"
 )
 
-// ArrayType const for array
+// ArrayType const for array.
 var ArrayType = "array"
 
-// ObjectType const for object
+// ObjectType const for object.
 var ObjectType = "object"
 
 // Compare returns the result of analysing breaking and non breaking changes
-// between to Swagger specs
+// between to Swagger specs.
 func Compare(spec1, spec2 *spec.Swagger) (diffs SpecDifferences, err error) {
 	analyser := NewSpecAnalyser()
 	err = analyser.Analyse(spec1, spec2)
@@ -24,29 +27,29 @@ func Compare(spec1, spec2 *spec.Swagger) (diffs SpecDifferences, err error) {
 		return nil, err
 	}
 	diffs = analyser.Diffs
-	return
+	return diffs, nil
 }
 
-// PathItemOp - combines path and operation into a single keyed entity
+// PathItemOp - combines path and operation into a single keyed entity.
 type PathItemOp struct {
 	ParentPathItem *spec.PathItem  `json:"pathitem"`
 	Operation      *spec.Operation `json:"operation"`
 	Extensions     spec.Extensions `json:"extensions"`
 }
 
-// URLMethod - combines url and method into a single keyed entity
+// URLMethod - combines url and method into a single keyed entity.
 type URLMethod struct {
 	Path   string `json:"path"`
 	Method string `json:"method"`
 }
 
-// DataDirection indicates the direction of change Request vs Response
+// DataDirection indicates the direction of change Request vs Response.
 type DataDirection int
 
 const (
-	// Request Used for messages/param diffs in a request
+	// Request Used for messages/param diffs in a request.
 	Request DataDirection = iota
-	// Response Used for messages/param diffs in a response
+	// Response Used for messages/param diffs in a response.
 	Response
 )
 
@@ -81,25 +84,32 @@ func primitiveTypeString(typeName, typeFormat string) string {
 	return typeName
 }
 
-// TypeDiff - describes a primitive type change
+// TypeDiff - describes a primitive type change.
 type TypeDiff struct {
-	Change      SpecChangeCode `json:"change-type,omitempty"`
+	Change      SpecChangeCode `json:"change_type,omitempty"`
 	Description string         `json:"description,omitempty"`
-	FromType    string         `json:"from-type,omitempty"`
-	ToType      string         `json:"to-type,omitempty"`
+	FromType    string         `json:"from_type,omitempty"`
+	ToType      string         `json:"to_type,omitempty"`
 }
 
-// didn't use 'width' so as not to confuse with bit width
+const (
+	numberMappedAsInt32   = 0
+	numberMappedAsInt64   = 1
+	numberMappedAsFloat32 = 2
+	numberMappedAsFloat64 = 3
+)
+
+// didn't use 'width' so as not to confuse with bit width.
 var numberWideness = map[string]int{
-	"number":        3,
-	"number.double": 3,
-	"double":        3,
-	"number.float":  2,
-	"float":         2,
-	"long":          1,
-	"integer.int64": 1,
-	"integer":       0,
-	"integer.int32": 0,
+	"number":        numberMappedAsFloat64,
+	"number.double": numberMappedAsFloat64,
+	"double":        numberMappedAsFloat64,
+	"number.float":  numberMappedAsFloat32,
+	"float":         numberMappedAsFloat32,
+	"long":          numberMappedAsInt64,
+	"integer.int64": numberMappedAsInt64,
+	"integer":       numberMappedAsInt32,
+	"integer.int32": numberMappedAsInt32,
 }
 
 func prettyprint(b []byte) (io.ReadWriter, error) {
@@ -108,7 +118,7 @@ func prettyprint(b []byte) (io.ReadWriter, error) {
 	return &out, err
 }
 
-// JSONMarshal allows the item to be correctly rendered to json
+// JSONMarshal allows the item to be correctly rendered to json.
 func JSONMarshal(t interface{}) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)

@@ -1,10 +1,13 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package logger
 
 import "os"
 
 type Logger interface {
-	Printf(format string, args ...interface{})
-	Debugf(format string, args ...interface{})
+	Printf(format string, args ...any)
+	Debugf(format string, args ...any)
 }
 
 func DebugEnabled() bool {

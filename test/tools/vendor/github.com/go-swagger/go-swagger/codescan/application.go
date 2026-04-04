@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package codescan
 
 import (
@@ -9,11 +12,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
 
 	"golang.org/x/tools/go/packages"
-
-	"github.com/go-openapi/spec"
 )
 
 const pkgLoadMode = packages.NeedName | packages.NeedFiles | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo
@@ -26,7 +28,7 @@ func safeConvert(str string) bool {
 	return b
 }
 
-// Debug is true when process is run with DEBUG=1 env var
+// Debug is true when process is run with DEBUG=1 env var.
 var Debug = safeConvert(os.Getenv("DEBUG"))
 
 type node uint32
@@ -40,7 +42,7 @@ const (
 	responseNode
 )
 
-// Options for the scanner
+// Options for the scanner.
 type Options struct {
 	Packages                []string
 	InputSpec               *spec.Swagger
@@ -53,11 +55,16 @@ type Options struct {
 	IncludeTags             []string
 	ExcludeTags             []string
 	SetXNullableForPointers bool
+	RefAliases              bool // aliases result in $ref, otherwise aliases are expanded
+	TransparentAliases      bool // aliases are completely transparent, never creating definitions
+	DescWithRef             bool // allow overloaded descriptions together with $ref, otherwise jsonschema draft4 $ref predates everything
 }
 
 type scanCtx struct {
 	pkgs []*packages.Package
 	app  *typeIndex
+
+	opts *Options
 }
 
 func sliceToSet(names []string) map[string]bool {
@@ -68,7 +75,7 @@ func sliceToSet(names []string) map[string]bool {
 	return result
 }
 
-// Run the scanner to produce a spec with the options provided
+// Run the scanner to produce a spec with the options provided.
 func Run(opts *Options) (*spec.Swagger, error) {
 	sc, err := newScanCtx(opts)
 	if err != nil {
@@ -93,9 +100,16 @@ func newScanCtx(opts *Options) (*scanCtx, error) {
 		return nil, err
 	}
 
-	app, err := newTypeIndex(pkgs, opts.ExcludeDeps,
-		sliceToSet(opts.IncludeTags), sliceToSet(opts.ExcludeTags),
-		opts.Include, opts.Exclude, opts.SetXNullableForPointers)
+	app, err := newTypeIndex(pkgs,
+		withExcludeDeps(opts.ExcludeDeps),
+		withIncludeTags(sliceToSet(opts.IncludeTags)),
+		withExcludeTags(sliceToSet(opts.ExcludeTags)),
+		withIncludePkgs(opts.Include),
+		withExcludePkgs(opts.Exclude),
+		withXNullableForPointers(opts.SetXNullableForPointers),
+		withRefAliases(opts.RefAliases),
+		withTransparentAliases(opts.TransparentAliases),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +117,14 @@ func newScanCtx(opts *Options) (*scanCtx, error) {
 	return &scanCtx{
 		pkgs: pkgs,
 		app:  app,
+		opts: opts,
 	}, nil
 }
 
 type entityDecl struct {
 	Comments               *ast.CommentGroup
 	Type                   *types.Named
+	Alias                  *types.Alias // added to supplement Named, after go1.22
 	Ident                  *ast.Ident
 	Spec                   *ast.TypeSpec
 	File                   *ast.File
@@ -118,16 +134,39 @@ type entityDecl struct {
 	hasParameterAnnotation bool
 }
 
+// Obj returns the type name for the declaration defining the named type or alias t.
+func (d *entityDecl) Obj() *types.TypeName {
+	if d.Type != nil {
+		return d.Type.Obj()
+	}
+	if d.Alias != nil {
+		return d.Alias.Obj()
+	}
+
+	panic("invalid entityDecl: Type and Alias are both nil")
+}
+
+func (d *entityDecl) ObjType() types.Type {
+	if d.Type != nil {
+		return d.Type
+	}
+	if d.Alias != nil {
+		return d.Alias
+	}
+
+	panic("invalid entityDecl: Type and Alias are both nil")
+}
+
 func (d *entityDecl) Names() (name, goName string) {
 	goName = d.Ident.Name
 	name = goName
 	if d.Comments == nil {
-		return
+		return name, goName
 	}
 
 DECLS:
 	for _, cmt := range d.Comments.List {
-		for _, ln := range strings.Split(cmt.Text, "\n") {
+		for ln := range strings.SplitSeq(cmt.Text, "\n") {
 			matches := rxModelOverride.FindStringSubmatch(ln)
 			if len(matches) > 0 {
 				d.hasModelAnnotation = true
@@ -138,19 +177,20 @@ DECLS:
 			}
 		}
 	}
-	return
+
+	return name, goName
 }
 
 func (d *entityDecl) ResponseNames() (name, goName string) {
 	goName = d.Ident.Name
 	name = goName
 	if d.Comments == nil {
-		return
+		return name, goName
 	}
 
 DECLS:
 	for _, cmt := range d.Comments.List {
-		for _, ln := range strings.Split(cmt.Text, "\n") {
+		for ln := range strings.SplitSeq(cmt.Text, "\n") {
 			matches := rxResponseOverride.FindStringSubmatch(ln)
 			if len(matches) > 0 {
 				d.hasResponseAnnotation = true
@@ -161,7 +201,7 @@ DECLS:
 			}
 		}
 	}
-	return
+	return name, goName
 }
 
 func (d *entityDecl) OperationIDs() (result []string) {
@@ -170,13 +210,13 @@ func (d *entityDecl) OperationIDs() (result []string) {
 	}
 
 	for _, cmt := range d.Comments.List {
-		for _, ln := range strings.Split(cmt.Text, "\n") {
+		for ln := range strings.SplitSeq(cmt.Text, "\n") {
 			matches := rxParametersOverride.FindStringSubmatch(ln)
 			if len(matches) > 0 {
 				d.hasParameterAnnotation = true
 			}
 			if len(matches) > 1 && len(matches[1]) > 0 {
-				for _, pt := range strings.Split(matches[1], " ") {
+				for pt := range strings.SplitSeq(matches[1], " ") {
 					tr := strings.TrimSpace(pt)
 					if len(tr) > 0 {
 						result = append(result, tr)
@@ -185,7 +225,7 @@ func (d *entityDecl) OperationIDs() (result []string) {
 			}
 		}
 	}
-	return
+	return result
 }
 
 func (d *entityDecl) HasModelAnnotation() bool {
@@ -196,7 +236,7 @@ func (d *entityDecl) HasModelAnnotation() bool {
 		return false
 	}
 	for _, cmt := range d.Comments.List {
-		for _, ln := range strings.Split(cmt.Text, "\n") {
+		for ln := range strings.SplitSeq(cmt.Text, "\n") {
 			matches := rxModelOverride.FindStringSubmatch(ln)
 			if len(matches) > 0 {
 				d.hasModelAnnotation = true
@@ -215,7 +255,7 @@ func (d *entityDecl) HasResponseAnnotation() bool {
 		return false
 	}
 	for _, cmt := range d.Comments.List {
-		for _, ln := range strings.Split(cmt.Text, "\n") {
+		for ln := range strings.SplitSeq(cmt.Text, "\n") {
 			matches := rxResponseOverride.FindStringSubmatch(ln)
 			if len(matches) > 0 {
 				d.hasResponseAnnotation = true
@@ -234,7 +274,7 @@ func (d *entityDecl) HasParameterAnnotation() bool {
 		return false
 	}
 	for _, cmt := range d.Comments.List {
-		for _, ln := range strings.Split(cmt.Text, "\n") {
+		for ln := range strings.SplitSeq(cmt.Text, "\n") {
 			matches := rxParametersOverride.FindStringSubmatch(ln)
 			if len(matches) > 0 {
 				d.hasParameterAnnotation = true
@@ -258,12 +298,16 @@ func (s *scanCtx) FindDecl(pkgPath, name string) (*entityDecl, bool) {
 					if ts, ok := sp.(*ast.TypeSpec); ok && ts.Name.Name == name {
 						def, ok := pkg.TypesInfo.Defs[ts.Name]
 						if !ok {
-							debugLog("couldn't find type info for %s", ts.Name)
+							debugLogf("couldn't find type info for %s", ts.Name)
+
 							continue
 						}
+
 						nt, isNamed := def.Type().(*types.Named)
-						if !isNamed {
-							debugLog("%s is not a named type but a %T", ts.Name, def.Type())
+						at, isAliased := def.Type().(*types.Alias)
+						if !isNamed && !isAliased {
+							debugLogf("%s is not a named or an aliased type but a %T", ts.Name, def.Type())
+
 							continue
 						}
 
@@ -275,31 +319,36 @@ func (s *scanCtx) FindDecl(pkgPath, name string) (*entityDecl, bool) {
 						decl := &entityDecl{
 							Comments: comments,
 							Type:     nt,
+							Alias:    at,
 							Ident:    ts.Name,
 							Spec:     ts,
 							File:     file,
 							Pkg:      pkg,
 						}
+
 						return decl, true
 					}
 				}
 			}
 		}
 	}
+
 	return nil, false
 }
 
 func (s *scanCtx) FindModel(pkgPath, name string) (*entityDecl, bool) {
 	for _, cand := range s.app.Models {
-		ct := cand.Type.Obj()
+		ct := cand.Obj()
 		if ct.Name() == name && ct.Pkg().Path() == pkgPath {
 			return cand, true
 		}
 	}
+
 	if decl, found := s.FindDecl(pkgPath, name); found {
 		s.app.ExtraModels[decl.Ident] = decl
 		return decl, true
 	}
+
 	return nil, false
 }
 
@@ -314,9 +363,12 @@ func (s *scanCtx) DeclForType(t types.Type) (*entityDecl, bool) {
 		return s.DeclForType(tpe.Elem())
 	case *types.Named:
 		return s.FindDecl(tpe.Obj().Pkg().Path(), tpe.Obj().Name())
+	case *types.Alias:
+		return s.FindDecl(tpe.Obj().Pkg().Path(), tpe.Obj().Name())
 
 	default:
-		log.Printf("unknown type to find the package for [%T]: %s", t, t.String())
+		log.Printf("WARNING: unknown type to find the package for [%T]: %s", t, t.String())
+
 		return nil, false
 	}
 }
@@ -331,6 +383,9 @@ func (s *scanCtx) PkgForType(t types.Type) (*packages.Package, bool) {
 	// case *types.Slice:
 	// case *types.Map:
 	case *types.Named:
+		v, ok := s.app.AllPackages[tpe.Obj().Pkg().Path()]
+		return v, ok
+	case *types.Alias:
 		v, ok := s.app.AllPackages[tpe.Obj().Pkg().Path()]
 		return v, ok
 	default:
@@ -359,7 +414,7 @@ func (s *scanCtx) FindComments(pkg *packages.Package, name string) (*ast.Comment
 	return nil, false
 }
 
-func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list []interface{}, descList []string, _ bool) {
+func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list []any, descList []string, _ bool) {
 	for _, f := range pkg.Syntax {
 		for _, d := range f.Decls {
 			gd, ok := d.(*ast.GenDecl)
@@ -371,66 +426,143 @@ func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list [
 				continue
 			}
 
-			for _, s := range gd.Specs {
-				if vs, ok := s.(*ast.ValueSpec); ok {
-					if vsIdent, ok := vs.Type.(*ast.Ident); ok {
-						if vsIdent.Name == enumName {
-							if len(vs.Values) > 0 {
-								if bl, ok := vs.Values[0].(*ast.BasicLit); ok {
-									blValue := getEnumBasicLitValue(bl)
-									list = append(list, blValue)
+			for _, spec := range gd.Specs {
+				literalValue, description := s.findEnumValue(spec, enumName)
+				if literalValue == nil {
+					continue
+				}
 
-									// build the enum description
-									var (
-										desc     = &strings.Builder{}
-										namesLen = len(vs.Names)
-									)
-									desc.WriteString(fmt.Sprintf("%v ", blValue))
-									for i, name := range vs.Names {
-										desc.WriteString(name.Name)
-										if i < namesLen-1 {
-											desc.WriteString(" ")
-										}
-									}
-									if vs.Doc != nil {
-										docListLen := len(vs.Doc.List)
-										if docListLen > 0 {
-											desc.WriteString(" ")
-										}
-										for i, doc := range vs.Doc.List {
-											if doc.Text != "" {
-												text := strings.TrimPrefix(doc.Text, "//")
-												desc.WriteString(text)
-												if i < docListLen-1 {
-													desc.WriteString(" ")
-												}
-											}
-										}
-									}
-									descList = append(descList, desc.String())
-								}
-							}
-						}
-					}
+				list = append(list, literalValue)
+				descList = append(descList, description)
+			}
+		}
+	}
+
+	return list, descList, true
+}
+
+func (s *scanCtx) findEnumValue(spec ast.Spec, enumName string) (literalValue any, description string) {
+	vs, ok := spec.(*ast.ValueSpec)
+	if !ok {
+		return nil, ""
+	}
+
+	vsIdent, ok := vs.Type.(*ast.Ident)
+	if !ok {
+		return nil, ""
+	}
+
+	if vsIdent.Name != enumName {
+		return nil, ""
+	}
+
+	if len(vs.Values) == 0 {
+		return nil, ""
+	}
+
+	bl, ok := vs.Values[0].(*ast.BasicLit)
+	if !ok {
+		return nil, ""
+	}
+
+	literalValue = getEnumBasicLitValue(bl)
+
+	// build the enum description
+	var (
+		desc     = &strings.Builder{}
+		namesLen = len(vs.Names)
+	)
+
+	fmt.Fprintf(desc, "%v ", literalValue)
+	for i, name := range vs.Names {
+		desc.WriteString(name.Name)
+		if i < namesLen-1 {
+			desc.WriteString(" ")
+		}
+	}
+
+	if vs.Doc != nil {
+		docListLen := len(vs.Doc.List)
+		if docListLen > 0 {
+			desc.WriteString(" ")
+		}
+
+		for i, doc := range vs.Doc.List {
+			if doc.Text != "" {
+				text := strings.TrimPrefix(doc.Text, "//")
+				desc.WriteString(text)
+				if i < docListLen-1 {
+					desc.WriteString(" ")
 				}
 			}
 		}
 	}
-	return list, descList, true
+
+	description = desc.String()
+
+	return literalValue, description
 }
 
-func newTypeIndex(pkgs []*packages.Package, excludeDeps bool, includeTags, excludeTags map[string]bool, includePkgs, excludePkgs []string, setXNullableForPointers bool) (*typeIndex, error) {
-	ac := &typeIndex{
-		AllPackages:             make(map[string]*packages.Package),
-		Models:                  make(map[*ast.Ident]*entityDecl),
-		ExtraModels:             make(map[*ast.Ident]*entityDecl),
-		excludeDeps:             excludeDeps,
-		includeTags:             includeTags,
-		excludeTags:             excludeTags,
-		includePkgs:             includePkgs,
-		excludePkgs:             excludePkgs,
-		setXNullableForPointers: setXNullableForPointers,
+type typeIndexOption func(*typeIndex)
+
+func withExcludeDeps(excluded bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.excludeDeps = excluded
 	}
+}
+
+func withIncludeTags(included map[string]bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.includeTags = included
+	}
+}
+
+func withExcludeTags(excluded map[string]bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.excludeTags = excluded
+	}
+}
+
+func withIncludePkgs(included []string) typeIndexOption {
+	return func(a *typeIndex) {
+		a.includePkgs = included
+	}
+}
+
+func withExcludePkgs(excluded []string) typeIndexOption {
+	return func(a *typeIndex) {
+		a.excludePkgs = excluded
+	}
+}
+
+func withXNullableForPointers(enabled bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.setXNullableForPointers = enabled
+	}
+}
+
+func withRefAliases(enabled bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.refAliases = enabled
+	}
+}
+
+func withTransparentAliases(enabled bool) typeIndexOption {
+	return func(a *typeIndex) {
+		a.transparentAliases = enabled
+	}
+}
+
+func newTypeIndex(pkgs []*packages.Package, opts ...typeIndexOption) (*typeIndex, error) {
+	ac := &typeIndex{
+		AllPackages: make(map[string]*packages.Package),
+		Models:      make(map[*ast.Ident]*entityDecl),
+		ExtraModels: make(map[*ast.Ident]*entityDecl),
+	}
+	for _, apply := range opts {
+		apply(ac)
+	}
+
 	if err := ac.build(pkgs); err != nil {
 		return nil, err
 	}
@@ -452,6 +584,8 @@ type typeIndex struct {
 	includePkgs             []string
 	excludePkgs             []string
 	setXNullableForPointers bool
+	refAliases              bool
+	transparentAliases      bool
 }
 
 func (a *typeIndex) build(pkgs []*packages.Package) error {
@@ -473,7 +607,7 @@ func (a *typeIndex) build(pkgs []*packages.Package) error {
 
 func (a *typeIndex) processPackage(pkg *packages.Package) error {
 	if !shouldAcceptPkg(pkg.PkgPath, a.includePkgs, a.excludePkgs) {
-		debugLog("package %s is ignored due to rules", pkg.Name)
+		debugLogf("package %s is ignored due to rules", pkg.Name)
 		return nil
 	}
 
@@ -494,7 +628,7 @@ func (a *typeIndex) processPackage(pkg *packages.Package) error {
 					continue // not a valid operation
 				}
 				if !shouldAcceptTag(pp.Tags, a.includeTags, a.excludeTags) {
-					debugLog("operation %s %s is ignored due to tag rules", pp.Method, pp.Path)
+					debugLogf("operation %s %s is ignored due to tag rules", pp.Method, pp.Path)
 					continue
 				}
 				a.Operations = append(a.Operations, pp)
@@ -508,7 +642,7 @@ func (a *typeIndex) processPackage(pkg *packages.Package) error {
 					continue // not a valid operation
 				}
 				if !shouldAcceptTag(pp.Tags, a.includeTags, a.excludeTags) {
-					debugLog("operation %s %s is ignored due to tag rules", pp.Method, pp.Path)
+					debugLogf("operation %s %s is ignored due to tag rules", pp.Method, pp.Path)
 					continue
 				}
 				a.Routes = append(a.Routes, pp)
@@ -542,20 +676,22 @@ func (a *typeIndex) processDecl(pkg *packages.Package, file *ast.File, n node, g
 	for _, sp := range gd.Specs {
 		switch ts := sp.(type) {
 		case *ast.ValueSpec:
-			debugLog("saw value spec: %v", ts.Names)
+			debugLogf("saw value spec: %v", ts.Names)
 			return
 		case *ast.ImportSpec:
-			debugLog("saw import spec: %v", ts.Name)
+			debugLogf("saw import spec: %v", ts.Name)
 			return
 		case *ast.TypeSpec:
 			def, ok := pkg.TypesInfo.Defs[ts.Name]
 			if !ok {
-				debugLog("couldn't find type info for %s", ts.Name)
+				debugLogf("couldn't find type info for %s", ts.Name)
 				continue
 			}
 			nt, isNamed := def.Type().(*types.Named)
-			if !isNamed {
-				debugLog("%s is not a named type but a %T", ts.Name, def.Type())
+			at, isAliased := def.Type().(*types.Alias)
+			if !isNamed && !isAliased {
+				debugLogf("%s is not a named or aliased type but a %T", ts.Name, def.Type())
+
 				continue
 			}
 
@@ -567,20 +703,26 @@ func (a *typeIndex) processDecl(pkg *packages.Package, file *ast.File, n node, g
 			decl := &entityDecl{
 				Comments: comments,
 				Type:     nt,
+				Alias:    at,
 				Ident:    ts.Name,
 				Spec:     ts,
 				File:     file,
 				Pkg:      pkg,
 			}
 			key := ts.Name
-			if n&modelNode != 0 && decl.HasModelAnnotation() {
+			switch {
+			case n&modelNode != 0 && decl.HasModelAnnotation():
 				a.Models[key] = decl
-			}
-			if n&parametersNode != 0 && decl.HasParameterAnnotation() {
+			case n&parametersNode != 0 && decl.HasParameterAnnotation():
 				a.Parameters = append(a.Parameters, decl)
-			}
-			if n&responseNode != 0 && decl.HasResponseAnnotation() {
+			case n&responseNode != 0 && decl.HasResponseAnnotation():
 				a.Responses = append(a.Responses, decl)
+			default:
+				debugLogf(
+					"type %q skipped because it is not tagged as a model, a parameter or a response. %s",
+					decl.Obj().Name(),
+					"It may reenter the scope because it is a discovered dependency",
+				)
 			}
 		}
 	}
@@ -666,8 +808,8 @@ func (a *typeIndex) detectNodes(file *ast.File) (node, error) {
 	return n, nil
 }
 
-func debugLog(format string, args ...interface{}) {
+func debugLogf(format string, args ...any) {
 	if Debug {
-		log.Printf(format, args...)
+		_ = log.Output(2, fmt.Sprintf(format, args...))
 	}
 }
