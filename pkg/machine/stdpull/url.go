@@ -76,7 +76,16 @@ func (d *DiskFromURL) Get() error {
 	}
 
 	logrus.Debugf("decompressing (if needed) %s to %s", d.tempLocation.GetPath(), d.finalPath.GetPath())
-	return compression.Decompress(d.tempLocation, d.finalPath.GetPath())
+	if err := compression.Decompress(d.tempLocation, d.finalPath.GetPath()); err != nil {
+		return err
+	}
+
+	// Ensure image is writable
+	if err := os.Chmod(d.finalPath.GetPath(), 0600); err != nil {
+		return fmt.Errorf("failed to set permissions on pulled image %s: %w", d.finalPath.GetPath(), err)
+	}
+
+	return nil
 }
 
 func (d *DiskFromURL) pull() error {
