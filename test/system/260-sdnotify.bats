@@ -17,14 +17,14 @@ function setup() {
     # Skip if systemd is not running
     systemctl list-units &>/dev/null || skip "systemd not available"
 
+    basic_setup
+
     # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
     # assume that we work only with crun, nothing else.
     runtime=$(podman_runtime)
     if [[ "$runtime" != "crun" ]]; then
         skip "this test only works with crun, not $runtime"
     fi
-
-    basic_setup
 }
 
 function teardown() {
