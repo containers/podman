@@ -1,6 +1,9 @@
 package stdpull
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/containers/podman/v6/pkg/machine/compression"
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/sirupsen/logrus"
@@ -26,5 +29,14 @@ func (s *StdDiskPull) Get() error {
 		return err
 	}
 	logrus.Debugf("decompressing (if needed) %s to %s", s.inputPath.GetPath(), s.finalPath.GetPath())
-	return compression.Decompress(s.inputPath, s.finalPath.GetPath())
+	if err := compression.Decompress(s.inputPath, s.finalPath.GetPath()); err != nil {
+		return err
+	}
+
+	// Ensure image is writable
+	if err := os.Chmod(s.finalPath.GetPath(), 0600); err != nil {
+		return fmt.Errorf("failed to set permissions on machine image: %w", err)
+	}
+	return nil
+
 }
