@@ -229,7 +229,7 @@ outer:
 		unix.Dup2(int(f.Fd()), 2) //nolint:errcheck
 		f.Close()
 	}
-	// write and close ReadyFD (convention is same as slirp4netns --ready-fd)
+	// write and close ReadyFD to signal readiness
 	if _, err := readyW.Write([]byte("1")); err != nil {
 		return err
 	}
