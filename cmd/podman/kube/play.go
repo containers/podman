@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -22,11 +23,13 @@ import (
 	"github.com/containers/podman/v6/pkg/annotations"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/errorhandling"
+	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/image/v5/types"
+	yamlv3 "gopkg.in/yaml.v3"
 )
 
 // playKubeOptionsWrapper allows for separating CLI-only fields from API-only
@@ -380,6 +383,13 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 		if err != nil {
 			return nil, err
 		}
+		if registry.IsRemote() {
+			// Resolve relative hostPath paths using the current working directory.
+			// The server does not know the client's working directory.
+			if cwd, err := os.Getwd(); err == nil {
+				data, _ = resolveRelativeHostPaths(data, cwd)
+			}
+		}
 		return bytes.NewReader(data), nil
 	}
 
@@ -409,14 +419,134 @@ func readerFromArgsWithStdin(args []string, stdin io.Reader) (*bytes.Reader, err
 func readerFromArg(fileOrURL string) (io.ReadCloser, error) {
 	switch {
 	case parse.ValidWebURL(fileOrURL) == nil:
-		response, err := http.Get(fileOrURL)
+		response, err := http.Get(fileOrURL) //nolint:noctx
 		if err != nil {
 			return nil, err
 		}
-		return response.Body, nil
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return io.NopCloser(bytes.NewReader(body)), nil
 	default:
-		return os.Open(fileOrURL)
+		f, err := os.Open(fileOrURL)
+		if err != nil {
+			return nil, err
+		}
+		if !registry.IsRemote() {
+			return f, nil
+		}
+		// In remote mode, resolve relative hostPath paths to absolute paths before
+		// sending the YAML to the server. The server cannot know the client's working
+		// directory, so relative paths would be incorrectly resolved against the
+		// server's cwd (typically /).
+		defer f.Close()
+		content, err := io.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+		absPath, err := filepath.Abs(fileOrURL)
+		if err != nil {
+			return nil, err
+		}
+		resolved, err := resolveRelativeHostPaths(content, filepath.Dir(absPath))
+		if err != nil {
+			return nil, err
+		}
+		return io.NopCloser(bytes.NewReader(resolved)), nil
 	}
+}
+
+// resolveRelativeHostPaths parses the YAML content and rewrites any relative
+// hostPath.path values to absolute paths resolved against baseDir. This is
+// needed for remote connections where the server does not know the client cwd.
+// Returns the original content unchanged if no relative paths are found.
+func resolveRelativeHostPaths(content []byte, baseDir string) ([]byte, error) {
+	decoder := yamlv3.NewDecoder(bytes.NewReader(content))
+	var documents []*yamlv3.Node
+	modified := false
+
+	for {
+		var node yamlv3.Node
+		if err := decoder.Decode(&node); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			// Return original content if we cannot parse.
+			return content, nil
+		}
+		if resolveHostPathsInNode(&node, baseDir) {
+			modified = true
+		}
+		documents = append(documents, &node)
+	}
+
+	if !modified {
+		return content, nil
+	}
+
+	var buf bytes.Buffer
+	encoder := yamlv3.NewEncoder(&buf)
+	encoder.SetIndent(2)
+	for _, doc := range documents {
+		if err := encoder.Encode(doc); err != nil {
+			return content, err
+		}
+	}
+	if err := encoder.Close(); err != nil {
+		return content, err
+	}
+	return buf.Bytes(), nil
+}
+
+// resolveHostPathsInNode recursively walks a yaml.Node tree and converts any
+// relative hostPath.path scalar values to absolute paths under baseDir.
+// On Windows/WSL hosts the absolute path is further converted to the Linux
+// guest path expected by the Podman Machine (e.g. C:\foo → /mnt/c/foo).
+// Returns true if any path was modified.
+func resolveHostPathsInNode(node *yamlv3.Node, baseDir string) bool {
+	modified := false
+	switch node.Kind {
+	case yamlv3.DocumentNode:
+		for _, child := range node.Content {
+			if resolveHostPathsInNode(child, baseDir) {
+				modified = true
+			}
+		}
+	case yamlv3.MappingNode:
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			key := node.Content[i]
+			value := node.Content[i+1]
+			if key.Value == "hostPath" && value.Kind == yamlv3.MappingNode {
+				// Look only at the direct children of the hostPath map.
+				for j := 0; j+1 < len(value.Content); j += 2 {
+					pathKey := value.Content[j]
+					pathVal := value.Content[j+1]
+					if pathKey.Value == "path" && pathVal.Kind == yamlv3.ScalarNode {
+						if !filepath.IsAbs(pathVal.Value) {
+							abs := filepath.Join(baseDir, pathVal.Value)
+							// ConvertWinMountPath is a no-op on non-Windows/WSL hosts.
+							if converted, err := specgen.ConvertWinMountPath(abs); err == nil {
+								abs = converted
+							}
+							pathVal.Value = abs
+							modified = true
+						}
+					}
+				}
+			} else if resolveHostPathsInNode(value, baseDir) {
+				modified = true
+			}
+		}
+	case yamlv3.SequenceNode:
+		for _, child := range node.Content {
+			if resolveHostPathsInNode(child, baseDir) {
+				modified = true
+			}
+		}
+	}
+	return modified
 }
 
 func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
