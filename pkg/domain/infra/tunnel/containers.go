@@ -614,7 +614,7 @@ func makeExecConfig(options entities.ExecOptions) *handlers.ExecCreateConfig {
 	createConfig.AttachStdin = options.Interactive
 	createConfig.AttachStdout = true
 	createConfig.AttachStderr = true
-	createConfig.DetachKeys = options.DetachKeys
+	createConfig.DetachKeys = &options.DetachKeys
 	createConfig.Env = env
 	createConfig.WorkingDir = options.WorkDir
 	createConfig.Cmd = options.Cmd

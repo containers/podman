@@ -46,8 +46,9 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	libpodConfig.AttachStdin = input.AttachStdin
 	libpodConfig.AttachStderr = input.AttachStderr
 	libpodConfig.AttachStdout = input.AttachStdout
-	if input.DetachKeys != "" {
-		libpodConfig.DetachKeys = &input.DetachKeys
+	// DetachKeys is a *string so nil means "not provided" and "" means "disable detach".
+	if input.DetachKeys != nil {
+		libpodConfig.DetachKeys = input.DetachKeys
 	}
 	libpodConfig.Environment = make(map[string]string)
 	for _, envStr := range input.Env {
@@ -80,6 +81,12 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	libpodConfig.ExitCommand = exitCommandArgs
+
+	// When DetachKeys was not provided, store the system default so that
+	// exec inspect returns a meaningful value rather than an empty string.
+	if libpodConfig.DetachKeys == nil {
+		libpodConfig.DetachKeys = &runtimeConfig.Engine.DetachKeys
+	}
 
 	// Run the exit command after 5 minutes, to mimic Docker's exec cleanup
 	// behavior.
