@@ -931,6 +931,7 @@ BOGUS=foo
 		Entry("dns-search.container", "dns-search.container"),
 		Entry("dns.container", "dns.container"),
 		Entry("env-file.container", "env-file.container"),
+		Entry("env-file-ignore.container", "env-file-ignore.container"),
 		Entry("env-host-false.container", "env-host-false.container"),
 		Entry("env-host.container", "env-host.container"),
 		Entry("env.container", "env.container"),
