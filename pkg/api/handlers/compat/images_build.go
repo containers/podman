@@ -236,8 +236,10 @@ func parseBuildQuery(r *http.Request, conf *config.Config, queryValues url.Value
 func processBuildContext(query url.Values, r *http.Request, buildContext *BuildContext, anchorDir string) (*BuildContext, error) {
 	dockerFileSet := false
 	remote := query.Get("remote")
+	isLibpodRequest := utils.IsLibpodRequest(r)
+	allowHostDockerfilePath := isLibpodRequest && strings.Contains(r.URL.Path, "/libpod/local/build")
 
-	if utils.IsLibpodRequest(r) && remote != "" {
+	if isLibpodRequest && remote != "" {
 		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", remote)
 		if err != nil {
 			return nil, utils.GetInternalServerError(genSpaceErr(err))
@@ -263,11 +265,27 @@ func processBuildContext(query url.Values, r *http.Request, buildContext *BuildC
 			for _, containerfile := range m {
 				// Add path to containerfile if it is not URL
 				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
-					if filepath.IsAbs(containerfile) {
-						containerfile = filepath.Clean(filepath.FromSlash(containerfile))
+					cleaned := filepath.Clean(filepath.FromSlash(containerfile))
+					if !allowHostDockerfilePath && filepath.VolumeName(cleaned) != "" {
+						return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("invalid path"))
+					}
+
+					if allowHostDockerfilePath {
+						if filepath.IsAbs(cleaned) {
+							containerfile = cleaned
+						} else {
+							containerfile = filepath.Join(buildContext.ContextDirectory, cleaned)
+						}
 					} else {
-						containerfile = filepath.Join(buildContext.ContextDirectory,
-							filepath.Clean(filepath.FromSlash(containerfile)))
+						resolved := cleaned
+						if !filepath.IsAbs(cleaned) {
+							resolved = filepath.Join(buildContext.ContextDirectory, cleaned)
+						}
+						rel, relErr := filepath.Rel(buildContext.ContextDirectory, resolved)
+						if relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+							return nil, utils.GetBadRequestError("dockerfile", containerfile, fmt.Errorf("path escapes build context"))
+						}
+						containerfile = resolved
 					}
 				}
 				buildContext.ContainerFiles = append(buildContext.ContainerFiles, containerfile)
