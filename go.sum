@@ -255,10 +255,10 @@ github.com/moby/docker-image-spec v1.3.1 h1:jMKff3w6PgbfSa69GfNg+zN/XLhfXJGnEx3N
 github.com/moby/docker-image-spec v1.3.1/go.mod h1:eKmb5VW8vQEh/BAr2yvVNvuiJuY6UIocYsFu/DxxRpo=
 github.com/moby/go-archive v0.2.0 h1:zg5QDUM2mi0JIM9fdQZWC7U8+2ZfixfTYoHL7rWUcP8=
 github.com/moby/go-archive v0.2.0/go.mod h1:mNeivT14o8xU+5q1YnNrkQVpK+dnNe/K6fHqnTg4qPU=
-github.com/moby/moby/api v1.54.0 h1:7kbUgyiKcoBhm0UrWbdrMs7RX8dnwzURKVbZGy2GnL0=
-github.com/moby/moby/api v1.54.0/go.mod h1:8mb+ReTlisw4pS6BRzCMts5M49W5M7bKt1cJy/YbAqc=
-github.com/moby/moby/client v0.3.0 h1:UUGL5okry+Aomj3WhGt9Aigl3ZOxZGqR7XPo+RLPlKs=
-github.com/moby/moby/client v0.3.0/go.mod h1:HJgFbJRvogDQjbM8fqc1MCEm4mIAGMLjXbgwoZp6jCQ=
+github.com/moby/moby/api v1.54.1 h1:TqVzuJkOLsgLDDwNLmYqACUuTehOHRGKiPhvH8V3Nn4=
+github.com/moby/moby/api v1.54.1/go.mod h1:+RQ6wluLwtYaTd1WnPLykIDPekkuyD/ROWQClE83pzs=
+github.com/moby/moby/client v0.4.0 h1:S+2XegzHQrrvTCvF6s5HFzcrywWQmuVnhOXe2kiWjIw=
+github.com/moby/moby/client v0.4.0/go.mod h1:QWPbvWchQbxBNdaLSpoKpCdf5E+WxFAgNHogCWDoa7g=
 github.com/moby/moby/v2 v2.0.0-beta.8 h1:3D/xW0DrCNuGPSJ+dnw9A97IJ3qwBmTxqmCWDEYtY38=
 github.com/moby/moby/v2 v2.0.0-beta.8/go.mod h1:92sEyRcWIBbM9stp3xl4I2t/gJzOFgrZ8prBT0IfD4g=
 github.com/moby/patternmatcher v0.6.1 h1:qlhtafmr6kgMIJjKJMDmMWq7WLkKIo23hsrpR3x084U=
