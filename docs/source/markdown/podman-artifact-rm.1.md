@@ -18,10 +18,6 @@ qualified artifact name or a full or partial artifact digest.
 Remove all artifacts in the local store.  The use of this option conflicts with
 providing a name or digest of the artifact.
 
-#### **--help**
-
-Print usage statement.
-
 #### **--ignore**, **-i**
 
 Remove artifacts in the local store, ignoring errors when trying to remove artifacts that do not exist.

@@ -30,10 +30,6 @@ If the target is a directory then the digest is always used as file name instead
 when the title annotation exists on the blob.
 Conflicts with **--title**.
 
-#### **--help**
-
-Print usage statement.
-
 #### **--title**=**title**
 
 When extracting blobs from the artifact only use the one with the specified title.
