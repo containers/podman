@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package system
@@ -6,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // StatT type contains status of a file. It contains metadata
@@ -17,6 +20,8 @@ type StatT struct {
 	rdev uint64
 	size int64
 	mtim syscall.Timespec
+	dev  uint64
+	platformStatT
 }
 
 // Mode returns file's permission mode.
@@ -47,6 +52,15 @@ func (s StatT) Size() int64 {
 // Mtim returns file's last modification time.
 func (s StatT) Mtim() syscall.Timespec {
 	return s.mtim
+}
+
+// Dev returns a unique identifier for owning filesystem
+func (s StatT) Dev() uint64 {
+	return s.dev
+}
+
+func (s StatT) IsDir() bool {
+	return (s.mode & unix.S_IFDIR) != 0
 }
 
 // Stat takes a path to a file and returns

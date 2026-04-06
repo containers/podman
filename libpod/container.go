@@ -115,6 +115,10 @@ type Container struct {
 	rootlessPortSyncR *os.File
 	rootlessPortSyncW *os.File
 
+	// reservedPorts contains the fds for the bound ports when using the
+	// bridge network mode as root.
+	reservedPorts []*os.File
+
 	// perNetworkOpts should be set when you want to use special network
 	// options when calling network setup/teardown. This should be used for
 	// container restore or network reload for example. Leave this nil if
@@ -123,10 +127,6 @@ type Container struct {
 
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
-
-	// Used to query the NOTIFY_SOCKET once along with setting up
-	// mounts etc.
-	notifySocket string
 
 	slirp4netnsSubnet *net.IPNet
 }
@@ -679,6 +679,14 @@ func (c *Container) WorkingDir() string {
 		return c.config.Spec.Process.Cwd
 	}
 	return "/"
+}
+
+// Terminal returns true if the container has a terminal
+func (c *Container) Terminal() bool {
+	if c.config.Spec != nil && c.config.Spec.Process != nil {
+		return c.config.Spec.Process.Terminal
+	}
+	return false
 }
 
 // State Accessors

@@ -4,17 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	stderrors "errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/containers/common/pkg/manifests"
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/common/pkg/supplemented"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/signature/signer"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -24,6 +27,10 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	defaultMaxRetries = 3
 )
 
 const instancesData = "instances.json"
@@ -36,7 +43,7 @@ type LookupReferenceFunc func(ref types.ImageReference) (types.ImageReference, e
 
 // ErrListImageUnknown is returned when we attempt to create an image reference
 // for a List that has not yet been saved to an image.
-var ErrListImageUnknown = stderrors.New("unable to determine which image holds the manifest list")
+var ErrListImageUnknown = errors.New("unable to determine which image holds the manifest list")
 
 type list struct {
 	manifests.List
@@ -61,6 +68,7 @@ type PushOptions struct {
 	ImageListSelection               cp.ImageListSelection // set to either CopySystemImage, CopyAllImages, or CopySpecificImages
 	Instances                        []digest.Digest       // instances to copy if ImageListSelection == CopySpecificImages
 	ReportWriter                     io.Writer             // will be used to log the writing of the list and any blobs
+	Signers                          []*signer.Signer      // if non-empty, asks for signatures to be added during the copy using the provided signers.
 	SignBy                           string                // fingerprint of GPG key to use to sign images
 	SignPassphrase                   string                // passphrase to use when signing with the key ID from SignBy.
 	SignBySigstorePrivateKeyFile     string                // if non-empty, asks for a signature to be added during the copy, using a sigstore private key file at the provided path.
@@ -68,6 +76,13 @@ type PushOptions struct {
 	RemoveSignatures                 bool                  // true to discard signatures in images
 	ManifestType                     string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
 	SourceFilter                     LookupReferenceFunc   // filter the list source
+	AddCompression                   []string              // add existing instances with requested compression algorithms to manifest list
+	ForceCompressionFormat           bool                  // force push with requested compression ignoring the blobs which can be reused.
+	// Maximum number of retries with exponential backoff when facing
+	// transient network errors. Default 3.
+	MaxRetries *uint
+	// RetryDelay used for the exponential back off of MaxRetries.
+	RetryDelay *time.Duration
 }
 
 // Create creates a new list containing information about the specified image,
@@ -87,11 +102,11 @@ func Create() List {
 func LoadFromImage(store storage.Store, image string) (string, List, error) {
 	img, err := store.Image(image)
 	if err != nil {
-		return "", nil, fmt.Errorf("error locating image %q for loading manifest list: %w", image, err)
+		return "", nil, fmt.Errorf("locating image %q for loading manifest list: %w", image, err)
 	}
 	manifestBytes, err := store.ImageBigData(img.ID, storage.ImageDigestManifestBigDataNamePrefix)
 	if err != nil {
-		return "", nil, fmt.Errorf("error locating image %q for loading manifest list: %w", image, err)
+		return "", nil, fmt.Errorf("locating image %q for loading manifest list: %w", image, err)
 	}
 	manifestList, err := manifests.FromBlob(manifestBytes)
 	if err != nil {
@@ -103,10 +118,10 @@ func LoadFromImage(store storage.Store, image string) (string, List, error) {
 	}
 	instancesBytes, err := store.ImageBigData(img.ID, instancesData)
 	if err != nil {
-		return "", nil, fmt.Errorf("error locating image %q for loading instance list: %w", image, err)
+		return "", nil, fmt.Errorf("locating image %q for loading instance list: %w", image, err)
 	}
 	if err := json.Unmarshal(instancesBytes, &list.instances); err != nil {
-		return "", nil, fmt.Errorf("error decoding instance list for image %q: %w", image, err)
+		return "", nil, fmt.Errorf("decoding instance list for image %q: %w", image, err)
 	}
 	list.instances[""] = img.ID
 	return img.ID, list, err
@@ -152,18 +167,18 @@ func (l *list) SaveToImage(store storage.Store, imageID string, names []string, 
 		}
 		return imageID, nil
 	}
-	return "", fmt.Errorf("error creating image to hold manifest list: %w", err)
+	return "", fmt.Errorf("creating image to hold manifest list: %w", err)
 }
 
 // Reference returns an image reference for the composite image being built
 // in the list, or an error if the list has never been saved to a local image.
 func (l *list) Reference(store storage.Store, multiple cp.ImageListSelection, instances []digest.Digest) (types.ImageReference, error) {
 	if l.instances[""] == "" {
-		return nil, fmt.Errorf("error building reference to list: %w", ErrListImageUnknown)
+		return nil, fmt.Errorf("building reference to list: %w", ErrListImageUnknown)
 	}
 	s, err := is.Transport.ParseStoreReference(store, l.instances[""])
 	if err != nil {
-		return nil, fmt.Errorf("error creating ImageReference from image %q: %w", l.instances[""], err)
+		return nil, fmt.Errorf("creating ImageReference from image %q: %w", l.instances[""], err)
 	}
 	references := make([]types.ImageReference, 0, len(l.instances))
 	whichInstances := make([]digest.Digest, 0, len(l.instances))
@@ -187,7 +202,7 @@ func (l *list) Reference(store storage.Store, multiple cp.ImageListSelection, in
 		imageName := l.instances[instance]
 		ref, err := alltransports.ParseImageName(imageName)
 		if err != nil {
-			return nil, fmt.Errorf("error creating ImageReference from image %q: %w", imageName, err)
+			return nil, fmt.Errorf("creating ImageReference from image %q: %w", imageName, err)
 		}
 		references = append(references, ref)
 	}
@@ -199,7 +214,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 	// Load the system signing policy.
 	pushPolicy, err := signature.DefaultPolicy(options.SystemContext)
 	if err != nil {
-		return nil, "", fmt.Errorf("error obtaining default signature policy: %w", err)
+		return nil, "", fmt.Errorf("obtaining default signature policy: %w", err)
 	}
 
 	// Override the settings for local storage to make sure that we can always read the source "image".
@@ -207,7 +222,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 
 	policyContext, err := signature.NewPolicyContext(pushPolicy)
 	if err != nil {
-		return nil, "", fmt.Errorf("error creating new signature policy context: %w", err)
+		return nil, "", fmt.Errorf("creating new signature policy context: %w", err)
 	}
 	defer func() {
 		if err2 := policyContext.Destroy(); err2 != nil {
@@ -237,6 +252,10 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 			return nil, "", err
 		}
 	}
+	compressionVariants, err := prepareAddWithCompression(options.AddCompression)
+	if err != nil {
+		return nil, "", err
+	}
 	copyOptions := &cp.Options{
 		ImageListSelection:               options.ImageListSelection,
 		Instances:                        options.Instances,
@@ -244,23 +263,53 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		DestinationCtx:                   options.SystemContext,
 		ReportWriter:                     options.ReportWriter,
 		RemoveSignatures:                 options.RemoveSignatures,
+		Signers:                          options.Signers,
 		SignBy:                           options.SignBy,
 		SignPassphrase:                   options.SignPassphrase,
 		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,
 		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
 		ForceManifestMIMEType:            singleImageManifestType,
+		EnsureCompressionVariantsExist:   compressionVariants,
+		ForceCompressionFormat:           options.ForceCompressionFormat,
+	}
+
+	retryOptions := retry.Options{}
+	retryOptions.MaxRetry = defaultMaxRetries
+	if options.MaxRetries != nil {
+		retryOptions.MaxRetry = int(*options.MaxRetries)
+	}
+	if options.RetryDelay != nil {
+		retryOptions.Delay = *options.RetryDelay
 	}
 
 	// Copy whatever we were asked to copy.
-	manifestBytes, err := cp.Image(ctx, policyContext, dest, src, copyOptions)
-	if err != nil {
-		return nil, "", err
+	var manifestDigest digest.Digest
+	f := func() error {
+		opts := copyOptions
+		var manifestBytes []byte
+		var digest digest.Digest
+		var err error
+		if manifestBytes, err = cp.Image(ctx, policyContext, dest, src, opts); err == nil {
+			if digest, err = manifest.Digest(manifestBytes); err == nil {
+				manifestDigest = digest
+			}
+		}
+		return err
 	}
-	manifestDigest, err := manifest.Digest(manifestBytes)
-	if err != nil {
-		return nil, "", err
+	err = retry.IfNecessary(ctx, f, &retryOptions)
+	return nil, manifestDigest, err
+}
+
+func prepareAddWithCompression(variants []string) ([]cp.OptionCompressionVariant, error) {
+	res := []cp.OptionCompressionVariant{}
+	for _, name := range variants {
+		algo, err := compression.AlgorithmByName(name)
+		if err != nil {
+			return nil, fmt.Errorf("requested algorithm %s is not supported for replication: %w", name, err)
+		}
+		res = append(res, cp.OptionCompressionVariant{Algorithm: algo})
 	}
-	return nil, manifestDigest, nil
+	return res, nil
 }
 
 // Add adds information about the specified image to the list, computing the
@@ -273,7 +322,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.ImageReference, all bool) (digest.Digest, error) {
 	src, err := ref.NewImageSource(ctx, sys)
 	if err != nil {
-		return "", fmt.Errorf("error setting up to read manifest and configuration from %q: %w", transports.ImageName(ref), err)
+		return "", fmt.Errorf("setting up to read manifest and configuration from %q: %w", transports.ImageName(ref), err)
 	}
 	defer src.Close()
 
@@ -288,13 +337,13 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 
 	primaryManifestBytes, primaryManifestType, err := src.GetManifest(ctx, nil)
 	if err != nil {
-		return "", fmt.Errorf("error reading manifest from %q: %w", transports.ImageName(ref), err)
+		return "", fmt.Errorf("reading manifest from %q: %w", transports.ImageName(ref), err)
 	}
 
 	if manifest.MIMETypeIsMultiImage(primaryManifestType) {
 		lists, err := manifests.FromBlob(primaryManifestBytes)
 		if err != nil {
-			return "", fmt.Errorf("error parsing manifest list in %q: %w", transports.ImageName(ref), err)
+			return "", fmt.Errorf("parsing manifest list in %q: %w", transports.ImageName(ref), err)
 		}
 		if all {
 			for i, instance := range lists.OCIv1().Manifests {
@@ -318,11 +367,11 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		} else {
 			list, err := manifest.ListFromBlob(primaryManifestBytes, primaryManifestType)
 			if err != nil {
-				return "", fmt.Errorf("error parsing manifest list in %q: %w", transports.ImageName(ref), err)
+				return "", fmt.Errorf("parsing manifest list in %q: %w", transports.ImageName(ref), err)
 			}
 			instanceDigest, err := list.ChooseInstance(sys)
 			if err != nil {
-				return "", fmt.Errorf("error selecting image from manifest list in %q: %w", transports.ImageName(ref), err)
+				return "", fmt.Errorf("selecting image from manifest list in %q: %w", transports.ImageName(ref), err)
 			}
 			added := false
 			for i, instance := range lists.OCIv1().Manifests {
@@ -364,11 +413,11 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		if instanceInfo.OS == "" || instanceInfo.Architecture == "" {
 			img, err := image.FromUnparsedImage(ctx, sys, image.UnparsedInstance(src, instanceInfo.instanceDigest))
 			if err != nil {
-				return "", fmt.Errorf("error reading configuration blob from %q: %w", transports.ImageName(ref), err)
+				return "", fmt.Errorf("reading configuration blob from %q: %w", transports.ImageName(ref), err)
 			}
 			config, err := img.OCIConfig(ctx)
 			if err != nil {
-				return "", fmt.Errorf("error reading info about config blob from %q: %w", transports.ImageName(ref), err)
+				return "", fmt.Errorf("reading info about config blob from %q: %w", transports.ImageName(ref), err)
 			}
 			if instanceInfo.OS == "" {
 				instanceInfo.OS = config.OS
@@ -382,12 +431,12 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		}
 		manifestBytes, manifestType, err := src.GetManifest(ctx, instanceInfo.instanceDigest)
 		if err != nil {
-			return "", fmt.Errorf("error reading manifest from %q, instance %q: %w", transports.ImageName(ref), instanceInfo.instanceDigest, err)
+			return "", fmt.Errorf("reading manifest from %q, instance %q: %w", transports.ImageName(ref), instanceInfo.instanceDigest, err)
 		}
 		if instanceInfo.instanceDigest == nil {
 			manifestDigest, err = manifest.Digest(manifestBytes)
 			if err != nil {
-				return "", fmt.Errorf("error computing digest of manifest from %q: %w", transports.ImageName(ref), err)
+				return "", fmt.Errorf("computing digest of manifest from %q: %w", transports.ImageName(ref), err)
 			}
 			instanceInfo.instanceDigest = &manifestDigest
 			instanceInfo.Size = int64(len(manifestBytes))
@@ -396,7 +445,7 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		}
 		err = l.List.AddInstance(*instanceInfo.instanceDigest, instanceInfo.Size, manifestType, instanceInfo.OS, instanceInfo.Architecture, instanceInfo.OSVersion, instanceInfo.OSFeatures, instanceInfo.Variant, instanceInfo.Features, instanceInfo.Annotations)
 		if err != nil {
-			return "", fmt.Errorf("error adding instance with digest %q: %w", *instanceInfo.instanceDigest, err)
+			return "", fmt.Errorf("adding instance with digest %q: %w", *instanceInfo.instanceDigest, err)
 		}
 		if _, ok := l.instances[*instanceInfo.instanceDigest]; !ok {
 			l.instances[*instanceInfo.instanceDigest] = transports.ImageName(ref)
@@ -420,7 +469,7 @@ func (l *list) Remove(instanceDigest digest.Digest) error {
 // then use that list's SaveToImage() method to save a modified version of the
 // list to that image record use this lock to avoid accidentally wiping out
 // changes that another process is also attempting to make.
-func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) {
+func LockerForImage(store storage.Store, image string) (lockfile.Locker, error) { // nolint:staticcheck
 	img, err := store.Image(image)
 	if err != nil {
 		return nil, fmt.Errorf("locating image %q for locating lock: %w", image, err)

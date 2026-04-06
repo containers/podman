@@ -33,9 +33,9 @@ type Cmd struct {
 	*exec.Cmd
 	UnshareFlags               int
 	UseNewuidmap               bool
-	UidMappings                []specs.LinuxIDMapping // nolint: golint
+	UidMappings                []specs.LinuxIDMapping // nolint: revive,golint
 	UseNewgidmap               bool
-	GidMappings                []specs.LinuxIDMapping // nolint: golint
+	GidMappings                []specs.LinuxIDMapping // nolint: revive,golint
 	GidMappingsEnableSetgroups bool
 	Setsid                     bool
 	Setpgrp                    bool
@@ -129,7 +129,7 @@ func (c *Cmd) Start() error {
 	if err != nil {
 		pidRead.Close()
 		pidWrite.Close()
-		return fmt.Errorf("creating pid pipe: %w", err)
+		return fmt.Errorf("creating continue read/write pipe: %w", err)
 	}
 	c.Env = append(c.Env, fmt.Sprintf("_Containers-continue-pipe=%d", len(c.ExtraFiles)+3))
 	c.ExtraFiles = append(c.ExtraFiles, continueRead)
@@ -175,12 +175,11 @@ func (c *Cmd) Start() error {
 	pidWrite = nil
 
 	// Read the child's PID from the pipe.
-	pidString := ""
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, pidRead); err != nil {
 		return fmt.Errorf("reading child PID: %w", err)
 	}
-	pidString = b.String()
+	pidString := b.String()
 	pid, err := strconv.Atoi(pidString)
 	if err != nil {
 		fmt.Fprintf(continueWrite, "error parsing PID %q: %v", pidString, err)
@@ -387,10 +386,47 @@ const (
 	UsernsEnvName = "_CONTAINERS_USERNS_CONFIGURED"
 )
 
+// hasFullUsersMappings checks whether the current user namespace has all the IDs mapped.
+func hasFullUsersMappings() (bool, error) {
+	content, err := os.ReadFile("/proc/self/uid_map")
+	if err != nil {
+		return false, err
+	}
+	// The kernel rejects attempts to create mappings where either starting
+	// point is (u32)-1: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/user_namespace.c?id=af3e9579ecfb#n1006 .
+	// So, if the uid_map contains 4294967295, the entire IDs space is available in the
+	// user namespace, so it is likely the initial user namespace.
+	return bytes.Contains(content, []byte("4294967295")), nil
+}
+
+var (
+	hasCapSysAdminOnce sync.Once
+	hasCapSysAdminRet  bool
+	hasCapSysAdminErr  error
+)
+
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
 		isRootless = getRootlessUID() != 0 || getenv(UsernsEnvName) != ""
+		if !isRootless {
+			hasCapSysAdmin, err := HasCapSysAdmin()
+			if err != nil {
+				logrus.Warnf("Failed to read CAP_SYS_ADMIN presence for the current process")
+			}
+			if err == nil && !hasCapSysAdmin {
+				isRootless = true
+			}
+		}
+		if !isRootless {
+			hasMappings, err := hasFullUsersMappings()
+			if err != nil {
+				logrus.Warnf("Failed to read current user namespace mappings")
+			}
+			if err == nil && !hasMappings {
+				isRootless = true
+			}
+		}
 	})
 	return isRootless
 }
@@ -405,6 +441,16 @@ func GetRootlessUID() int {
 	return os.Getuid()
 }
 
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	gidEnv := getenv("_CONTAINERS_ROOTLESS_GID")
+	if gidEnv != "" {
+		u, _ := strconv.Atoi(gidEnv)
+		return u
+	}
+	return os.Getgid()
+}
+
 // RootlessEnv returns the environment settings for the rootless containers
 func RootlessEnv() []string {
 	return append(os.Environ(), UsernsEnvName+"=done")
@@ -414,10 +460,21 @@ type Runnable interface {
 	Run() error
 }
 
+func bailOnError(err error, format string, a ...interface{}) { // nolint: revive,goprintffuncname
+	if err != nil {
+		if format != "" {
+			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
+		} else {
+			logrus.Errorf("%v", err)
+		}
+		os.Exit(1)
+	}
+}
+
 // MaybeReexecUsingUserNamespace re-exec the process in a new namespace
 func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	// If we've already been through this once, no need to try again.
-	if os.Geteuid() == 0 && IsRootless() {
+	if os.Geteuid() == 0 && GetRootlessUID() > 0 {
 		return
 	}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/containers/image/v5/docker/policyconfiguration"
@@ -12,6 +11,7 @@ import (
 	genericImage "github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 func init() {
@@ -35,7 +35,7 @@ func (t openshiftTransport) ParseReference(reference string) (types.ImageReferen
 // Note that imageNameRegexp is namespace/stream:tag, this
 // is HOSTNAME/namespace/stream:tag or parent prefixes.
 // Keep this in sync with imageNameRegexp!
-var scopeRegexp = regexp.MustCompile("^[^/]*(/[^:/]*(/[^:/]*(:[^:/]*)?)?)?$")
+var scopeRegexp = regexp.Delayed("^[^/]*(/[^:/]*(/[^:/]*(:[^:/]*)?)?)?$")
 
 // ValidatePolicyConfigurationScope checks that scope is a valid name for a signature.PolicyTransportScopes keys
 // (i.e. a valid PolicyConfigurationIdentity() or PolicyConfigurationNamespaces() return value).
@@ -89,7 +89,7 @@ func (ref openshiftReference) Transport() types.ImageTransport {
 // StringWithinTransport returns a string representation of the reference, which MUST be such that
 // reference.Transport().ParseReference(reference.StringWithinTransport()) returns an equivalent reference.
 // NOTE: The returned string is not promised to be equal to the original input to ParseReference;
-// e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
+// e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
 // WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix.
 func (ref openshiftReference) StringWithinTransport() string {
 	return reference.FamiliarString(ref.dockerReference)

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -33,7 +33,8 @@ func CopyTo(sshClient *ssh.Client, local string, remote string) (int64, error) {
 		return 0, err
 	}
 	defer writer.Close()
-	err = session.Start("scp -t " + filepath.Dir(remote))
+
+	err = session.Start("scp -t " + filepath.ToSlash(filepath.Dir(remote)))
 	if err != nil {
 		return 0, err
 	}
@@ -42,11 +43,12 @@ func CopyTo(sshClient *ssh.Client, local string, remote string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer localFile.Close()
 	fileInfo, err := localFile.Stat()
 	if err != nil {
 		return 0, err
 	}
-	_, err = fmt.Fprintf(writer, "C%s %d %s\n", fileMode, fileInfo.Size(), filepath.Base(remote))
+	_, err = fmt.Fprintf(writer, "C%s %d %s\n", fileMode, fileInfo.Size(), filepath.ToSlash(filepath.Base(remote)))
 	if err != nil {
 		return 0, err
 	}
@@ -59,8 +61,7 @@ func CopyTo(sshClient *ssh.Client, local string, remote string) (int64, error) {
 		return 0, err
 	}
 
-	err = session.Wait()
-	log.Debugf("Copied %v bytes out of %v. err: %v stdout:%v. stderr:%v", n, fileInfo.Size(), err, stdout, stderr)
+	session.Wait()
 	//NOTE: Process exited with status 1 is not an error, it just how scp work. (waiting for the next control message and we send EOF)
 	return n, nil
 }
@@ -83,7 +84,7 @@ func CopyFrom(sshClient *ssh.Client, remote string, local string) (int64, error)
 	if err != nil {
 		return 0, err
 	}
-	err = session.Start("scp -f " + remote)
+	err = session.Start("scp -f " + filepath.ToSlash(remote))
 	if err != nil {
 		return 0, err
 	}
@@ -98,7 +99,7 @@ func CopyFrom(sshClient *ssh.Client, remote string, local string) (int64, error)
 	if msg.Type == ErrorMessage || msg.Type == WarnMessage {
 		return 0, msg.Error
 	}
-	log.Debugf("Receiving %v", msg)
+	log.Printf("Receiving %v", msg)
 
 	err = ack(writer)
 	if err != nil {
@@ -121,8 +122,7 @@ func CopyFrom(sshClient *ssh.Client, remote string, local string) (int64, error)
 	if err != nil {
 		return 0, err
 	}
-	err = session.Wait()
-	log.Debugf("Copied %v bytes out of %v. err: %v stderr:%v", n, msg.Size, err, stderr)
+	session.Wait()
 	return n, nil
 }
 
@@ -133,7 +133,7 @@ func ack(writer io.Writer) error {
 		return err
 	}
 	if n < len(msg) {
-		return errors.New("Failed to write ack buffer")
+		return errors.New("failed to write ack buffer")
 	}
 	return nil
 }
@@ -143,7 +143,6 @@ func copyN(writer io.Writer, src io.Reader, size int64) (int64, error) {
 	var total int64
 	for total < size {
 		n, err := io.CopyBuffer(writer, reader, make([]byte, buffSize))
-		log.Debugf("Copied chunk %v total: %v out of %v err: %v ", n, total, size, err)
 		if err != nil {
 			return 0, err
 		}

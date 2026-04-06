@@ -1,11 +1,11 @@
 package storage
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/types"
 	"github.com/google/go-intervals/intervalset"
 )
 
@@ -116,7 +116,7 @@ func (s *idSet) findAvailable(n int) (*idSet, error) {
 		n -= i.length()
 	}
 	if n > 0 {
-		return nil, errors.New("could not find enough available IDs")
+		return nil, types.ErrNoAvailableIDs
 	}
 	return &idSet{set: intervalset.NewImmutableSet(intervals)}, nil
 }

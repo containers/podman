@@ -32,7 +32,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ic := abi.ContainerEngine{Libpod: runtime}
-	report, err := ic.NetworkCreate(r.Context(), network)
+	report, err := ic.NetworkCreate(r.Context(), network, nil)
 	if err != nil {
 		if errors.Is(err, types.ErrNetworkExists) {
 			utils.Error(w, http.StatusConflict, err)

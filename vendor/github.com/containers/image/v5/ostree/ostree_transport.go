@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/containers/image/v5/directory/explicitfilepath"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 const defaultOSTreeRepo = "/ostree/repo"
@@ -75,12 +75,11 @@ type ostreeImageCloser struct {
 
 func (t ostreeTransport) ParseReference(ref string) (types.ImageReference, error) {
 	var repo = ""
-	var image = ""
-	s := strings.SplitN(ref, "@/", 2)
-	if len(s) == 1 {
-		image, repo = s[0], defaultOSTreeRepo
+	image, repoPart, gotRepoPart := strings.Cut(ref, "@/")
+	if !gotRepoPart {
+		repo = defaultOSTreeRepo
 	} else {
-		image, repo = s[0], "/"+s[1]
+		repo = "/" + repoPart
 	}
 
 	return NewReference(image, repo)
@@ -134,7 +133,7 @@ func (ref ostreeReference) Transport() types.ImageTransport {
 // StringWithinTransport returns a string representation of the reference, which MUST be such that
 // reference.Transport().ParseReference(reference.StringWithinTransport()) returns an equivalent reference.
 // NOTE: The returned string is not promised to be equal to the original input to ParseReference;
-// e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
+// e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
 // WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix.
 func (ref ostreeReference) StringWithinTransport() string {
 	return fmt.Sprintf("%s@%s", ref.image, ref.repo)
@@ -157,11 +156,11 @@ func (ref ostreeReference) PolicyConfigurationIdentity() string {
 // It is STRONGLY recommended for the first element, if any, to be a prefix of PolicyConfigurationIdentity(),
 // and each following element to be a prefix of the element preceding it.
 func (ref ostreeReference) PolicyConfigurationNamespaces() []string {
-	s := strings.SplitN(ref.image, ":", 2)
-	if len(s) != 2 { // Coverage: Should never happen, NewReference above ensures ref.image has a :tag.
+	repo, _, gotTag := strings.Cut(ref.image, ":")
+	if !gotTag { // Coverage: Should never happen, NewReference above ensures ref.image has a :tag.
 		panic(fmt.Sprintf("Internal inconsistency: ref.image value %q does not have a :tag", ref.image))
 	}
-	name := s[0]
+	name := repo
 	res := []string{}
 	for {
 		res = append(res, fmt.Sprintf("%s:%s", ref.repo, name))
@@ -216,7 +215,7 @@ func (ref ostreeReference) DeleteImage(ctx context.Context, sys *types.SystemCon
 	return errors.New("Deleting images not implemented for ostree: images")
 }
 
-var ostreeRefRegexp = regexp.MustCompile(`^[A-Za-z0-9.-]$`)
+var ostreeRefRegexp = regexp.Delayed(`^[A-Za-z0-9.-]$`)
 
 func encodeOStreeRef(in string) string {
 	var buffer bytes.Buffer

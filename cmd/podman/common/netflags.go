@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/parse"
+	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -28,21 +29,21 @@ func DefineNetFlags(cmd *cobra.Command) {
 
 	dnsFlagName := "dns"
 	netFlags.StringSlice(
-		dnsFlagName, containerConfig.DNSServers(),
+		dnsFlagName, registry.PodmanConfig().ContainersConf.DNSServers(),
 		"Set custom DNS servers",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsFlagName, completion.AutocompleteNone)
 
 	dnsOptFlagName := "dns-opt"
 	netFlags.StringSlice(
-		dnsOptFlagName, containerConfig.DNSOptions(),
+		dnsOptFlagName, registry.PodmanConfig().ContainersConf.DNSOptions(),
 		"Set custom DNS options",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsOptFlagName, completion.AutocompleteNone)
 
 	dnsSearchFlagName := "dns-search"
 	netFlags.StringSlice(
-		dnsSearchFlagName, containerConfig.DNSSearches(),
+		dnsSearchFlagName, registry.PodmanConfig().ContainersConf.DNSSearches(),
 		"Set custom DNS search domains",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsSearchFlagName, completion.AutocompleteNone)
@@ -90,7 +91,7 @@ func DefineNetFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(publishFlagName, completion.AutocompleteNone)
 
 	netFlags.Bool(
-		"no-hosts", containerConfig.Containers.NoHosts,
+		"no-hosts", registry.PodmanConfig().ContainersConfDefaultsRO.Containers.NoHosts,
 		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
 }

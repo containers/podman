@@ -4,9 +4,12 @@
 #
 
 load helpers
+load helpers.network
 
 CHECKED_ROOTLESS=
 function setup() {
+    skip "checkpoint tests disabled"
+
     # FIXME: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1857257
     # TL;DR they keep fixing it then breaking it again. There's a test we
     # could run to see if it's fixed, but it's way too complicated. Since

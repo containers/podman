@@ -183,6 +183,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with cached images", func() {
+		SkipIfRemote("podman-remote build does not reuse cache layers the same as local build")
 		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dockerfile := fmt.Sprintf(`FROM %s
 		RUN mkdir hello

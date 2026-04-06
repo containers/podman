@@ -22,7 +22,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -86,7 +86,7 @@ func LoadUnsafeVerifier(publicKey crypto.PublicKey) (Verifier, error) {
 // If the publickey is an RSA key, a RSAPKCS1v15Verifier will be returned. If a
 // RSAPSSVerifier is desired instead, use the LoadRSAPSSVerifier() and cryptoutils.UnmarshalPEMToPublicKey() methods directly.
 func LoadVerifierFromPEMFile(path string, hashFunc crypto.Hash) (Verifier, error) {
-	fileBytes, err := ioutil.ReadFile(filepath.Clean(path))
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

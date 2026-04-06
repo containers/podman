@@ -417,7 +417,6 @@ func (b boolNode) Value(sig Signature) (interface{}, error) {
 type arrayNode struct {
 	set      sigSet
 	children []varNode
-	val      interface{}
 }
 
 func (n arrayNode) Infer() (Signature, error) {
@@ -574,7 +573,6 @@ type dictEntry struct {
 type dictNode struct {
 	kset, vset sigSet
 	children   []dictEntry
-	val        interface{}
 }
 
 func (n dictNode) Infer() (Signature, error) {

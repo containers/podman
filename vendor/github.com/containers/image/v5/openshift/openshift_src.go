@@ -60,14 +60,15 @@ func (s *openshiftImageSource) Reference() types.ImageReference {
 
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *openshiftImageSource) Close() error {
+	var err error
 	if s.docker != nil {
-		err := s.docker.Close()
+		err = s.docker.Close()
 		s.docker = nil
-
-		return err
 	}
 
-	return nil
+	s.client.close()
+
+	return err
 }
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).
@@ -108,6 +109,9 @@ func (s *openshiftImageSource) GetSignaturesWithFormat(ctx context.Context, inst
 		}
 		imageStreamImageName = s.imageStreamImageName
 	} else {
+		if err := instanceDigest.Validate(); err != nil { // Make sure instanceDigest.String() does not contain any unexpected characters
+			return nil, err
+		}
 		imageStreamImageName = instanceDigest.String()
 	}
 	image, err := s.client.getImage(ctx, imageStreamImageName)

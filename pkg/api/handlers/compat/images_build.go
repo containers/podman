@@ -154,13 +154,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if layers field not set assume its not from a valid podman-client
-	// could be a docker client, set `layers=true` since that is the default
-	// expected behaviour
-	if !utils.IsLibpodRequest(r) {
-		if _, found := r.URL.Query()["layers"]; !found {
-			query.Layers = true
-		}
+	// Default layers=true for both Docker compat and libpod clients when not
+	// explicitly set, matching podman CLI default (BUILDAH_LAYERS env).
+	if _, found := r.URL.Query()["layers"]; !found {
+		query.Layers = true
 	}
 
 	// convert tag formats
@@ -229,7 +226,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			if _, err = os.Stat(containerFiles[0]); err != nil {
 				containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
 				if _, err1 := os.Stat(containerFiles[0]); err1 != nil {
-					utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
+					utils.Error(w, http.StatusBadRequest, err1)
+					return
 				}
 			}
 		}
@@ -366,6 +364,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 		registry = ""
 		format = query.OutputFormat
+		if format == "" {
+			format = buildah.OCIv1ImageManifest
+		}
 	} else {
 		if _, found := r.URL.Query()["isolation"]; found {
 			if query.Isolation != "" && query.Isolation != "default" {
@@ -724,7 +725,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		success bool
 	)
 
-	runCtx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(r.Context())
 	go func() {
 		defer cancel()
 		imageID, _, err = runtime.Build(r.Context(), buildOptions, containerFiles...)
@@ -822,6 +823,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 					if err := enc.Encode(m); err != nil {
 						logrus.Warnf("failed to json encode error %v", err)
 					}
+					flush()
 					m.Aux = nil
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {

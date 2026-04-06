@@ -3,9 +3,10 @@
 // license that can be found in the LICENSE file.
 
 //go:build !amd64 || purego || !gc
-// +build !amd64 purego !gc
 
 package sha3
+
+import "math/bits"
 
 // rc stores the round constants for use in the ι step.
 var rc = [24]uint64{
@@ -60,13 +61,13 @@ func keccakF1600(a *[25]uint64) {
 
 		bc0 = a[0] ^ d0
 		t = a[6] ^ d1
-		bc1 = t<<44 | t>>(64-44)
+		bc1 = bits.RotateLeft64(t, 44)
 		t = a[12] ^ d2
-		bc2 = t<<43 | t>>(64-43)
+		bc2 = bits.RotateLeft64(t, 43)
 		t = a[18] ^ d3
-		bc3 = t<<21 | t>>(64-21)
+		bc3 = bits.RotateLeft64(t, 21)
 		t = a[24] ^ d4
-		bc4 = t<<14 | t>>(64-14)
+		bc4 = bits.RotateLeft64(t, 14)
 		a[0] = bc0 ^ (bc2 &^ bc1) ^ rc[i]
 		a[6] = bc1 ^ (bc3 &^ bc2)
 		a[12] = bc2 ^ (bc4 &^ bc3)
@@ -74,15 +75,15 @@ func keccakF1600(a *[25]uint64) {
 		a[24] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[10] ^ d0
-		bc2 = t<<3 | t>>(64-3)
+		bc2 = bits.RotateLeft64(t, 3)
 		t = a[16] ^ d1
-		bc3 = t<<45 | t>>(64-45)
+		bc3 = bits.RotateLeft64(t, 45)
 		t = a[22] ^ d2
-		bc4 = t<<61 | t>>(64-61)
+		bc4 = bits.RotateLeft64(t, 61)
 		t = a[3] ^ d3
-		bc0 = t<<28 | t>>(64-28)
+		bc0 = bits.RotateLeft64(t, 28)
 		t = a[9] ^ d4
-		bc1 = t<<20 | t>>(64-20)
+		bc1 = bits.RotateLeft64(t, 20)
 		a[10] = bc0 ^ (bc2 &^ bc1)
 		a[16] = bc1 ^ (bc3 &^ bc2)
 		a[22] = bc2 ^ (bc4 &^ bc3)
@@ -90,15 +91,15 @@ func keccakF1600(a *[25]uint64) {
 		a[9] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[20] ^ d0
-		bc4 = t<<18 | t>>(64-18)
+		bc4 = bits.RotateLeft64(t, 18)
 		t = a[1] ^ d1
-		bc0 = t<<1 | t>>(64-1)
+		bc0 = bits.RotateLeft64(t, 1)
 		t = a[7] ^ d2
-		bc1 = t<<6 | t>>(64-6)
+		bc1 = bits.RotateLeft64(t, 6)
 		t = a[13] ^ d3
-		bc2 = t<<25 | t>>(64-25)
+		bc2 = bits.RotateLeft64(t, 25)
 		t = a[19] ^ d4
-		bc3 = t<<8 | t>>(64-8)
+		bc3 = bits.RotateLeft64(t, 8)
 		a[20] = bc0 ^ (bc2 &^ bc1)
 		a[1] = bc1 ^ (bc3 &^ bc2)
 		a[7] = bc2 ^ (bc4 &^ bc3)
@@ -106,15 +107,15 @@ func keccakF1600(a *[25]uint64) {
 		a[19] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[5] ^ d0
-		bc1 = t<<36 | t>>(64-36)
+		bc1 = bits.RotateLeft64(t, 36)
 		t = a[11] ^ d1
-		bc2 = t<<10 | t>>(64-10)
+		bc2 = bits.RotateLeft64(t, 10)
 		t = a[17] ^ d2
-		bc3 = t<<15 | t>>(64-15)
+		bc3 = bits.RotateLeft64(t, 15)
 		t = a[23] ^ d3
-		bc4 = t<<56 | t>>(64-56)
+		bc4 = bits.RotateLeft64(t, 56)
 		t = a[4] ^ d4
-		bc0 = t<<27 | t>>(64-27)
+		bc0 = bits.RotateLeft64(t, 27)
 		a[5] = bc0 ^ (bc2 &^ bc1)
 		a[11] = bc1 ^ (bc3 &^ bc2)
 		a[17] = bc2 ^ (bc4 &^ bc3)
@@ -122,15 +123,15 @@ func keccakF1600(a *[25]uint64) {
 		a[4] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[15] ^ d0
-		bc3 = t<<41 | t>>(64-41)
+		bc3 = bits.RotateLeft64(t, 41)
 		t = a[21] ^ d1
-		bc4 = t<<2 | t>>(64-2)
+		bc4 = bits.RotateLeft64(t, 2)
 		t = a[2] ^ d2
-		bc0 = t<<62 | t>>(64-62)
+		bc0 = bits.RotateLeft64(t, 62)
 		t = a[8] ^ d3
-		bc1 = t<<55 | t>>(64-55)
+		bc1 = bits.RotateLeft64(t, 55)
 		t = a[14] ^ d4
-		bc2 = t<<39 | t>>(64-39)
+		bc2 = bits.RotateLeft64(t, 39)
 		a[15] = bc0 ^ (bc2 &^ bc1)
 		a[21] = bc1 ^ (bc3 &^ bc2)
 		a[2] = bc2 ^ (bc4 &^ bc3)
@@ -151,13 +152,13 @@ func keccakF1600(a *[25]uint64) {
 
 		bc0 = a[0] ^ d0
 		t = a[16] ^ d1
-		bc1 = t<<44 | t>>(64-44)
+		bc1 = bits.RotateLeft64(t, 44)
 		t = a[7] ^ d2
-		bc2 = t<<43 | t>>(64-43)
+		bc2 = bits.RotateLeft64(t, 43)
 		t = a[23] ^ d3
-		bc3 = t<<21 | t>>(64-21)
+		bc3 = bits.RotateLeft64(t, 21)
 		t = a[14] ^ d4
-		bc4 = t<<14 | t>>(64-14)
+		bc4 = bits.RotateLeft64(t, 14)
 		a[0] = bc0 ^ (bc2 &^ bc1) ^ rc[i+1]
 		a[16] = bc1 ^ (bc3 &^ bc2)
 		a[7] = bc2 ^ (bc4 &^ bc3)
@@ -165,15 +166,15 @@ func keccakF1600(a *[25]uint64) {
 		a[14] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[20] ^ d0
-		bc2 = t<<3 | t>>(64-3)
+		bc2 = bits.RotateLeft64(t, 3)
 		t = a[11] ^ d1
-		bc3 = t<<45 | t>>(64-45)
+		bc3 = bits.RotateLeft64(t, 45)
 		t = a[2] ^ d2
-		bc4 = t<<61 | t>>(64-61)
+		bc4 = bits.RotateLeft64(t, 61)
 		t = a[18] ^ d3
-		bc0 = t<<28 | t>>(64-28)
+		bc0 = bits.RotateLeft64(t, 28)
 		t = a[9] ^ d4
-		bc1 = t<<20 | t>>(64-20)
+		bc1 = bits.RotateLeft64(t, 20)
 		a[20] = bc0 ^ (bc2 &^ bc1)
 		a[11] = bc1 ^ (bc3 &^ bc2)
 		a[2] = bc2 ^ (bc4 &^ bc3)
@@ -181,15 +182,15 @@ func keccakF1600(a *[25]uint64) {
 		a[9] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[15] ^ d0
-		bc4 = t<<18 | t>>(64-18)
+		bc4 = bits.RotateLeft64(t, 18)
 		t = a[6] ^ d1
-		bc0 = t<<1 | t>>(64-1)
+		bc0 = bits.RotateLeft64(t, 1)
 		t = a[22] ^ d2
-		bc1 = t<<6 | t>>(64-6)
+		bc1 = bits.RotateLeft64(t, 6)
 		t = a[13] ^ d3
-		bc2 = t<<25 | t>>(64-25)
+		bc2 = bits.RotateLeft64(t, 25)
 		t = a[4] ^ d4
-		bc3 = t<<8 | t>>(64-8)
+		bc3 = bits.RotateLeft64(t, 8)
 		a[15] = bc0 ^ (bc2 &^ bc1)
 		a[6] = bc1 ^ (bc3 &^ bc2)
 		a[22] = bc2 ^ (bc4 &^ bc3)
@@ -197,15 +198,15 @@ func keccakF1600(a *[25]uint64) {
 		a[4] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[10] ^ d0
-		bc1 = t<<36 | t>>(64-36)
+		bc1 = bits.RotateLeft64(t, 36)
 		t = a[1] ^ d1
-		bc2 = t<<10 | t>>(64-10)
+		bc2 = bits.RotateLeft64(t, 10)
 		t = a[17] ^ d2
-		bc3 = t<<15 | t>>(64-15)
+		bc3 = bits.RotateLeft64(t, 15)
 		t = a[8] ^ d3
-		bc4 = t<<56 | t>>(64-56)
+		bc4 = bits.RotateLeft64(t, 56)
 		t = a[24] ^ d4
-		bc0 = t<<27 | t>>(64-27)
+		bc0 = bits.RotateLeft64(t, 27)
 		a[10] = bc0 ^ (bc2 &^ bc1)
 		a[1] = bc1 ^ (bc3 &^ bc2)
 		a[17] = bc2 ^ (bc4 &^ bc3)
@@ -213,15 +214,15 @@ func keccakF1600(a *[25]uint64) {
 		a[24] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[5] ^ d0
-		bc3 = t<<41 | t>>(64-41)
+		bc3 = bits.RotateLeft64(t, 41)
 		t = a[21] ^ d1
-		bc4 = t<<2 | t>>(64-2)
+		bc4 = bits.RotateLeft64(t, 2)
 		t = a[12] ^ d2
-		bc0 = t<<62 | t>>(64-62)
+		bc0 = bits.RotateLeft64(t, 62)
 		t = a[3] ^ d3
-		bc1 = t<<55 | t>>(64-55)
+		bc1 = bits.RotateLeft64(t, 55)
 		t = a[19] ^ d4
-		bc2 = t<<39 | t>>(64-39)
+		bc2 = bits.RotateLeft64(t, 39)
 		a[5] = bc0 ^ (bc2 &^ bc1)
 		a[21] = bc1 ^ (bc3 &^ bc2)
 		a[12] = bc2 ^ (bc4 &^ bc3)
@@ -242,13 +243,13 @@ func keccakF1600(a *[25]uint64) {
 
 		bc0 = a[0] ^ d0
 		t = a[11] ^ d1
-		bc1 = t<<44 | t>>(64-44)
+		bc1 = bits.RotateLeft64(t, 44)
 		t = a[22] ^ d2
-		bc2 = t<<43 | t>>(64-43)
+		bc2 = bits.RotateLeft64(t, 43)
 		t = a[8] ^ d3
-		bc3 = t<<21 | t>>(64-21)
+		bc3 = bits.RotateLeft64(t, 21)
 		t = a[19] ^ d4
-		bc4 = t<<14 | t>>(64-14)
+		bc4 = bits.RotateLeft64(t, 14)
 		a[0] = bc0 ^ (bc2 &^ bc1) ^ rc[i+2]
 		a[11] = bc1 ^ (bc3 &^ bc2)
 		a[22] = bc2 ^ (bc4 &^ bc3)
@@ -256,15 +257,15 @@ func keccakF1600(a *[25]uint64) {
 		a[19] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[15] ^ d0
-		bc2 = t<<3 | t>>(64-3)
+		bc2 = bits.RotateLeft64(t, 3)
 		t = a[1] ^ d1
-		bc3 = t<<45 | t>>(64-45)
+		bc3 = bits.RotateLeft64(t, 45)
 		t = a[12] ^ d2
-		bc4 = t<<61 | t>>(64-61)
+		bc4 = bits.RotateLeft64(t, 61)
 		t = a[23] ^ d3
-		bc0 = t<<28 | t>>(64-28)
+		bc0 = bits.RotateLeft64(t, 28)
 		t = a[9] ^ d4
-		bc1 = t<<20 | t>>(64-20)
+		bc1 = bits.RotateLeft64(t, 20)
 		a[15] = bc0 ^ (bc2 &^ bc1)
 		a[1] = bc1 ^ (bc3 &^ bc2)
 		a[12] = bc2 ^ (bc4 &^ bc3)
@@ -272,15 +273,15 @@ func keccakF1600(a *[25]uint64) {
 		a[9] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[5] ^ d0
-		bc4 = t<<18 | t>>(64-18)
+		bc4 = bits.RotateLeft64(t, 18)
 		t = a[16] ^ d1
-		bc0 = t<<1 | t>>(64-1)
+		bc0 = bits.RotateLeft64(t, 1)
 		t = a[2] ^ d2
-		bc1 = t<<6 | t>>(64-6)
+		bc1 = bits.RotateLeft64(t, 6)
 		t = a[13] ^ d3
-		bc2 = t<<25 | t>>(64-25)
+		bc2 = bits.RotateLeft64(t, 25)
 		t = a[24] ^ d4
-		bc3 = t<<8 | t>>(64-8)
+		bc3 = bits.RotateLeft64(t, 8)
 		a[5] = bc0 ^ (bc2 &^ bc1)
 		a[16] = bc1 ^ (bc3 &^ bc2)
 		a[2] = bc2 ^ (bc4 &^ bc3)
@@ -288,15 +289,15 @@ func keccakF1600(a *[25]uint64) {
 		a[24] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[20] ^ d0
-		bc1 = t<<36 | t>>(64-36)
+		bc1 = bits.RotateLeft64(t, 36)
 		t = a[6] ^ d1
-		bc2 = t<<10 | t>>(64-10)
+		bc2 = bits.RotateLeft64(t, 10)
 		t = a[17] ^ d2
-		bc3 = t<<15 | t>>(64-15)
+		bc3 = bits.RotateLeft64(t, 15)
 		t = a[3] ^ d3
-		bc4 = t<<56 | t>>(64-56)
+		bc4 = bits.RotateLeft64(t, 56)
 		t = a[14] ^ d4
-		bc0 = t<<27 | t>>(64-27)
+		bc0 = bits.RotateLeft64(t, 27)
 		a[20] = bc0 ^ (bc2 &^ bc1)
 		a[6] = bc1 ^ (bc3 &^ bc2)
 		a[17] = bc2 ^ (bc4 &^ bc3)
@@ -304,15 +305,15 @@ func keccakF1600(a *[25]uint64) {
 		a[14] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[10] ^ d0
-		bc3 = t<<41 | t>>(64-41)
+		bc3 = bits.RotateLeft64(t, 41)
 		t = a[21] ^ d1
-		bc4 = t<<2 | t>>(64-2)
+		bc4 = bits.RotateLeft64(t, 2)
 		t = a[7] ^ d2
-		bc0 = t<<62 | t>>(64-62)
+		bc0 = bits.RotateLeft64(t, 62)
 		t = a[18] ^ d3
-		bc1 = t<<55 | t>>(64-55)
+		bc1 = bits.RotateLeft64(t, 55)
 		t = a[4] ^ d4
-		bc2 = t<<39 | t>>(64-39)
+		bc2 = bits.RotateLeft64(t, 39)
 		a[10] = bc0 ^ (bc2 &^ bc1)
 		a[21] = bc1 ^ (bc3 &^ bc2)
 		a[7] = bc2 ^ (bc4 &^ bc3)
@@ -333,13 +334,13 @@ func keccakF1600(a *[25]uint64) {
 
 		bc0 = a[0] ^ d0
 		t = a[1] ^ d1
-		bc1 = t<<44 | t>>(64-44)
+		bc1 = bits.RotateLeft64(t, 44)
 		t = a[2] ^ d2
-		bc2 = t<<43 | t>>(64-43)
+		bc2 = bits.RotateLeft64(t, 43)
 		t = a[3] ^ d3
-		bc3 = t<<21 | t>>(64-21)
+		bc3 = bits.RotateLeft64(t, 21)
 		t = a[4] ^ d4
-		bc4 = t<<14 | t>>(64-14)
+		bc4 = bits.RotateLeft64(t, 14)
 		a[0] = bc0 ^ (bc2 &^ bc1) ^ rc[i+3]
 		a[1] = bc1 ^ (bc3 &^ bc2)
 		a[2] = bc2 ^ (bc4 &^ bc3)
@@ -347,15 +348,15 @@ func keccakF1600(a *[25]uint64) {
 		a[4] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[5] ^ d0
-		bc2 = t<<3 | t>>(64-3)
+		bc2 = bits.RotateLeft64(t, 3)
 		t = a[6] ^ d1
-		bc3 = t<<45 | t>>(64-45)
+		bc3 = bits.RotateLeft64(t, 45)
 		t = a[7] ^ d2
-		bc4 = t<<61 | t>>(64-61)
+		bc4 = bits.RotateLeft64(t, 61)
 		t = a[8] ^ d3
-		bc0 = t<<28 | t>>(64-28)
+		bc0 = bits.RotateLeft64(t, 28)
 		t = a[9] ^ d4
-		bc1 = t<<20 | t>>(64-20)
+		bc1 = bits.RotateLeft64(t, 20)
 		a[5] = bc0 ^ (bc2 &^ bc1)
 		a[6] = bc1 ^ (bc3 &^ bc2)
 		a[7] = bc2 ^ (bc4 &^ bc3)
@@ -363,15 +364,15 @@ func keccakF1600(a *[25]uint64) {
 		a[9] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[10] ^ d0
-		bc4 = t<<18 | t>>(64-18)
+		bc4 = bits.RotateLeft64(t, 18)
 		t = a[11] ^ d1
-		bc0 = t<<1 | t>>(64-1)
+		bc0 = bits.RotateLeft64(t, 1)
 		t = a[12] ^ d2
-		bc1 = t<<6 | t>>(64-6)
+		bc1 = bits.RotateLeft64(t, 6)
 		t = a[13] ^ d3
-		bc2 = t<<25 | t>>(64-25)
+		bc2 = bits.RotateLeft64(t, 25)
 		t = a[14] ^ d4
-		bc3 = t<<8 | t>>(64-8)
+		bc3 = bits.RotateLeft64(t, 8)
 		a[10] = bc0 ^ (bc2 &^ bc1)
 		a[11] = bc1 ^ (bc3 &^ bc2)
 		a[12] = bc2 ^ (bc4 &^ bc3)
@@ -379,15 +380,15 @@ func keccakF1600(a *[25]uint64) {
 		a[14] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[15] ^ d0
-		bc1 = t<<36 | t>>(64-36)
+		bc1 = bits.RotateLeft64(t, 36)
 		t = a[16] ^ d1
-		bc2 = t<<10 | t>>(64-10)
+		bc2 = bits.RotateLeft64(t, 10)
 		t = a[17] ^ d2
-		bc3 = t<<15 | t>>(64-15)
+		bc3 = bits.RotateLeft64(t, 15)
 		t = a[18] ^ d3
-		bc4 = t<<56 | t>>(64-56)
+		bc4 = bits.RotateLeft64(t, 56)
 		t = a[19] ^ d4
-		bc0 = t<<27 | t>>(64-27)
+		bc0 = bits.RotateLeft64(t, 27)
 		a[15] = bc0 ^ (bc2 &^ bc1)
 		a[16] = bc1 ^ (bc3 &^ bc2)
 		a[17] = bc2 ^ (bc4 &^ bc3)
@@ -395,15 +396,15 @@ func keccakF1600(a *[25]uint64) {
 		a[19] = bc4 ^ (bc1 &^ bc0)
 
 		t = a[20] ^ d0
-		bc3 = t<<41 | t>>(64-41)
+		bc3 = bits.RotateLeft64(t, 41)
 		t = a[21] ^ d1
-		bc4 = t<<2 | t>>(64-2)
+		bc4 = bits.RotateLeft64(t, 2)
 		t = a[22] ^ d2
-		bc0 = t<<62 | t>>(64-62)
+		bc0 = bits.RotateLeft64(t, 62)
 		t = a[23] ^ d3
-		bc1 = t<<55 | t>>(64-55)
+		bc1 = bits.RotateLeft64(t, 55)
 		t = a[24] ^ d4
-		bc2 = t<<39 | t>>(64-39)
+		bc2 = bits.RotateLeft64(t, 39)
 		a[20] = bc0 ^ (bc2 &^ bc1)
 		a[21] = bc1 ^ (bc3 &^ bc2)
 		a[22] = bc2 ^ (bc4 &^ bc3)
