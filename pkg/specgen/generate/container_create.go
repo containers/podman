@@ -165,7 +165,9 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		return nil, nil, nil, err
 	}
 
-	if imageData != nil {
+	if len(s.OCIRuntime) > 0 {
+		options = append(options, libpod.WithCtrOCIRuntime(s.OCIRuntime))
+	} else if imageData != nil {
 		ociRuntimeVariant := rtc.Engine.ImagePlatformToRuntime(imageData.Os, imageData.Architecture)
 		// Don't unnecessarily set and invoke additional libpod
 		// option if OCI runtime is still default.
