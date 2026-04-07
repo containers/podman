@@ -104,9 +104,6 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 		if !ok {
 			return fmt.Errorf("%q is an invalid artifact name", artifactName)
 		}
-		// Normalize the reference so artifacts stored without an explicit tag
-		// display ":latest" instead of an empty TAG column, matching container image behaviour.
-		named = reference.TagNameOnly(named)
 		if tagged, ok := named.(reference.Tagged); ok {
 			tag = tagged.Tag()
 		}
