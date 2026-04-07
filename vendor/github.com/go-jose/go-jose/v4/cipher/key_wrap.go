@@ -66,12 +66,20 @@ func KeyWrap(block cipher.Block, cek []byte) ([]byte, error) {
 }
 
 // KeyUnwrap implements NIST key unwrapping; it unwraps a content encryption key (cek) with the given block cipher.
+//
+// https://datatracker.ietf.org/doc/html/rfc7518#section-4.4
+// https://datatracker.ietf.org/doc/html/rfc7518#section-4.6
+// https://datatracker.ietf.org/doc/html/rfc7518#section-4.8
 func KeyUnwrap(block cipher.Block, ciphertext []byte) ([]byte, error) {
+	n := (len(ciphertext) / 8) - 1
+	if n <= 0 {
+		return nil, errors.New("go-jose/go-jose: JWE Encrypted Key too short")
+	}
+
 	if len(ciphertext)%8 != 0 {
 		return nil, errors.New("go-jose/go-jose: key wrap input must be 8 byte blocks")
 	}
 
-	n := (len(ciphertext) / 8) - 1
 	r := make([][]byte, n)
 
 	for i := range r {
