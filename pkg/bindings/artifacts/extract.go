@@ -73,7 +73,14 @@ func Extract(ctx context.Context, artifactName string, target string, options *E
 		// If destination isn't a file, extract to target/filename
 		fileTarget := target
 		if targetIsDirectory {
-			fileTarget = filepath.Join(target, header.Name)
+			filename := header.Name
+			// This matches the logic from generateArtifactBlobName().
+			for i := range len(filename) {
+				if os.IsPathSeparator(filename[i]) {
+					return fmt.Errorf("invalid filename: %q cannot contain %c", filename, filename[i])
+				}
+			}
+			fileTarget = filepath.Join(target, filename)
 		}
 
 		if header.Typeflag == tar.TypeReg {
