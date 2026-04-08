@@ -450,5 +450,24 @@ EOF
     wait
 }
 
+# bats test_tags=ci:parallel
+@test "podman pull - CONTAINER_DEFAULT_PLATFORM" {
+    # Get the host architecture so we can verify the env var is being used.
+    run_podman info --format '{{.Host.Arch}}'
+    host_arch="$output"
+
+    # CONTAINER_DEFAULT_PLATFORM set to the host arch — pull should succeed.
+    CONTAINER_DEFAULT_PLATFORM="linux/${host_arch}" \
+        run_podman pull -q --policy=always $IMAGE
+    CONTAINER_DEFAULT_PLATFORM="linux/${host_arch}" \
+        run_podman inspect --format '{{.Architecture}}' $IMAGE
+    is "$output" "$host_arch" "CONTAINER_DEFAULT_PLATFORM sets image arch"
+
+    # Invalid platform value should produce an error.
+    CONTAINER_DEFAULT_PLATFORM="not/a/valid/platform/string" \
+        run_podman 125 pull $IMAGE
+    assert "$output" =~ "parsing default platform" "invalid CONTAINER_DEFAULT_PLATFORM"
+}
+
 
 # vim: filetype=sh

@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v6/pkg/auth"
 	"github.com/containers/podman/v6/pkg/channel"
 	"github.com/containers/podman/v6/pkg/domain/entities"
+	"github.com/containers/podman/v6/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
@@ -88,6 +89,19 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	pullOptions.Architecture = query.Arch
 	pullOptions.OS = query.OS
 	pullOptions.Variant = query.Variant
+
+	// If no explicit platform fields were given, fall back to
+	// CONTAINER_DEFAULT_PLATFORM env var.
+	if query.Arch == "" && query.OS == "" && query.Variant == "" {
+		defOS, defArch, defVariant, pErr := util.DefaultPlatform()
+		if pErr != nil {
+			utils.Error(w, http.StatusBadRequest, pErr)
+			return
+		}
+		pullOptions.OS = defOS
+		pullOptions.Architecture = defArch
+		pullOptions.Variant = defVariant
+	}
 
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		pullOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
