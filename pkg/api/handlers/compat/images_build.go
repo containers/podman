@@ -1270,6 +1270,6 @@ func extractTarFile(anchorDir string, r io.ReadCloser) (string, error) {
 		return "", err
 	}
 
-	err = archive.Untar(r, buildDir, nil)
+	err = chrootarchive.Untar(r, buildDir, nil)
 	return buildDir, err
 }
