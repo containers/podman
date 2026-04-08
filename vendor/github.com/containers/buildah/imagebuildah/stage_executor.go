@@ -2318,6 +2318,9 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 		if image.TopLayer != "" {
 			imageTopLayer, err = s.executor.store.Layer(image.TopLayer)
 			if err != nil {
+				if errors.Is(err, storage.ErrLayerUnknown) {
+					continue
+				}
 				return "", fmt.Errorf("getting top layer info: %w", err)
 			}
 			// Figure out which layer from this image we should
