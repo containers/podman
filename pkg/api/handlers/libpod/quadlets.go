@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"go.podman.io/storage/pkg/archive"
-
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
@@ -23,6 +21,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/chrootarchive"
 )
 
 func ListQuadlets(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +93,7 @@ func extractQuadletFiles(tempDir string, r io.ReadCloser) ([]string, error) {
 		return nil, err
 	}
 
-	err = archive.Untar(r, quadletDir, nil)
+	err = chrootarchive.Untar(r, quadletDir, nil)
 	if err != nil {
 		return nil, err
 	}

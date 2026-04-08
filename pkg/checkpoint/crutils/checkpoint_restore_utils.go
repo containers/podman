@@ -14,6 +14,7 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
 )
 
 // This file mainly exists to make the checkpoint/restore functions
@@ -35,7 +36,7 @@ func CRImportCheckpointWithoutConfig(destination, input string) error {
 			metadata.SpecDumpFile,
 		},
 	}
-	if err = archive.Untar(archiveFile, destination, options); err != nil {
+	if err = chrootarchive.Untar(archiveFile, destination, options); err != nil {
 		return fmt.Errorf("unpacking of checkpoint archive %s failed: %w", input, err)
 	}
 
@@ -65,7 +66,7 @@ func CRImportCheckpointConfigOnly(destination, input string) error {
 			metadata.CheckpointVolumesDirectory,
 		},
 	}
-	if err = archive.Untar(archiveFile, destination, options); err != nil {
+	if err = chrootarchive.Untar(archiveFile, destination, options); err != nil {
 		return fmt.Errorf("unpacking of checkpoint archive %s failed: %w", input, err)
 	}
 
@@ -114,7 +115,7 @@ func CRApplyRootFsDiffTar(baseDirectory, containerRootDirectory string) error {
 	}
 	defer rootfsDiffFile.Close()
 
-	if err := archive.Untar(rootfsDiffFile, containerRootDirectory, nil); err != nil {
+	if err := chrootarchive.Untar(rootfsDiffFile, containerRootDirectory, nil); err != nil {
 		return fmt.Errorf("failed to apply root file-system diff file %s: %w", rootfsDiffPath, err)
 	}
 
@@ -157,11 +158,11 @@ func CRCreateRootFsDiffTar(changes *[]archive.Change, mountPoint, destination st
 	}
 
 	if len(rootfsIncludeFiles) > 0 {
-		rootfsTar, err := archive.TarWithOptions(mountPoint, &archive.TarOptions{
+		rootfsTar, err := chrootarchive.Tar(mountPoint, &archive.TarOptions{
 			Compression:      archive.Uncompressed,
 			IncludeSourceDir: true,
 			IncludeFiles:     rootfsIncludeFiles,
-		})
+		}, mountPoint)
 		if err != nil {
 			return includeFiles, fmt.Errorf("exporting root file-system diff to %q: %w", rootfsDiffPath, err)
 		}

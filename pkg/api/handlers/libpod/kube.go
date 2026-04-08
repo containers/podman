@@ -12,8 +12,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.podman.io/storage/pkg/archive"
-
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
@@ -23,6 +21,7 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/chrootarchive"
 )
 
 // ExtractPlayReader provide an io.Reader given a http.Request object
@@ -52,7 +51,7 @@ func extractPlayReader(anchorDir string, r *http.Request) (io.Reader, error) {
 		reader = r.Body
 	case "application/x-tar":
 		// un-tar the content
-		err := archive.Untar(r.Body, anchorDir, nil)
+		err := chrootarchive.Untar(r.Body, anchorDir, nil)
 		if err != nil {
 			return nil, err
 		}
