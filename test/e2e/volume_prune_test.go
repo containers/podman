@@ -42,12 +42,24 @@ var _ = Describe("Podman volume prune", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("named_vol"))
 	})
 
+	It("podman volume prune --all removes all unused volumes", func() {
+		podmanTest.PodmanExitCleanly("volume", "create", "prune_all_test")
+		podmanTest.PodmanExitCleanly("volume", "prune", "--all", "--force")
+
+		session := podmanTest.PodmanExitCleanly("volume", "ls")
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+	})
+
 	It("podman volume prune --filter all=true removes all unused volumes", func() {
 		podmanTest.PodmanExitCleanly("volume", "create", "prune_filter_all_test")
 		podmanTest.PodmanExitCleanly("volume", "prune", "--filter", "all=true", "--force")
 
 		session := podmanTest.PodmanExitCleanly("volume", "ls")
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
+	})
+
+	It("podman volume prune --filter all=true does not crash without --force", func() {
+		podmanTest.PodmanExitCleanly("volume", "prune", "--filter", "all=true")
 	})
 
 	It("podman prune volume --filter until", func() {
