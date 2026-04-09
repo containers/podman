@@ -43,7 +43,7 @@ import (
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/types"
-	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
 	"go.podman.io/storage/pkg/fileutils"
 	yamlv3 "gopkg.in/yaml.v3"
 	"sigs.k8s.io/yaml"
@@ -1503,7 +1503,7 @@ func (ic *ContainerEngine) importVolume(ctx context.Context, vol *libpod.Volume,
 	}
 
 	// dont care if volume is mounted or not we are gonna import everything to mountPoint
-	return archive.Untar(tarFile, mountPoint, nil)
+	return chrootarchive.Untar(tarFile, mountPoint, nil)
 }
 
 // readConfigMapFromFile returns a kubernetes configMap obtained from --configmap flag

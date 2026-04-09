@@ -55,6 +55,7 @@ import (
 	"go.podman.io/common/pkg/umask"
 	is "go.podman.io/image/v5/storage"
 	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/idtools"
 	"go.podman.io/storage/pkg/lockfile"
@@ -1210,11 +1211,10 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 			if mp == "" {
 				return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
 			}
-
-			input, err := archive.TarWithOptions(mp, &archive.TarOptions{
+			input, err := chrootarchive.Tar(mp, &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
-			})
+			}, mp)
 			if err != nil {
 				return fmt.Errorf("reading volume directory %q: %w", v.Dest, err)
 			}
@@ -1229,11 +1229,12 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		}
 	}
 
-	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
+	bundle := c.bundlePath()
+	input, err := chrootarchive.Tar(bundle, &archive.TarOptions{
 		Compression:      options.Compression,
 		IncludeSourceDir: true,
 		IncludeFiles:     includeFiles,
-	})
+	}, bundle)
 	if err != nil {
 		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
 	}
@@ -1314,10 +1315,10 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 		defer shmDirTarFile.Close()
 
-		input, err := archive.TarWithOptions(c.config.ShmDir, &archive.TarOptions{
+		input, err := chrootarchive.Tar(c.config.ShmDir, &archive.TarOptions{
 			Compression:      archive.Uncompressed,
 			IncludeSourceDir: true,
-		})
+		}, c.config.ShmDir)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -1490,7 +1491,7 @@ func (c *Container) importPreCheckpoint(input string) error {
 
 	defer archiveFile.Close()
 
-	err = archive.Untar(archiveFile, c.bundlePath(), nil)
+	err = chrootarchive.Untar(archiveFile, c.bundlePath(), nil)
 	if err != nil {
 		return fmt.Errorf("unpacking of pre-checkpoint archive %s failed: %w", input, err)
 	}
@@ -1753,7 +1754,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			}
 			defer shmDirTarFile.Close()
 
-			if err := archive.UntarUncompressed(shmDirTarFile, c.config.ShmDir, nil); err != nil {
+			if err := chrootarchive.UntarUncompressed(shmDirTarFile, c.config.ShmDir, nil); err != nil {
 				return nil, 0, err
 			}
 		}
@@ -1793,7 +1794,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			if mountPoint == "" {
 				return nil, 0, fmt.Errorf("unable to import volume %s as it is not mounted: %w", volume.Name(), err)
 			}
-			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
+			if err := chrootarchive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
 				return nil, 0, fmt.Errorf("failed to extract volume %s to %s: %w", volumeFilePath, mountPoint, err)
 			}
 		}
