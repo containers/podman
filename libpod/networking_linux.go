@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/netns"
 	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/podman/v6/pkg/rootless"
@@ -59,15 +60,19 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 		}
 	}()
 
-	// set up rootless port forwarder when rootless with ports and the network status is empty,
-	// if this is called from network reload the network status will not be empty and we should
-	// not set up port because they are still active
-	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
-		// set up port forwarder for rootless netns
-		// make sure to fix this in container.handleRestartPolicy() as well
-		// Important we have to call this after r.setUpNetwork() so that
-		// we can use the proper netStatus
-		err = r.setupRootlessPortMappingViaRLK(ctr, ctrNS, netStatus)
+	// Set up port forwarding for rootless bridge networks.
+	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 {
+		switch r.config.Network.RootlessPortForwarder {
+		case config.RootlessPortForwarderPasta:
+			err = r.setupRootlessPortMappingViaPesto(ctr)
+		case config.RootlessPortForwarderRootlessport, "":
+			if ctr.getNetworkStatus() == nil {
+				err = r.setupRootlessPortMappingViaRLK(ctr, ctrNS, netStatus)
+			}
+		default:
+			err = fmt.Errorf("invalid rootless_port_forwarder value %q, must be %q or %q",
+				r.config.Network.RootlessPortForwarder, config.RootlessPortForwarderRootlessport, config.RootlessPortForwarderPasta)
+		}
 	}
 	return netStatus, err
 }

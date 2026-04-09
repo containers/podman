@@ -4,11 +4,15 @@ package integration
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1049,6 +1053,198 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 	})
 
+	// configurePortForwarder sets rootless_port_forwarder via
+	// CONTAINERS_CONF_OVERRIDE for the duration of this test.
+	// For "pasta": requires rootless and pesto binary, skips otherwise.
+	// For "rootlessport": no-op (it's the default).
+	configurePortForwarder := func(forwarder string) {
+		GinkgoHelper()
+		if forwarder == "pasta" {
+			if !isRootless() {
+				Skip("pasta port forwarding requires rootless")
+			}
+			if _, err := exec.LookPath("pesto"); err != nil {
+				Skip("pesto binary not found (requires passt >= passt-0^20260507.g1afd4ed)")
+			}
+		}
+		conffile := filepath.Join(podmanTest.TempDir, forwarder+"-forwarder.conf")
+		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[network]\nrootless_port_forwarder=\"%s\"\n", forwarder)), 0o755)
+		Expect(err).ToNot(HaveOccurred())
+		GinkgoT().Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+	}
+
+	for _, forwarder := range []string{"rootlessport", "pasta"} {
+		for i, tc := range []struct {
+			name      string
+			ipv6      bool
+			hostIP    string
+			diffPorts bool
+		}{
+			{name: "IPv4"},
+			{name: "IPv4 explicit HostIP", hostIP: "127.0.0.1"},
+			{name: "IPv4 different ports", diffPorts: true},
+			{name: "IPv6", ipv6: true},
+			{name: "IPv6 explicit HostIP", ipv6: true, hostIP: "[::1]"},
+			{name: "IPv6 different ports", ipv6: true, diffPorts: true},
+		} {
+			It(fmt.Sprintf("podman run bridge source IP %s %s", forwarder, tc.name), func() {
+				if tc.ipv6 {
+					SkipIfNotRootless("netavark does not support IPv6 port forwarding")
+					if forwarder == "rootlessport" {
+						Skip("rootlessport does not support native IPv6 port forwarding")
+					}
+				}
+				configurePortForwarder(forwarder)
+
+				// Each forwarder+test combination needs a unique subnet
+				// to avoid collisions when running in parallel.
+				pastaOffset := 0
+				if forwarder == "pasta" {
+					pastaOffset = 10
+				}
+				var subnet, subnetMatch, connectAddr string
+				if tc.ipv6 {
+					subnet = fmt.Sprintf("fd00:%x::/64", 0x42+i+pastaOffset)
+					subnetMatch = fmt.Sprintf("fd00:%x:", 0x42+i+pastaOffset)
+					connectAddr = "[::1]"
+				} else {
+					subnet = fmt.Sprintf("172.%d.0.0/24", 30+i+pastaOffset)
+					subnetMatch = fmt.Sprintf(`172\.%d\.`, 30+i+pastaOffset)
+					connectAddr = "127.0.0.1"
+				}
+
+				createArgs := []string{"network", "create"}
+				if tc.ipv6 {
+					createArgs = append(createArgs, "--ipv6")
+				}
+				createArgs = append(createArgs, "--subnet", subnet)
+				netName := createNetworkName("srcip")
+				createArgs = append(createArgs, netName)
+				podmanTest.PodmanExitCleanly(createArgs...)
+				defer podmanTest.removeNetwork(netName)
+
+				hostPort := GetPort()
+				ctrPort := hostPort
+				if tc.diffPorts {
+					ctrPort = GetPort()
+				}
+				portFlag := fmt.Sprintf("%d:%d", hostPort, ctrPort)
+				if tc.hostIP != "" {
+					portFlag = fmt.Sprintf("%s:%d:%d", tc.hostIP, hostPort, ctrPort)
+				}
+				ctr := podmanTest.startNCContainer(
+					"srcip-ctr", ctrPort,
+					"--network", netName,
+					"-p", portFlag,
+				)
+
+				msg := RandomString(20)
+				sendMessageToAddr(fmt.Sprintf("%s:%d", connectAddr, hostPort), msg)
+				podmanTest.WaitForContainerLog(ctr, msg)
+
+				logs := podmanTest.PodmanExitCleanly("logs", ctr)
+				output := logs.OutputToString()
+				Expect(output).To(MatchRegexp(`connect to .* from`))
+
+				if forwarder == "rootlessport" {
+					Expect(output).To(MatchRegexp(`connect to .* from .*` + subnetMatch))
+				} else {
+					Expect(output).ToNot(MatchRegexp(`connect to .* from .*` + subnetMatch))
+				}
+
+				podmanTest.PodmanExitCleanly("rm", "-f", ctr)
+				podmanTest.PodmanExitCleanly("rm", "-f", netName)
+			})
+		}
+
+		It(fmt.Sprintf("podman run bridge network port cleanup on container stop with %s", forwarder), func() {
+			configurePortForwarder(forwarder)
+			netName := createNetworkName("cleanup")
+			podmanTest.PodmanExitCleanly("network", "create", netName)
+			defer podmanTest.removeNetwork(netName)
+
+			port := GetPort()
+			podmanTest.PodmanExitCleanly(
+				"run", "-d",
+				"--name", "cleanup-ctr",
+				"--network", netName,
+				"-p", fmt.Sprintf("127.0.0.1:%d:80", port),
+				NGINX_IMAGE,
+			)
+
+			testPortConnection(port)
+			podmanTest.PodmanExitCleanly("rm", "-f", "cleanup-ctr")
+
+			podmanTest.PodmanExitCleanly(
+				"run", "-d",
+				"--name", "cleanup-ctr2",
+				"--network", netName,
+				"-p", fmt.Sprintf("127.0.0.1:%d:80", port),
+				NGINX_IMAGE,
+			)
+			testPortConnection(port)
+
+			podmanTest.PodmanExitCleanly("rm", "-f", "cleanup-ctr2")
+		})
+
+		It(fmt.Sprintf("podman run bridge dual-stack network IPv4 and IPv6 port forwarding with %s", forwarder), func() {
+			SkipIfNotRootless("netavark does not support IPv6 port forwarding")
+			configurePortForwarder(forwarder)
+
+			netName := createNetworkName("dual-stack")
+			podmanTest.PodmanExitCleanly("network", "create", "--ipv6",
+				"--subnet", "fd00:42::/64", "--subnet", "172.42.0.0/24", netName)
+			defer podmanTest.removeNetwork(netName)
+
+			port6 := GetPort()
+			ctr6 := podmanTest.startNCContainer(
+				"c-ipv6", port6,
+				"--network", netName,
+				"-p", fmt.Sprintf("%d:%d", port6, port6),
+			)
+			msg6 := RandomString(20)
+			sendMessageToAddr(fmt.Sprintf("[::1]:%d", port6), msg6)
+			podmanTest.WaitForContainerLog(ctr6, msg6)
+
+			port4 := GetPort()
+			ctr4 := podmanTest.startNCContainer(
+				"c-ipv4", port4,
+				"--network", netName,
+				"-p", fmt.Sprintf("%d:%d", port4, port4),
+			)
+			msg4 := RandomString(20)
+			sendMessageToAddr(fmt.Sprintf("127.0.0.1:%d", port4), msg4)
+			podmanTest.WaitForContainerLog(ctr4, msg4)
+		})
+	}
+
+	It("podman run pasta network preserves source IP", func() {
+		SkipIfNotRootless("pasta network mode is only supported rootless")
+		port := GetPort()
+		ctrName := podmanTest.startNCContainer(
+			"srcip-pasta-ctr", port,
+			"--net=pasta",
+			"-p", fmt.Sprintf("%d:%d", port, port),
+		)
+
+		msg := RandomString(20)
+		sendMessageToAddr(fmt.Sprintf("127.0.0.1:%d", port), msg)
+		podmanTest.WaitForContainerLog(ctrName, msg)
+
+		logs := podmanTest.PodmanExitCleanly("logs", ctrName)
+		output := logs.OutputToString()
+		// With --net=pasta, pasta handles port forwarding directly without
+		// a bridge or netavark. The source IP is the host address (not a
+		// bridge gateway), confirming pasta's native source preservation.
+		Expect(output).To(MatchRegexp(`connect to .* from`))
+		Expect(output).ToNot(MatchRegexp(`connect to .* from .*127\.0\.0\.`))
+
+		podmanTest.PodmanExitCleanly("rm", "-f", "srcip-pasta-ctr")
+	})
+
 	It("Rootless podman run with --net=bridge works and connects to default network", func() {
 		// This is harmless when run as root, so we'll just let it run.
 		ctrName := "testctr"
@@ -1465,3 +1661,22 @@ options ndots:1
 		})
 	}
 })
+
+// sendMessageToAddr sends a message to the given tcp address (host:port).
+func sendMessageToAddr(addr string, message string) {
+	GinkgoHelper()
+	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
+	Expect(err).ToNot(HaveOccurred(), "should connect to %s", addr)
+
+	tcpConn := conn.(*net.TCPConn)
+	_, err = tcpConn.Write([]byte(message))
+	Expect(err).ToNot(HaveOccurred())
+
+	err = tcpConn.CloseWrite()
+	Expect(err).ToNot(HaveOccurred())
+
+	err = tcpConn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	Expect(err).ToNot(HaveOccurred())
+	_, _ = io.Copy(io.Discard, tcpConn)
+	tcpConn.Close()
+}

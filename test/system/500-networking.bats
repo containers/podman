@@ -300,9 +300,21 @@ function run_pod_etc_hosts_test(){
     run_podman 1 network rm $mynetname
 }
 
-# CANNOT BE PARALLELIZED due to nft commands
-@test "podman network reload" {
-    skip_if_remote "podman network reload does not have remote support"
+# _test_network_reload: run network reload test with the given port forwarder
+# $1: port forwarder name ("rootlessport" or "pasta")
+function _test_network_reload() {
+    local forwarder="$1"
+
+    # Set up pasta forwarder config if requested
+    unset CONTAINERS_CONF_OVERRIDE
+    if [[ "$forwarder" == "pasta" ]]; then
+        local conffile=$PODMAN_TMPDIR/pasta-forwarder.conf
+        cat >$conffile <<EOCONF
+[network]
+rootless_port_forwarder="pasta"
+EOCONF
+        export CONTAINERS_CONF_OVERRIDE=$conffile
+    fi
 
     random_1=$(random_string 30)
     HOST_PORT=$(random_free_port)
@@ -409,6 +421,23 @@ function run_pod_etc_hosts_test(){
     is "$output" "Error: default network $netname cannot be removed" "Remove default network"
 
     run_podman network rm -t 0 -f $netname2
+
+    unset CONTAINERS_CONF_OVERRIDE
+}
+
+# CANNOT BE PARALLELIZED due to nft commands
+# Uses rootlessport forwarder for rootless, no forwarder for rootful.
+@test "podman network reload" {
+    skip_if_remote "podman network reload does not have remote support"
+    _test_network_reload rootlessport
+}
+
+# bats test_tags=ci:parallel
+@test "podman network reload - pasta forwarder" {
+    skip_if_remote "podman network reload does not have remote support"
+    is_rootless || skip "pasta port forwarder requires rootless"
+    type -P pesto >/dev/null || skip "pesto not available"
+    _test_network_reload pasta
 }
 
 # bats test_tags=ci:parallel
@@ -470,9 +499,21 @@ function run_pod_etc_hosts_test(){
     run_podman network rm -t 0 -f $netname
 }
 
-# Test for https://github.com/containers/podman/issues/10052
-# bats test_tags=ci:parallel
-@test "podman network connect/disconnect with port forwarding" {
+# _test_network_connect_disconnect: Test for https://github.com/containers/podman/issues/10052
+# $1: port forwarder name ("rootlessport" or "pasta")
+function _test_network_connect_disconnect() {
+    local forwarder="$1"
+
+    unset CONTAINERS_CONF_OVERRIDE
+    if [[ "$forwarder" == "pasta" ]]; then
+        local conffile=$PODMAN_TMPDIR/pasta-forwarder.conf
+        cat >$conffile <<EOCONF
+[network]
+rootless_port_forwarder="pasta"
+EOCONF
+        export CONTAINERS_CONF_OVERRIDE=$conffile
+    fi
+
     random_1=$(random_string 30)
     HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
@@ -592,10 +633,38 @@ function run_pod_etc_hosts_test(){
     # clean up
     run_podman rm -t 0 -f $cid $background_cid
     run_podman network rm -t 0 -f $netname $netname2
+
+    unset CONTAINERS_CONF_OVERRIDE
 }
 
 # bats test_tags=ci:parallel
-@test "podman network after restart" {
+# Uses rootlessport forwarder for rootless, no forwarder for rootful.
+@test "podman network connect/disconnect with port forwarding" {
+    _test_network_connect_disconnect rootlessport
+}
+
+# bats test_tags=ci:parallel
+@test "podman network connect/disconnect with port forwarding - pasta forwarder" {
+    is_rootless || skip "pasta port forwarder requires rootless"
+    type -P pesto >/dev/null || skip "pesto not available"
+    _test_network_connect_disconnect pasta
+}
+
+# _test_network_after_restart: run network restart test with the given port forwarder
+# $1: port forwarder name ("rootlessport" or "pasta")
+function _test_network_after_restart() {
+    local forwarder="$1"
+
+    unset CONTAINERS_CONF_OVERRIDE
+    if [[ "$forwarder" == "pasta" ]]; then
+        local conffile=$PODMAN_TMPDIR/pasta-forwarder.conf
+        cat >$conffile <<EOCONF
+[network]
+rootless_port_forwarder="pasta"
+EOCONF
+        export CONTAINERS_CONF_OVERRIDE=$conffile
+    fi
+
     random_1=$(random_string 30)
 
     HOST_PORT=$(random_free_port)
@@ -609,76 +678,88 @@ function run_pod_etc_hosts_test(){
     run_podman network create $netname
     is "$output" "$netname" "output of 'network create'"
 
-    local -a networks=("$netname")
-    for network in "${networks[@]}"; do
-        # Start container with the restart always policy
-        local cname=c-$(safename)
-        run_podman run -d --name $cname -p "$HOST_PORT:80" \
-                --restart always \
-                --network $network \
-                -v $INDEX1:/var/www/index.txt:Z \
-                -w /var/www \
-                $IMAGE /bin/busybox-extras httpd -f -p 80
-        cid=$output
+    # Start container with the restart always policy
+    local cname=c-$(safename)
+    run_podman run -d --name $cname -p "$HOST_PORT:80" \
+            --restart always \
+            --network $netname \
+            -v $INDEX1:/var/www/index.txt:Z \
+            -w /var/www \
+            $IMAGE /bin/busybox-extras httpd -f -p 80
+    cid=$output
 
-        # Tests #10310: podman will restart network on container restart
-        run_podman container inspect --format "{{.State.Pid}}" $cid
-        pid=$output
+    # Tests #10310: podman will restart network on container restart
+    run_podman container inspect --format "{{.State.Pid}}" $cid
+    pid=$output
 
-        # Kill the process; podman restart policy will bring up a new container.
-        # -9 is crucial: busybox httpd ignores all other signals.
-        kill -9 $pid
-        # Wait for process to exit
-        retries=30
-        while kill -0 $pid; do
-            sleep 0.5
-            retries=$((retries - 1))
-            assert $retries -gt 0 "Process $pid (container $cid) refused to die"
-        done
-
-        # Wait for container to restart
-        retries=20
-        while :;do
-            run_podman container inspect --format "{{.State.Pid}}" $cid
-            # pid is 0 as long as the container is not running
-            if [[ $output -ne 0 ]]; then
-                assert "$output" != "$pid" \
-                       "This should never happen! Restarted container has same PID as killed one!"
-                break
-            fi
-            sleep 0.5
-            retries=$((retries - 1))
-            assert $retries -gt 0 "Timed out waiting for container to restart"
-        done
-
-        # Verify http contents again: curl from localhost
-        # Use retry since it can take a moment until the new container is ready
-        local curlcmd="curl --retry 2 --retry-connrefused -s $SERVER/index.txt"
-        echo "$_LOG_PROMPT $curlcmd"
-        run $curlcmd
-        echo "$output"
-        assert "$status" == 0 "curl exit status"
-        assert "$output" = "$random_1" "curl $SERVER/index.txt after auto restart"
-
-        run_podman 0+w restart -t1 $cid
-        if ! is_remote; then
-            require_warning "StopSignal SIGTERM failed to stop container .* in 1 seconds, resorting to SIGKILL" \
-                            "podman restart issues warning"
-        fi
-
-        # Verify http contents again: curl from localhost
-        # Use retry since it can take a moment until the new container is ready
-        echo "$_LOG_PROMPT $curlcmd"
-        run $curlcmd
-        echo "$output"
-        assert "$status" == 0 "curl exit status"
-        assert "$output" = "$random_1" "curl $SERVER/index.txt after podman restart"
-
-        run_podman rm -t 0 -f $cid
+    # Kill the process; podman restart policy will bring up a new container.
+    # -9 is crucial: busybox httpd ignores all other signals.
+    kill -9 $pid
+    # Wait for process to exit
+    retries=30
+    while kill -0 $pid; do
+        sleep 0.5
+        retries=$((retries - 1))
+        assert $retries -gt 0 "Process $pid (container $cid) refused to die"
     done
+
+    # Wait for container to restart
+    retries=20
+    while :;do
+        run_podman container inspect --format "{{.State.Pid}}" $cid
+        # pid is 0 as long as the container is not running
+        if [[ $output -ne 0 ]]; then
+            assert "$output" != "$pid" \
+                   "This should never happen! Restarted container has same PID as killed one!"
+            break
+        fi
+        sleep 0.5
+        retries=$((retries - 1))
+        assert $retries -gt 0 "Timed out waiting for container to restart"
+    done
+
+    # Verify http contents again: curl from localhost
+    # Use retry since it can take a moment until the new container is ready
+    local curlcmd="curl --retry 2 --retry-connrefused -s $SERVER/index.txt"
+    echo "$_LOG_PROMPT $curlcmd"
+    run $curlcmd
+    echo "$output"
+    assert "$status" == 0 "curl exit status"
+    assert "$output" = "$random_1" "curl $SERVER/index.txt after auto restart"
+
+    run_podman 0+w restart -t1 $cid
+    if ! is_remote; then
+        require_warning "StopSignal SIGTERM failed to stop container .* in 1 seconds, resorting to SIGKILL" \
+                        "podman restart issues warning"
+    fi
+
+    # Verify http contents again: curl from localhost
+    # Use retry since it can take a moment until the new container is ready
+    echo "$_LOG_PROMPT $curlcmd"
+    run $curlcmd
+    echo "$output"
+    assert "$status" == 0 "curl exit status"
+    assert "$output" = "$random_1" "curl $SERVER/index.txt after podman restart"
+
+    run_podman rm -t 0 -f $cid
 
     # Clean up network
     run_podman network rm -t 0 -f $netname
+
+    unset CONTAINERS_CONF_OVERRIDE
+}
+
+# bats test_tags=ci:parallel
+# Uses rootlessport forwarder for rootless, no forwarder for rootful.
+@test "podman network after restart" {
+    _test_network_after_restart rootlessport
+}
+
+# bats test_tags=ci:parallel
+@test "podman network after restart - pasta forwarder" {
+    is_rootless || skip "pasta port forwarder requires rootless"
+    type -P pesto >/dev/null || skip "pesto not available"
+    _test_network_after_restart pasta
 }
 
 # FIXME: random_rfc1918_subnet is not parallel-safe
