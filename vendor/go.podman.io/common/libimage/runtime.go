@@ -48,21 +48,6 @@ type RuntimeOptions struct {
 	SystemContext *types.SystemContext
 }
 
-// setRegistriesConfPath sets the registries.conf path for the specified context.
-func setRegistriesConfPath(systemContext *types.SystemContext) {
-	if systemContext.SystemRegistriesConfPath != "" {
-		return
-	}
-	if envOverride, ok := os.LookupEnv("CONTAINERS_REGISTRIES_CONF"); ok {
-		systemContext.SystemRegistriesConfPath = envOverride
-		return
-	}
-	if envOverride, ok := os.LookupEnv("REGISTRIES_CONFIG_PATH"); ok {
-		systemContext.SystemRegistriesConfPath = envOverride
-		return
-	}
-}
-
 // Runtime is responsible for image management and storing them in a containers
 // storage.
 type Runtime struct {
@@ -118,8 +103,6 @@ func RuntimeFromStore(store storage.Store, options *RuntimeOptions) (*Runtime, e
 		}
 		systemContext.BigFilesTemporaryDir = tmpdir
 	}
-
-	setRegistriesConfPath(&systemContext)
 
 	return &Runtime{
 		store:         store,

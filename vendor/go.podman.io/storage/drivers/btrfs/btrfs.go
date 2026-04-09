@@ -483,15 +483,20 @@ func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idt
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
-	return d.create(id, parent, opts, true)
+	return d.create(id, parent, opts, false)
 }
 
 // Create the filesystem with given id.
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
-	return d.create(id, parent, opts, false)
+	return d.create(id, parent, opts, true)
 }
 
-func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, applyDriverDefaultQuota bool) error {
+func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, readOnly bool) error {
+	quota, err := d.parseStorageOpt(opts, readOnly)
+	if err != nil {
+		return err
+	}
+
 	quotas := d.quotasDir()
 	subvolumes := d.subvolumesDir()
 	if err := os.MkdirAll(subvolumes, 0o700); err != nil {
@@ -518,34 +523,14 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, applyDr
 		}
 	}
 
-	var storageOpt map[string]string
-	if opts != nil {
-		storageOpt = opts.StorageOpt
-	}
-
-	var quotaSize uint64
-	var needQuota bool
-	if _, ok := storageOpt["size"]; ok {
-		driver := &Driver{}
-		if err := d.parseStorageOpt(storageOpt, driver); err != nil {
-			return err
-		}
-		quotaSize = driver.options.size
-		needQuota = true
-	}
-	if !needQuota && applyDriverDefaultQuota && d.options.size > 0 {
-		quotaSize = d.options.size
-		needQuota = true
-	}
-	if needQuota {
-		layerDriver := &Driver{options: btrfsOptions{size: quotaSize}}
-		if err := d.setStorageSize(path.Join(subvolumes, id), layerDriver); err != nil {
+	if quota != nil {
+		if err := d.setStorageSize(path.Join(subvolumes, id), *quota); err != nil {
 			return err
 		}
 		if err := os.MkdirAll(quotas, 0o700); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(quotaSize)), 0o644); err != nil {
+		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(quota.size)), 0o644); err != nil {
 			return err
 		}
 	}
@@ -558,8 +543,27 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, applyDr
 	return label.Relabel(path.Join(subvolumes, id), mountLabel, false)
 }
 
-// Parse btrfs storage options
-func (d *Driver) parseStorageOpt(storageOpt map[string]string, driver *Driver) error {
+// layerQuota contains per-layer quota settings.
+type layerQuota struct {
+	size uint64
+}
+
+// parseStorageOpt parses CreateOpts.StorageOpt.
+// Returns a *layerQuota if a quota should be applied, nil otherwise.
+func (d *Driver) parseStorageOpt(opts *graphdriver.CreateOpts, readOnly bool) (*layerQuota, error) {
+	var storageOpt map[string]string = nil // Iterating over a nil map is safe
+	if opts != nil {
+		storageOpt = opts.StorageOpt
+	}
+
+	res := layerQuota{}
+	needQuota := false
+
+	if !readOnly && d.options.size > 0 {
+		res.size = d.options.size
+		needQuota = true
+	}
+
 	// Read size to change the subvolume disk quota per container
 	for key, val := range storageOpt {
 		key := strings.ToLower(key)
@@ -567,23 +571,27 @@ func (d *Driver) parseStorageOpt(storageOpt map[string]string, driver *Driver) e
 		case "size":
 			size, err := units.RAMInBytes(val)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			driver.options.size = uint64(size)
+			res.size = uint64(size)
+			needQuota = true
 		default:
-			return fmt.Errorf("unknown option %s (%q)", key, storageOpt)
+			return nil, fmt.Errorf("unknown option %s (%q)", key, storageOpt)
 		}
 	}
 
-	return nil
+	if needQuota {
+		return &res, nil
+	}
+	return nil, nil
 }
 
 // Set btrfs storage size
-func (d *Driver) setStorageSize(dir string, driver *Driver) error {
-	if driver.options.size <= 0 {
-		return fmt.Errorf("btrfs: invalid storage size: %s", units.HumanSize(float64(driver.options.size)))
+func (d *Driver) setStorageSize(dir string, quota layerQuota) error {
+	if quota.size <= 0 {
+		return fmt.Errorf("btrfs: invalid storage size: %s", units.HumanSize(float64(quota.size)))
 	}
-	if d.options.minSpace > 0 && driver.options.size < d.options.minSpace {
+	if d.options.minSpace > 0 && quota.size < d.options.minSpace {
 		return fmt.Errorf("btrfs: storage size cannot be less than %s", units.HumanSize(float64(d.options.minSpace)))
 	}
 
@@ -591,7 +599,7 @@ func (d *Driver) setStorageSize(dir string, driver *Driver) error {
 		return err
 	}
 
-	if err := subvolLimitQgroup(dir, driver.options.size); err != nil {
+	if err := subvolLimitQgroup(dir, quota.size); err != nil {
 		return err
 	}
 

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/moby/sys/devices"
 	"github.com/opencontainers/cgroups/devices/config"
-	"github.com/opencontainers/runc/libcontainer/devices"
 	"go.podman.io/storage/pkg/unshare"
 )
 
