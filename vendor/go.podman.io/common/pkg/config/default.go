@@ -249,6 +249,7 @@ func defaultConfig() (*Config, error) {
 			DefaultRootlessNetworkCmd: "pasta",
 			DNSBindPort:               0,
 			NetavarkPluginDirs:        configfile.NewSlice(DefaultNetavarkPluginDirs),
+			RootlessPortForwarder:     RootlessPortForwarderRootlessport,
 		},
 		Engine:   *defaultEngineConfig,
 		Secrets:  defaultSecretConfig(),
