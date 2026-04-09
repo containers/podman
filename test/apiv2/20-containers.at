@@ -915,3 +915,9 @@ t POST containers/create?platform=linux/aarch64 \
   Image=$IMAGE \
   404
 podman rmi -f $IMAGE
+
+# Regression test for #28429: OCIRuntime in SpecGenerator should be respected
+t POST libpod/containers/create name=ociruntime_test image=$IMAGE oci_runtime=crun 201
+t GET libpod/containers/ociruntime_test/json 200 \
+  .OCIRuntime=crun
+podman rm -f ociruntime_test
