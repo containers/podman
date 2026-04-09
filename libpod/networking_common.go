@@ -59,7 +59,7 @@ func (c *Container) getNetworkOptions(networkOpts []types.NamedPerNetworkOptions
 		DNSServers:        nameservers,
 		ContainerHostname: c.NetworkHostname(),
 	}
-	opts.PortMappings = c.convertPortMappings()
+	opts.PortMappings = portMappingsForNetavark(c.convertPortMappings())
 
 	// If the container requested special network options use this instead of the config.
 	// This is the case for container restore or network reload.
@@ -69,6 +69,25 @@ func (c *Container) getNetworkOptions(networkOpts []types.NamedPerNetworkOptions
 		opts.Networks = networkOpts
 	}
 	return opts
+}
+
+// portMappingsForNetavark strips HostIP from port mappings in rootless mode.
+//
+// Pesto handles host-side address binding; netavark creates DNAT rules inside
+// the rootless netns. If HostIP is kept, netavark adds an "ip daddr <HostIP>"
+// constraint to the DNAT rule, but pasta's splice delivers traffic with a
+// different destination address (the host virtual IP), so the rule never
+// matches and the connection resets. Rootful is unaffected (no-op).
+func portMappingsForNetavark(ports []types.PortMapping) []types.PortMapping {
+	if !rootless.IsRootless() || len(ports) == 0 {
+		return ports
+	}
+	stripped := make([]types.PortMapping, len(ports))
+	copy(stripped, ports)
+	for i := range stripped {
+		stripped[i].HostIP = ""
+	}
+	return stripped
 }
 
 // setUpNetwork will set up the networks, on error it will also tear down the
@@ -110,11 +129,25 @@ func (r *Runtime) teardownNetwork(ctr *Container) error {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsPasta() && len(networks) > 0 {
-		netOpts := ctr.getNetworkOptions(networks)
-		return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
+	if len(networks) == 0 {
+		return nil
 	}
-	return nil
+
+	// --net=pasta: per-container pasta cleans up when it exits, nothing to tear down.
+	if ctr.config.NetMode.IsPasta() {
+		return nil
+	}
+
+	// Bridge mode: update pesto before netavark so pasta stops forwarding
+	// ports for this container before the bridge/nftables rules are removed.
+	if rootless.IsRootless() && ctr.config.NetMode.IsBridge() && len(ctr.config.PortMappings) > 0 {
+		if err := r.teardownRootlessPortMappingViaPesto(ctr); err != nil {
+			logrus.Warnf("pesto port cleanup failed for container %s: %v", ctr.ID(), err)
+		}
+	}
+
+	netOpts := ctr.getNetworkOptions(networks)
+	return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
 }
 
 // isBridgeNetMode checks if the given network mode is bridge.
@@ -415,7 +448,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 		ContainerID:   c.config.ID,
 		ContainerName: getNetworkPodName(c),
 	}
-	opts.PortMappings = c.convertPortMappings()
+	opts.PortMappings = portMappingsForNetavark(c.convertPortMappings())
 
 	opts.Networks = []types.NamedPerNetworkOptions{network}
 
@@ -433,11 +466,10 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 		return err
 	}
 
-	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
-	// Reloading without connected networks does not make sense, so we can skip this step.
-	if rootless.IsRootless() && len(networkStatus) > 0 {
-		if err := c.reloadRootlessRLKPortMapping(); err != nil {
-			return err
+	// Update pesto's forwarding table after disconnect so pasta reflects the new network state.
+	if rootless.IsRootless() && len(networkStatus) > 0 && len(c.config.PortMappings) > 0 {
+		if err := c.runtime.setupRootlessPortMappingViaPesto(c); err != nil {
+			logrus.Warnf("pesto port reload failed after network disconnect for container %s: %v", c.ID(), err)
 		}
 	}
 
@@ -558,7 +590,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		ContainerID:   c.config.ID,
 		ContainerName: getNetworkPodName(c),
 	}
-	opts.PortMappings = c.convertPortMappings()
+	opts.PortMappings = portMappingsForNetavark(c.convertPortMappings())
 	opts.Networks = []types.NamedPerNetworkOptions{namedOpts}
 
 	results, err := c.runtime.setUpNetwork(c.state.NetNS, opts)
@@ -589,11 +621,10 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		return err
 	}
 
-	// The first network needs a port reload to set the correct child ip for the rootlessport process.
-	// Adding a second network does not require a port reload because the child ip is still valid.
-	if rootless.IsRootless() && len(networks) == 0 {
-		if err := c.reloadRootlessRLKPortMapping(); err != nil {
-			return err
+	// Update pesto's forwarding table after connect so pasta reflects the new network state.
+	if rootless.IsRootless() && len(c.config.PortMappings) > 0 {
+		if err := c.runtime.setupRootlessPortMappingViaPesto(c); err != nil {
+			logrus.Warnf("pesto port reload failed after network connect for container %s: %v", c.ID(), err)
 		}
 	}
 
