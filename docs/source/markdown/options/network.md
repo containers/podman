@@ -46,11 +46,11 @@ Valid _mode_ values are:
     container to host using the gateway address. The latter can be overridden
     by passing **--map-gw** in the pasta-specific options (despite not being an
     actual pasta(1) option). \
-    For better integration with DNS handling, **--dns-forward 169.254.1.1** is passed,
+    For better integration with DNS handling, **--dns-forward 169.254.1.1** is passed by default,
     and this address is added to resolv.conf(5) as first resolver. It is possible to pass
-    **--dns-forward** explicitly in case a different IP address should be used.
+    **--dns-forward** explicitly in case a different IP address should be used. \
     To make the `host.containers.internal` /etc/hosts entry work and allow connections
-    to the host, **--map-guest-addr 169.254.1.2** is passed. Again, it can be set
+    to the host, **--map-guest-addr 169.254.1.2** is passed by default. Again, it can be set
     explicitly to choose a different IP address. \
     Also, **-t none** and **-u none** are passed if, respectively, no TCP or
     UDP port forwarding from host to container is configured (via Podman's
