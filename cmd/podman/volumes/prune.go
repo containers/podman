@@ -3,6 +3,7 @@ package volumes
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -64,6 +65,11 @@ func prune(cmd *cobra.Command, _ []string) error {
 
 	// --all adds filter all=true (Docker-compatible; behavior is filter-only)
 	allFlag, _ := cmd.Flags().GetBool("all")
+	filterAllFlag := strings.EqualFold(pruneOptions.Filters.Get("all"), "true")
+	if allFlag && filterAllFlag {
+		return errors.New("--all and --filter all cannot be used together")
+	}
+	allFlag = allFlag || filterAllFlag
 	if allFlag {
 		pruneOptions.Filters.Set("all", "true")
 	}
@@ -79,6 +85,7 @@ func prune(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return err
 		}
+		delete(listOptions.Filter, "all") // list does not support --filter all
 		filteredVolumes, err := registry.ContainerEngine().VolumeList(context.Background(), listOptions)
 		if err != nil {
 			return err
