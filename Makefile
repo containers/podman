@@ -765,7 +765,7 @@ test-jira-links-included:
 
 .PHONY: tests-expect-exit
 tests-expect-exit:
-	@if grep -E --line-number 'Expect.*ExitCode' test/e2e/*.go | grep -E -v ', ".*"\)'; then \
+	@if grep -E --line-number 'Expect.*\<ExitCode' test/e2e/*.go | grep -E -v ', ".*"\)'; then \
 		echo "^^^ Unhelpful use of Expect(ExitCode())"; \
 		echo "   Please use '.Should(Exit(...))' pattern instead."; \
 		echo "   If that's not possible, please add an annotation (description) to your assertion:"; \

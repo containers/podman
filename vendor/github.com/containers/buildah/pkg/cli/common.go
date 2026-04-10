@@ -26,8 +26,10 @@ import (
 
 // LayerResults represents the results of the layer flags
 type LayerResults struct {
-	ForceRm bool
-	Layers  bool
+	ForceRm     bool
+	Layers      bool
+	SaveStages  bool
+	StageLabels bool
 }
 
 // UserNSResults represents the results for the UserNS flags
@@ -116,6 +118,7 @@ type BudResults struct {
 	Tag                 []string
 	BuildOutputs        []string
 	Target              string
+	TLSDetails          string
 	TLSVerify           bool
 	Jobs                int
 	LogRusage           bool
@@ -218,6 +221,8 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.BoolVar(&flags.ForceRm, "force-rm", false, "always remove intermediate containers after a build, even if the build is unsuccessful.")
 	fs.BoolVar(&flags.Layers, "layers", UseLayers(), "use intermediate layers during build. Use BUILDAH_LAYERS environment variable to override.")
+	fs.BoolVar(&flags.SaveStages, "save-stages", false, "save intermediate stage images.")
+	fs.BoolVar(&flags.StageLabels, "stage-labels", false, "add metadata labels to intermediate stage images (requires --save-stages).")
 	return fs
 }
 
@@ -330,6 +335,7 @@ newer:   only pull base and SBOM scanner images when newer images exist on the r
 	fs.StringArrayVarP(&flags.BuildOutputs, "output", "o", nil, "output destination (format: type=local,dest=path)")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
 	fs.Int64Var(&flags.Timestamp, "timestamp", 0, "set new timestamps in image info and layer to `seconds` after the epoch, defaults to current times")
+	fs.StringVar(&flags.TLSDetails, "tls-details", "", "path to a containers-tls-details.yaml file")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	fs.String("variant", "", "override the `variant` of the specified image")
 	fs.StringSliceVar(&flags.UnsetEnvs, "unsetenv", nil, "unset environment variable from final image")
@@ -392,6 +398,7 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["tag"] = commonComp.AutocompleteNone
 	flagCompletion["target"] = commonComp.AutocompleteNone
 	flagCompletion["timestamp"] = commonComp.AutocompleteNone
+	flagCompletion["tls-details"] = commonComp.AutocompleteDefault
 	flagCompletion["unsetenv"] = commonComp.AutocompleteNone
 	flagCompletion["unsetlabel"] = commonComp.AutocompleteNone
 	flagCompletion["unsetannotation"] = commonComp.AutocompleteNone

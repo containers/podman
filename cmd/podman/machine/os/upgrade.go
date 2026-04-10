@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v6/version"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/image/v5/pkg/cli/basetls/tlsdetails"
 )
 
 var upgradeCmd = &cobra.Command{
@@ -74,7 +75,16 @@ func upgrade(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	upgradeOpts := os.UpgradeOptions{ClientVersion: version.Version, DryRun: opts.dryRun}
+	baseTLSConfig, err := tlsdetails.BaseTLSFromOptionalFile(registry.PodmanConfig().TLSDetailsFile)
+	if err != nil {
+		return err
+	}
+
+	upgradeOpts := os.UpgradeOptions{
+		ClientVersion: version.Version,
+		DryRun:        opts.dryRun,
+		BaseTLSConfig: baseTLSConfig.TLSConfig(),
+	}
 	if opts.hostVersion != "" {
 		callerVersion, err := semver.ParseTolerant(opts.hostVersion)
 		if err != nil {

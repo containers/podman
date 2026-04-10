@@ -119,7 +119,27 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 
 		if strings.HasPrefix(dfile, "http://") || strings.HasPrefix(dfile, "https://") {
 			logger.Debugf("reading remote Dockerfile %q", dfile)
-			resp, err := http.Get(dfile)
+			// nil means http.DefaultTransport.
+			// This variable must have type http.RoundTripper, not *http.Transport, to avoid https://go.dev/doc/faq#nil_error .
+			var transport http.RoundTripper
+			if options.SystemContext != nil && options.SystemContext.BaseTLSConfig != nil {
+				defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+				if !ok {
+					return "", nil, errors.New("internal error: http.DefaultTransport is not a *http.Transport")
+				}
+				t := defaultTransport.Clone()
+				t.TLSClientConfig = options.SystemContext.BaseTLSConfig
+				defer t.CloseIdleConnections()
+				transport = t
+			}
+			client := &http.Client{
+				Transport: transport,
+			}
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, dfile, nil)
+			if err != nil {
+				return "", nil, fmt.Errorf("preparing to download %q: %w", dfile, err)
+			}
+			resp, err := client.Do(req)
 			if err != nil {
 				return "", nil, err
 			}
@@ -358,7 +378,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	id, ref = instances[0].ID, instances[0].Ref
 
 	if manifestList != "" {
-		rt, err := libimage.RuntimeFromStore(store, nil)
+		rt, err := libimage.RuntimeFromStore(store, &libimage.RuntimeOptions{SystemContext: options.SystemContext})
 		if err != nil {
 			return "", nil, err
 		}
@@ -763,12 +783,12 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 						}
 						base := child.Next.Value
 						if base != "" && base != buildah.BaseImageFakeName && !internalUtil.SetHas(nicknames, base) {
+							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
-							// append heading args so if --build-arg key=value is not
-							// specified but default value is set in Containerfile
-							// via `ARG key=value` so default value can be used.
-							userArgs = append(headingArgs, userArgs...)
+							// ProcessWord uses first match; put highest priority first so
+							// --build-arg overrides header ARG overrides builtin.
+							userArgs = slices.Concat(userArgs, headingArgs, builtinArgs)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
