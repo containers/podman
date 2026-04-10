@@ -296,7 +296,7 @@ $ podman container inspect foobar
             "KernelMemory": 0,
             "MemoryReservation": 0,
             "MemorySwap": 0,
-            "MemorySwappiness": 0,
+            "MemorySwappiness": null,
             "OomKillDisable": false,
             "PidsLimit": 2048,
             "Ulimits": [],

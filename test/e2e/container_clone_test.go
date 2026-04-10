@@ -140,7 +140,7 @@ var _ = Describe("Podman container clone", func() {
 		cloneInspect.WaitWithDefaultTimeout()
 		Expect(cloneInspect).To(ExitCleanly())
 		cloneData = cloneInspect.InspectContainerToJSON()
-		Expect(cloneData[0].HostConfig).To(HaveField("MemorySwappiness", int64(0)))
+		Expect(cloneData[0].HostConfig.MemorySwappiness).To(BeNil())
 	})
 
 	It("podman container clone in a pod", func() {
