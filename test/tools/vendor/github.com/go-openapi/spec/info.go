@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
@@ -20,19 +9,19 @@ import (
 	"strings"
 
 	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
-// Extensions vendor specific extensions
-type Extensions map[string]interface{}
+// Extensions vendor specific extensions.
+type Extensions map[string]any
 
-// Add adds a value to these extensions
-func (e Extensions) Add(key string, value interface{}) {
+// Add adds a value to these extensions.
+func (e Extensions) Add(key string, value any) {
 	realKey := strings.ToLower(key)
 	e[realKey] = value
 }
 
-// GetString gets a string value from the extensions
+// GetString gets a string value from the extensions.
 func (e Extensions) GetString(key string) (string, bool) {
 	if v, ok := e[strings.ToLower(key)]; ok {
 		str, ok := v.(string)
@@ -41,7 +30,7 @@ func (e Extensions) GetString(key string) (string, bool) {
 	return "", false
 }
 
-// GetInt gets a int value from the extensions
+// GetInt gets a int value from the extensions.
 func (e Extensions) GetInt(key string) (int, bool) {
 	realKey := strings.ToLower(key)
 
@@ -59,7 +48,7 @@ func (e Extensions) GetInt(key string) (int, bool) {
 	return -1, false
 }
 
-// GetBool gets a string value from the extensions
+// GetBool gets a string value from the extensions.
 func (e Extensions) GetBool(key string) (bool, bool) {
 	if v, ok := e[strings.ToLower(key)]; ok {
 		str, ok := v.(bool)
@@ -68,10 +57,10 @@ func (e Extensions) GetBool(key string) (bool, bool) {
 	return false, false
 }
 
-// GetStringSlice gets a string value from the extensions
+// GetStringSlice gets a string value from the extensions.
 func (e Extensions) GetStringSlice(key string) ([]string, bool) {
 	if v, ok := e[strings.ToLower(key)]; ok {
-		arr, isSlice := v.([]interface{})
+		arr, isSlice := v.([]any)
 		if !isSlice {
 			return nil, false
 		}
@@ -93,20 +82,20 @@ type VendorExtensible struct {
 	Extensions Extensions
 }
 
-// AddExtension adds an extension to this extensible object
-func (v *VendorExtensible) AddExtension(key string, value interface{}) {
+// AddExtension adds an extension to this extensible object.
+func (v *VendorExtensible) AddExtension(key string, value any) {
 	if value == nil {
 		return
 	}
 	if v.Extensions == nil {
-		v.Extensions = make(map[string]interface{})
+		v.Extensions = make(map[string]any)
 	}
 	v.Extensions.Add(key, value)
 }
 
-// MarshalJSON marshals the extensions to json
+// MarshalJSON marshals the extensions to json.
 func (v VendorExtensible) MarshalJSON() ([]byte, error) {
-	toser := make(map[string]interface{})
+	toser := make(map[string]any)
 	for k, v := range v.Extensions {
 		lk := strings.ToLower(k)
 		if strings.HasPrefix(lk, "x-") {
@@ -116,9 +105,9 @@ func (v VendorExtensible) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toser)
 }
 
-// UnmarshalJSON for this extensible object
+// UnmarshalJSON for this extensible object.
 func (v *VendorExtensible) UnmarshalJSON(data []byte) error {
-	var d map[string]interface{}
+	var d map[string]any
 	if err := json.Unmarshal(data, &d); err != nil {
 		return err
 	}
@@ -126,7 +115,7 @@ func (v *VendorExtensible) UnmarshalJSON(data []byte) error {
 		lk := strings.ToLower(k)
 		if strings.HasPrefix(lk, "x-") {
 			if v.Extensions == nil {
-				v.Extensions = map[string]interface{}{}
+				v.Extensions = map[string]any{}
 			}
 			v.Extensions[k] = vv
 		}
@@ -134,7 +123,7 @@ func (v *VendorExtensible) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// InfoProps the properties for an info definition
+// InfoProps the properties for an info definition.
 type InfoProps struct {
 	Description    string       `json:"description,omitempty"`
 	Title          string       `json:"title,omitempty"`
@@ -153,8 +142,8 @@ type Info struct {
 	InfoProps
 }
 
-// JSONLookup look up a value by the json property name
-func (i Info) JSONLookup(token string) (interface{}, error) {
+// JSONLookup look up a value by the json property name.
+func (i Info) JSONLookup(token string) (any, error) {
 	if ex, ok := i.Extensions[token]; ok {
 		return &ex, nil
 	}
@@ -162,7 +151,7 @@ func (i Info) JSONLookup(token string) (interface{}, error) {
 	return r, err
 }
 
-// MarshalJSON marshal this to JSON
+// MarshalJSON marshal this to JSON.
 func (i Info) MarshalJSON() ([]byte, error) {
 	b1, err := json.Marshal(i.InfoProps)
 	if err != nil {
@@ -172,10 +161,10 @@ func (i Info) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return swag.ConcatJSON(b1, b2), nil
+	return jsonutils.ConcatJSON(b1, b2), nil
 }
 
-// UnmarshalJSON marshal this from JSON
+// UnmarshalJSON marshal this from JSON.
 func (i *Info) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &i.InfoProps); err != nil {
 		return err

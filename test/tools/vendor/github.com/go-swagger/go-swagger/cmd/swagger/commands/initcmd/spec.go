@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package initcmd
 
 import (
@@ -7,34 +10,34 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
 )
 
-// Spec a command struct for initializing a new swagger application.
+// Spec represents a command for initializing a new swagger application.
 type Spec struct {
-	Format      string   `long:"format" description:"the format for the spec document" default:"yaml" choice:"yaml" choice:"json"`
-	Title       string   `long:"title" description:"the title of the API"`
-	Description string   `long:"description" description:"the description of the API"`
-	Version     string   `long:"version" description:"the version of the API" default:"0.1.0"`
-	Terms       string   `long:"terms" description:"the terms of services"`
-	Consumes    []string `long:"consumes" description:"add a content type to the global consumes definitions, can repeat" default:"application/json"`
-	Produces    []string `long:"produces" description:"add a content type to the global produces definitions, can repeat" default:"application/json"`
-	Schemes     []string `long:"scheme" description:"add a scheme to the global schemes definition, can repeat" default:"http"`
+	Format      string   `choice:"yaml"                            choice:"json"                                                                   default:"yaml"  description:"the format for the spec document" long:"format"` //nolint:staticcheck // false positive detecting duplicate tags (it works fine on other files with the same pattern)
+	Title       string   `description:"the title of the API"       long:"title"`
+	Description string   `description:"the description of the API" long:"description"`
+	Version     string   `default:"0.1.0"                          description:"the version of the API"                                            long:"version"`
+	Terms       string   `description:"the terms of services"      long:"terms"`
+	Consumes    []string `default:"application/json"               description:"add a content type to the global consumes definitions, can repeat" long:"consumes"`
+	Produces    []string `default:"application/json"               description:"add a content type to the global produces definitions, can repeat" long:"produces"`
+	Schemes     []string `default:"http"                           description:"add a scheme to the global schemes definition, can repeat"         long:"scheme"`
 	Contact     struct {
-		Name  string `long:"contact.name" description:"name of the primary contact for the API"`
-		URL   string `long:"contact.url" description:"url of the primary contact for the API"`
-		Email string `long:"contact.email" description:"email of the primary contact for the API"`
+		Name  string `description:"name of the primary contact for the API"  long:"contact.name"`
+		URL   string `description:"url of the primary contact for the API"   long:"contact.url"`
+		Email string `description:"email of the primary contact for the API" long:"contact.email"`
 	}
 	License struct {
-		Name string `long:"license.name" description:"name of the license for the API"`
-		URL  string `long:"license.url" description:"url of the license for the API"`
+		Name string `description:"name of the license for the API" long:"license.name"`
+		URL  string `description:"url of the license for the API"  long:"license.url"`
 	}
 }
 
-// Execute this command
+// Execute this command.
 func (s *Spec) Execute(args []string) error {
 	targetPath := "."
 	if len(args) > 0 {

@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
@@ -18,19 +7,14 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
-// TagProps describe a tag entry in the top level tags section of a swagger spec
+// TagProps describe a tag entry in the top level tags section of a swagger spec.
 type TagProps struct {
 	Description  string                 `json:"description,omitempty"`
 	Name         string                 `json:"name,omitempty"`
 	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
-}
-
-// NewTag creates a new tag
-func NewTag(name, description string, externalDocs *ExternalDocumentation) Tag {
-	return Tag{TagProps: TagProps{Description: description, Name: name, ExternalDocs: externalDocs}}
 }
 
 // Tag allows adding meta data to a single tag that is used by the
@@ -43,8 +27,13 @@ type Tag struct {
 	TagProps
 }
 
-// JSONLookup implements an interface to customize json pointer lookup
-func (t Tag) JSONLookup(token string) (interface{}, error) {
+// NewTag creates a new tag.
+func NewTag(name, description string, externalDocs *ExternalDocumentation) Tag {
+	return Tag{TagProps: TagProps{Description: description, Name: name, ExternalDocs: externalDocs}}
+}
+
+// JSONLookup implements an interface to customize json pointer lookup.
+func (t Tag) JSONLookup(token string) (any, error) {
 	if ex, ok := t.Extensions[token]; ok {
 		return &ex, nil
 	}
@@ -53,7 +42,7 @@ func (t Tag) JSONLookup(token string) (interface{}, error) {
 	return r, err
 }
 
-// MarshalJSON marshal this to JSON
+// MarshalJSON marshal this to JSON.
 func (t Tag) MarshalJSON() ([]byte, error) {
 	b1, err := json.Marshal(t.TagProps)
 	if err != nil {
@@ -63,10 +52,10 @@ func (t Tag) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return swag.ConcatJSON(b1, b2), nil
+	return jsonutils.ConcatJSON(b1, b2), nil
 }
 
-// UnmarshalJSON marshal this from JSON
+// UnmarshalJSON marshal this from JSON.
 func (t *Tag) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &t.TagProps); err != nil {
 		return err

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: Copyright (c) 2014 Naoya Inada <naoina@kuune.org>
+// SPDX-License-Identifier: MIT
+
 // Package denco provides fast URL router.
 package denco
 
@@ -21,11 +26,11 @@ const (
 	// SeparatorCharacter separates path segments.
 	SeparatorCharacter = '/'
 
-	// PathParamCharacter indicates a RESTCONF path param
+	// PathParamCharacter indicates a RESTCONF path param.
 	PathParamCharacter = '='
 
 	// MaxSize is max size of records and internal slice.
-	MaxSize = (1 << 22) - 1
+	MaxSize = (1 << 22) - 1 //nolint:mnd
 )
 
 // Router represents a URL router.
@@ -36,22 +41,22 @@ type Router struct {
 	// By default, SizeHint will be determined from given records to Build.
 	SizeHint int
 
-	static map[string]interface{}
+	static map[string]any
 }
 
 // New returns a new Router.
 func New() *Router {
 	return &Router{
 		SizeHint: -1,
-		static:   make(map[string]interface{}),
+		static:   make(map[string]any),
 		param:    newDoubleArray(),
 	}
 }
 
 // Lookup returns data and path parameters that associated with path.
-// params is a slice of the Param that arranged in the order in which parameters appeared.
+// params is a slice of the [Param] that arranged in the order in which parameters appeared.
 // e.g. when built routing path is "/path/to/:id/:name" and given path is "/path/to/1/alice". params order is [{"id": "1"}, {"name": "alice"}], not [{"name": "alice"}, {"id": "1"}].
-func (rt *Router) Lookup(path string) (data interface{}, params Params, found bool) {
+func (rt *Router) Lookup(path string) (data any, params Params, found bool) {
 	if data, found = rt.static[path]; found {
 		return data, nil, true
 	}
@@ -62,7 +67,7 @@ func (rt *Router) Lookup(path string) (data interface{}, params Params, found bo
 	if !found {
 		return nil, nil, false
 	}
-	for i := 0; i < len(params); i++ {
+	for i := range params {
 		params[i].Name = nd.paramNames[i]
 	}
 	return nd.data, params, true
@@ -135,19 +140,24 @@ func newDoubleArray() *doubleArray {
 //	BASE (22bit) | Extra flags (2bit) | CHECK (8bit)
 //
 // |----------------------|--|--------|
-// 32                    10  8         0
+// 32                    10  8         0.
 type baseCheck uint32
 
+const (
+	flagsBits = 10
+	checkBits = 8
+)
+
 func (bc baseCheck) Base() int {
-	return int(bc >> 10)
+	return int(bc >> flagsBits)
 }
 
 func (bc *baseCheck) SetBase(base int) {
-	*bc |= baseCheck(base) << 10
+	*bc |= baseCheck(base) << flagsBits //nolint:gosec // integer conversion is ok
 }
 
 func (bc baseCheck) Check() byte {
-	return byte(bc)
+	return byte(bc) //nolint:gosec // integer conversion is ok
 }
 
 func (bc *baseCheck) SetCheck(check byte) {
@@ -171,24 +181,27 @@ func (bc baseCheck) IsAnyParam() bool {
 }
 
 func (bc *baseCheck) SetSingleParam() {
-	*bc |= (1 << 8)
+	*bc |= (1 << checkBits)
 }
 
 func (bc *baseCheck) SetWildcardParam() {
-	*bc |= (1 << 9)
+	*bc |= (1 << (checkBits + 1))
 }
 
 const (
 	paramTypeSingle   = 0x0100
 	paramTypeWildcard = 0x0200
 	paramTypeAny      = 0x0300
+
+	indexOffset = 32
+	indexMask   = uint64(0xffffffff)
 )
 
 func (da *doubleArray) lookup(path string, params []Param, idx int) (*node, []Param, bool) {
 	indices := make([]uint64, 0, 1)
-	for i := 0; i < len(path); i++ {
+	for i := range len(path) {
 		if da.bc[idx].IsAnyParam() {
-			indices = append(indices, (uint64(i)<<32)|(uint64(idx)&0xffffffff))
+			indices = append(indices, (uint64(i)<<indexOffset)|(uint64(idx)&indexMask)) //nolint:gosec // integer conversion is okay
 		}
 		c := path[i]
 		if idx = nextIndex(da.bc[idx].Base(), c); idx >= len(da.bc) || da.bc[idx].Check() != c {
@@ -201,7 +214,7 @@ func (da *doubleArray) lookup(path string, params []Param, idx int) (*node, []Pa
 
 BACKTRACKING:
 	for j := len(indices) - 1; j >= 0; j-- {
-		i, idx := int(indices[j]>>32), int(indices[j]&0xffffffff)
+		i, idx := int(indices[j]>>indexOffset), int(indices[j]&indexMask)
 		if da.bc[idx].IsSingleParam() {
 			nextIdx := nextIndex(da.bc[idx].Base(), ParamCharacter)
 			if nextIdx >= len(da.bc) {
@@ -340,7 +353,7 @@ func (da *doubleArray) arrange(records []*record, idx, depth int, usedBase map[i
 
 // node represents a node of Double-Array.
 type node struct {
-	data interface{}
+	data any
 
 	// Names of path parameters.
 	paramNames []string
@@ -414,11 +427,11 @@ type Record struct {
 	Key string
 
 	// Result value for Key.
-	Value interface{}
+	Value any
 }
 
 // NewRecord returns a new Record.
-func NewRecord(key string, value interface{}) Record {
+func NewRecord(key string, value any) Record {
 	return Record{
 		Key:   key,
 		Value: value,
@@ -428,6 +441,7 @@ func NewRecord(key string, value interface{}) Record {
 // record represents a record that use to build the Double-Array.
 type record struct {
 	Record
+
 	paramNames []string
 }
 

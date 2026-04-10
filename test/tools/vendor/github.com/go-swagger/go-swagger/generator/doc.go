@@ -1,23 +1,12 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 /*
 Package generator provides the code generation library for go-swagger.
 
 # Generating data types
 
-The general idea is that you should rarely see interface{} in the generated code.
+The general idea is that you should rarely see any in the generated code.
 You get a complete representation of a swagger document in somewhat idiomatic go.
 
 To do so, there is a set of mapping patterns that are applied,

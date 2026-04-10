@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package middleware
 
 import (
@@ -8,7 +11,7 @@ import (
 	"path"
 )
 
-// RapiDocOpts configures the RapiDoc middlewares
+// RapiDocOpts configures the [RapiDoc] middlewares.
 type RapiDocOpts struct {
 	// BasePath for the UI, defaults to: /
 	BasePath string
@@ -47,9 +50,9 @@ func (r *RapiDocOpts) EnsureDefaults() {
 	}
 }
 
-// RapiDoc creates a middleware to serve a documentation site for a swagger spec.
+// RapiDoc creates a [middleware] to serve a documentation site for a swagger spec.
 //
-// This allows for altering the spec before starting the http listener.
+// This allows for altering the spec before starting the [http] listener.
 func RapiDoc(opts RapiDocOpts, next http.Handler) http.Handler {
 	opts.EnsureDefaults()
 

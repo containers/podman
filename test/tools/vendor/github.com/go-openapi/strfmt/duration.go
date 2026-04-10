@@ -1,38 +1,30 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package strfmt
 
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits // registers duration format in the default registry
 	d := Duration(0)
-	// register this format in the default registry
 	Default.Add("duration", &d, IsDuration)
 }
 
+const (
+	hoursInDay = 24
+	daysInWeek = 7
+)
+
+//nolint:gochecknoglobals // package-level lookup tables for duration parsing
 var (
 	timeUnits = [][]string{
 		{"ns", "nano"},
@@ -52,14 +44,14 @@ var (
 		"s":  time.Second,
 		"m":  time.Minute,
 		"h":  time.Hour,
-		"d":  24 * time.Hour,
-		"w":  7 * 24 * time.Hour,
+		"d":  hoursInDay * time.Hour,
+		"w":  hoursInDay * daysInWeek * time.Hour,
 	}
 
-	durationMatcher = regexp.MustCompile(`((\d+)\s*([A-Za-zµ]+))`)
+	durationMatcher = regexp.MustCompile(`^(((?:-\s?)?\d+)(\.\d+)?\s*([A-Za-zµ]+))`)
 )
 
-// IsDuration returns true if the provided string is a valid duration
+// IsDuration returns true if the provided string is a valid duration.
 func IsDuration(str string) bool {
 	_, err := ParseDuration(str)
 	return err == nil
@@ -68,17 +60,17 @@ func IsDuration(str string) bool {
 // Duration represents a duration
 //
 // Duration stores a period of time as a nanosecond count, with the largest
-// repesentable duration being approximately 290 years.
+// representable duration being approximately 290 years.
 //
-// swagger:strfmt duration
+// swagger:strfmt duration.
 type Duration time.Duration
 
-// MarshalText turns this instance into text
+// MarshalText turns this instance into text.
 func (d Duration) MarshalText() ([]byte, error) {
 	return []byte(time.Duration(d).String()), nil
 }
 
-// UnmarshalText hydrates this instance from text
+// UnmarshalText hydrates this instance from text.
 func (d *Duration) UnmarshalText(data []byte) error { // validation is performed later on
 	dd, err := ParseDuration(string(data))
 	if err != nil {
@@ -88,7 +80,7 @@ func (d *Duration) UnmarshalText(data []byte) error { // validation is performed
 	return nil
 }
 
-// ParseDuration parses a duration from a string, compatible with scala duration syntax
+// ParseDuration parses a duration from a string, compatible with scala duration syntax.
 func ParseDuration(cand string) (time.Duration, error) {
 	if dur, err := time.ParseDuration(cand); err == nil {
 		return dur, nil
@@ -96,13 +88,35 @@ func ParseDuration(cand string) (time.Duration, error) {
 
 	var dur time.Duration
 	ok := false
+	const expectGroups = 4
 	for _, match := range durationMatcher.FindAllStringSubmatch(cand, -1) {
+		if len(match) < expectGroups {
+			continue
+		}
 
-		factor, err := strconv.Atoi(match[2]) // converts string to int
+		// remove possible leading - and spaces
+		value, negative := strings.CutPrefix(match[2], "-")
+
+		// if the duration contains a decimal separator determine a divising factor
+		const neutral = 1.0
+		divisor := neutral
+		decimal, hasDecimal := strings.CutPrefix(match[3], ".")
+		if hasDecimal {
+			divisor = math.Pow10(len(decimal))
+			value += decimal // consider the value as an integer: will change units later on
+		}
+
+		// if the string is a valid duration, parse it
+		factor, err := strconv.Atoi(strings.TrimSpace(value)) // converts string to int
 		if err != nil {
 			return 0, err
 		}
-		unit := strings.ToLower(strings.TrimSpace(match[3]))
+
+		if negative {
+			factor = -factor
+		}
+
+		unit := strings.ToLower(strings.TrimSpace(match[4]))
 
 		for _, variants := range timeUnits {
 			last := len(variants) - 1
@@ -111,6 +125,9 @@ func ParseDuration(cand string) (time.Duration, error) {
 			for i, variant := range variants {
 				if (last == i && strings.HasPrefix(unit, variant)) || strings.EqualFold(variant, unit) {
 					ok = true
+					if divisor != neutral {
+						multiplier = time.Duration(float64(multiplier) / divisor) // convert to duration only after having reduced the scale
+					}
 					dur += (time.Duration(factor) * multiplier)
 				}
 			}
@@ -120,13 +137,13 @@ func ParseDuration(cand string) (time.Duration, error) {
 	if ok {
 		return dur, nil
 	}
-	return 0, fmt.Errorf("unable to parse %s as duration", cand)
+	return 0, fmt.Errorf("unable to parse %s as duration: %w", cand, ErrFormat)
 }
 
 // Scan reads a Duration value from database driver type.
-func (d *Duration) Scan(raw interface{}) error {
+func (d *Duration) Scan(raw any) error {
 	switch v := raw.(type) {
-	// TODO: case []byte: // ?
+	// Proposal for enhancement: case []byte: // ?
 	case int64:
 		*d = Duration(v)
 	case float64:
@@ -134,7 +151,7 @@ func (d *Duration) Scan(raw interface{}) error {
 	case nil:
 		*d = Duration(0)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Duration from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Duration from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -145,17 +162,17 @@ func (d Duration) Value() (driver.Value, error) {
 	return driver.Value(int64(d)), nil
 }
 
-// String converts this duration to a string
+// String converts this duration to a string.
 func (d Duration) String() string {
 	return time.Duration(d).String()
 }
 
-// MarshalJSON returns the Duration as JSON
+// MarshalJSON returns the Duration as JSON.
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Duration(d).String())
 }
 
-// UnmarshalJSON sets the Duration from JSON
+// UnmarshalJSON sets the Duration from JSON.
 func (d *Duration) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
@@ -171,28 +188,6 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 	}
 	*d = Duration(tt)
 	return nil
-}
-
-func (d Duration) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(bson.M{"data": d.String()})
-}
-
-func (d *Duration) UnmarshalBSON(data []byte) error {
-	var m bson.M
-	if err := bson.Unmarshal(data, &m); err != nil {
-		return err
-	}
-
-	if data, ok := m["data"].(string); ok {
-		rd, err := ParseDuration(data)
-		if err != nil {
-			return err
-		}
-		*d = Duration(rd)
-		return nil
-	}
-
-	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

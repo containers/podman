@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package middleware
 
 import (
@@ -8,7 +11,7 @@ import (
 	"path"
 )
 
-// RedocOpts configures the Redoc middlewares
+// RedocOpts configures the [Redoc] middlewares.
 type RedocOpts struct {
 	// BasePath for the UI, defaults to: /
 	BasePath string
@@ -33,7 +36,7 @@ type RedocOpts struct {
 	RedocURL string
 }
 
-// EnsureDefaults in case some options are missing
+// EnsureDefaults in case some options are missing.
 func (r *RedocOpts) EnsureDefaults() {
 	common := toCommonUIOptions(r)
 	common.EnsureDefaults()
@@ -48,9 +51,9 @@ func (r *RedocOpts) EnsureDefaults() {
 	}
 }
 
-// Redoc creates a middleware to serve a documentation site for a swagger spec.
+// Redoc creates a [middleware] to serve a documentation site for a swagger spec.
 //
-// This allows for altering the spec before starting the http listener.
+// This allows for altering the spec before starting the [http] listener.
 func Redoc(opts RedocOpts, next http.Handler) http.Handler {
 	opts.EnsureDefaults()
 

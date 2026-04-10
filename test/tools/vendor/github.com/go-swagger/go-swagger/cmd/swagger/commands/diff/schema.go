@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
 import (
@@ -18,7 +21,6 @@ func getTypeFromSchema(schema *spec.Schema) (typeName string, isArray bool) {
 		return typeName, true
 	}
 	return typeName, false
-
 }
 
 func getTypeFromSimpleSchema(schema *spec.SimpleSchema) (typeName string, isArray bool) {
@@ -32,7 +34,6 @@ func getTypeFromSimpleSchema(schema *spec.SimpleSchema) (typeName string, isArra
 		return typeName, true
 	}
 	return typeName, false
-
 }
 
 func getTypeFromSchemaProps(schema *spec.SchemaProps) (typeName string, isArray bool) {
@@ -52,7 +53,6 @@ func getTypeFromSchemaProps(schema *spec.SchemaProps) (typeName string, isArray 
 		}
 	}
 	return typeName, false
-
 }
 
 func getSchemaTypeStr(item interface{}) string {
@@ -61,7 +61,6 @@ func getSchemaTypeStr(item interface{}) string {
 }
 
 func getSchemaType(item interface{}) (typeName string, isArray bool) {
-
 	switch s := item.(type) {
 	case *spec.Schema:
 		typeName, isArray = getTypeFromSchema(s)
@@ -77,8 +76,7 @@ func getSchemaType(item interface{}) (typeName string, isArray bool) {
 		typeName = "unknown"
 	}
 
-	return
-
+	return typeName, isArray
 }
 
 func formatTypeString(typ string, isarray bool) string {

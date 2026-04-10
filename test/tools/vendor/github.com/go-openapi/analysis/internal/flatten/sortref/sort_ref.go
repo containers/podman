@@ -1,17 +1,18 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package sortref
 
 import (
+	"iter"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/go-openapi/analysis/internal/flatten/normalize"
 	"github.com/go-openapi/spec"
 )
-
-var depthGroupOrder = []string{
-	"sharedParam", "sharedResponse", "sharedOpParam", "opParam", "codeResponse", "defaultResponse", "definition",
-}
 
 type mapIterator struct {
 	len     int
@@ -30,7 +31,7 @@ func (i *mapIterator) Key() string {
 	return i.mapIter.Key().String()
 }
 
-func mustMapIterator(anyMap interface{}) *mapIterator {
+func mustMapIterator(anyMap any) *mapIterator {
 	val := reflect.ValueOf(anyMap)
 
 	return &mapIterator{mapIter: val.MapRange(), len: val.Len()}
@@ -39,8 +40,8 @@ func mustMapIterator(anyMap interface{}) *mapIterator {
 // DepthFirst sorts a map of anything. It groups keys by category
 // (shared params, op param, statuscode response, default response, definitions)
 // sort groups internally by number of parts in the key and lexical names
-// flatten groups into a single list of keys
-func DepthFirst(in interface{}) []string {
+// flatten groups into a single list of keys.
+func DepthFirst(in any) []string {
 	iterator := mustMapIterator(in)
 	sorted := make([]string, 0, iterator.Len())
 	grouped := make(map[string]Keys, iterator.Len())
@@ -74,7 +75,7 @@ func DepthFirst(in interface{}) []string {
 		grouped[pk] = append(grouped[pk], Key{Segments: len(split), Key: k})
 	}
 
-	for _, pk := range depthGroupOrder {
+	for pk := range depthGroupOrder() {
 		res := grouped[pk]
 		sort.Sort(res)
 
@@ -84,6 +85,12 @@ func DepthFirst(in interface{}) []string {
 	}
 
 	return sorted
+}
+
+func depthGroupOrder() iter.Seq[string] {
+	return slices.Values([]string{
+		"sharedParam", "sharedResponse", "sharedOpParam", "opParam", "codeResponse", "defaultResponse", "definition",
+	})
 }
 
 // topMostRefs is able to sort refs by hierarchical then lexicographic order,
@@ -101,7 +108,7 @@ func (k topmostRefs) Less(i, j int) bool {
 	return li < lj
 }
 
-// TopmostFirst sorts references by depth
+// TopmostFirst sorts references by depth.
 func TopmostFirst(refs []string) []string {
 	res := topmostRefs(refs)
 	sort.Sort(res)
@@ -109,13 +116,13 @@ func TopmostFirst(refs []string) []string {
 	return res
 }
 
-// RefRevIdx is a reverse index for references
+// RefRevIdx is a reverse index for references.
 type RefRevIdx struct {
 	Ref  spec.Ref
 	Keys []string
 }
 
-// ReverseIndex builds a reverse index for references in schemas
+// ReverseIndex builds a reverse index for references in schemas.
 func ReverseIndex(schemas map[string]spec.Ref, basePath string) map[string]RefRevIdx {
 	collected := make(map[string]RefRevIdx)
 	for key, schRef := range schemas {

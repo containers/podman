@@ -1,6 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
-// CompatibilityPolicy decides which changes are breaking and which are not
+// CompatibilityPolicy decides which changes are breaking and which are not.
 type CompatibilityPolicy struct {
 	ForResponse map[SpecChangeCode]Compatibility
 	ForRequest  map[SpecChangeCode]Compatibility
@@ -26,9 +29,9 @@ func init() {
 			AddedResponseHeader:     NonBreaking,
 			ChangedResponseHeader:   Breaking,
 			DeletedResponseHeader:   Breaking,
-			ChangedDescripton:       NonBreaking,
-			AddedDescripton:         NonBreaking,
-			DeletedDescripton:       NonBreaking,
+			ChangedDescription:      NonBreaking,
+			AddedDescription:        NonBreaking,
+			DeletedDescription:      NonBreaking,
 			ChangedTag:              NonBreaking,
 			AddedTag:                NonBreaking,
 			DeletedTag:              NonBreaking,
@@ -54,9 +57,9 @@ func init() {
 			ChangedRequiredToOptional: NonBreaking,
 			AddedEnumValue:            NonBreaking,
 			DeletedEnumValue:          Breaking,
-			ChangedDescripton:         NonBreaking,
-			AddedDescripton:           NonBreaking,
-			DeletedDescripton:         NonBreaking,
+			ChangedDescription:        NonBreaking,
+			AddedDescription:          NonBreaking,
+			DeletedDescription:        NonBreaking,
 			ChangedTag:                NonBreaking,
 			AddedTag:                  NonBreaking,
 			DeletedTag:                NonBreaking,
@@ -86,9 +89,9 @@ func init() {
 			DeletedSchemes:            Breaking,
 			ChangedHostURL:            Breaking,
 			ChangedBasePath:           Breaking,
-			ChangedDescripton:         NonBreaking,
-			AddedDescripton:           NonBreaking,
-			DeletedDescripton:         NonBreaking,
+			ChangedDescription:        NonBreaking,
+			AddedDescription:          NonBreaking,
+			DeletedDescription:        NonBreaking,
 			ChangedTag:                NonBreaking,
 			AddedTag:                  NonBreaking,
 			DeletedTag:                NonBreaking,

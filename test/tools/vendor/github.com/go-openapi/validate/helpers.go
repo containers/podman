@@ -1,20 +1,9 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package validate
 
-// TODO: define this as package validate/internal
+// Proposal for enhancement: define this as package validate/internal
 // This must be done while keeping CI intact with all tests and test coverage
 
 import (
@@ -47,7 +36,7 @@ const (
 	jsonProperties = "properties"
 	jsonItems      = "items"
 	jsonType       = "type"
-	// jsonSchema     = "schema"
+	// jsonSchema     = "schema".
 	jsonDefault = "default"
 )
 
@@ -56,7 +45,7 @@ const (
 	stringFormatDateTime = "date-time"
 	stringFormatPassword = "password"
 	stringFormatByte     = "byte"
-	// stringFormatBinary       = "binary"
+	// stringFormatBinary       = "binary".
 	stringFormatCreditCard   = "creditcard"
 	stringFormatDuration     = "duration"
 	stringFormatEmail        = "email"
@@ -88,7 +77,7 @@ const (
 	numberFormatDouble  = "double"
 )
 
-// Helpers available at the package level
+// Helpers available at the package level.
 var (
 	pathHelp     *pathHelper
 	valueHelp    *valueHelper
@@ -137,10 +126,11 @@ func (h *pathHelper) stripParametersInPath(path string) string {
 	// Regexp to extract parameters from path, with surrounding {}.
 	// NOTE: important non-greedy modifier
 	rexParsePathParam := mustCompileRegexp(`{[^{}]+?}`)
-	strippedSegments := []string{}
+	segments := strings.Split(path, "/")
+	strippedSegments := make([]string, len(segments))
 
-	for _, segment := range strings.Split(path, "/") {
-		strippedSegments = append(strippedSegments, rexParsePathParam.ReplaceAllString(segment, "X"))
+	for i, segment := range segments {
+		strippedSegments[i] = rexParsePathParam.ReplaceAllString(segment, "X")
 	}
 	return strings.Join(strippedSegments, "/")
 }
@@ -149,7 +139,7 @@ func (h *pathHelper) extractPathParams(path string) (params []string) {
 	// Extracts all params from a path, with surrounding "{}"
 	rexParsePathParam := mustCompileRegexp(`{[^{}]+?}`)
 
-	for _, segment := range strings.Split(path, "/") {
+	for segment := range strings.SplitSeq(path, "/") {
 		for _, v := range rexParsePathParam.FindAllStringSubmatch(segment, -1) {
 			params = append(params, v...)
 		}
@@ -161,15 +151,15 @@ type valueHelper struct {
 	// A collection of unexported helpers for value validation
 }
 
-func (h *valueHelper) asInt64(val interface{}) int64 {
+func (h *valueHelper) asInt64(val any) int64 {
 	// Number conversion function for int64, without error checking
 	// (implements an implicit type upgrade).
 	v := reflect.ValueOf(val)
-	switch v.Kind() { //nolint:exhaustive
+	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int()
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return int64(v.Uint())
+		return int64(v.Uint()) //nolint:gosec
 	case reflect.Float32, reflect.Float64:
 		return int64(v.Float())
 	default:
@@ -178,13 +168,13 @@ func (h *valueHelper) asInt64(val interface{}) int64 {
 	}
 }
 
-func (h *valueHelper) asUint64(val interface{}) uint64 {
+func (h *valueHelper) asUint64(val any) uint64 {
 	// Number conversion function for uint64, without error checking
 	// (implements an implicit type upgrade).
 	v := reflect.ValueOf(val)
-	switch v.Kind() { //nolint:exhaustive
+	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return uint64(v.Int())
+		return uint64(v.Int()) //nolint:gosec
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return v.Uint()
 	case reflect.Float32, reflect.Float64:
@@ -195,12 +185,12 @@ func (h *valueHelper) asUint64(val interface{}) uint64 {
 	}
 }
 
-// Same for unsigned floats
-func (h *valueHelper) asFloat64(val interface{}) float64 {
+// Same for unsigned floats.
+func (h *valueHelper) asFloat64(val any) float64 {
 	// Number conversion function for float64, without error checking
 	// (implements an implicit type upgrade).
 	v := reflect.ValueOf(val)
-	switch v.Kind() { //nolint:exhaustive
+	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return float64(v.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -255,7 +245,6 @@ func (h *paramHelper) resolveParam(path, method, operationID string, param *spec
 		err = spec.ExpandParameterWithRoot(param, s.spec.Spec(), nil)
 	} else {
 		err = spec.ExpandParameter(param, s.spec.SpecFilePath())
-
 	}
 	if err != nil { // Safeguard
 		// NOTE: we may enter here when the whole parameter is an unresolved $ref
@@ -273,7 +262,7 @@ func (h *paramHelper) checkExpandedParam(pr *spec.Parameter, path, in, operation
 	simpleZero := spec.SimpleSchema{}
 	// Try to explain why... best guess
 	switch {
-	case pr.In == swaggerBody && (pr.SimpleSchema != simpleZero && pr.SimpleSchema.Type != objectType):
+	case pr.In == swaggerBody && (pr.SimpleSchema != simpleZero && pr.Type != objectType):
 		if isRef {
 			// Most likely, a $ref with a sibling is an unwanted situation: in itself this is a warning...
 			// but we detect it because of the following error:
@@ -299,7 +288,8 @@ type responseHelper struct {
 
 func (r *responseHelper) expandResponseRef(
 	response *spec.Response,
-	path string, s *SpecValidator) (*spec.Response, *Result) {
+	path string, s *SpecValidator,
+) (*spec.Response, *Result) {
 	// Ensure response is expanded
 	var err error
 	res := new(Result)
@@ -320,7 +310,8 @@ func (r *responseHelper) expandResponseRef(
 
 func (r *responseHelper) responseMsgVariants(
 	responseType string,
-	responseCode int) (responseName, responseCodeAsStr string) {
+	responseCode int,
+) (responseName, responseCodeAsStr string) {
 	// Path variants for messages
 	if responseType == jsonDefault {
 		responseCodeAsStr = jsonDefault

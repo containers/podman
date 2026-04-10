@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package validate
 
@@ -21,24 +10,24 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
-// SchemaValidator validates data against a JSON schema
+// SchemaValidator validates data against a JSON schema.
 type SchemaValidator struct {
 	Path         string
 	in           string
 	Schema       *spec.Schema
 	validators   [8]valueValidator
-	Root         interface{}
+	Root         any
 	KnownFormats strfmt.Registry
 	Options      *SchemaValidatorOptions
 }
 
 // AgainstSchema validates the specified data against the provided schema, using a registry of supported formats.
 //
-// When no pre-parsed *spec.Schema structure is provided, it uses a JSON schema as default. See example.
-func AgainstSchema(schema *spec.Schema, data interface{}, formats strfmt.Registry, options ...Option) error {
+// When no pre-parsed *[spec.Schema] structure is provided, it uses a JSON schema as default. See example.
+func AgainstSchema(schema *spec.Schema, data any, formats strfmt.Registry, options ...Option) error {
 	res := NewSchemaValidator(schema, nil, "", formats,
 		append(options, WithRecycleValidators(true), withRecycleResults(true))...,
 	).Validate(data)
@@ -56,7 +45,7 @@ func AgainstSchema(schema *spec.Schema, data interface{}, formats strfmt.Registr
 // NewSchemaValidator creates a new schema validator.
 //
 // Panics if the provided schema is invalid.
-func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string, formats strfmt.Registry, options ...Option) *SchemaValidator {
+func NewSchemaValidator(schema *spec.Schema, rootSchema any, root string, formats strfmt.Registry, options ...Option) *SchemaValidator {
 	opts := new(SchemaValidatorOptions)
 	for _, o := range options {
 		o(opts)
@@ -65,7 +54,7 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 	return newSchemaValidator(schema, rootSchema, root, formats, opts)
 }
 
-func newSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string, formats strfmt.Registry, opts *SchemaValidatorOptions) *SchemaValidator {
+func newSchemaValidator(schema *spec.Schema, rootSchema any, root string, formats strfmt.Registry, opts *SchemaValidatorOptions) *SchemaValidator {
 	if schema == nil {
 		return nil
 	}
@@ -114,19 +103,21 @@ func newSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 	return s
 }
 
-// SetPath sets the path for this schema valdiator
+// SetPath sets the path for this schema validator.
 func (s *SchemaValidator) SetPath(path string) {
 	s.Path = path
 }
 
-// Applies returns true when this schema validator applies
-func (s *SchemaValidator) Applies(source interface{}, _ reflect.Kind) bool {
+// Applies returns true when this schema validator applies.
+func (s *SchemaValidator) Applies(source any, _ reflect.Kind) bool {
 	_, ok := source.(*spec.Schema)
 	return ok
 }
 
-// Validate validates the data against the schema
-func (s *SchemaValidator) Validate(data interface{}) *Result {
+// Validate validates the data against the schema.
+//
+//nolint:gocognit // refactor in a forthcoming PR
+func (s *SchemaValidator) Validate(data any) *Result {
 	if s == nil {
 		return emptyResult
 	}
@@ -176,12 +167,20 @@ func (s *SchemaValidator) Validate(data interface{}) *Result {
 		// this means that all strfmt types passed here (e.g. strfmt.Datetime, etc..)
 		// are converted here to strings, and structs are systematically converted
 		// to map[string]interface{}.
-		d = swag.ToDynamicJSON(data)
+		var dd any
+		if err := jsonutils.FromDynamicJSON(data, &dd); err != nil {
+			result.AddErrors(err)
+			result.Inc()
+
+			return result
+		}
+
+		d = dd
 	}
 
-	// TODO: this part should be handed over to type validator
+	// Proposal for enhancement: this part should be handed over to type validator
 	// Handle special case of json.Number data (number marshalled as string)
-	isnumber := s.Schema.Type.Contains(numberType) || s.Schema.Type.Contains(integerType)
+	isnumber := s.Schema != nil && (s.Schema.Type.Contains(numberType) || s.Schema.Type.Contains(integerType))
 	if num, ok := data.(json.Number); ok && isnumber {
 		if s.Schema.Type.Contains(integerType) { // avoid lossy conversion
 			in, erri := num.Int64()

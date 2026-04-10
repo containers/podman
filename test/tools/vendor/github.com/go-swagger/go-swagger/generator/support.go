@@ -1,17 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package generator
 
@@ -21,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path"
 	"path/filepath"
 	"sort"
@@ -31,7 +20,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// GenerateServer generates a server application
+// GenerateServer generates a server application.
 func GenerateServer(name string, modelNames, operationIDs []string, opts *GenOpts) error {
 	generator, err := newAppGenerator(name, modelNames, operationIDs, opts)
 	if err != nil {
@@ -40,7 +29,7 @@ func GenerateServer(name string, modelNames, operationIDs []string, opts *GenOpt
 	return generator.Generate()
 }
 
-// GenerateSupport generates the supporting files for an API
+// GenerateSupport generates the supporting files for an API.
 func GenerateSupport(name string, modelNames, operationIDs []string, opts *GenOpts) error {
 	generator, err := newAppGenerator(name, modelNames, operationIDs, opts)
 	if err != nil {
@@ -49,7 +38,7 @@ func GenerateSupport(name string, modelNames, operationIDs []string, opts *GenOp
 	return generator.GenerateSupport(nil)
 }
 
-// GenerateMarkdown documentation for a swagger specification
+// GenerateMarkdown documentation for a swagger specification.
 func GenerateMarkdown(output string, modelNames, operationIDs []string, opts *GenOpts) error {
 	if output == "." || output == "" {
 		output = "markdown.md"
@@ -156,7 +145,7 @@ func (a *appGenerator) Generate() error {
 	}
 
 	if a.DumpData {
-		return dumpData(app)
+		return dumpData(os.Stdout, app)
 	}
 
 	// NOTE: relative to previous implem with chan.
@@ -250,6 +239,7 @@ func (a *appGenerator) makeSecuritySchemes() GenSecuritySchemes {
 	return gatherSecuritySchemes(requiredSecuritySchemes, a.Name, a.Principal, a.Receiver, a.GenOpts.PrincipalIsNullable())
 }
 
+//nolint:gocognit,gocyclo,cyclop,maintidx // TODO(fredbi): refactor
 func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	log.Println("building a plan for generation")
 
@@ -265,7 +255,7 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	baseImport := a.GenOpts.LanguageOpts.baseImport(a.Target)
 	defaultImports := a.GenOpts.defaultImports()
 
-	imports := make(map[string]string, 50)
+	imports := make(map[string]string, sensibleDefaultMapAlloc)
 	alias := deconflictPkg(a.GenOpts.LanguageOpts.ManglePackageName(a.OperationsPackage, defaultOperationsTarget), renameAPIPackage)
 	if !a.GenOpts.IsClient { // we don't want to inject this import for clients
 		imports[alias] = path.Join(
@@ -411,12 +401,14 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	log.Printf("grouping operations into packages (packages: %d)", len(opsGroupedByPackage))
 
 	opGroups := make(GenOperationGroups, 0, len(opsGroupedByPackage))
+	const sensibleConsumesAlloc = 2
+
 	for k, v := range opsGroupedByPackage {
 		log.Printf("operations for package %q (found: %d)", k, len(v))
 		sort.Sort(v)
 
-		consumesInGroup := make([]string, 0, 2)
-		producesInGroup := make([]string, 0, 2)
+		consumesInGroup := make([]string, 0, sensibleConsumesAlloc)
+		producesInGroup := make([]string, 0, sensibleConsumesAlloc)
 
 		// trim duplicate extra schemas within the same package
 		vv := make(GenOperations, 0, len(v))
@@ -492,8 +484,14 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 		basePath = sw.BasePath
 	}
 
-	jsonb, _ := json.MarshalIndent(a.SpecDoc.OrigSpec(), "", "  ")
-	flatjsonb, _ := json.MarshalIndent(a.SpecDoc.Spec(), "", "  ")
+	jsonb, err := json.MarshalIndent(a.SpecDoc.OrigSpec(), "", "  ")
+	if err != nil {
+		return GenApp{}, err
+	}
+	flatjsonb, err := json.MarshalIndent(a.SpecDoc.Spec(), "", "  ")
+	if err != nil {
+		return GenApp{}, err
+	}
 
 	return GenApp{
 		GenCommon: GenCommon{
