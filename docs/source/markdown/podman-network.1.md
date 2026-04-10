@@ -35,7 +35,7 @@ The default bridge network (called `podman`) uses 10.88.0.0/16 as a subnet. When
 ### Pasta
 Pasta by default performs no Network Address Translation (NAT) and copies the IPs from your main interface into the container namespace. If pasta cannot find an interface with the default route, it will select an interface if there is only one interface with a valid route. If you do not have a default route and several interfaces have defined routes, pasta will be unable to figure out the correct interface and it will fail to start. To specify the interface, use `-i` option to pasta. A default set of pasta options can be set in **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)** under the `[network]` section with the `pasta_options` key.
 
-Pasta is the default rootless networking tool. This can be configured in **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)** under the `[network]` section with `default_rootless_network_cmd`.
+Pasta is the default rootless networking tool.
 
 ### Podman network create
 When a new network is created with a `podman network create` command, and no subnet is given with the --subnet option, Podman starts picking a free subnet from 10.89.0.0/24 to 10.255.255.0/24. Use the `default_subnet_pools` option under the `[network]` section in **[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)** to change the range and/or size that is assigned by default.
