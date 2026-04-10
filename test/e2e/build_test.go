@@ -89,51 +89,62 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build with a secret from file", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		image := "secret-test"
+
+		session := podmanTest.PodmanExitCleanly("build", "-f", "build/Containerfile.with-secret", "-t", image, "--secret", "id=mysecret,src=build/secret.txt", "build/")
 		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
 
-		session = podmanTest.Podman([]string{"rmi", "secret-test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-	})
+		session = podmanTest.PodmanExitCleanly("run", "--rm", image, "sh", "-c", "find / -xdev -name 'podman-build-secret*' -print")
+		Expect(session.OutputToString()).To(BeEmpty(), "podman-build-secret path leaked into image")
 
-	It("podman build with a secret from env", func() {
-		os.Setenv("MYSECRET", "somesecret")
-		defer os.Unsetenv("MYSECRET")
-		session := podmanTest.PodmanExitCleanly("build", "-f", "build/Containerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,env=MYSECRET", "build/")
-		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+		podmanTest.PodmanExitCleanly("rmi", image)
 
-		podmanTest.PodmanExitCleanly("rmi", "secret-test")
-	})
+		// Test for: https://github.com/containers/podman/issues/25314 - file secrets must reach the server when .dockerignore is '*'.
+		image = "e2e-remote-secret-dignore"
 
-	It("podman build with multiple secrets from files", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-multiple-secret", "-t", "multiple-secret-test", "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session = podmanTest.PodmanExitCleanly("build", "-f", "build/remote-secret-dockerignore-star/Dockerfile", "-t", image, "--secret", "id=MY_SECRET,type=file,src=build/remote-secret-dockerignore-star/host-secret.txt", "build/remote-secret-dockerignore-star")
+		Expect(session.OutputToString()).To(ContainSubstring("Super Secret"))
+
+		session = podmanTest.PodmanExitCleanly("run", "--rm", image, "sh", "-c", "find / -xdev -name 'podman-build-secret*' -print")
+		Expect(session.OutputToString()).To(BeEmpty(), "podman-build-secret path leaked into image")
+
+		podmanTest.PodmanExitCleanly("rmi", image)
+
+		// build with multiple secrets from files
+		image = "multiple-secret-test"
+		session = podmanTest.PodmanExitCleanly("build", "-f", "build/Containerfile.with-multiple-secret", "-t", image, "--secret", "id=mysecret,src=build/secret.txt", "--secret", "id=mysecret2,src=build/anothersecret.txt", "build/")
 		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
 		Expect(session.OutputToString()).To(ContainSubstring("anothersecret"))
 
-		session = podmanTest.Podman([]string{"rmi", "multiple-secret-test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session = podmanTest.PodmanExitCleanly("run", "--rm", image, "sh", "-c", "find / -xdev -name 'podman-build-secret*' -print")
+		Expect(session.OutputToString()).To(BeEmpty(), "podman-build-secret path leaked into image")
+
+		podmanTest.PodmanExitCleanly("rmi", image)
 	})
 
-	It("podman build with a secret from file and verify if secret file is not leaked into image", func() {
-		session := podmanTest.Podman([]string{"build", "-f", "build/secret-verify-leak/Containerfile.with-secret-verify-leak", "-t", "secret-test-leak", "--secret", "id=mysecret,src=build/secret.txt", "build/secret-verify-leak"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+	It("podman build with a secret from env", func() {
+		secret := "somesecretvalue"
+		GinkgoT().Setenv("MYSECRET", secret)
+		image := "secret-test"
 
-		session = podmanTest.Podman([]string{"run", "--rm", "secret-test-leak", "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Not(ContainSubstring("podman-build-secret")))
+		session := podmanTest.PodmanExitCleanly("build", "-f", "build/Containerfile.with-secret", "-t", image, "--secret", "id=mysecret,env=MYSECRET", "build/")
+		Expect(session.OutputToString()).To(ContainSubstring(secret))
 
-		session = podmanTest.Podman([]string{"rmi", "secret-test-leak"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session = podmanTest.PodmanExitCleanly("run", "--rm", image, "sh", "-c", "find / -xdev -name 'podman-build-secret*' -print")
+		Expect(session.OutputToString()).To(BeEmpty(), "podman-build-secret path leaked into image")
+
+		podmanTest.PodmanExitCleanly("rmi", image)
+
+		// Test for: https://github.com/containers/podman/issues/28334 - env secrets + COPY must not add host-shaped podman-build-secret paths to the image.
+		image = "e2e-remote-secret-copy"
+
+		session = podmanTest.PodmanExitCleanly("build", "-f", "build/remote-secret-copy/Dockerfile", "-t", image, "--secret", "id=mysecret,env=MYSECRET", "build/remote-secret-copy")
+		Expect(session.OutputToString()).To(ContainSubstring(secret))
+
+		session = podmanTest.PodmanExitCleanly("run", "--rm", image, "sh", "-c", "find / -xdev -name 'podman-build-secret*' -print")
+		Expect(session.OutputToString()).To(BeEmpty(), "podman-build-secret path leaked into image")
+
+		podmanTest.PodmanExitCleanly("rmi", image)
 	})
 
 	It("podman build with not found Containerfile or Dockerfile", func() {

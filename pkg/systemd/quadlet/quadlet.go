@@ -675,11 +675,17 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		podman.add("--cgroups=split")
 	}
 
+	// Entrypoint needs special handling: an empty value is valid and means
+	// "clear the image entrypoint" (podman run --entrypoint ""), so it
+	// cannot go through lookupAndAddString which skips empty values.
+	if val, ok := container.Lookup(ContainerGroup, KeyEntrypoint); ok {
+		podman.addf("--entrypoint=%s", val)
+	}
+
 	stringKeys := map[string]string{
 		KeyTimezone:    "--tz",
 		KeyPidsLimit:   "--pids-limit",
 		KeyShmSize:     "--shm-size",
-		KeyEntrypoint:  "--entrypoint",
 		KeyWorkingDir:  "--workdir",
 		KeyIP:          "--ip",
 		KeyIP6:         "--ip6",

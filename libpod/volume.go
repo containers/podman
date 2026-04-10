@@ -13,7 +13,7 @@ import (
 	"github.com/containers/podman/v5/libpod/plugin"
 	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
 	"go.podman.io/storage/pkg/directory"
 )
 
@@ -342,7 +342,7 @@ func (v *Volume) Import(r io.Reader) error {
 		}
 	}()
 
-	if err := archive.Untar(r, mountPoint, nil); err != nil {
+	if err := chrootarchive.Untar(r, mountPoint, nil); err != nil {
 		return fmt.Errorf("extracting into volume %s: %w", v.Name(), err)
 	}
 

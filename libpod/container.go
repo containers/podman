@@ -1442,18 +1442,20 @@ func (c *Container) NetworkMode() string {
 		// If there is none, it's host networking.
 		// If there is one and it has a path, it's "ns:".
 		foundNetNS := false
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				foundNetNS = true
-				if ns.Path != "" {
-					networkMode = fmt.Sprintf("ns:%s", ns.Path)
-				} else {
-					// We're making a network ns,  but not
-					// configuring with Slirp or CNI. That
-					// means it's --net=none
-					networkMode = "none"
+		if ctrSpec.Linux != nil {
+			for _, ns := range ctrSpec.Linux.Namespaces {
+				if ns.Type == spec.NetworkNamespace {
+					foundNetNS = true
+					if ns.Path != "" {
+						networkMode = fmt.Sprintf("ns:%s", ns.Path)
+					} else {
+						// We're making a network ns,  but not
+						// configuring with Slirp or CNI. That
+						// means it's --net=none
+						networkMode = "none"
+					}
+					break
 				}
-				break
 			}
 		}
 		if !foundNetNS {

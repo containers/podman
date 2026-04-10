@@ -201,7 +201,7 @@ outer:
 		_ = os.Remove(socketfile)
 		// workaround to bypass the 108 char socket path limit
 		// open the fd and use the path to the fd as bind argument
-		fd, err := unix.Open(socketDir, unix.O_PATH, 0)
+		fd, err := unix.Open(socketDir, unix.O_PATH|unix.O_CLOEXEC, 0)
 		if err != nil {
 			return err
 		}

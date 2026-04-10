@@ -24,14 +24,14 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-42"
+    FEDORA_NAME: "fedora-43"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
-    PRIOR_FEDORA_NAME: "fedora-41"
+    PRIOR_FEDORA_NAME: "fedora-42"
     RAWHIDE_NAME: "rawhide"
-    DEBIAN_NAME: "debian-13"
+    DEBIAN_NAME: "debian-14"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250910t092246z-f42f41d13"
+    IMAGE_SUFFIX: "c20260319t182308z-f43f42d14"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -810,7 +810,7 @@ podman_machine_aarch64_task:
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
-    timeout_in: 40m
+    timeout_in: 60m
     env:
         TEST_FLAVOR: "machine-linux"
         TEST_BUILD_TAGS: ""
@@ -1099,13 +1099,9 @@ upgrade_test_task:
     depends_on: *build
     matrix:
         - env:
-              # 2024-02: as long as possible/reasonable, try to keep
-              #   one version < 4.8 so we can test boltdb. v4.3.1 is
-              #   the lowest we can go right now, builds before that
-              #   have netavark <1.4 which hangs on f39 kernel (#21863).
-              PODMAN_UPGRADE_FROM: v4.3.1
+              PODMAN_UPGRADE_FROM: v5.3.1
         - env:
-              PODMAN_UPGRADE_FROM: v4.8.0
+              PODMAN_UPGRADE_FROM: v5.6.2
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
