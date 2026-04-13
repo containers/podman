@@ -229,3 +229,29 @@ func getQuadletServiceName(quadletPath string) (string, error) {
 	}
 	return serviceName + ".service", nil
 }
+
+func getApplicationPath(app string) (string, error) {
+	// Get the root paths of all quadlets available to the current user
+	quadletDirs := systemdquadlet.GetUnitDirs(rootless.IsRootless(), false)
+
+	// for every quadlet dir, let's get the quadlets
+	for _, dir := range quadletDirs {
+		// Avoiding using filepath.join with "app", as it may lead to
+		// path traversal attack
+		files, err := os.ReadDir(dir)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+
+		if err != nil {
+			return "", err
+		}
+
+		for _, file := range files {
+			if file.IsDir() && file.Name() == app {
+				return filepath.Join(dir, file.Name()), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("application %s not found", app)
+}

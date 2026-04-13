@@ -622,6 +622,19 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 					report.Removed = append(report.Removed, unit.Name)
 				}
 			}
+
+			// clean up application folder when no error
+			if len(report.Errors) == 0 {
+				appPath, err := getApplicationPath(quadlet)
+				if err != nil {
+					report.Errors[quadlet] = err
+				} else {
+					err = os.RemoveAll(appPath)
+					if err != nil {
+						report.Errors[quadlet] = err
+					}
+				}
+			}
 		}
 	}
 

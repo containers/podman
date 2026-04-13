@@ -300,7 +300,7 @@ port=3000
 EOF
 
     # Install the directory
-    run_podman quadlet install "$app_dir"
+    run_podman quadlet install "$app_dir" --application=$app_name
 
     # Verify all quadlets were installed (2 individual + 3 from .quadlets file = 5 total)
     assert "$output" =~ "${frontend_name}.container" "install output should contain ${frontend_name}.container"
@@ -313,23 +313,12 @@ EOF
     assert "${#lines[@]}" -eq 6 "install output should contain exactly six lines"
 
     # Verify all files exist on disk
-    [[ -f "$install_dir/${frontend_name}.container" ]] || die "${frontend_name}.container should exist on disk"
-    [[ -f "$install_dir/${data_name}.volume" ]] || die "${data_name}.volume should exist on disk"
-    [[ -f "$install_dir/${api_name}.container" ]] || die "${api_name}.container should exist on disk"
-    [[ -f "$install_dir/${cache_name}.volume" ]] || die "${cache_name}.volume should exist on disk"
-    [[ -f "$install_dir/${network_name}.network" ]] || die "${network_name}.network should exist on disk"
-    [[ -f "$install_dir/app.conf" ]] || die "app.conf should exist on disk"
-
-    # Check that the .app file was created (all files are part of one application)
-    [[ -f "$install_dir/.${app_name}.app" ]] || die ".${app_name}.app file should exist"
-
-    # Verify the .app file contains all quadlet names
-    run cat "$install_dir/.${app_name}.app"
-    assert "$output" =~ "${frontend_name}.container" ".app file should contain ${frontend_name}.container"
-    assert "$output" =~ "${data_name}.volume" ".app file should contain ${data_name}.volume"
-    assert "$output" =~ "${api_name}.container" ".app file should contain ${api_name}.container"
-    assert "$output" =~ "${cache_name}.volume" ".app file should contain ${cache_name}.volume"
-    assert "$output" =~ "${network_name}.network" ".app file should contain ${network_name}.network"
+    [[ -f "$install_dir/$app_name/${frontend_name}.container" ]] || die "${frontend_name}.container should exist on disk"
+    [[ -f "$install_dir/$app_name/${data_name}.volume" ]] || die "${data_name}.volume should exist on disk"
+    [[ -f "$install_dir/$app_name/${api_name}.container" ]] || die "${api_name}.container should exist on disk"
+    [[ -f "$install_dir/$app_name/${cache_name}.volume" ]] || die "${cache_name}.volume should exist on disk"
+    [[ -f "$install_dir/$app_name/${network_name}.network" ]] || die "${network_name}.network should exist on disk"
+    [[ -f "$install_dir/$app_name/app.conf" ]] || die "app.conf should exist on disk"
 
     # Test quadlet list to verify all quadlets show the same app name
     run_podman quadlet list
@@ -339,28 +328,21 @@ EOF
     local cache_line=$(echo "$output" | grep "${cache_name}.volume")
     local network_line=$(echo "$output" | grep "${network_name}.network")
 
-    # All lines should contain the same app name (.${app_name}.app)
-    assert "$frontend_line" =~ "\\.${app_name}\\.app" "${frontend_name} should show .${app_name}.app as app"
-    assert "$data_line" =~ "\\.${app_name}\\.app" "${data_name} should show .${app_name}.app as app"
-    assert "$api_line" =~ "\\.${app_name}\\.app" "${api_name} should show .${app_name}.app as app"
-    assert "$cache_line" =~ "\\.${app_name}\\.app" "${cache_name} should show .${app_name}.app as app"
-    assert "$network_line" =~ "\\.${app_name}\\.app" "${network_name} should show .${app_name}.app as app"
-
     # Verify content of individual quadlet files
-    run cat "$install_dir/${frontend_name}.container"
+    run cat "$install_dir/$app_name/${frontend_name}.container"
     assert "$output" =~ "\\[Container\\]" "frontend container file should contain [Container] section"
     assert "$output" =~ "ContainerName=frontend-app-" "frontend container file should contain correct name prefix"
 
-    run cat "$install_dir/${api_name}.container"
+    run cat "$install_dir/$app_name/${api_name}.container"
     assert "$output" =~ "\\[Container\\]" "api-server container file should contain [Container] section"
     assert "$output" =~ "ContainerName=api-server-" "api-server container file should contain correct name prefix"
 
-    run cat "$install_dir/${network_name}.network"
+    run cat "$install_dir/$app_name/${network_name}.network"
     assert "$output" =~ "\\[Network\\]" "network file should contain [Network] section"
     assert "$output" =~ "Subnet=192.168.1.0/24" "network file should contain correct subnet"
 
     # Test that removing one quadlet removes the entire application
-    run_podman quadlet rm ${frontend_name}.container
+    run_podman quadlet rm $app_name --recursive
 
     # All quadlets should be removed since they're part of the same app
     run_podman quadlet list
@@ -370,14 +352,11 @@ EOF
     assert "$output" !~ "${cache_name}.volume" "${cache_name}.volume should also be removed as part of same app"
     assert "$output" !~ "${network_name}.network" "${network_name}.network should also be removed as part of same app"
 
-    # The .app file should also be removed
-    [[ ! -f "$install_dir/.${app_name}.app" ]] || die ".${app_name}.app file should be removed"
-
     # All individual files should be removed
-    [[ ! -f "$install_dir/${frontend_name}.container" ]] || die "${frontend_name}.container should be removed"
-    [[ ! -f "$install_dir/${data_name}.volume" ]] || die "${data_name}.volume should be removed"
-    [[ ! -f "$install_dir/${api_name}.container" ]] || die "${api_name}.container should be removed"
-    [[ ! -f "$install_dir/${cache_name}.volume" ]] || die "${cache_name}.volume should be removed"
-    [[ ! -f "$install_dir/${network_name}.network" ]] || die "${network_name}.network should be removed"
-    [[ ! -f "$install_dir/app.conf" ]] || die "app.conf should be removed"
+    [[ ! -f "$install_dir/$app_name/${frontend_name}.container" ]] || die "${frontend_name}.container should be removed"
+    [[ ! -f "$install_dir/$app_name/${data_name}.volume" ]] || die "${data_name}.volume should be removed"
+    [[ ! -f "$install_dir/$app_name/${api_name}.container" ]] || die "${api_name}.container should be removed"
+    [[ ! -f "$install_dir/$app_name/${cache_name}.volume" ]] || die "${cache_name}.volume should be removed"
+    [[ ! -f "$install_dir/$app_name/${network_name}.network" ]] || die "${network_name}.network should be removed"
+    [[ ! -f "$install_dir/$app_name/app.conf" ]] || die "app.conf should be removed"
 }
