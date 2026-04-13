@@ -1,5 +1,25 @@
 # Release Notes
 
+## 5.8.2
+### Security
+- This release addresses CVE-2026-33414, where the `podman machine init --image` command when run on Windows using the Hyper-V backend can run Powershell-escaped commands from the user-specified image path on in a Powershell session on the host ([GHSA-hc8w-h2mf-hp59](https://github.com/containers/podman/security/advisories/GHSA-hc8w-h2mf-hp59)).
+
+### Bugfixes
+- Fixed a bug where containers with the `unless-stopped` restart policy would not restart after a reboot when `podman-restart.service` was enabled ([#28152](https://github.com/containers/podman/issues/28152)).
+- Fixed a bug where setting `Entrypoint=""` in a Quadlet `.container` file did not clear the container's entrypoint ([#28213](https://github.com/containers/podman/issues/28213)).
+- Fixed a bug where setting a `HealthCmd` in a Quadlet `.container` file to a command that included double-quotes (`"`) would result in a nonfunctional healthcheck due to a parsing issue ([#28409](https://github.com/containers/podman/issues/28409)).
+- Fixed a bug where FreeBSD systems could panic when inspecting containers created with the `host` network mode ([#28289](https://github.com/containers/podman/issues/28289)).
+
+### API
+- Fixed a bug where the Libpod System Check endpoint could perform operations with bad data after returning a 400 error ([#28350](https://github.com/containers/podman/issues/28350)).
+- Fixed a bug where the remote attach API for containers (Libpod & Compat) could panic due to a rare race condition ([#28277](https://github.com/containers/podman/issues/28277)).
+- Fixed a bug where the Secret Create API could not create functional secrets using the `shell` driver due to options from the default driver being improperly added.
+
+### Misc
+- Updated Buildah to v1.43.1
+- Updated the containers/common library to v0.67.1
+- Updated the containers/image library to v5.39.2
+
 ## 5.8.1
 ### Bugfixes
 - Fixed a critical bug where automatic migration from BoltDB to SQLite after a reboot could perform a partial migration, with some containers in SQLite and some remaining in BoltDB, when Quadlets were in use ([#28215](https://github.com/containers/podman/issues/28216)). For those who encountered this bug with 5.8.0 there is no way to automatically recover. If you do not have persistent containers/pods/volumes (i.e. all containers are run using Quadlets) then the easiest option is to move the `db.sql` file in Podman's storage directory to `db.sql.bak` (or similar) and reboot again with v5.8.1 to attempt another migration. Please contact the maintainers with any issues during migration and we will assist as able.
