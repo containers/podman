@@ -136,6 +136,12 @@ loop:
 	for _, r := range line {
 		i++
 		if escaped {
+			if r == 't' {
+				r = '\t'
+			}
+			if r == 'n' {
+				r = '\n'
+			}
 			buf += string(r)
 			escaped = false
 			got = argSingle
@@ -194,23 +200,49 @@ loop:
 				backtick = ""
 				backQuote = !backQuote
 			}
+
 		case ')':
 			if !singleQuoted && !doubleQuoted && !backQuote {
 				if p.ParseBacktick {
-					if dollarQuote {
-						out, err := shellRun(backtick, p.Dir)
-						if err != nil {
-							return nil, err
-						}
-						buf = buf[:len(buf)-len(backtick)-2] + out
+					// Security fix:
+					// A bare ')' must never open dollarQuote state.
+					// Preserve prior behavior by rejecting unmatched ')'
+					// when command substitution parsing is enabled.
+					if !dollarQuote {
+						return nil, errors.New("invalid command line string")
 					}
+
+					out, err := shellRun(backtick, p.Dir)
+					if err != nil {
+						return nil, err
+					}
+
+					// Defensive guard: valid $(...) implies the buffer must contain
+					// the "$(" prefix plus the collected command body.
+					if len(buf) < len(backtick)+2 {
+						return nil, errors.New("invalid command line string")
+					}
+
+					buf = buf[:len(buf)-len(backtick)-2] + out
 					backtick = ""
-					dollarQuote = !dollarQuote
+					dollarQuote = false
 					continue
 				}
+
+				// Backtick parsing disabled:
+				// A bare ')' is a syntax error, consistent with '(' handling.
+				// Only close an already-open $(...) region.
+				if !dollarQuote {
+					return nil, errors.New("invalid command line string")
+				}
+
+				buf += string(r)
 				backtick = ""
-				dollarQuote = !dollarQuote
+				dollarQuote = false
+				got = argSingle
+				continue
 			}
+
 		case '(':
 			if !singleQuoted && !doubleQuoted && !backQuote {
 				if !dollarQuote && strings.HasSuffix(buf, "$") {
@@ -221,6 +253,7 @@ loop:
 					return nil, errors.New("invalid command line string")
 				}
 			}
+
 		case '"':
 			if !singleQuoted && !dollarQuote {
 				if doubleQuoted {
@@ -229,6 +262,7 @@ loop:
 				doubleQuoted = !doubleQuoted
 				continue
 			}
+
 		case '\'':
 			if !doubleQuoted && !dollarQuote {
 				if singleQuoted {
@@ -237,6 +271,7 @@ loop:
 				singleQuoted = !singleQuoted
 				continue
 			}
+
 		case ';', '&', '|', '<', '>':
 			if !(escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote) {
 				if r == '>' && len(buf) > 0 {
