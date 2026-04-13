@@ -334,6 +334,15 @@ for t in "${tests_to_run[@]}"; do
         continue
     fi
 
+    if ! is_rootless && [ -e $testdir/SKIP_ROOT ]; then
+        reason="$(<$testdir/SKIP_ROOT)"
+        if [ -n "$reason" ]; then
+            reason=" - $reason"
+        fi
+        _show_ok skip "$testname # skip$reason"
+        continue
+    fi
+
     start_service
 
     logfile=$WORKDIR/$testname.log

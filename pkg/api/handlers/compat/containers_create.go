@@ -299,7 +299,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		}
 	}
 
-	// special case for NetworkMode, the podman default is slirp4netns for
+	// special case for NetworkMode, the podman default is pasta for
 	// rootless but for better docker compat we want bridge. Do this only if
 	// the default config in containers.conf wasn't overridden to use another
 	// value than the default "private" one.
