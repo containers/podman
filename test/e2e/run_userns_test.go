@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
+	"github.com/containers/storage"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -39,6 +40,7 @@ var _ = Describe("Podman UserNS support", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
+	})
 
 	// Note: Lot of tests for build with --userns=auto are already there in buildah
 	// but they are skipped in podman CI because bud tests are executed in rootfull

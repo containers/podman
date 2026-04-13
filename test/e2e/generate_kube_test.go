@@ -3,6 +3,7 @@ package integration
 import (
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
