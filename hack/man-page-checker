@@ -53,6 +53,11 @@ for md in $(ls -1 *-*.1.md | grep -v remote);do
         # dashes.
         parent="podman.1.md"
     fi
+    if [[ $parent =~ "podman-system-hyperv" ]]; then
+        # podman-system-hyperv-prep.1.md: "hyperv-prep" is a single
+        # hyphenated subcommand of "podman system", not a sub-subcommand.
+        parent="podman-system.1.md"
+    fi
     x=3
     if expr -- "$parent" : ".*-" >/dev/null; then
         x=4
@@ -79,7 +84,8 @@ function compare_usage() {
     local from_man="$2"
 
     # Special case: this is an external call to docker
-    if [[ $cmd = "podman compose" ]] || [[ $cmd = "podmansh" ]]; then
+    # or a Windows-only command not available on Linux
+    if [[ $cmd = "podman compose" ]] || [[ $cmd = "podmansh" ]] || [[ $cmd = "podman system hyperv-prep" ]]; then
         return
     fi
 
@@ -157,6 +163,10 @@ for md in *.1.md;do
     if [[ $md_nodash = 'podman auto update' ]]; then
         # special case: the command is "auto-update", with a hyphen
         md_nodash='podman auto-update'
+    fi
+    if [[ $md_nodash = 'podman system hyperv prep' ]]; then
+        # special case: the command is "hyperv-prep", with a hyphen
+        md_nodash='podman system hyperv-prep'
     fi
     if [[ "$cmd" != "$md_nodash" ]] && [[ "$cmd" != "podman-remote" ]]; then
         echo

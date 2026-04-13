@@ -50,7 +50,7 @@ const (
 	Fileserver
 )
 
-func (hv HVSockPurpose) string() string {
+func (hv HVSockPurpose) String() string {
 	switch hv {
 	case Network:
 		return "Network"
@@ -63,7 +63,7 @@ func (hv HVSockPurpose) string() string {
 }
 
 func (hv HVSockPurpose) Equal(purpose string) bool {
-	return hv.string() == purpose
+	return hv.String() == purpose
 }
 
 func toHVSockPurpose(p string) (HVSockPurpose, error) {
@@ -105,6 +105,18 @@ type HVSockRegistryEntry struct {
 	KeepAfterMachineRemove bool `json:"keep_after_machine_remove,omitempty"`
 }
 
+func (hv *HVSockRegistryEntry) String() string {
+	keepStatus := ""
+	if hv.KeepAfterMachineRemove {
+		keepStatus = " (persistent)"
+	}
+	return fmt.Sprintf("- Key: %s\n  Purpose: %s\n  Port: %d%s\n",
+		hv.KeyName,
+		hv.Purpose,
+		hv.Port,
+		keepStatus)
+}
+
 // Add creates a new Windows registry entry with string values from the
 // HVSockRegistryEntry.
 func (hv *HVSockRegistryEntry) Add() error {
@@ -116,7 +128,7 @@ func (hv *HVSockRegistryEntry) Add() error {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("%q: %s", ErrVSockRegistryEntryExists, hv.KeyName)
+		return fmt.Errorf("%w: %s", ErrVSockRegistryEntryExists, hv.KeyName)
 	}
 	parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
 	if err != nil {
@@ -137,10 +149,20 @@ func (hv *HVSockRegistryEntry) Add() error {
 		}
 	}()
 
-	if err := newKey.SetStringValue(HvsockPurpose, hv.Purpose.string()); err != nil {
+	if err := newKey.SetStringValue(HvsockPurpose, hv.Purpose.String()); err != nil {
 		return err
 	}
-	return newKey.SetStringValue(HvsockToolName, hv.ToolName)
+	if err := newKey.SetStringValue(HvsockToolName, hv.ToolName); err != nil {
+		return err
+	}
+	// Save KeepAfterMachineRemove flag if set
+	if hv.KeepAfterMachineRemove {
+		var value uint32 = 1
+		if err := newKey.SetDWordValue(HvsockKeepAfterMachineRemove, value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Remove deletes the registry key and its string values
@@ -156,7 +178,7 @@ func (hv *HVSockRegistryEntry) validate() error {
 	if hv.Port < 1 {
 		return errors.New("port must be larger than 1")
 	}
-	if len(hv.Purpose.string()) < 1 {
+	if len(hv.Purpose.String()) < 1 {
 		return errors.New("required field purpose is empty")
 	}
 	if len(hv.ToolName) < 1 {
@@ -181,9 +203,9 @@ func (hv *HVSockRegistryEntry) exists() (bool, error) {
 	return false, err
 }
 
-// findOpenHVSockPort looks for an open random port. it verifies the port is not
+// FindOpenHVSockPort looks for an open random port. it verifies the port is not
 // already being used by another hvsock in the Windows registry.
-func findOpenHVSockPort() (uint64, error) {
+func FindOpenHVSockPort() (uint64, error) {
 	// If we cannot find a free port in 10 attempts, something is wrong
 	for range 10 {
 		port, err := utils.GetRandomPort()
@@ -208,19 +230,20 @@ func findOpenHVSockPort() (uint64, error) {
 
 // NewHVSockRegistryEntry is a constructor to make a new registry entry in Windows.  After making the new
 // object, you must call the add() method to *actually* add it to the Windows registry.
-func NewHVSockRegistryEntry(purpose HVSockPurpose) (*HVSockRegistryEntry, error) {
+func NewHVSockRegistryEntry(purpose HVSockPurpose, keep bool) (*HVSockRegistryEntry, error) {
 	// a so-called wildcard entry ... everything from FACB -> 6D3 is MS special sauce
 	// for a " linux vm".  this first segment is hexi for the hvsock port number
 	// 00000400-FACB-11E6-BD58-64006A7986D3
-	port, err := findOpenHVSockPort()
+	port, err := FindOpenHVSockPort()
 	if err != nil {
 		return nil, err
 	}
 	r := HVSockRegistryEntry{
-		KeyName:  portToKeyName(port),
-		Purpose:  purpose,
-		Port:     port,
-		ToolName: PodmanToolName,
+		KeyName:                PortToKeyName(port),
+		Purpose:                purpose,
+		Port:                   port,
+		ToolName:               PodmanToolName,
+		KeepAfterMachineRemove: keep,
 	}
 	if err := r.Add(); err != nil {
 		return nil, err
@@ -228,7 +251,7 @@ func NewHVSockRegistryEntry(purpose HVSockPurpose) (*HVSockRegistryEntry, error)
 	return &r, nil
 }
 
-func portToKeyName(port uint64) string {
+func PortToKeyName(port uint64) string {
 	// this could be flattened but given the complexity, I thought it might
 	// be more difficult to read
 	hexi := strings.ToUpper(fmt.Sprintf("%08x", port))
@@ -236,7 +259,7 @@ func portToKeyName(port uint64) string {
 }
 
 func LoadHVSockRegistryEntry(port uint64) (*HVSockRegistryEntry, error) {
-	keyName := portToKeyName(port)
+	keyName := PortToKeyName(port)
 	fqPath := fmt.Sprintf("%s\\%s", VsockRegistryPath, keyName)
 	k, err := openVSockRegistryEntry(fqPath)
 	if err != nil {
@@ -359,7 +382,7 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 			continue
 		}
 
-		if !entryPurpose.Equal(purpose.string()) {
+		if !entryPurpose.Equal(purpose.String()) {
 			continue
 		}
 
@@ -416,7 +439,7 @@ func LoadHVSockRegistryEntryByPurpose(purpose HVSockPurpose) (*HVSockRegistryEnt
 		return nil, err
 	}
 	if len(entries) != 1 {
-		return nil, fmt.Errorf("no hvsock registry entry found for purpose: %s", purpose.string())
+		return nil, fmt.Errorf("no hvsock registry entry found for purpose: %s", purpose.String())
 	}
 
 	return entries[0], nil

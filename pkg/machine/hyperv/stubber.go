@@ -139,7 +139,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		if !windows.HasAdminRights() {
 			return ErrHypervRegistryInitRequiresElevation
 		}
-		networkHVSock, err = vsock.NewHVSockRegistryEntry(vsock.Network)
+		networkHVSock, err = vsock.NewHVSockRegistryEntry(vsock.Network, false)
 		if err != nil {
 			return err
 		}
@@ -690,7 +690,7 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.
 			}
 			return nil, ErrHypervRegistryInitRequiresElevation
 		}
-		readySock, err = vsock.NewHVSockRegistryEntry(vsock.Events)
+		readySock, err = vsock.NewHVSockRegistryEntry(vsock.Events, false)
 		if err != nil {
 			return nil, err
 		}

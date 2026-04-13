@@ -15,6 +15,7 @@ The system command allows management of the podman systems
 | -------    | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
 | check      | [podman-system-check(1)](podman-system-check.1.md)           | Perform consistency checks on image and container storage.
 | connection | [podman-system-connection(1)](podman-system-connection.1.md) | Manage the destination(s) for Podman service(s)                          |
+| hyperv-prep| [podman-system-hyperv-prep(1)](podman-system-hyperv-prep.1.md) | A Windows administrator command to prepare a host that is going to run Hyper-V based Podman machines |
 | df         | [podman-system-df(1)](podman-system-df.1.md)                 | Show podman disk usage.                                                  |
 | events     | [podman-events(1)](podman-events.1.md)                       | Monitor Podman events                                                    |
 | info       | [podman-info(1)](podman-info.1.md)                           | Display Podman related system information.                               |

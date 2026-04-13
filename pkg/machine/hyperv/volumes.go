@@ -66,7 +66,7 @@ func createShares(mc *vmconfigs.MachineConfig) (err error) {
 				}
 				return ErrHypervRegistryUpdateRequiresElevation
 			}
-			testVsock, err = vsock.NewHVSockRegistryEntry(vsock.Fileserver)
+			testVsock, err = vsock.NewHVSockRegistryEntry(vsock.Fileserver, false)
 			if err != nil {
 				return err
 			}
