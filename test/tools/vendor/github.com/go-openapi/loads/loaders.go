@@ -1,22 +1,24 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package loads
 
 import (
 	"encoding/json"
 	"errors"
 	"net/url"
+	"slices"
 
 	"github.com/go-openapi/spec"
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/loading"
 )
 
-var (
-	// Default chain of loaders, defined at the package level.
-	//
-	// By default this matches json and yaml documents.
-	//
-	// May be altered with AddLoader().
-	loaders *loader
-)
+// Default chain of loaders, defined at the package level.
+//
+// By default this matches json and yaml documents.
+//
+// May be altered with AddLoader().
+var loaders *loader
 
 func init() {
 	jsonLoader := &loader{
@@ -30,8 +32,8 @@ func init() {
 
 	loaders = jsonLoader.WithHead(&loader{
 		DocLoaderWithMatch: DocLoaderWithMatch{
-			Match: swag.YAMLMatcher,
-			Fn:    swag.YAMLDoc,
+			Match: loading.YAMLMatcher,
+			Fn:    loading.YAMLDoc,
 		},
 	})
 
@@ -39,10 +41,10 @@ func init() {
 	spec.PathLoader = loaders.Load
 }
 
-// DocLoader represents a doc loader type
-type DocLoader func(string) (json.RawMessage, error)
+// DocLoader represents a doc loader type.
+type DocLoader func(string, ...loading.Option) (json.RawMessage, error)
 
-// DocMatcher represents a predicate to check if a loader matches
+// DocMatcher represents a predicate to check if a loader matches.
 type DocMatcher func(string) bool
 
 // DocLoaderWithMatch describes a loading function for a given extension match.
@@ -51,7 +53,7 @@ type DocLoaderWithMatch struct {
 	Match DocMatcher
 }
 
-// NewDocLoaderWithMatch builds a DocLoaderWithMatch to be used in load options
+// NewDocLoaderWithMatch builds a [DocLoaderWithMatch] to be used in load options.
 func NewDocLoaderWithMatch(fn DocLoader, matcher DocMatcher) DocLoaderWithMatch {
 	return DocLoaderWithMatch{
 		Fn:    fn,
@@ -61,10 +63,13 @@ func NewDocLoaderWithMatch(fn DocLoader, matcher DocMatcher) DocLoaderWithMatch 
 
 type loader struct {
 	DocLoaderWithMatch
+
+	loadingOptions []loading.Option
+
 	Next *loader
 }
 
-// WithHead adds a loader at the head of the current stack
+// WithHead adds a loader at the head of the current stack.
 func (l *loader) WithHead(head *loader) *loader {
 	if head == nil {
 		return l
@@ -73,27 +78,27 @@ func (l *loader) WithHead(head *loader) *loader {
 	return head
 }
 
-// WithNext adds a loader at the trail of the current stack
+// WithNext adds a loader at the trail of the current stack.
 func (l *loader) WithNext(next *loader) *loader {
 	l.Next = next
 	return next
 }
 
-// Load the raw document from path
+// Load the raw document from path.
 func (l *loader) Load(path string) (json.RawMessage, error) {
 	_, erp := url.Parse(path)
 	if erp != nil {
-		return nil, erp
+		return nil, errors.Join(erp, ErrLoads)
 	}
 
-	lastErr := errors.New("no loader matched") // default error if no match was found
+	var lastErr error = ErrNoLoader // default error if no match was found
 	for ldr := l; ldr != nil; ldr = ldr.Next {
 		if ldr.Match != nil && !ldr.Match(path) {
 			continue
 		}
 
 		// try then move to next one if there is an error
-		b, err := ldr.Fn(path)
+		b, err := ldr.Fn(path, l.loadingOptions...)
 		if err == nil {
 			return b, nil
 		}
@@ -101,14 +106,29 @@ func (l *loader) Load(path string) (json.RawMessage, error) {
 		lastErr = err
 	}
 
-	return nil, lastErr
+	return nil, errors.Join(lastErr, ErrLoads)
 }
 
-// JSONDoc loads a json document from either a file or a remote url
-func JSONDoc(path string) (json.RawMessage, error) {
-	data, err := swag.LoadFromFileOrHTTP(path)
+func (l *loader) clone() *loader {
+	if l == nil {
+		return nil
+	}
+
+	return &loader{
+		DocLoaderWithMatch: l.DocLoaderWithMatch,
+		loadingOptions:     slices.Clone(l.loadingOptions),
+		Next:               l.Next.clone(),
+	}
+}
+
+// JSONDoc loads a json document from either a file or a remote URL.
+//
+// See [loading.Option] for available options (e.g. configuring authentication,
+// headers or using embedded file system resources).
+func JSONDoc(path string, opts ...loading.Option) (json.RawMessage, error) {
+	data, err := loading.LoadFromFileOrHTTP(path, opts...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, ErrLoads)
 	}
 	return json.RawMessage(data), nil
 }
@@ -117,9 +137,10 @@ func JSONDoc(path string) (json.RawMessage, error) {
 //
 // This sets the configuration at the package level.
 //
-// NOTE:
-//   - this updates the default loader used by github.com/go-openapi/spec
-//   - since this sets package level globals, you shouln't call this concurrently
+// # Concurrency
+//
+// This function updates the default loader used by [github.com/go-openapi/spec].
+// Since this sets package level globals, you shouldn't call this concurrently.
 func AddLoader(predicate DocMatcher, load DocLoader) {
 	loaders = loaders.WithHead(&loader{
 		DocLoaderWithMatch: DocLoaderWithMatch{

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 // Copyright 2013 The Go Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style
@@ -94,5 +97,6 @@ func normalizeOffers(orig []string) (norm []string) {
 }
 
 func normalizeOffer(orig string) string {
-	return strings.SplitN(orig, ";", 2)[0]
+	const maxParts = 2
+	return strings.SplitN(orig, ";", maxParts)[0]
 }

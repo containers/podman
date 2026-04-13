@@ -1,19 +1,22 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package spec
 
-// CommonValidations describe common JSON-schema validations
+// CommonValidations describe common JSON-schema validations.
 type CommonValidations struct {
-	Maximum          *float64      `json:"maximum,omitempty"`
-	ExclusiveMaximum bool          `json:"exclusiveMaximum,omitempty"`
-	Minimum          *float64      `json:"minimum,omitempty"`
-	ExclusiveMinimum bool          `json:"exclusiveMinimum,omitempty"`
-	MaxLength        *int64        `json:"maxLength,omitempty"`
-	MinLength        *int64        `json:"minLength,omitempty"`
-	Pattern          string        `json:"pattern,omitempty"`
-	MaxItems         *int64        `json:"maxItems,omitempty"`
-	MinItems         *int64        `json:"minItems,omitempty"`
-	UniqueItems      bool          `json:"uniqueItems,omitempty"`
-	MultipleOf       *float64      `json:"multipleOf,omitempty"`
-	Enum             []interface{} `json:"enum,omitempty"`
+	Maximum          *float64 `json:"maximum,omitempty"`
+	ExclusiveMaximum bool     `json:"exclusiveMaximum,omitempty"`
+	Minimum          *float64 `json:"minimum,omitempty"`
+	ExclusiveMinimum bool     `json:"exclusiveMinimum,omitempty"`
+	MaxLength        *int64   `json:"maxLength,omitempty"`
+	MinLength        *int64   `json:"minLength,omitempty"`
+	Pattern          string   `json:"pattern,omitempty"`
+	MaxItems         *int64   `json:"maxItems,omitempty"`
+	MinItems         *int64   `json:"minItems,omitempty"`
+	UniqueItems      bool     `json:"uniqueItems,omitempty"`
+	MultipleOf       *float64 `json:"multipleOf,omitempty"`
+	Enum             []any    `json:"enum,omitempty"`
 }
 
 // SetValidations defines all validations for a simple schema.
@@ -37,12 +40,12 @@ func (v *CommonValidations) SetValidations(val SchemaValidations) {
 
 type clearedValidation struct {
 	Validation string
-	Value      interface{}
+	Value      any
 }
 
 type clearedValidations []clearedValidation
 
-func (c clearedValidations) apply(cbs []func(string, interface{})) {
+func (c clearedValidations) apply(cbs []func(string, any)) {
 	for _, cb := range cbs {
 		for _, cleared := range c {
 			cb(cleared.Validation, cleared.Value)
@@ -53,8 +56,9 @@ func (c clearedValidations) apply(cbs []func(string, interface{})) {
 // ClearNumberValidations clears all number validations.
 //
 // Some callbacks may be set by the caller to capture changed values.
-func (v *CommonValidations) ClearNumberValidations(cbs ...func(string, interface{})) {
-	done := make(clearedValidations, 0, 5)
+func (v *CommonValidations) ClearNumberValidations(cbs ...func(string, any)) {
+	const maxNumberValidations = 5
+	done := make(clearedValidations, 0, maxNumberValidations)
 	defer func() {
 		done.apply(cbs)
 	}()
@@ -84,8 +88,9 @@ func (v *CommonValidations) ClearNumberValidations(cbs ...func(string, interface
 // ClearStringValidations clears all string validations.
 //
 // Some callbacks may be set by the caller to capture changed values.
-func (v *CommonValidations) ClearStringValidations(cbs ...func(string, interface{})) {
-	done := make(clearedValidations, 0, 3)
+func (v *CommonValidations) ClearStringValidations(cbs ...func(string, any)) {
+	const maxStringValidations = 3
+	done := make(clearedValidations, 0, maxStringValidations)
 	defer func() {
 		done.apply(cbs)
 	}()
@@ -107,8 +112,9 @@ func (v *CommonValidations) ClearStringValidations(cbs ...func(string, interface
 // ClearArrayValidations clears all array validations.
 //
 // Some callbacks may be set by the caller to capture changed values.
-func (v *CommonValidations) ClearArrayValidations(cbs ...func(string, interface{})) {
-	done := make(clearedValidations, 0, 3)
+func (v *CommonValidations) ClearArrayValidations(cbs ...func(string, any)) {
+	const maxArrayValidations = 3
+	done := make(clearedValidations, 0, maxArrayValidations)
 	defer func() {
 		done.apply(cbs)
 	}()
@@ -137,22 +143,22 @@ func (v CommonValidations) Validations() SchemaValidations {
 	}
 }
 
-// HasNumberValidations indicates if the validations are for numbers or integers
+// HasNumberValidations indicates if the validations are for numbers or integers.
 func (v CommonValidations) HasNumberValidations() bool {
 	return v.Maximum != nil || v.Minimum != nil || v.MultipleOf != nil
 }
 
-// HasStringValidations indicates if the validations are for strings
+// HasStringValidations indicates if the validations are for strings.
 func (v CommonValidations) HasStringValidations() bool {
 	return v.MaxLength != nil || v.MinLength != nil || v.Pattern != ""
 }
 
-// HasArrayValidations indicates if the validations are for arrays
+// HasArrayValidations indicates if the validations are for arrays.
 func (v CommonValidations) HasArrayValidations() bool {
 	return v.MaxItems != nil || v.MinItems != nil || v.UniqueItems
 }
 
-// HasEnum indicates if the validation includes some enum constraint
+// HasEnum indicates if the validation includes some enum constraint.
 func (v CommonValidations) HasEnum() bool {
 	return len(v.Enum) > 0
 }
@@ -160,7 +166,7 @@ func (v CommonValidations) HasEnum() bool {
 // SchemaValidations describes the validation properties of a schema
 //
 // NOTE: at this moment, this is not embedded in SchemaProps because this would induce a breaking change
-// in the exported members: all initializers using litterals would fail.
+// in the exported members: all initializers using literals would fail.
 type SchemaValidations struct {
 	CommonValidations
 
@@ -169,12 +175,12 @@ type SchemaValidations struct {
 	MinProperties     *int64           `json:"minProperties,omitempty"`
 }
 
-// HasObjectValidations indicates if the validations are for objects
+// HasObjectValidations indicates if the validations are for objects.
 func (v SchemaValidations) HasObjectValidations() bool {
 	return v.MaxProperties != nil || v.MinProperties != nil || v.PatternProperties != nil
 }
 
-// SetValidations for schema validations
+// SetValidations for schema validations.
 func (v *SchemaValidations) SetValidations(val SchemaValidations) {
 	v.CommonValidations.SetValidations(val)
 	v.PatternProperties = val.PatternProperties
@@ -182,7 +188,7 @@ func (v *SchemaValidations) SetValidations(val SchemaValidations) {
 	v.MinProperties = val.MinProperties
 }
 
-// Validations for a schema
+// Validations for a schema.
 func (v SchemaValidations) Validations() SchemaValidations {
 	val := v.CommonValidations.Validations()
 	val.PatternProperties = v.PatternProperties
@@ -194,8 +200,9 @@ func (v SchemaValidations) Validations() SchemaValidations {
 // ClearObjectValidations returns a clone of the validations with all object validations cleared.
 //
 // Some callbacks may be set by the caller to capture changed values.
-func (v *SchemaValidations) ClearObjectValidations(cbs ...func(string, interface{})) {
-	done := make(clearedValidations, 0, 3)
+func (v *SchemaValidations) ClearObjectValidations(cbs ...func(string, any)) {
+	const maxObjectValidations = 3
+	done := make(clearedValidations, 0, maxObjectValidations)
 	defer func() {
 		done.apply(cbs)
 	}()

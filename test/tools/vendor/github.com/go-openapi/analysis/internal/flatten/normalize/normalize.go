@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package normalize
 
 import (
@@ -14,8 +17,9 @@ import (
 // NOTE: does not support JSONschema ID for $ref (we assume we are working with swagger specs here).
 //
 // NOTE(windows):
-// * refs are assumed to have been normalized with drive letter lower cased (from go-openapi/spec)
-// * "/ in paths may appear as escape sequences
+//
+//   - refs are assumed to have been normalized with drive letter lower cased (from go-openapi/spec)
+//   - "/ in paths may appear as escape sequences.
 func RebaseRef(baseRef string, ref string) string {
 	baseRef, _ = url.PathUnescape(baseRef)
 	ref, _ = url.PathUnescape(ref)
@@ -66,8 +70,9 @@ func RebaseRef(baseRef string, ref string) string {
 // Path renders absolute path on remote file refs
 //
 // NOTE(windows):
-// * refs are assumed to have been normalized with drive letter lower cased (from go-openapi/spec)
-// * "/ in paths may appear as escape sequences
+//
+//   - refs are assumed to have been normalized with drive letter lower cased (from go-openapi/spec)
+//   - "/ in paths may appear as escape sequences.
 func Path(ref spec.Ref, basePath string) string {
 	uri, _ := url.PathUnescape(ref.String())
 	if ref.HasFragmentOnly || filepath.IsAbs(uri) {

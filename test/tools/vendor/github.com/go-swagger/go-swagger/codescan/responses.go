@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package codescan
 
 import (
@@ -7,8 +10,9 @@ import (
 	"go/types"
 	"strings"
 
-	"github.com/go-openapi/spec"
 	"golang.org/x/tools/go/ast/astutil"
+
+	"github.com/go-openapi/spec"
 )
 
 type responseTypable struct {
@@ -16,6 +20,8 @@ type responseTypable struct {
 	header   *spec.Header
 	response *spec.Response
 }
+
+func (ht responseTypable) In() string { return ht.in }
 
 func (ht responseTypable) Level() int { return 0 }
 
@@ -52,7 +58,7 @@ func (ht responseTypable) Items() swaggerTypable {
 		ht.header.Items = new(spec.Items)
 	}
 	ht.header.Type = "array"
-	return itemsTypable{ht.header.Items, 1}
+	return itemsTypable{ht.header.Items, 1, "header"}
 }
 
 func (ht responseTypable) SetRef(ref spec.Ref) {
@@ -75,11 +81,11 @@ func (ht responseTypable) CollectionOf(items *spec.Items, format string) {
 	ht.header.CollectionOf(items, format)
 }
 
-func (ht responseTypable) AddExtension(key string, value interface{}) {
+func (ht responseTypable) AddExtension(key string, value any) {
 	ht.response.AddExtension(key, value)
 }
 
-func (ht responseTypable) WithEnum(values ...interface{}) {
+func (ht responseTypable) WithEnum(values ...any) {
 	ht.header.WithEnum(values)
 }
 
@@ -137,9 +143,9 @@ func (sv headerValidations) SetEnum(val string) {
 	sv.current.Enum = parseEnum(val, &spec.SimpleSchema{Type: sv.current.Type, Format: sv.current.Format})
 }
 
-func (sv headerValidations) SetDefault(val interface{}) { sv.current.Default = val }
+func (sv headerValidations) SetDefault(val any) { sv.current.Default = val }
 
-func (sv headerValidations) SetExample(val interface{}) { sv.current.Example = val }
+func (sv headerValidations) SetExample(val any) { sv.current.Example = val }
 
 type responseBuilder struct {
 	ctx       *scanCtx
@@ -155,7 +161,7 @@ func (r *responseBuilder) Build(responses map[string]spec.Response) error {
 
 	name, _ := r.decl.ResponseNames()
 	response := responses[name]
-	debugLog("building response: %s", name)
+	debugLogf("building response: %s", name)
 
 	// analyze doc comment for the model
 	sp := new(sectionedParser)
@@ -171,7 +177,7 @@ func (r *responseBuilder) Build(responses map[string]spec.Response) error {
 	// * has to document the validations that apply for the type and the field
 	// * when the struct field points to a model it becomes a ref: #/definitions/ModelName
 	// * comments that aren't tags is used as the description
-	if err := r.buildFromType(r.decl.Type, &response, make(map[string]bool)); err != nil {
+	if err := r.buildFromType(r.decl.ObjType(), &response, make(map[string]bool)); err != nil {
 		return err
 	}
 	responses[name] = response
@@ -179,53 +185,118 @@ func (r *responseBuilder) Build(responses map[string]spec.Response) error {
 }
 
 func (r *responseBuilder) buildFromField(fld *types.Var, tpe types.Type, typable swaggerTypable, seen map[string]bool) error {
-	debugLog("build from field %s: %T", fld.Name(), tpe)
+	debugLogf("build from field %s: %T", fld.Name(), tpe)
+
 	switch ftpe := tpe.(type) {
 	case *types.Basic:
 		return swaggerSchemaForType(ftpe.Name(), typable)
 	case *types.Struct:
-		sb := schemaBuilder{
-			decl: r.decl,
-			ctx:  r.ctx,
-		}
-		if err := sb.buildFromType(tpe, typable); err != nil {
-			return err
-		}
-		r.postDecls = append(r.postDecls, sb.postDecls...)
-		return nil
+		return r.buildFromFieldStruct(ftpe, typable)
 	case *types.Pointer:
 		return r.buildFromField(fld, ftpe.Elem(), typable, seen)
 	case *types.Interface:
-		sb := schemaBuilder{
-			decl: r.decl,
-			ctx:  r.ctx,
-		}
-		if err := sb.buildFromType(tpe, typable); err != nil {
-			return err
-		}
-		r.postDecls = append(r.postDecls, sb.postDecls...)
-		return nil
+		return r.buildFromFieldInterface(ftpe, typable)
 	case *types.Array:
 		return r.buildFromField(fld, ftpe.Elem(), typable.Items(), seen)
 	case *types.Slice:
 		return r.buildFromField(fld, ftpe.Elem(), typable.Items(), seen)
 	case *types.Map:
-		schema := new(spec.Schema)
-		typable.Schema().Typed("object", "").AdditionalProperties = &spec.SchemaOrBool{
-			Schema: schema,
-		}
-		sb := schemaBuilder{
-			decl: r.decl,
-			ctx:  r.ctx,
-		}
-		if err := sb.buildFromType(ftpe.Elem(), schemaTypable{schema, typable.Level() + 1}); err != nil {
-			return err
-		}
-		r.postDecls = append(r.postDecls, sb.postDecls...)
-		return nil
+		return r.buildFromFieldMap(ftpe, typable)
 	case *types.Named:
-		if decl, found := r.ctx.DeclForType(ftpe.Obj().Type()); found {
-			if decl.Type.Obj().Pkg().Path() == "time" && decl.Type.Obj().Name() == "Time" {
+		return r.buildNamedField(ftpe, typable)
+	case *types.Alias:
+		debugLogf("alias(responses.buildFromField): got alias %v to %v", ftpe, ftpe.Rhs())
+		return r.buildFieldAlias(ftpe, typable, fld, seen)
+	default:
+		return fmt.Errorf("unknown type for %s: %T", fld.String(), fld.Type())
+	}
+}
+
+func (r *responseBuilder) buildFromFieldStruct(ftpe *types.Struct, typable swaggerTypable) error {
+	sb := schemaBuilder{
+		decl: r.decl,
+		ctx:  r.ctx,
+	}
+
+	if err := sb.buildFromType(ftpe, typable); err != nil {
+		return err
+	}
+
+	r.postDecls = append(r.postDecls, sb.postDecls...)
+
+	return nil
+}
+
+func (r *responseBuilder) buildFromFieldMap(ftpe *types.Map, typable swaggerTypable) error {
+	schema := new(spec.Schema)
+	typable.Schema().Typed("object", "").AdditionalProperties = &spec.SchemaOrBool{
+		Schema: schema,
+	}
+
+	sb := schemaBuilder{
+		decl: r.decl,
+		ctx:  r.ctx,
+	}
+
+	if err := sb.buildFromType(ftpe.Elem(), schemaTypable{schema, typable.Level() + 1}); err != nil {
+		return err
+	}
+
+	r.postDecls = append(r.postDecls, sb.postDecls...)
+
+	return nil
+}
+
+func (r *responseBuilder) buildFromFieldInterface(tpe types.Type, typable swaggerTypable) error {
+	sb := schemaBuilder{
+		decl: r.decl,
+		ctx:  r.ctx,
+	}
+	if err := sb.buildFromType(tpe, typable); err != nil {
+		return err
+	}
+	r.postDecls = append(r.postDecls, sb.postDecls...)
+
+	return nil
+}
+
+func (r *responseBuilder) buildFromType(otpe types.Type, resp *spec.Response, seen map[string]bool) error {
+	switch tpe := otpe.(type) {
+	case *types.Pointer:
+		return r.buildFromType(tpe.Elem(), resp, seen)
+	case *types.Named:
+		return r.buildNamedType(tpe, resp, seen)
+	case *types.Alias:
+		debugLogf("alias(responses.buildFromType): got alias %v to %v", tpe, tpe.Rhs())
+		return r.buildAlias(tpe, resp, seen)
+	default:
+		return errors.New("anonymous types are currently not supported for responses")
+	}
+}
+
+func (r *responseBuilder) buildNamedType(tpe *types.Named, resp *spec.Response, seen map[string]bool) error {
+	o := tpe.Obj()
+	if isAny(o) || isStdError(o) {
+		return fmt.Errorf("%s type not supported in the context of a responses section definition", o.Name())
+	}
+	mustNotBeABuiltinType(o)
+	// ICI
+
+	switch stpe := o.Type().Underlying().(type) { // TODO(fred): this is wrong without checking for aliases?
+	case *types.Struct:
+		debugLogf("build from type %s: %T", o.Name(), tpe)
+		if decl, found := r.ctx.DeclForType(o.Type()); found {
+			return r.buildFromStruct(decl, stpe, resp, seen)
+		}
+		return r.buildFromStruct(r.decl, stpe, resp, seen)
+
+	default:
+		if decl, found := r.ctx.DeclForType(o.Type()); found {
+			var schema spec.Schema
+			typable := schemaTypable{schema: &schema, level: 0}
+
+			d := decl.Obj()
+			if isStdTime(d) {
 				typable.Typed("string", "date-time")
 				return nil
 			}
@@ -235,58 +306,129 @@ func (r *responseBuilder) buildFromField(fld *types.Var, tpe types.Type, typable
 			}
 			sb := &schemaBuilder{ctx: r.ctx, decl: decl}
 			sb.inferNames()
-			if err := sb.buildFromType(decl.Type, typable); err != nil {
+			if err := sb.buildFromType(tpe.Underlying(), typable); err != nil {
 				return err
 			}
+			resp.WithSchema(&schema)
 			r.postDecls = append(r.postDecls, sb.postDecls...)
 			return nil
 		}
-		return fmt.Errorf("unable to find package and source file for: %s", ftpe.String())
-	default:
-		return fmt.Errorf("unknown type for %s: %T", fld.String(), fld.Type())
+		return fmt.Errorf("responses can only be structs, did you mean for %s to be the response body?", tpe.String())
 	}
 }
 
-func (r *responseBuilder) buildFromType(otpe types.Type, resp *spec.Response, seen map[string]bool) error {
-	switch tpe := otpe.(type) {
-	case *types.Pointer:
-		return r.buildFromType(tpe.Elem(), resp, seen)
-	case *types.Named:
-		o := tpe.Obj()
-		switch stpe := o.Type().Underlying().(type) {
-		case *types.Struct:
-			debugLog("build from type %s: %T", tpe.Obj().Name(), otpe)
-			if decl, found := r.ctx.DeclForType(o.Type()); found {
-				return r.buildFromStruct(decl, stpe, resp, seen)
-			}
-			return r.buildFromStruct(r.decl, stpe, resp, seen)
-		default:
-			if decl, found := r.ctx.DeclForType(o.Type()); found {
-				var schema spec.Schema
-				typable := schemaTypable{schema: &schema, level: 0}
-
-				if decl.Type.Obj().Pkg().Path() == "time" && decl.Type.Obj().Name() == "Time" {
-					typable.Typed("string", "date-time")
-					return nil
-				}
-				if sfnm, isf := strfmtName(decl.Comments); isf {
-					typable.Typed("string", sfnm)
-					return nil
-				}
-				sb := &schemaBuilder{ctx: r.ctx, decl: decl}
-				sb.inferNames()
-				if err := sb.buildFromType(tpe.Underlying(), typable); err != nil {
-					return err
-				}
-				resp.WithSchema(&schema)
-				r.postDecls = append(r.postDecls, sb.postDecls...)
-				return nil
-			}
-			return fmt.Errorf("responses can only be structs, did you mean for %s to be the response body?", otpe.String())
-		}
-	default:
-		return errors.New("anonymous types are currently not supported for responses")
+func (r *responseBuilder) buildAlias(tpe *types.Alias, resp *spec.Response, seen map[string]bool) error {
+	// panic("yay")
+	o := tpe.Obj()
+	if isAny(o) || isStdError(o) {
+		// wrong: TODO(fred): see what object exactly we want to build here - figure out with specific tests
+		return fmt.Errorf("%s type not supported in the context of a responses section definition", o.Name())
 	}
+	mustNotBeABuiltinType(o)
+	mustHaveRightHandSide(tpe)
+
+	rhs := tpe.Rhs()
+
+	// If transparent aliases are enabled, use the underlying type directly without creating a definition
+	if r.ctx.app.transparentAliases {
+		return r.buildFromType(rhs, resp, seen)
+	}
+
+	decl, ok := r.ctx.FindModel(o.Pkg().Path(), o.Name())
+	if !ok {
+		return fmt.Errorf("can't find source file for aliased type: %v -> %v", tpe, rhs)
+	}
+	r.postDecls = append(r.postDecls, decl) // mark the left-hand side as discovered
+
+	if !r.ctx.app.refAliases {
+		// expand alias
+		unaliased := types.Unalias(tpe)
+		return r.buildFromType(unaliased.Underlying(), resp, seen)
+	}
+
+	switch rtpe := rhs.(type) {
+	// load declaration for named unaliased type
+	case *types.Named:
+		o := rtpe.Obj()
+		if o.Pkg() == nil {
+			break // builtin
+		}
+
+		typable := schemaTypable{schema: &spec.Schema{}, level: 0}
+		return r.makeRef(decl, typable)
+	case *types.Alias:
+		o := rtpe.Obj()
+		if o.Pkg() == nil {
+			break // builtin
+		}
+
+		typable := schemaTypable{schema: &spec.Schema{}, level: 0}
+
+		return r.makeRef(decl, typable)
+	}
+
+	return r.buildFromType(rhs, resp, seen)
+}
+
+func (r *responseBuilder) buildNamedField(ftpe *types.Named, typable swaggerTypable) error {
+	decl, found := r.ctx.DeclForType(ftpe.Obj().Type())
+	if !found {
+		return fmt.Errorf("unable to find package and source file for: %s", ftpe.String())
+	}
+
+	d := decl.Obj()
+	if isStdTime(d) {
+		typable.Typed("string", "date-time")
+		return nil
+	}
+
+	if sfnm, isf := strfmtName(decl.Comments); isf {
+		typable.Typed("string", sfnm)
+		return nil
+	}
+
+	sb := &schemaBuilder{ctx: r.ctx, decl: decl}
+	sb.inferNames()
+	if err := sb.buildFromType(decl.ObjType(), typable); err != nil {
+		return err
+	}
+
+	r.postDecls = append(r.postDecls, sb.postDecls...)
+
+	return nil
+}
+
+func (r *responseBuilder) buildFieldAlias(tpe *types.Alias, typable swaggerTypable, fld *types.Var, seen map[string]bool) error {
+	_ = fld
+	_ = seen
+	o := tpe.Obj()
+	if isAny(o) {
+		// e.g. Field interface{} or Field any
+		_ = typable.Schema()
+
+		return nil // just leave an empty schema
+	}
+
+	// If transparent aliases are enabled, use the underlying type directly without creating a definition
+	if r.ctx.app.transparentAliases {
+		sb := schemaBuilder{
+			decl: r.decl,
+			ctx:  r.ctx,
+		}
+		if err := sb.buildFromType(tpe.Rhs(), typable); err != nil {
+			return err
+		}
+		r.postDecls = append(r.postDecls, sb.postDecls...)
+		return nil
+	}
+
+	decl, ok := r.ctx.FindModel(o.Pkg().Path(), o.Name())
+	if !ok {
+		return fmt.Errorf("can't find source file for aliased type: %v", tpe)
+	}
+	r.postDecls = append(r.postDecls, decl) // mark the left-hand side as discovered
+
+	return r.makeRef(decl, typable)
 }
 
 func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, resp *spec.Response, seen map[string]bool) error {
@@ -294,17 +436,16 @@ func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, r
 		return nil
 	}
 
-	for i := 0; i < tpe.NumFields(); i++ {
+	for i := range tpe.NumFields() {
 		fld := tpe.Field(i)
 		if fld.Embedded() {
-
 			if err := r.buildFromType(fld.Type(), resp, seen); err != nil {
 				return err
 			}
 			continue
 		}
 		if fld.Anonymous() {
-			debugLog("skipping anonymous field")
+			debugLogf("skipping anonymous field")
 			continue
 		}
 
@@ -318,18 +459,19 @@ func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, r
 				continue
 			}
 
-			debugLog("field %s: %s(%T) [%q] ==> %s", fld.Name(), fld.Type().String(), fld.Type(), tg, at.Doc.Text())
+			debugLogf("field %s: %s(%T) [%q] ==> %s", fld.Name(), fld.Type().String(), fld.Type(), tg, at.Doc.Text())
 			afld = at
 			break
 		}
 
 		if afld == nil {
-			debugLog("can't find source associated with %s for %s", fld.String(), tpe.String())
+			debugLogf("can't find source associated with %s for %s", fld.String(), tpe.String())
 			continue
 		}
 
 		// if the field is annotated with swagger:ignore, ignore it
 		if ignored(afld.Doc) {
+			debugLogf("field %v of type %v is deliberately ignored", fld, tpe)
 			continue
 		}
 
@@ -345,7 +487,7 @@ func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, r
 		// scan for param location first, this changes some behavior down the line
 		if afld.Doc != nil {
 			for _, cmt := range afld.Doc.List {
-				for _, line := range strings.Split(cmt.Text, "\n") {
+				for line := range strings.SplitSeq(cmt.Text, "\n") {
 					matches := rxIn.FindStringSubmatch(line)
 					if len(matches) > 0 && len(strings.TrimSpace(matches[1])) > 0 {
 						in = strings.TrimSpace(matches[1])
@@ -362,8 +504,11 @@ func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, r
 		if afld.Doc != nil && fileParam(afld.Doc) {
 			resp.Schema = &spec.Schema{}
 			resp.Schema.Typed("file", "")
-		} else if err := r.buildFromField(fld, fld.Type(), responseTypable{in, &ps, resp}, seen); err != nil {
-			return err
+		} else {
+			debugLogf("build response %v (%v) (not a file)", fld, fld.Type())
+			if err := r.buildFromField(fld, fld.Type(), responseTypable{in, &ps, resp}, seen); err != nil {
+				return err
+			}
 		}
 
 		if strfmtName, ok := strfmtName(afld.Doc); ok {
@@ -476,5 +621,18 @@ func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, r
 			delete(resp.Headers, k)
 		}
 	}
+	return nil
+}
+
+func (r *responseBuilder) makeRef(decl *entityDecl, prop swaggerTypable) error {
+	nm, _ := decl.Names()
+	ref, err := spec.NewRef("#/definitions/" + nm)
+	if err != nil {
+		return err
+	}
+
+	prop.SetRef(ref)
+	r.postDecls = append(r.postDecls, decl) // mark the $ref target as discovered
+
 	return nil
 }

@@ -3,12 +3,12 @@
   {{- print " " }}={{ print " " }}
   {{- if .IsCustomFormatter }}
     {{- if stringContains .Zero "(\"" }}
-      {{- .GoType }}({{ printf "%#v" .Default }}){{/* strfmt type initializer that takes string */}}
+      {{- .GoType }}({{ printGoLiteral .Default }}){{/* strfmt type initializer that takes string */}}
     {{- else }}
       {{- .Zero }}{{/* strfmt type initializer that requires UnmarshalText(), e.g. Date, Datetime, Duration */}}
     {{- end }}
   {{- else }}
-    {{- .GoType }}({{ printf "%#v" .Default }}){{/* regular go primitive type initializer */}}
+    {{- .GoType }}({{ printGoLiteral .Default }}){{/* regular go primitive type initializer */}}
   {{- end }}
 {{- else if .IsArray }}{{/* do not initialize from possible defaults in nested arrays */}}
   {{- if .Child.IsPrimitive }}

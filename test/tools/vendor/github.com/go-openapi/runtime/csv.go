@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package runtime
 
@@ -32,23 +21,24 @@ import (
 // The consumer consumes CSV records from a provided reader into the data passed by reference.
 //
 // CSVOpts options may be specified to alter the default CSV behavior on the reader and the writer side (e.g. separator, skip header, ...).
-// The defaults are those of the standard library's csv.Reader and csv.Writer.
+// The defaults are those of the standard library's [csv.Reader] and [csv.Writer].
 //
 // Supported output underlying types and interfaces, prioritized in this order:
-// - *csv.Writer
-// - CSVWriter (writer options are ignored)
-// - io.Writer (as raw bytes)
-// - io.ReaderFrom (as raw bytes)
-// - encoding.BinaryUnmarshaler (as raw bytes)
-// - *[][]string (as a collection of records)
-// - *[]byte (as raw bytes)
-// - *string (a raw bytes)
+//
+//   - *[csv.Writer]
+//   - [CSVWriter] (writer options are ignored)
+//   - [io.Writer] (as raw bytes)
+//   - [io.ReaderFrom] (as raw bytes)
+//   - [encoding.BinaryUnmarshaler] (as raw bytes)
+//   - *[][]string (as a collection of records)
+//   - *[]byte (as raw bytes)
+//   - *string (a raw bytes)
 //
 // The consumer prioritizes situations where buffering the input is not required.
 func CSVConsumer(opts ...CSVOpt) Consumer {
 	o := csvOptsWithDefaults(opts)
 
-	return ConsumerFunc(func(reader io.Reader, data interface{}) error {
+	return ConsumerFunc(func(reader io.Reader, data any) error {
 		if reader == nil {
 			return errors.New("CSVConsumer requires a reader")
 		}
@@ -168,11 +158,12 @@ func CSVConsumer(opts ...CSVOpt) Consumer {
 // The producer takes input data then writes as CSV to an output writer (essentially as a pipe).
 //
 // Supported input underlying types and interfaces, prioritized in this order:
-// - *csv.Reader
-// - CSVReader (reader options are ignored)
-// - io.Reader
-// - io.WriterTo
-// - encoding.BinaryMarshaler
+//
+// - *[csv.Reader]
+// - [CSVReader] (reader options are ignored)
+// - [io.Reader]
+// - [io.WriterTo]
+// - [encoding.BinaryMarshaler]
 // - [][]string
 // - []byte
 // - string
@@ -181,7 +172,7 @@ func CSVConsumer(opts ...CSVOpt) Consumer {
 func CSVProducer(opts ...CSVOpt) Producer {
 	o := csvOptsWithDefaults(opts)
 
-	return ProducerFunc(func(writer io.Writer, data interface{}) error {
+	return ProducerFunc(func(writer io.Writer, data any) error {
 		if writer == nil {
 			return errors.New("CSVProducer requires a writer")
 		}
@@ -294,7 +285,7 @@ func CSVProducer(opts ...CSVOpt) Producer {
 	})
 }
 
-// pipeCSV copies CSV records from a CSV reader to a CSV writer
+// pipeCSV copies CSV records from a CSV reader to a CSV writer.
 func pipeCSV(csvWriter CSVWriter, csvReader CSVReader, opts csvOpts) error {
 	for ; opts.skippedLines > 0; opts.skippedLines-- {
 		_, err := csvReader.Read()

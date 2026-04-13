@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package validate
 
@@ -20,35 +9,11 @@ import (
 	"github.com/go-openapi/spec"
 )
 
-// ExampleValidator validates example values defined in a spec
+// ExampleValidator validates example values defined in a spec.
 type exampleValidator struct {
 	SpecValidator  *SpecValidator
 	visitedSchemas map[string]struct{}
 	schemaOptions  *SchemaValidatorOptions
-}
-
-// resetVisited resets the internal state of visited schemas
-func (ex *exampleValidator) resetVisited() {
-	if ex.visitedSchemas == nil {
-		ex.visitedSchemas = make(map[string]struct{})
-
-		return
-	}
-
-	// TODO(go1.21): clear(ex.visitedSchemas)
-	for k := range ex.visitedSchemas {
-		delete(ex.visitedSchemas, k)
-	}
-}
-
-// beingVisited asserts a schema is being visited
-func (ex *exampleValidator) beingVisited(path string) {
-	ex.visitedSchemas[path] = struct{}{}
-}
-
-// isVisited tells if a path has already been visited
-func (ex *exampleValidator) isVisited(path string) bool {
-	return isVisited(path, ex.visitedSchemas)
 }
 
 // Validate validates the example values declared in the swagger spec
@@ -70,6 +35,31 @@ func (ex *exampleValidator) Validate() *Result {
 	return errs
 }
 
+// resetVisited resets the internal state of visited schemas.
+func (ex *exampleValidator) resetVisited() {
+	if ex.visitedSchemas == nil {
+		ex.visitedSchemas = make(map[string]struct{})
+
+		return
+	}
+
+	// NOTE(go1.21): clear(ex.visitedSchemas)
+	for k := range ex.visitedSchemas {
+		delete(ex.visitedSchemas, k)
+	}
+}
+
+// beingVisited asserts a schema is being visited.
+func (ex *exampleValidator) beingVisited(path string) {
+	ex.visitedSchemas[path] = struct{}{}
+}
+
+// isVisited tells if a path has already been visited.
+func (ex *exampleValidator) isVisited(path string) bool {
+	return isVisited(path, ex.visitedSchemas)
+}
+
+//nolint:gocognit // refactor in a forthcoming PR
 func (ex *exampleValidator) validateExampleValueValidAgainstSchema() *Result {
 	// every example value that is specified must validate against the schema for that property
 	// in: schemas, properties, object, items
@@ -216,7 +206,7 @@ func (ex *exampleValidator) validateExampleInResponse(resp *spec.Response, respo
 					newSchemaValidator(response.Schema, s.spec.Spec(), path+".examples", s.KnownFormats, s.schemaOptions).Validate(example),
 				)
 			} else {
-				// TODO: validate other media types too
+				// Proposal for enhancement: validate other media types too
 				res.AddWarnings(examplesMimeNotSupportedMsg(operationID, responseName))
 			}
 		} else {
@@ -275,10 +265,10 @@ func (ex *exampleValidator) validateExampleValueSchemaAgainstSchema(path, in str
 	return res
 }
 
-// TODO: Temporary duplicated code. Need to refactor with examples
+// NOTE: Temporary duplicated code. Need to refactor with examples
 //
 
-func (ex *exampleValidator) validateExampleValueItemsAgainstSchema(path, in string, root interface{}, items *spec.Items) *Result {
+func (ex *exampleValidator) validateExampleValueItemsAgainstSchema(path, in string, root any, items *spec.Items) *Result {
 	res := pools.poolOfResults.BorrowResult()
 	s := ex.SpecValidator
 	if items != nil {

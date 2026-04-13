@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
@@ -95,7 +84,7 @@ func denormalizeRef(ref *Ref, originalRelativeBase, id string) Ref {
 	if id != "" {
 		idBaseURL, err := parseURL(id)
 		if err == nil { // if the schema id is not usable as a URI, ignore it
-			if ref, ok := rebase(ref, idBaseURL, true); ok { // rebase, but keep references to root unchaged (do not want $ref: "")
+			if ref, ok := rebase(ref, idBaseURL, true); ok { // rebase, but keep references to root unchanged (do not want $ref: "")
 				// $ref relative to the ID of the schema in the root document
 				return ref
 			}
@@ -129,8 +118,8 @@ func rebase(ref *Ref, v *url.URL, notEqual bool) (Ref, bool) {
 
 	newBase.Fragment = u.Fragment
 
-	if strings.HasPrefix(u.Path, docPath) {
-		newBase.Path = strings.TrimPrefix(u.Path, docPath)
+	if after, ok := strings.CutPrefix(u.Path, docPath); ok {
+		newBase.Path = after
 	} else {
 		newBase.Path = strings.TrimPrefix(u.Path, v.Path)
 	}
@@ -149,7 +138,7 @@ func rebase(ref *Ref, v *url.URL, notEqual bool) (Ref, bool) {
 	return MustCreateRef(newBase.String()), true
 }
 
-// normalizeRef canonicalize a Ref, using a canonical relativeBase as its absolute anchor
+// normalizeRef canonicalize a Ref, using a canonical relativeBase as its absolute anchor.
 func normalizeRef(ref *Ref, relativeBase string) *Ref {
 	r := MustCreateRef(normalizeURI(ref.String(), relativeBase))
 	return &r

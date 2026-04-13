@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package runtime
 
@@ -22,83 +11,83 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// OperationHandlerFunc an adapter for a function to the OperationHandler interface
-type OperationHandlerFunc func(interface{}) (interface{}, error)
+// OperationHandlerFunc an adapter for a function to the [OperationHandler] interface.
+type OperationHandlerFunc func(any) (any, error)
 
-// Handle implements the operation handler interface
-func (s OperationHandlerFunc) Handle(data interface{}) (interface{}, error) {
+// Handle implements the operation handler interface.
+func (s OperationHandlerFunc) Handle(data any) (any, error) {
 	return s(data)
 }
 
-// OperationHandler a handler for a swagger operation
+// OperationHandler a handler for a swagger operation.
 type OperationHandler interface {
-	Handle(interface{}) (interface{}, error)
+	Handle(any) (any, error)
 }
 
-// ConsumerFunc represents a function that can be used as a consumer
-type ConsumerFunc func(io.Reader, interface{}) error
+// ConsumerFunc represents a function that can be used as a consumer.
+type ConsumerFunc func(io.Reader, any) error
 
-// Consume consumes the reader into the data parameter
-func (fn ConsumerFunc) Consume(reader io.Reader, data interface{}) error {
+// Consume consumes the reader into the data parameter.
+func (fn ConsumerFunc) Consume(reader io.Reader, data any) error {
 	return fn(reader, data)
 }
 
 // Consumer implementations know how to bind the values on the provided interface to
-// data provided by the request body
+// data provided by the request body.
 type Consumer interface {
 	// Consume performs the binding of request values
-	Consume(io.Reader, interface{}) error
+	Consume(io.Reader, any) error
 }
 
-// ProducerFunc represents a function that can be used as a producer
-type ProducerFunc func(io.Writer, interface{}) error
+// ProducerFunc represents a function that can be used as a producer.
+type ProducerFunc func(io.Writer, any) error
 
-// Produce produces the response for the provided data
-func (f ProducerFunc) Produce(writer io.Writer, data interface{}) error {
+// Produce produces the response for the provided data.
+func (f ProducerFunc) Produce(writer io.Writer, data any) error {
 	return f(writer, data)
 }
 
 // Producer implementations know how to turn the provided interface into a valid
-// HTTP response
+// HTTP response.
 type Producer interface {
 	// Produce writes to the http response
-	Produce(io.Writer, interface{}) error
+	Produce(io.Writer, any) error
 }
 
-// AuthenticatorFunc turns a function into an authenticator
-type AuthenticatorFunc func(interface{}) (bool, interface{}, error)
+// AuthenticatorFunc turns a function into an authenticator.
+type AuthenticatorFunc func(any) (bool, any, error)
 
-// Authenticate authenticates the request with the provided data
-func (f AuthenticatorFunc) Authenticate(params interface{}) (bool, interface{}, error) {
+// Authenticate authenticates the request with the provided data.
+func (f AuthenticatorFunc) Authenticate(params any) (bool, any, error) {
 	return f(params)
 }
 
 // Authenticator represents an authentication strategy
 // implementations of Authenticator know how to authenticate the
-// request data and translate that into a valid principal object or an error
+// request data and translate that into a valid principal object or an error.
 type Authenticator interface {
-	Authenticate(interface{}) (bool, interface{}, error)
+	Authenticate(any) (bool, any, error)
 }
 
-// AuthorizerFunc turns a function into an authorizer
-type AuthorizerFunc func(*http.Request, interface{}) error
+// AuthorizerFunc turns a function into an authorizer.
+type AuthorizerFunc func(*http.Request, any) error
 
-// Authorize authorizes the processing of the request for the principal
-func (f AuthorizerFunc) Authorize(r *http.Request, principal interface{}) error {
+// Authorize authorizes the processing of the request for the principal.
+func (f AuthorizerFunc) Authorize(r *http.Request, principal any) error {
 	return f(r, principal)
 }
 
 // Authorizer represents an authorization strategy
 // implementations of Authorizer know how to authorize the principal object
-// using the request data and returns error if unauthorized
+// using the request data and returns error if unauthorized.
 type Authorizer interface {
-	Authorize(*http.Request, interface{}) error
+	Authorize(*http.Request, any) error
 }
 
 // Validatable types implementing this interface allow customizing their validation
 // this will be used instead of the reflective validation based on the spec document.
 // the implementations are assumed to have been generated by the swagger tool so they should
-// contain all the validations obtained from the spec
+// contain all the validations obtained from the spec.
 type Validatable interface {
 	Validate(strfmt.Registry) error
 }
@@ -106,7 +95,7 @@ type Validatable interface {
 // ContextValidatable types implementing this interface allow customizing their validation
 // this will be used instead of the reflective validation based on the spec document.
 // the implementations are assumed to have been generated by the swagger tool so they should
-// contain all the context validations obtained from the spec
+// contain all the context validations obtained from the spec.
 type ContextValidatable interface {
 	ContextValidate(context.Context, strfmt.Registry) error
 }

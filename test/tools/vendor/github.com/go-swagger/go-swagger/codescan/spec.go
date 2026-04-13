@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package codescan
 
 import (
@@ -46,6 +49,8 @@ type specBuilder struct {
 }
 
 func (s *specBuilder) Build() (*spec.Swagger, error) {
+	// this initial scan step is skipped if !scanModels.
+	// Discovered dependencies should however be resolved.
 	if err := s.buildModels(); err != nil {
 		return nil, err
 	}

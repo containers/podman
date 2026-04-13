@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package codescan
 
 import (
@@ -54,7 +57,7 @@ func parsePathAnnotation(annotation *regexp.Regexp, lines []*ast.Comment) (cnt p
 
 	for _, cmt := range lines {
 		txt := cmt.Text
-		for _, line := range strings.Split(txt, "\n") {
+		for line := range strings.SplitSeq(txt, "\n") {
 			matches := annotation.FindStringSubmatch(line)
 			if len(matches) > 3 {
 				cnt.Method, cnt.Path, cnt.ID = matches[1], matches[2], matches[len(matches)-1]
@@ -78,7 +81,7 @@ func parsePathAnnotation(annotation *regexp.Regexp, lines []*ast.Comment) (cnt p
 		}
 	}
 
-	return
+	return cnt
 }
 
 func setPathOperation(method, id string, pthObj *spec.PathItem, op *spec.Operation) *spec.Operation {

@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package spec
 
@@ -21,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/jsonutils"
 )
 
 // Responses is a container for the expected responses of an operation.
@@ -42,8 +31,8 @@ type Responses struct {
 	ResponsesProps
 }
 
-// JSONLookup implements an interface to customize json pointer lookup
-func (r Responses) JSONLookup(token string) (interface{}, error) {
+// JSONLookup implements an interface to customize json pointer lookup.
+func (r Responses) JSONLookup(token string) (any, error) {
 	if token == "default" {
 		return r.Default, nil
 	}
@@ -55,10 +44,10 @@ func (r Responses) JSONLookup(token string) (interface{}, error) {
 			return scr, nil
 		}
 	}
-	return nil, fmt.Errorf("object has no field %q", token)
+	return nil, fmt.Errorf("object has no field %q: %w", token, ErrSpec)
 }
 
-// UnmarshalJSON hydrates this items instance with the data from JSON
+// UnmarshalJSON hydrates this items instance with the data from JSON.
 func (r *Responses) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &r.ResponsesProps); err != nil {
 		return err
@@ -73,7 +62,7 @@ func (r *Responses) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON converts this items object to JSON
+// MarshalJSON converts this items object to JSON.
 func (r Responses) MarshalJSON() ([]byte, error) {
 	b1, err := json.Marshal(r.ResponsesProps)
 	if err != nil {
@@ -83,7 +72,7 @@ func (r Responses) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	concated := swag.ConcatJSON(b1, b2)
+	concated := jsonutils.ConcatJSON(b1, b2)
 	return concated, nil
 }
 
@@ -95,7 +84,7 @@ type ResponsesProps struct {
 	StatusCodeResponses map[int]Response
 }
 
-// MarshalJSON marshals responses as JSON
+// MarshalJSON marshals responses as JSON.
 func (r ResponsesProps) MarshalJSON() ([]byte, error) {
 	toser := map[string]Response{}
 	if r.Default != nil {
@@ -107,7 +96,7 @@ func (r ResponsesProps) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toser)
 }
 
-// UnmarshalJSON unmarshals responses from JSON
+// UnmarshalJSON unmarshals responses from JSON.
 func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
 	var res map[string]json.RawMessage
 	if err := json.Unmarshal(data, &res); err != nil {

@@ -1,6 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
+
 package diff
 
-// DifferenceLocation indicates where the difference occurs
+// DifferenceLocation indicates where the difference occurs.
 type DifferenceLocation struct {
 	URL      string `json:"url"`
 	Method   string `json:"method,omitempty"`
@@ -8,7 +11,7 @@ type DifferenceLocation struct {
 	Node     *Node  `json:"node,omitempty"`
 }
 
-// AddNode returns a copy of this location with the leaf node added
+// AddNode returns a copy of this location with the leaf node added.
 func (dl DifferenceLocation) AddNode(node *Node) DifferenceLocation {
 	newLoc := dl
 

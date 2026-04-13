@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package validate
 
@@ -30,7 +19,7 @@ type schemaSliceValidator struct {
 	UniqueItems     bool
 	AdditionalItems *spec.SchemaOrBool
 	Items           *spec.SchemaOrArray
-	Root            interface{}
+	Root            any
 	KnownFormats    strfmt.Registry
 	Options         *SchemaValidatorOptions
 }
@@ -38,7 +27,8 @@ type schemaSliceValidator struct {
 func newSliceValidator(path, in string,
 	maxItems, minItems *int64, uniqueItems bool,
 	additionalItems *spec.SchemaOrBool, items *spec.SchemaOrArray,
-	root interface{}, formats strfmt.Registry, opts *SchemaValidatorOptions) *schemaSliceValidator {
+	root any, formats strfmt.Registry, opts *SchemaValidatorOptions,
+) *schemaSliceValidator {
 	if opts == nil {
 		opts = new(SchemaValidatorOptions)
 	}
@@ -68,13 +58,13 @@ func (s *schemaSliceValidator) SetPath(path string) {
 	s.Path = path
 }
 
-func (s *schemaSliceValidator) Applies(source interface{}, kind reflect.Kind) bool {
+func (s *schemaSliceValidator) Applies(source any, kind reflect.Kind) bool {
 	_, ok := source.(*spec.Schema)
 	r := ok && kind == reflect.Slice
 	return r
 }
 
-func (s *schemaSliceValidator) Validate(data interface{}) *Result {
+func (s *schemaSliceValidator) Validate(data any) *Result {
 	if s.Options.recycleValidators {
 		defer func() {
 			s.redeem()
@@ -94,7 +84,7 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	size := val.Len()
 
 	if s.Items != nil && s.Items.Schema != nil {
-		for i := 0; i < size; i++ {
+		for i := range size {
 			validator := newSchemaValidator(s.Items.Schema, s.Root, s.Path, s.KnownFormats, s.Options)
 			validator.SetPath(fmt.Sprintf("%s.%d", s.Path, i))
 			value := val.Index(i)
@@ -105,7 +95,7 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	itemsSize := 0
 	if s.Items != nil && len(s.Items.Schemas) > 0 {
 		itemsSize = len(s.Items.Schemas)
-		for i := 0; i < itemsSize; i++ {
+		for i := range itemsSize {
 			if size <= i {
 				break
 			}
