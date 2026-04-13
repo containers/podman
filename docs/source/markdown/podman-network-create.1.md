@@ -9,7 +9,7 @@ podman\-network-create - Create a Podman network
 ## DESCRIPTION
 Create a network configuration for use with Podman. By default, Podman creates a bridge connection.
 A *Macvlan* connection can be created with the *-d macvlan* option. A parent device for macvlan or
-ipvlan can be designated with the *-o parent=`<device>`* or *--network-interface=`<device>`* option.
+ipvlan can be designated with the *-o parent=`<device>`* or *--interface-name=`<device>`* option.
 
 If no options are provided, Podman assigns a free subnet and name for the network.
 
