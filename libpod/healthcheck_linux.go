@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/containers/podman/v6/pkg/rootless"
+	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/containers/podman/v6/pkg/systemd"
 	"github.com/sirupsen/logrus"
 	systemdCommon "go.podman.io/common/pkg/systemd"
@@ -43,9 +44,7 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 	// StartLimitIntervalSec=0 so we don't hit the restart limit
 	cmd = append(cmd, "--unit", hcUnitName, fmt.Sprintf("--on-unit-inactive=%s", interval), "--timer-property=AccuracySec=1s", "--property=StartLimitIntervalSec=0", podman)
 
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		cmd = append(cmd, "--log-level=debug", "--syslog")
-	}
+	cmd = append(cmd, specgenutil.GlobalPodmanArgs(c.runtime.storageConfig, c.runtime.config, logrus.IsLevelEnabled(logrus.DebugLevel))...)
 
 	cmd = append(cmd, "healthcheck", "run", "--ignore-result", c.ID())
 
