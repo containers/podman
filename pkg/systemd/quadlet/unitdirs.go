@@ -39,8 +39,8 @@ func GetInstallUnitDirPath(rootless bool) string {
 // For system generators these are in /usr/share/containers/systemd (for distro files)
 // and /etc/containers/systemd (for sysadmin files).
 // For user generators these can live in $XDG_RUNTIME_DIR/containers/systemd, /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, /usr/share/containers/systemd/users/${UID}, /usr/share/containers/systemd/users/ and $XDG_CONFIG_HOME/containers/systemd
-func GetUnitDirs(rootless bool) []string {
-	paths := NewSearchPaths()
+func GetUnitDirs(rootless bool, recursive bool) []string {
+	paths := NewSearchPaths(recursive)
 
 	// Allow overriding source dir, this is mainly for the CI tests
 	if getDirsFromEnv(paths) {
@@ -64,12 +64,15 @@ type searchPaths struct {
 	sorted []string
 	// map to store paths so we can quickly check if we saw them already and not loop in case of symlinks
 	visitedDirs map[string]struct{}
+
+	recursive bool
 }
 
-func NewSearchPaths() *searchPaths {
+func NewSearchPaths(recursive bool) *searchPaths {
 	return &searchPaths{
 		sorted:      make([]string, 0),
 		visitedDirs: make(map[string]struct{}, 0),
+		recursive:   recursive,
 	}
 }
 
@@ -121,6 +124,10 @@ func AppendSubPaths(paths *searchPaths, path string, isUserFlag bool, filterPtr 
 
 	// Add the current directory
 	paths.Add(resolvedPath)
+
+	if !paths.recursive {
+		return
+	}
 
 	// Read the contents of the directory
 	entries, err := os.ReadDir(resolvedPath)

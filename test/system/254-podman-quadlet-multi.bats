@@ -98,7 +98,7 @@ WantedBy=multi-user.target
 EOF
 
     # Test quadlet install with multi-quadlet file
-    run_podman quadlet install $multi_quadlet_file
+    run_podman quadlet install --application=$app_name $multi_quadlet_file
 
     # Verify install output contains all three quadlet names
     assert "$output" =~ "${container_name}.container" "install output should contain ${container_name}.container"
@@ -115,9 +115,9 @@ EOF
     assert "$output" =~ "${network_name}.network" "list should contain ${network_name}.network"
 
     # Verify the files exist on disk
-    [[ -f "$install_dir/${container_name}.container" ]] || die "${container_name}.container should exist on disk"
-    [[ -f "$install_dir/${volume_name}.volume" ]] || die "${volume_name}.volume should exist on disk"
-    [[ -f "$install_dir/${network_name}.network" ]] || die "${network_name}.network should exist on disk"
+    [[ -f "$install_dir/$app_name/${container_name}.container" ]] || die "${container_name}.container should exist on disk"
+    [[ -f "$install_dir/$app_name/${volume_name}.volume" ]] || die "${volume_name}.volume should exist on disk"
+    [[ -f "$install_dir/$app_name/${network_name}.network" ]] || die "${network_name}.network should exist on disk"
 
     # Test quadlet print for each installed quadlet and verify systemd sections are preserved
     run_podman quadlet print ${container_name}.container
@@ -152,31 +152,14 @@ EOF
     assert "$output" =~ "\\[Install\\]" "print should show Install section"
     assert "$output" =~ "WantedBy=multi-user.target" "print should show WantedBy directive"
 
-    # Check that the .app file was created (all quadlets are part of the same application)
-    [[ -f "$install_dir/.${app_name}.app" ]] || die ".${app_name}.app file should exist"
-    [[ ! -f "$install_dir/.${container_name}.container.asset" ]] || die "individual .asset files should not exist"
-    [[ ! -f "$install_dir/.${volume_name}.volume.asset" ]] || die "individual .asset files should not exist"
-    [[ ! -f "$install_dir/.${network_name}.network.asset" ]] || die "individual .asset files should not exist"
-
-    # Verify the .app file contains all quadlet names
-    run cat "$install_dir/.${app_name}.app"
-    assert "$output" =~ "${container_name}.container" ".app file should contain ${container_name}.container"
-    assert "$output" =~ "${volume_name}.volume" ".app file should contain ${volume_name}.volume"
-    assert "$output" =~ "${network_name}.network" ".app file should contain ${network_name}.network"
-
     # Test quadlet list to verify all quadlets show the same app name
     run_podman quadlet list
     local webserver_line=$(echo "$output" | grep "${container_name}.container")
     local appstorage_line=$(echo "$output" | grep "${volume_name}.volume")
     local appnetwork_line=$(echo "$output" | grep "${network_name}.network")
 
-    # All lines should contain the same app name (.${app_name}.app)
-    assert "$webserver_line" =~ "\\.${app_name}\\.app" "${container_name} should show .${app_name}.app as app"
-    assert "$appstorage_line" =~ "\\.${app_name}\\.app" "${volume_name} should show .${app_name}.app as app"
-    assert "$appnetwork_line" =~ "\\.${app_name}\\.app" "${network_name} should show .${app_name}.app as app"
-
-    # Test quadlet rm for one of the quadlets - should remove entire application
-    run_podman quadlet rm ${container_name}.container
+    # Test quadlet rm for application
+    run_podman quadlet rm $app_name
     assert "$output" =~ "${container_name}.container" "remove output should contain ${container_name}.container"
 
     # Verify all quadlets were removed since they're part of the same app
@@ -184,9 +167,6 @@ EOF
     assert "$output" !~ "${container_name}.container" "list should not contain removed ${container_name}.container"
     assert "$output" !~ "${volume_name}.volume" "list should not contain ${volume_name}.volume as app is removed"
     assert "$output" !~ "${network_name}.network" "list should not contain ${network_name}.network as app is removed"
-
-    # The .app file should also be removed
-    [[ ! -f "$install_dir/.${app_name}.app" ]] || die ".${app_name}.app file should be removed"
 }
 
 @test "quadlet verb - install multi-quadlet file with empty sections" {

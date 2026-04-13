@@ -24,6 +24,11 @@ Note: In case user wants to install Quadlet application then first path should b
 
 ## OPTIONS
 
+#### **--application**
+
+You can specify an application name, all files will be installed under a directory with the application name.
+
+
 #### **--reload-systemd**
 
 Reload systemd after installing Quadlets (default true).
