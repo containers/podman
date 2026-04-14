@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package wmiext
 
@@ -341,7 +340,7 @@ func convertTimeToDataTime(time *time.Time) ole.VARIANT {
 	_, offset := time.Zone()
 	// convert to minutes
 	offset /= 60
-	//yyyymmddHHMMSS.mmmmmmsUUU
+	// yyyymmddHHMMSS.mmmmmmsUUU
 	s := fmt.Sprintf("%s%+04d", time.Format("20060102150405.000000"), offset)
 	return ole.NewVariant(ole.VT_BSTR, int64(uintptr(unsafe.Pointer(ole.SysAllocStringLen(s)))))
 }

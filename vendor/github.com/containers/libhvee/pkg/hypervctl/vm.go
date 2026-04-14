@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package hypervctl
 
@@ -8,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/containers/libhvee/pkg/kvp/ginsu"
@@ -196,6 +194,9 @@ func (vm *VirtualMachine) kvpOperation(op string, key string, value string, nowa
 		err = &wmiext.JobError{ErrorCode: int(ret)}
 	}
 
+	if jobErr, ok := err.(*wmiext.JobError); ok && jobErr.Description != "" {
+		return errors.New(jobErr.Error())
+	}
 	return translateKvpError(err, illegalSuggestion)
 }
 
@@ -217,9 +218,9 @@ func waitVMResult(res int32, service *wmiext.Service, job *wmiext.Instance, erro
 	}
 
 	if err != nil {
-		desc, _ := job.GetAsString("ErrorDescription")
-		desc = strings.ReplaceAll(desc, "\n", " ")
-		return fmt.Errorf("%s: %w (%s)", errorMsg, err, desc)
+		if jobErr, ok := err.(*wmiext.JobError); ok && jobErr.Description != "" {
+			return errors.New(jobErr.Error())
+		}
 	}
 
 	return err
