@@ -31,6 +31,10 @@ var (
 	// This can be overridden at build time with the following go linker flag:
 	// -ldflags '-X go.podman.io/storage/pkg/configfile.adminOverrideConfigPath=$your_path'
 	adminOverrideConfigPath = getAdminOverrideConfigPath()
+
+	// ErrConfigFileNotFound is returned when ErrorIfNotFound is true and no config
+	// file could be loaded.
+	ErrConfigFileNotFound = errors.New("config file not found")
 )
 
 type File struct {
@@ -43,6 +47,8 @@ type File struct {
 	Extension string
 
 	// EnvironmentName is the name of environment variable that can be set to specify the override.
+	// If EnvironmentName is set, the variable with _OVERRIDE suffix is also checked for an override
+	// unless DoNotLoadDropInFiles is set.
 	// Optional.
 	EnvironmentName string
 
@@ -55,6 +61,7 @@ type File struct {
 	DoNotLoadMainFiles bool
 
 	// DoNotLoadDropInFiles should be set if only the main files should be loaded.
+	// If DoNotLoadDropInFiles is set, the _OVERRIDE environment variable is ignored.
 	DoNotLoadDropInFiles bool
 
 	// DoNotUseExtensionForConfigName makes it so that the extension is only consulted for the drop in
@@ -70,6 +77,9 @@ type File struct {
 	// For compatibility reasons this field is written to with the fully resolved paths
 	// of each module as this is what podman expects today.
 	Modules []string
+
+	// ErrorIfNotFound is true if an error should be returned if no file is found.
+	ErrorIfNotFound bool
 }
 
 // Item is a single config file that is being read once at a time and returned by the iterator from [Read].
@@ -113,10 +123,14 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 	}
 
 	return func(yield func(*Item, error) bool) {
+		usedPaths := make([]string, 0, 8)
+		foundAny := false
+
 		shouldLoadMainFile := !conf.DoNotLoadMainFiles
 		shouldLoadDropIns := !conf.DoNotLoadDropInFiles
 
 		yieldAndClose := func(f *os.File) bool {
+			foundAny = true
 			ok := yield(&Item{
 				Reader: f,
 				Name:   f.Name(),
@@ -134,6 +148,7 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 
 		if conf.EnvironmentName != "" {
 			if path := os.Getenv(conf.EnvironmentName); path != "" {
+				usedPaths = append(usedPaths, path)
 				f, err := os.Open(path)
 				// Do not ignore ErrNotExist here, we want to hard error if users set a wrong path here.
 				if err != nil {
@@ -165,6 +180,7 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 				if path == "" {
 					continue
 				}
+				usedPaths = append(usedPaths, path)
 				f, err := os.Open(path)
 				// only ignore ErrNotExist, all other errors get return to the caller via yield
 				if err != nil {
@@ -191,6 +207,7 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 				return
 			}
 			for _, file := range files {
+				usedPaths = append(usedPaths, file)
 				f, err := os.Open(file)
 				// only ignore ErrNotExist, all other errors get return to the caller via yield
 				if err != nil {
@@ -211,7 +228,7 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 			dirs := moduleDirectories(defaultConfig, overrideConfig, userConfig)
 			resolvedModules := make([]string, 0, len(conf.Modules))
 			for _, module := range conf.Modules {
-				f, err := resolveModule(module, dirs)
+				f, err := resolveModule(module, dirs, &usedPaths)
 				if err != nil {
 					yield(nil, fmt.Errorf("could not resolve module: %w", err))
 					return
@@ -224,9 +241,10 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 			conf.Modules = resolvedModules
 		}
 
-		if conf.EnvironmentName != "" {
+		if conf.EnvironmentName != "" && !conf.DoNotLoadDropInFiles {
 			// The _OVERRIDE env must be appended after loading all files, even modules.
 			if path := os.Getenv(conf.EnvironmentName + "_OVERRIDE"); path != "" {
+				usedPaths = append(usedPaths, path)
 				f, err := os.Open(path)
 				// Do not ignore ErrNotExist here, we want to hard error if users set a wrong path here.
 				if err != nil {
@@ -237,6 +255,11 @@ func Read(conf *File) iter.Seq2[*Item, error] {
 					return
 				}
 			}
+		}
+
+		if conf.ErrorIfNotFound && !foundAny {
+			yield(nil, fmt.Errorf("%w: no %s file found; searched paths: %q", ErrConfigFileNotFound, configFileName, usedPaths))
+			return
 		}
 	}
 }
@@ -324,8 +347,11 @@ func moduleDirectories(defaultConfig, overrideConfig, userConfig string) []strin
 }
 
 // Resolve the specified path to a module.
-func resolveModule(path string, dirs []string) (*os.File, error) {
+func resolveModule(path string, dirs []string, usedPaths *[]string) (*os.File, error) {
 	if filepath.IsAbs(path) {
+		if usedPaths != nil {
+			*usedPaths = append(*usedPaths, path)
+		}
 		return os.Open(path)
 	}
 
@@ -334,6 +360,9 @@ func resolveModule(path string, dirs []string) (*os.File, error) {
 	var multiErr error
 	for _, d := range dirs {
 		candidate := filepath.Join(d, path)
+		if usedPaths != nil {
+			*usedPaths = append(*usedPaths, candidate)
+		}
 
 		f, err := os.Open(candidate)
 		if err == nil {

@@ -1,11 +1,5 @@
 package config
 
-const (
-	// DefaultSignaturePolicyPath is the default value for the
-	// policy.json file.
-	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
-)
-
 var defaultHelperBinariesDir = []string{
 	// Relative to the binary directory
 	"$BINDIR/../libexec/podman",

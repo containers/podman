@@ -5,12 +5,6 @@ import (
 	"go.podman.io/common/pkg/capabilities"
 )
 
-const (
-	// DefaultSignaturePolicyPath is the default value for the
-	// policy.json file.
-	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
-)
-
 func selinuxEnabled() bool {
 	return selinux.GetEnabled()
 }

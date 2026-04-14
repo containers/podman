@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -14,6 +13,7 @@ import (
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/configfile"
 )
 
 // pullOptions includes data to alter certain knobs when pulling a source
@@ -48,7 +48,6 @@ var noSignaturePolicy string = `{"default":[{"type":"insecureAcceptAnything"}]}`
 
 // pull `imageInput` from a container registry to `sourcePath`.
 func pull(ctx context.Context, imageInput types.ImageReference, localDestPath *define.VMFile, options *pullOptions) error {
-	var policy *signature.Policy
 	destRef, err := layout.ParseReference(localDestPath.GetPath())
 	if err != nil {
 		return err
@@ -59,21 +58,13 @@ func pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 		return err
 	}
 
-	// Policy paths returns a slice of directories where the policy.json
-	// may live.  Iterate those directories and try to see if any are
-	// valid ignoring when the file does not exist
-	for _, path := range policyPaths() {
-		policy, err = signature.NewPolicyFromFile(path)
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				continue
-			}
+	policy, err := signature.DefaultPolicy(sysCtx)
+	if err != nil {
+		if !errors.Is(err, configfile.ErrConfigFileNotFound) {
 			return fmt.Errorf("reading signature policy: %w", err)
 		}
-	}
 
-	// If no policy has been found yet, we use a no signature policy automatically
-	if policy == nil {
+		// If no policy has been found yet, we use a no signature policy automatically
 		logrus.Debug("no signature policy file found: using default allow everything signature policy")
 		policy, err = signature.NewPolicyFromBytes([]byte(noSignaturePolicy))
 		if err != nil {

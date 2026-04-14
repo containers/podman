@@ -100,6 +100,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {
+	var err error
 	decoder := utils.GetDecoder(r)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
@@ -121,17 +122,11 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
-		return
-	}
 	sc := runtime.SystemContext()
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
 	}
 	options.CommitOptions = buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          os.Stderr,
 		SystemContext:         sc,
 		PreferredManifestType: manifest.DockerV2Schema2MediaType,
