@@ -107,6 +107,43 @@ var _ = Describe("Podman run dns", func() {
 		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search example.com")))
 	})
 
+	It("podman run --dns-search with --network container works when dependency has --dns none", func() {
+		ctrName := "dnsNoneContainerSrc"
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, "--dns", "none", ALPINE, "top")
+
+		session := podmanTest.PodmanExitCleanly("run", "--dns-search=example.com", "--network", "container:"+ctrName, ALPINE, "cat", "/etc/resolv.conf")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver ")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search example.com")))
+	})
+
+	It("podman run --dns-opt with --network container works when dependency has --dns none", func() {
+		ctrName := "dnsOptNoneContainerSrc"
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, "--dns", "none", ALPINE, "top")
+
+		session := podmanTest.PodmanExitCleanly("run", "--dns-opt=debug", "--network", "container:"+ctrName, ALPINE, "cat", "/etc/resolv.conf")
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver ")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("options debug")))
+	})
+
+	It("podman run --dns-search and --dns-opt with --network container work when dependency has --dns none", func() {
+		ctrName := "dnsCombinedNoneContainerSrc"
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, "--dns", "none", ALPINE, "top")
+
+		session := podmanTest.PodmanExitCleanly(
+			"run",
+			"--dns-search=example.com",
+			"--dns-opt=debug",
+			"--network",
+			"container:"+ctrName,
+			ALPINE,
+			"cat",
+			"/etc/resolv.conf",
+		)
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("nameserver ")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search example.com")))
+		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("options debug")))
+	})
+
 	It("podman run --dns-opt with --network container inherits dependency nameserver", func() {
 		ctrName := "dnsOptContainerSrc"
 		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, "--dns=1.1.1.1", ALPINE, "top")

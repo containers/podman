@@ -2198,13 +2198,16 @@ func (c *Container) addResolvConf() error {
 	if c.config.NetNsCtr != "" {
 		depCtr, err := c.getRootNetNsDepCtr()
 		if err != nil {
-			logrus.Warnf("Unable to get root network namespace dependency for container %s: %v", c.ID(), err)
-		} else if bindMounts, err := depCtr.BindMounts(); err != nil {
-			logrus.Warnf("Unable to get bind mounts from dependency container %s for container %s: %v", depCtr.ID(), c.ID(), err)
-		} else if depResolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]; exists {
+			return fmt.Errorf("getting root network namespace dependency for container %s: %w", c.ID(), err)
+		}
+		bindMounts, err := depCtr.BindMounts()
+		if err != nil {
+			return fmt.Errorf("getting bind mounts from dependency container %s for container %s: %w", depCtr.ID(), c.ID(), err)
+		}
+		if depResolvPath, exists := bindMounts[resolvconf.DefaultResolvConf]; exists {
 			baseNameServers, baseSearchDomains, baseOptions, err = readResolvConfEntries(depResolvPath)
 			if err != nil {
-				logrus.Warnf("Unable to read dependency resolv.conf %q for container %s: %v", depResolvPath, c.ID(), err)
+				return fmt.Errorf("reading dependency resolv.conf %q for container %s: %w", depResolvPath, c.ID(), err)
 			}
 		}
 	}
@@ -2246,9 +2249,7 @@ func (c *Container) addResolvConf() error {
 		// when no network name servers use host servers
 		// for aardvark dns we only want our single server in there
 		if len(networkNameServers) == 0 {
-			if len(baseNameServers) > 0 {
-				nameservers = append(nameservers, baseNameServers...)
-			}
+			nameservers = append(nameservers, baseNameServers...)
 			if len(nameservers) == 0 {
 				keepHostServers = true
 			}
