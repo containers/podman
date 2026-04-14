@@ -172,7 +172,7 @@ jobs:
       with:
         go-version: stable
     - name: Set up WiX
-      run: dotnet tool install --global wix
+      run: dotnet tool install --global wix --version 5.0.2
     - name: Setup Signature Tooling
       run: |
         dotnet tool install --global AzureSignTool --version 3.0.0
