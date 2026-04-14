@@ -180,7 +180,7 @@ jobs:
         go-version: stable
         cache: false
     - name: Set up WiX
-      run: dotnet tool install --global wix
+      run: dotnet tool install --global wix --version 5.0.2
     - name: Setup Signature Tooling
       env:
         AZ_CERT_NAME: ${{ secrets.AZ_CERT_NAME }}
