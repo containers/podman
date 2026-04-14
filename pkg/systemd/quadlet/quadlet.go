@@ -2157,11 +2157,15 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 		}
 	}
 
-	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap, true)
-	if err != nil {
-		return "", err
+	if originalSource != "" {
+		resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap, true)
+		if err != nil {
+			return "", err
+		}
+		tokens[sourceIndex] = fmt.Sprintf("source=%s", resolvedSource)
+	} else if mountType != "volume" {
+		return "", fmt.Errorf("source parameter is required for mount type %s", mountType)
 	}
-	tokens[sourceIndex] = fmt.Sprintf("source=%s", resolvedSource)
 
 	tokens = append([]string{fmt.Sprintf("type=%s", mountType)}, tokens...)
 

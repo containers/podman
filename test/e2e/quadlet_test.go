@@ -1196,7 +1196,7 @@ BOGUS=foo
 		Entry("Build - No ImageTag Key", "no-imagetag.build", "converting \"no-imagetag.build\": no ImageTag key specified"),
 		Entry("emptyline.container", "emptyline.container", "converting \"emptyline.container\": no Image or Rootfs key specified"),
 
-		Entry("Mount - Missing source=...", "mount-source-missing.container", "converting \"mount-source-missing.container\": source cannot be empty"),
+		Entry("Mount - Missing source=...", "mount-source-missing.container", "converting \"mount-source-missing.container\": source parameter is required for mount type image"),
 	)
 
 	DescribeTable("Running success quadlet with ServiceName test case",
