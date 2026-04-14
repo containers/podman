@@ -164,7 +164,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	// Iterate devices and convert to CLI expected string
 	devices := make([]string, 0, len(cc.HostConfig.Devices))
 	for _, dev := range cc.HostConfig.Devices {
-		devices = append(devices, fmt.Sprintf("%s:%s:%s", dev.PathOnHost, dev.PathInContainer, dev.CgroupPermissions))
+		devices = append(devices, utils.DockerDeviceMappingString(dev))
 	}
 	for _, r := range cc.HostConfig.Resources.DeviceRequests {
 		if r.Driver == "cdi" {
