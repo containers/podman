@@ -11,7 +11,8 @@ Current supported mount TYPEs are **artifact**, **bind**, **devpts**, **glob**, 
 Options common to all mount types:
 
 - *src*, *source*: mount source spec for **bind**, **glob**, and **volume**.
-  Mandatory for **artifact**, **bind**, **glob**, **image** and **volume**.
+  Mandatory for **artifact**, **bind**, **glob**, and **image**.
+  Optional for **volume**; if omitted, an anonymous volume is created.
 
 - *dst*, *dest*, *destination*, *target*: mount destination spec.
 
@@ -141,5 +142,7 @@ Examples:
 - `type=artifact,src=quay.io/libpod/testartifact:20250206-single,dst=/data`
 
 - `type=artifact,src=quay.io/libpod/testartifact:20250206-multi,dst=/data,title=test1`
+
+- `type=volume,destination=/path/in/container`
 
 - `type=volume,src=test_vol,dst=/data,subpath=/code/docs`
