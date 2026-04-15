@@ -165,7 +165,7 @@ READY=1" "sdnotify sent MAINPID and READY"
     run_podman exec $cid touch /stop
     run_podman wait $cid
     run_podman rm $cid
-    run_podman rmi $_FEDORA
+    run_podman rmi $SYSTEMD_IMAGE
     _stop_socat
 }
 
