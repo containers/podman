@@ -101,7 +101,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     run -0 systemctl list-units
     cidmatch=$(grep "$cid" <<<"$output")
     echo "$cidmatch"
-    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run --ignore-result $cid" \
+    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman .* healthcheck run --ignore-result $cid" \
            "Healthcheck systemd unit exists"
 
     # Check that the right service option is applied so we don't hit the systemd restart limit.
