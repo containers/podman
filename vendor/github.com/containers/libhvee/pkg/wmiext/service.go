@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package wmiext
 
@@ -112,7 +111,7 @@ const (
 )
 
 func CoSetProxyBlanket(service *ole.IUnknown) (err error) {
-	res, _, _ := procCoSetProxyBlanket.Call( //CoSetProxyBlanket(
+	res, _, _ := procCoSetProxyBlanket.Call( // CoSetProxyBlanket(
 		uintptr(unsafe.Pointer(service)),     // [in]      IUnknown                 *pProxy,
 		uintptr(RPC_C_AUTHN_WINNT),           // [in]      DWORD                    dwAuthnSvc,
 		uintptr(RPC_C_AUTHZ_NONE),            // [in]      DWORD                    dwAuthzSvc,
