@@ -62,6 +62,8 @@ These instructions are geared towards using a Linux development machine, which i
 Development for the Windows and Mac clients can also be done on those operating systems.
 Check out these instructions for building the Podman client on [MacOSX](./build_osx.md) or [Windows](./build_windows.md).
 
+> **Note:** Podman 6 dropped support for darwin/amd64 (Intel Mac) binaries. The macOS client is only available for darwin/arm64 (Apple Silicon). Attempting to build with `GOOS=darwin GOARCH=amd64` will fail on any host.
+
 ### Prepare your environment
 
 Read the [install documentation to see how to install dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies).

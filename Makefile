@@ -399,6 +399,9 @@ $(SRCBINDIR):
 
 # '|' is to ignore SRCBINDIR mtime; see: info make 'Types of Prerequisites'
 $(SRCBINDIR)/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
+ifeq ($(GOOS)/$(GOARCH),darwin/amd64)
+	$(error Podman 6 dropped darwin/amd64 support. Use an ARM64 Mac or cross-compile for a different GOOS/GOARCH.)
+endif
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
