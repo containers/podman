@@ -421,6 +421,15 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	return i
 }
 
+// PodmanExitCleanly runs a podman command with args, and expects it to ExitCleanly within the default timeout.
+// It returns the session (to allow consuming output if desired).
+func (p *PodmanTestIntegration) PodmanExitCleanly(args ...string) *PodmanSessionIntegration {
+	session := p.Podman(args)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(ExitCleanly())
+	return session
+}
+
 // InspectContainer returns a container's inspect data in JSON format
 func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectContainerData {
 	cmd := []string{"inspect", name}
@@ -475,8 +484,15 @@ func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []stri
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	podmanArgs = append(podmanArgs, args...)
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
-	return p.Podman(podmanArgs)
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "top", "-b")
+	session := p.PodmanExitCleanly(podmanArgs...)
+	cid := session.OutputToString()
+	// Output indicates that top is running, which means it's safe
+	// for our caller to invoke `podman stop`
+	if !WaitContainerReady(p, cid, "Mem:", 20, 1) {
+		Fail("Could not start a top container")
+	}
+	return session
 }
 
 // RunLsContainer runs a simple container in the background that
