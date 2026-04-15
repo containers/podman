@@ -929,4 +929,23 @@ t POST containers/create?platform=linux/amd64 \
 t POST containers/create?platform=linux/aarch64 \
   Image=$IMAGE \
   404
+
+# test apiv2 create container with oci_runtime option :- https://github.com/containers/podman/issues/28429
+oci_runtimes=('runc' 'crun')
+
+# Create, Check and Delete for provided runtime container
+for runtime in "${oci_runtimes[@]}"; do
+    t POST libpod/containers/create \
+            Image=$IMAGE \
+            "oci_runtime"="$runtime" \
+            201 \
+            .Id~[0-9a-f]\\{64\\}
+
+    cid=$(jq -r '.Id' <<<"$output")
+    t GET libpod/containers/$cid/json 200 \
+    .OCIRuntime="$runtime"
+
+    t DELETE containers/$cid 204
+done
+
 podman rmi -f $IMAGE
