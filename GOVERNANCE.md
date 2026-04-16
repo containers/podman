@@ -1,6 +1,9 @@
 # Project Governance
 
-* [Contributor Ladder](#contributor-ladder-template)
+* [Subprojects](#subprojects)
+    * [Adding Subprojects](#adding-subprojects)
+    * [Removing Subprojects](#removing-subprojects)
+* [Contributor Ladder](#contributor-ladder)
     * [Contributor](#contributor)
     * [Reviewer](#reviewer)
     * [Maintainer](#maintainer)
@@ -18,9 +21,28 @@
 
 This document defines the governance of the Podman Project, including its subprojects. It defines the various roles our maintainers fill, how to become a maintainer, and how project-level decisions are made.
 
+# Subprojects
+
 The Podman project currently consists of the Podman project (the repository containing this file) and two subprojects:
 * [Buildah](https://github.com/containers/buildah)
 * [Skopeo](https://github.com/containers/skopeo/)
+
+## Adding Subprojects
+
+During a Core Maintainers meeting, any Maintainer or Core Maintainer may recommend projects to become a subproject of Podman Container Tools. These projects should have the following characteristics:
+* Are strongly related to Podman Container Tools
+* Share the Podman Container Tools mission of delivering a set of tools for building and managing containers on a single node
+* Are appropriately licensed and governed or willing to become so
+* Are under active development
+* Consist of high quality code and designs
+
+Before submitting an application to the Core Maintainers, the project in consideration must hold a consensus vote among all major contributors to join Podman Container Tools. The Core Maintainers will then review the application, and decide whether or not to accept it. If it is accepted, the Core Maintainers will assign at least one person to assist with the new subproject's integration. The definitive list of subprojects is contained above in the [Subprojects](#subprojects) section above, and the new subproject will be added to that list after its acceptance. The new subproject must map its existing maintainers to the roles defined in the [Contributor Ladder](#contributor-ladder) upon being accepted. Appointments of Community Managers and Core Maintainers from the new subproject are subject to approval by the existing Core Maintainers; other roles may be assigned freely initially, but the Contributor Ladder advancement process must be followed after the project is accepted.
+
+## Removing Subprojects
+
+In some cases, subprojects will become inactive or unmaintainable, or wish to separate from Podman Container Tools. Any Core Maintainer may propose the removal of a subproject on these grounds. Additionally, the Maintainers of any subproject may request removal of their subproject by a publicly visible majority vote (for example, via Github issue). The Core Maintainers must confirm removals with a majority vote. The subproject will be removed as from the list of subprojects in the [Subprojects](#subprojects) section above.
+
+Subprojects which still have contributors will then be moved to a repository in their own namespace. Projects which have ceased all activity will be kept in the same namespace but archived.
 
 # Contributor Ladder
 
