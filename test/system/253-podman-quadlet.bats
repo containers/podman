@@ -104,6 +104,57 @@ EOF
     assert "$output" !~ "alpine-quadlet.container" "list should not contain removed container"
 }
 
+@test "quadlet verb - list shows Pod column for container with Pod=" {
+    local base=qpodlist-$(safename)
+    local pod_unit=${base}.pod
+    local ctr_unit=${base}-ctr.container
+    local pod_file=$PODMAN_TMPDIR/$pod_unit
+    local ctr_file=$PODMAN_TMPDIR/$ctr_unit
+
+    cat > $pod_file <<EOF
+[Pod]
+PodName=$base
+EOF
+    cat > $ctr_file <<EOF
+[Container]
+Image=$IMAGE
+Pod=$pod_unit
+EOF
+
+    run_podman quadlet install $pod_file
+    run_podman quadlet install $ctr_file
+
+    run_podman quadlet list --noheading --filter name=$ctr_unit --format '{{.Name}} {{.Pod}}'
+    assert "$output" == "$ctr_unit $pod_unit" "Pod column should match Pod= quadlet filename"
+
+    run_podman quadlet list --noheading --filter pod=$pod_unit
+    assert "$output" =~ "$ctr_unit" "pod filter should match container quadlet"
+
+    run_podman quadlet list --noheading --filter "pod=nomatch-${base}*"
+    assert "$output" !~ "$ctr_unit" "pod filter should exclude non-matching Pod="
+
+    run_podman quadlet rm $ctr_unit $pod_unit
+}
+
+@test "quadlet verb - list shows empty Pod when Pod= is absent" {
+    local base=qnopod-$(safename)
+    local ctr_unit=${base}.container
+    local ctr_file=$PODMAN_TMPDIR/$ctr_unit
+
+    cat > $ctr_file <<EOF
+[Container]
+Image=$IMAGE
+EOF
+
+    run_podman quadlet install $ctr_file
+
+    run_podman quadlet list --noheading --filter name=$ctr_unit --format '{{.Pod}}'
+    assert "$output" == "" "Pod field should be empty when Pod= is not in the quadlet"
+
+    run_podman quadlet rm $ctr_unit
+}
+
+
 @test "quadlet verb - install multiple files from directory and remove by app name" {
     # Create a directory for multiple quadlet files
     local app_name="test-app-$(safe_name)"
@@ -159,7 +210,10 @@ EOF
 
     # Verify all containers were removed
     run_podman quadlet list
-    assert "$output" == "NAME        UNIT NAME   PATH ON DISK  STATUS      APPLICATION" "output should be blank"
+    assert "${#lines[@]}" -ge 1 "list should have at least a header line"
+    assert "${lines[0]}" =~ "NAME" "header should include NAME"
+    assert "${lines[0]}" =~ "POD" "header should include POD column"
+    assert "$output" !~ "alpine1.container" "list should not contain removed quadlets"
 }
 
 @test "quadlet verb - install from URL" {

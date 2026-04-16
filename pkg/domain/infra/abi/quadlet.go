@@ -624,18 +624,25 @@ func getAllQuadletPaths() []string {
 	return quadletPaths
 }
 
-// Generate systemd service name for a Quadlet from full path to the Quadlet file
-func getQuadletServiceName(quadletPath string) (string, error) {
+// getQuadletServiceNameAndUnit parses a Quadlet file and returns both the
+// generated systemd service name and the parsed unit file.
+func getQuadletServiceNameAndUnit(quadletPath string) (string, *parser.UnitFile, error) {
 	unit, err := parser.ParseUnitFile(quadletPath)
 	if err != nil {
-		return "", fmt.Errorf("parsing Quadlet file %s: %w", quadletPath, err)
+		return "", nil, fmt.Errorf("parsing Quadlet file %s: %w", quadletPath, err)
 	}
 
 	serviceName, err := systemdquadlet.GetUnitServiceName(unit)
 	if err != nil {
-		return "", fmt.Errorf("generating service name for Quadlet %s: %w", filepath.Base(quadletPath), err)
+		return "", nil, fmt.Errorf("generating service name for Quadlet %s: %w", filepath.Base(quadletPath), err)
 	}
-	return serviceName + ".service", nil
+	return serviceName + ".service", unit, nil
+}
+
+// Generate systemd service name for a Quadlet from full path to the Quadlet file
+func getQuadletServiceName(quadletPath string) (string, error) {
+	name, _, err := getQuadletServiceNameAndUnit(quadletPath)
+	return name, err
 }
 
 type QuadletFilter func(q *entities.ListQuadlet) bool
@@ -651,6 +658,10 @@ func generateQuadletFilter(filter string, filterValues []string) (func(q *entiti
 		return func(q *entities.ListQuadlet) bool {
 			res := util.StringMatchRegexSlice(q.Status, filterValues)
 			return res
+		}, nil
+	case "pod":
+		return func(q *entities.ListQuadlet) bool {
+			return util.StringMatchRegexSlice(q.Pod, filterValues)
 		}, nil
 	default:
 		return nil, fmt.Errorf("%s is not a valid filter", filter)
@@ -707,11 +718,14 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 			App:  appName,
 		}
 
-		serviceName, err := getQuadletServiceName(path)
+		serviceName, unit, err := getQuadletServiceNameAndUnit(path)
 		if err != nil {
 			report.Status = err.Error()
 			reports = append(reports, &report)
 			continue
+		}
+		if pod, ok := unit.Lookup(systemdquadlet.ContainerGroup, systemdquadlet.KeyPod); ok {
+			report.Pod = pod
 		}
 		partialReports[serviceName] = report
 		allServiceNames = append(allServiceNames, serviceName)
@@ -757,7 +771,10 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 	for _, report := range reports {
 		include := true
 		for _, filterFunc := range filterFuncs {
-			include = filterFunc(report)
+			if !filterFunc(report) {
+				include = false
+				break
+			}
 		}
 		if include {
 			finalReports = append(finalReports, report)

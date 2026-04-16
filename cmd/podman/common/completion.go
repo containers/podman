@@ -1819,6 +1819,7 @@ func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([
 func AutocompleteQuadletFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getQuadlets(cmd, s) },
+		"pod=":  func(s string) ([]string, cobra.ShellCompDirective) { return getQuadlets(cmd, s) },
 		"status=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return quadletStatuses, cobra.ShellCompDirectiveNoFileComp
 		},
