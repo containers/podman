@@ -27,19 +27,15 @@ type PortSet map[Port]struct{}
 type Port string
 
 // NewPort creates a new instance of a Port given a protocol and port number or port range
-func NewPort(proto, port string) (Port, error) {
-	// Check for parsing issues on "port" now so we can avoid having
-	// to check it later on.
-
-	portStartInt, portEndInt, err := ParsePortRangeToInt(port)
+func NewPort(proto, portOrRange string) (Port, error) {
+	start, end, err := parsePortRange(portOrRange)
 	if err != nil {
 		return "", err
 	}
-
-	if portStartInt == portEndInt {
-		return Port(fmt.Sprintf("%d/%s", portStartInt, proto)), nil
+	if start == end {
+		return Port(fmt.Sprintf("%d/%s", start, proto)), nil
 	}
-	return Port(fmt.Sprintf("%d-%d/%s", portStartInt, portEndInt, proto)), nil
+	return Port(fmt.Sprintf("%d-%d/%s", start, end, proto)), nil
 }
 
 // ParsePort parses the port number string and returns an int
@@ -47,49 +43,53 @@ func ParsePort(rawPort string) (int, error) {
 	if rawPort == "" {
 		return 0, nil
 	}
-	port, err := strconv.ParseUint(rawPort, 10, 16)
+	port, err := parsePortNumber(rawPort)
 	if err != nil {
-		return 0, fmt.Errorf("invalid port '%s': %w", rawPort, errors.Unwrap(err))
+		return 0, fmt.Errorf("invalid port '%s': %w", rawPort, err)
 	}
-	return int(port), nil
+	return port, nil
 }
 
 // ParsePortRangeToInt parses the port range string and returns start/end ints
-func ParsePortRangeToInt(rawPort string) (int, int, error) {
+func ParsePortRangeToInt(rawPort string) (startPort, endPort int, _ error) {
 	if rawPort == "" {
+		// TODO(thaJeztah): consider making this an error; this was kept to keep existing behavior.
 		return 0, 0, nil
 	}
-	start, end, err := ParsePortRange(rawPort)
-	if err != nil {
-		return 0, 0, err
-	}
-	return int(start), int(end), nil
+	return parsePortRange(rawPort)
 }
 
 // Proto returns the protocol of a Port
 func (p Port) Proto() string {
-	proto, _ := SplitProtoPort(string(p))
+	_, proto, _ := strings.Cut(string(p), "/")
+	if proto == "" {
+		proto = "tcp"
+	}
 	return proto
 }
 
 // Port returns the port number of a Port
 func (p Port) Port() string {
-	_, port := SplitProtoPort(string(p))
+	port, _, _ := strings.Cut(string(p), "/")
 	return port
 }
 
-// Int returns the port number of a Port as an int
+// Int returns the port number of a Port as an int. It assumes [Port]
+// is valid, and returns 0 otherwise.
 func (p Port) Int() int {
-	portStr := p.Port()
 	// We don't need to check for an error because we're going to
-	// assume that any error would have been found, and reported, in NewPort()
-	port, _ := ParsePort(portStr)
+	// assume that any error would have been found, and reported, in [NewPort]
+	port, _ := parsePortNumber(p.Port())
 	return port
 }
 
 // Range returns the start/end port numbers of a Port range as ints
 func (p Port) Range() (int, int, error) {
-	return ParsePortRangeToInt(p.Port())
+	portRange := p.Port()
+	if portRange == "" {
+		return 0, 0, nil
+	}
+	return parsePortRange(portRange)
 }
 
 // SplitProtoPort splits a port(range) and protocol, formatted as "<portnum>/[<proto>]"
@@ -173,6 +173,10 @@ func splitParts(rawport string) (hostIP, hostPort, containerPort string) {
 func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	ip, hostPort, containerPort := splitParts(rawPort)
 	proto, containerPort := SplitProtoPort(containerPort)
+	if containerPort == "" {
+		return nil, fmt.Errorf("no port specified: %s<empty>", rawPort)
+	}
+
 	proto = strings.ToLower(proto)
 	if err := validateProto(proto); err != nil {
 		return nil, err
@@ -189,18 +193,15 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	if ip != "" && net.ParseIP(ip) == nil {
 		return nil, errors.New("invalid IP address: " + ip)
 	}
-	if containerPort == "" {
-		return nil, fmt.Errorf("no port specified: %s<empty>", rawPort)
-	}
 
-	startPort, endPort, err := ParsePortRange(containerPort)
+	startPort, endPort, err := parsePortRange(containerPort)
 	if err != nil {
 		return nil, errors.New("invalid containerPort: " + containerPort)
 	}
 
-	var startHostPort, endHostPort uint64
+	var startHostPort, endHostPort int
 	if hostPort != "" {
-		startHostPort, endHostPort, err = ParsePortRange(hostPort)
+		startHostPort, endHostPort, err = parsePortRange(hostPort)
 		if err != nil {
 			return nil, errors.New("invalid hostPort: " + hostPort)
 		}
@@ -217,19 +218,18 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	count := endPort - startPort + 1
 	ports := make([]PortMapping, 0, count)
 
-	for i := uint64(0); i < count; i++ {
-		cPort := Port(strconv.FormatUint(startPort+i, 10) + "/" + proto)
+	for i := range count {
 		hPort := ""
 		if hostPort != "" {
-			hPort = strconv.FormatUint(startHostPort+i, 10)
+			hPort = strconv.Itoa(startHostPort + i)
 			// Set hostPort to a range only if there is a single container port
 			// and a dynamic host port.
 			if count == 1 && startHostPort != endHostPort {
-				hPort += "-" + strconv.FormatUint(endHostPort, 10)
+				hPort += "-" + strconv.Itoa(endHostPort)
 			}
 		}
 		ports = append(ports, PortMapping{
-			Port:    cPort,
+			Port:    Port(strconv.Itoa(startPort+i) + "/" + proto),
 			Binding: PortBinding{HostIP: ip, HostPort: hPort},
 		})
 	}
