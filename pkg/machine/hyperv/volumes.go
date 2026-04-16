@@ -73,6 +73,7 @@ func createShares(mc *vmconfigs.MachineConfig) (err error) {
 		}
 
 		mount.VSockNumber = &testVsock.Port
+		mc.HyperVHypervisor.FileserverVSocks = append(mc.HyperVHypervisor.FileserverVSocks, *testVsock)
 		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, testVsock.Port)
 	}
 	return nil

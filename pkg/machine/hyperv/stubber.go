@@ -31,6 +31,22 @@ type HyperVStubber struct {
 	vmconfigs.HyperVConfig
 }
 
+type permissionChecks struct {
+	isElevatedProcess   func() bool
+	isHyperVAdminMember func() bool
+	vsockEntriesExist   func(int) bool
+	existingMachinesNum func() (int, error)
+}
+
+func (h HyperVStubber) defaultPermissionChecks() permissionChecks {
+	return permissionChecks{
+		isElevatedProcess:   windows.HasAdminRights,
+		isHyperVAdminMember: IsHyperVAdminsGroupMember,
+		vsockEntriesExist:   vsock.CheckIfHVSockRegistryEntriesExist,
+		existingMachinesNum: h.countMachinesWithToolname,
+	}
+}
+
 func (h HyperVStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool {
 	return true
 }
@@ -59,12 +75,12 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 
 	// Allow creation in these two cases:
 	// 1. if the user is Admin
-	// 2. if the user has Hyper-V admin rights and there is at least one *NEW* machine.
+	// 2. if the user has Hyper-V admin rights and a vsock registry entry esist
 	// *NEW* machines are those created with the vsock entry having the ToolName field.
 	//
-	// This is to prevent a non-admin user from creating the first machine
-	// which would require adding vsock entries into the Windows Registry.
-	if err := h.canCreate(); err != nil {
+	// This is to prevent to prevent an error for trying to create a vsock entry
+	// in the Windows registry if the user doesn't have the privileges.
+	if err := h.canCreate(len(mc.Mounts)); err != nil {
 		// If it returns ErrHypervRegistryInitRequiresElevation and we're not already re-executing,
 		// offer to elevate automatically if user is in admin group
 		if errors.Is(err, ErrHypervRegistryInitRequiresElevation) &&
@@ -254,24 +270,36 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 	return []string{}, rmFunc, nil
 }
 
-func (h HyperVStubber) canCreate() error {
-	// if admin, can always create
-	if windows.HasAdminRights() {
+// canCreate checks if the user can create an Hyper-V machine.
+// It returns `nil` if the user can create it. The conditions are:
+//   - the command is running as Administrator (elevated mode)
+//     OR
+//   - vsock entries in the Windows registry already exist and
+//     the user is a member of the Hyper-V Administrators group
+//
+// The `mounts` parameter is the number of Mounts of the machine. A
+// specific Windows registry entry is necessary for every single mount.
+//
+// It returns `ErrHypervRegistryInitRequiresElevation` if the vsock
+// entries in the Windows registry don't exist.
+//
+// It returns `ErrHypervUserNotInAdminGroup` if the user doesn't
+// belogn to the Hyper-V administrators group.
+func (h HyperVStubber) canCreate(mounts int) error {
+	return checkCanCreate(h.defaultPermissionChecks(), mounts)
+}
+
+func checkCanCreate(checks permissionChecks, mounts int) error {
+	if checks.isElevatedProcess() {
 		return nil
 	}
-	// not admin, check if there is at least one existing machine
-	// if so, user could create more machines just by being member of the hyperv admin group
-	machines, err := h.countMachinesWithToolname()
-	if err != nil {
-		return err
-	}
-	// no existing machines, require to be admin
-	if machines == 0 {
+	if !checks.vsockEntriesExist(mounts) {
 		return ErrHypervRegistryInitRequiresElevation
 	}
-	// at least 1 machine exists
-	// if user is member of the hyperv admin group, allow creation
-	return VerifyHyperVPermissions()
+	if !checks.isHyperVAdminMember() {
+		return ErrHypervUserNotInAdminGroup
+	}
+	return nil
 }
 
 // launchElevate attempts to automatically re-run the command as administrator
@@ -307,29 +335,57 @@ func isLegacyMachine(mc *vmconfigs.MachineConfig) bool {
 	return mc.HyperVHypervisor != nil && mc.HyperVHypervisor.ReadyVsock.MachineName != ""
 }
 
+// canRemove checks if the user can remove an Hyper-V machine.
+// It returns `nil` when the user can remove it. The conditions are:
+//   - the command is running as Administrator (elevated mode)
+//     OR
+//   - the machine isn't a legacy one (one that doesn't share the vsock) AND
+//     the user is a member of the Hyper-V Administrators group AND
+//     it's not the last machine OR the vsock entries have `KeepAfterMachineRemove=true`
+//
+// It returns `ErrHypervRegistryRemoveRequiresElevation` if the machine is legacy one OR
+// if the vsock entry in the Windows registry doesn't have `KeepAfterMachineRemove=true`.
+//
+// It returns `ErrHypervUserNotInAdminGroup` if the user doesn't
+// belogn to the Hyper-V administrators group.
 func (h HyperVStubber) canRemove(mc *vmconfigs.MachineConfig) error {
-	// if admin, can always remove
-	if windows.HasAdminRights() {
+	return checkCanRemove(mc, h.defaultPermissionChecks())
+}
+
+func checkCanRemove(mc *vmconfigs.MachineConfig, checks permissionChecks) error {
+	if checks.isElevatedProcess() {
 		return nil
 	}
-
-	// if machine is legacy (machineName field), require admin rights to remove
 	if isLegacyMachine(mc) {
-		return ErrHypervRegistryRemoveRequiresElevation
+		return ErrHypervLegacyMachineRequiresElevation
 	}
-
-	// not admin, check if there are multiple machines
-	// if so, user could remove the machine just by being member of the hyperv admin group
-	// (only the last machine removal requires Registry changes)
-	machines, err := h.countMachinesWithToolname()
+	if !checks.isHyperVAdminMember() {
+		return ErrHypervUserNotInAdminGroup
+	}
+	machines, err := checks.existingMachinesNum()
 	if err != nil {
 		return err
 	}
-	// more than 1 machine exists, allow removal if user has hyperv admin rights
-	if machines > 1 {
-		return VerifyHyperVPermissions()
+	if canSkipVSockEntriesRemoval(machines, *mc.HyperVHypervisor) {
+		return nil
 	}
 	return ErrHypervRegistryRemoveRequiresElevation
+}
+
+func canSkipVSockEntriesRemoval(machines int, hv vmconfigs.HyperVConfig) bool {
+	if machines > 1 {
+		return true
+	}
+	if !hv.NetworkVSock.KeepAfterMachineRemove ||
+		!hv.ReadyVsock.KeepAfterMachineRemove {
+		return false
+	}
+	for _, m := range hv.FileserverVSocks {
+		if !m.KeepAfterMachineRemove {
+			return false
+		}
+	}
+	return true
 }
 
 // canStartOrStop checks if the machine can be started or stopped.
