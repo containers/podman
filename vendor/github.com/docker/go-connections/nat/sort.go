@@ -34,8 +34,10 @@ func Sort(ports []Port, predicate func(i, j Port) bool) {
 }
 
 type portMapEntry struct {
-	port    Port
-	binding PortBinding
+	port      Port
+	binding   *PortBinding
+	portInt   int
+	portProto string
 }
 
 type portMapSorter []portMapEntry
@@ -48,23 +50,36 @@ func (s portMapSorter) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 // 2. larger port
 // 3. port with tcp protocol
 func (s portMapSorter) Less(i, j int) bool {
-	pi, pj := s[i].port, s[j].port
-	hpi, hpj := toInt(s[i].binding.HostPort), toInt(s[j].binding.HostPort)
-	return hpi > hpj || pi.Int() > pj.Int() || (pi.Int() == pj.Int() && strings.ToLower(pi.Proto()) == "tcp")
+	pi, pj := s[i].portInt, s[j].portInt
+	var hpi, hpj int
+	if s[i].binding != nil {
+		hpi = toInt(s[i].binding.HostPort)
+	}
+	if s[j].binding != nil {
+		hpj = toInt(s[j].binding.HostPort)
+	}
+	return hpi > hpj || pi > pj || (pi == pj && strings.EqualFold(s[i].portProto, "tcp"))
 }
 
 // SortPortMap sorts the list of ports and their respected mapping. The ports
 // will explicit HostPort will be placed first.
-func SortPortMap(ports []Port, bindings PortMap) {
+func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 	s := portMapSorter{}
 	for _, p := range ports {
+		portInt, portProto := p.Int(), p.Proto()
 		if binding, ok := bindings[p]; ok && len(binding) > 0 {
 			for _, b := range binding {
-				s = append(s, portMapEntry{port: p, binding: b})
+				s = append(s, portMapEntry{
+					port: p, binding: &b,
+					portInt: portInt, portProto: portProto,
+				})
 			}
 			bindings[p] = []PortBinding{}
 		} else {
-			s = append(s, portMapEntry{port: p})
+			s = append(s, portMapEntry{
+				port:    p,
+				portInt: portInt, portProto: portProto,
+			})
 		}
 	}
 
@@ -81,16 +96,13 @@ func SortPortMap(ports []Port, bindings PortMap) {
 			i++
 		}
 		// reorder bindings for this port
-		if _, ok := bindings[entry.port]; ok {
-			bindings[entry.port] = append(bindings[entry.port], entry.binding)
+		if entry.binding != nil {
+			bindings[entry.port] = append(bindings[entry.port], *entry.binding)
 		}
 	}
 }
 
-func toInt(s string) uint64 {
-	i, _, err := ParsePortRange(s)
-	if err != nil {
-		i = 0
-	}
+func toInt(s string) int {
+	i, _, _ := parsePortRange(s)
 	return i
 }
