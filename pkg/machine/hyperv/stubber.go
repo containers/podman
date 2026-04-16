@@ -67,7 +67,9 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	if err := h.canCreate(); err != nil {
 		// If it returns ErrHypervRegistryInitRequiresElevation and we're not already re-executing,
 		// offer to elevate automatically if user is in admin group
-		if err == ErrHypervRegistryInitRequiresElevation && !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
+		if errors.Is(err, ErrHypervRegistryInitRequiresElevation) &&
+			!windows.IsReExecuting() &&
+			windows.IsInAdministratorsGroup() {
 			message := fmt.Sprintf("%s.\n\n%s", ErrHypervPrepareHostForHyperV.Error(), windows.UACConfirmationPrompt)
 			return launchElevate(message)
 		}
@@ -210,7 +212,9 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 	if err := h.canRemove(mc); err != nil {
 		// If we get ErrHypervRegistryRemoveRequiresElevation and we're not already re-executing,
 		// and the user has admin rights (is in admin group), offer to elevate automatically
-		if err == ErrHypervRegistryRemoveRequiresElevation && !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
+		if errors.Is(err, ErrHypervRegistryRemoveRequiresElevation) &&
+			!windows.IsReExecuting() &&
+			windows.IsInAdministratorsGroup() {
 			message := "Removing this Hyper-V machine requires admin rights to clean up the Windows Registry.\n\n" +
 				windows.UACConfirmationPrompt
 			return nil, nil, launchElevate(message)

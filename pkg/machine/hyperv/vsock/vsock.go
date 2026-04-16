@@ -108,23 +108,23 @@ func (hv *HVSockRegistryEntry) Add() error {
 		return fmt.Errorf("%q: %s", ErrVSockRegistryEntryExists, hv.KeyName)
 	}
 	parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		if err := parentKey.Close(); err != nil {
 			logrus.Error(err)
 		}
 	}()
+	newKey, _, err := registry.CreateKey(parentKey, hv.KeyName, registry.WRITE)
 	if err != nil {
 		return err
 	}
-	newKey, _, err := registry.CreateKey(parentKey, hv.KeyName, registry.WRITE)
 	defer func() {
 		if err := newKey.Close(); err != nil {
 			logrus.Error(err)
 		}
 	}()
-	if err != nil {
-		return err
-	}
 
 	if err := newKey.SetStringValue(HvsockPurpose, hv.Purpose.string()); err != nil {
 		return err
@@ -174,7 +174,7 @@ func (hv *HVSockRegistryEntry) exists() (bool, error) {
 // already being used by another hvsock in the Windows registry.
 func findOpenHVSockPort() (uint64, error) {
 	// If we cannot find a free port in 10 attempts, something is wrong
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		port, err := utils.GetRandomPort()
 		if err != nil {
 			return 0, err
@@ -190,10 +190,7 @@ func findOpenHVSockPort() (uint64, error) {
 			// the port is good to go
 			return uint64(port), nil
 		}
-		if err != nil {
-			// something went wrong
-			return 0, err
-		}
+		return 0, err
 	}
 	return 0, errors.New("unable to find a free port for hvsock use")
 }
@@ -290,8 +287,6 @@ func (hv *HVSockRegistryEntry) ListenSetupWait() (func() error, io.Closer, error
 
 // loadAllHVSockRegistryEntries loads HVSock registry entries, filtered by purpose and optionally limited by size.
 // If limit is -1, it returns all matching entries. Otherwise, it returns up to 'limit' entries.
-// The caller is responsible for closing the registry.Key in each returned HVSockRegistryEntry.
-// Non-matching or excess keys are closed within this function.
 func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegistryEntry, error) {
 	parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.ENUMERATE_SUB_KEYS)
 	if err != nil {
@@ -318,6 +313,12 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 
 		fqPath := fmt.Sprintf("%s\\%s", VsockRegistryPath, subKeyName)
 		k, err := openVSockRegistryEntry(fqPath)
+		defer func(key registry.Key) {
+			if err := key.Close(); err != nil {
+				logrus.Errorf("failed to close registry key: %v", err)
+			}
+		}(k)
+
 		if err != nil {
 			logrus.Debugf("Could not open registry entry %s: %v", fqPath, err)
 			continue
@@ -326,18 +327,15 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 		p, _, err := k.GetStringValue(HvsockPurpose)
 		if err != nil {
 			logrus.Debugf("Could not read purpose from registry entry %s: %v", fqPath, err)
-			k.Close()
 			continue
 		}
 
 		toolName, _, err := k.GetStringValue(HvsockToolName)
 		if err != nil {
 			logrus.Debugf("Could not read tool name from registry entry %s: %v", fqPath, err)
-			k.Close()
 			continue
 		}
 
-		k.Close()
 
 		entryPurpose, err := toHVSockPurpose(p)
 		if err != nil {
