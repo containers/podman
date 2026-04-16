@@ -6,24 +6,21 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/trust"
-	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/configfile"
-	"go.podman.io/storage/pkg/homedir"
 )
 
 // policyPathFromConfigfile resolves policy.json the same way as [signature.DefaultPolicy]
 // (via [configfile.Read]); overridePath, if non-empty, wins.
-func policyPathFromConfigfile(sys *types.SystemContext, overridePath string) string {
+func policyPathFromConfigfile(sys *types.SystemContext, overridePath string) (string, error) {
 	if overridePath != "" {
-		return overridePath
+		return overridePath, nil
 	}
 	if sys != nil && sys.SignaturePolicyPath != "" {
-		return sys.SignaturePolicyPath
+		return sys.SignaturePolicyPath, nil
 	}
 
 	root := ""
@@ -37,24 +34,18 @@ func policyPathFromConfigfile(sys *types.SystemContext, overridePath string) str
 		DoNotLoadDropInFiles:         true,
 		EnvironmentName:              "CONTAINERS_POLICY_JSON",
 		RootForImplicitAbsolutePaths: root,
-		ErrorIfNotFound:              false,
+		ErrorIfNotFound:              true,
 	}
 
 	for item, err := range configfile.Read(&policyFiles) {
 		if err != nil {
-			logrus.Warnf("Resolving default policy path: %v", err)
-			break
+			return "", err
 		}
 		if item != nil {
-			return item.Name
+			return item.Name, nil
 		}
 	}
-	userDir, err := configfile.UserConfigPath()
-	if err != nil {
-		logrus.Warnf("Error resolving user config path for policy: %v", err)
-		return filepath.Join(homedir.Get(), filepath.FromSlash(".config/containers/policy.json"))
-	}
-	return filepath.Join(userDir, "policy.json")
+	return "", fmt.Errorf("internal error: empty result from configfile.Read while resolving policy path")
 }
 
 func (ir *ImageEngine) ShowTrust(_ context.Context, _ []string, options entities.ShowTrustOptions) (*entities.ShowTrustReport, error) {
@@ -62,7 +53,10 @@ func (ir *ImageEngine) ShowTrust(_ context.Context, _ []string, options entities
 		err    error
 		report entities.ShowTrustReport
 	)
-	policyPath := policyPathFromConfigfile(ir.Libpod.SystemContext(), options.PolicyPath)
+	policyPath, err := policyPathFromConfigfile(ir.Libpod.SystemContext(), options.PolicyPath)
+	if err != nil {
+		return nil, err
+	}
 	report.Raw, err = os.ReadFile(policyPath)
 	if err != nil {
 		return nil, err
