@@ -507,8 +507,8 @@ github.com/fsnotify/fsnotify/internal
 # github.com/fsouza/go-dockerclient v1.12.1
 ## explicit; go 1.23
 github.com/fsouza/go-dockerclient
-# github.com/go-jose/go-jose/v4 v4.0.5
-## explicit; go 1.21
+# github.com/go-jose/go-jose/v4 v4.1.4
+## explicit; go 1.24.0
 github.com/go-jose/go-jose/v4
 github.com/go-jose/go-jose/v4/cipher
 github.com/go-jose/go-jose/v4/json
