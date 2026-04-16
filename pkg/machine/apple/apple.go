@@ -180,6 +180,14 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 	}
 	vm.Devices = append(vm.Devices, mounts...)
 
+	timesync, err := vfConfig.TimeSyncNew(1234)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := vm.AddDevice(timesync); err != nil {
+		return nil, nil, err
+	}
+
 	// To start the VM, we need to call vfkit
 	cfg, err := config.Default()
 	if err != nil {
