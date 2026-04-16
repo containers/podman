@@ -100,7 +100,6 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {
-	var err error
 	decoder := utils.GetDecoder(r)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
@@ -139,10 +138,12 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Changes = util.DecodeChanges(query.Changes)
 	if r.Body != nil {
 		defer r.Body.Close()
-		if options.CommitOptions.OverrideConfig, err = abi.DecodeOverrideConfig(r.Body); err != nil {
+		overrideConfig, err := abi.DecodeOverrideConfig(r.Body)
+		if err != nil {
 			utils.Error(w, http.StatusBadRequest, err)
 			return
 		}
+		options.CommitOptions.OverrideConfig = overrideConfig
 	}
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
