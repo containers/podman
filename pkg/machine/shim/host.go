@@ -862,11 +862,18 @@ func Reset(mps []vmconfigs.VMProvider, _ machine.ResetOptions) error {
 				resetErrors = multierror.Append(resetErrors, err)
 			}
 
-			if err := genericRm(); err != nil {
-				resetErrors = multierror.Append(resetErrors, err)
+			if genericRm != nil {
+				if err := genericRm(); err != nil {
+					resetErrors = multierror.Append(resetErrors, err)
+				}
 			}
-			if err := providerRm(); err != nil {
-				resetErrors = multierror.Append(resetErrors, err)
+			// We must check if the returned providerRm function is not nil before executing it.
+			// If a provider (like Hyper-V) encountered an error during the removal setup
+			// phase (e.g., a cancelled 'runas' elevation), it returns nil for the function.
+			if providerRm != nil {
+				if err := providerRm(); err != nil {
+					resetErrors = multierror.Append(resetErrors, err)
+				}
 			}
 		}
 	}
