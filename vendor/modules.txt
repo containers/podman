@@ -132,8 +132,8 @@ github.com/containers/libtrust
 # github.com/containers/luksy v0.0.0-20251208191447-ca096313c38f
 ## explicit; go 1.24.0
 github.com/containers/luksy
-# github.com/containers/ocicrypt v1.2.1
-## explicit; go 1.22
+# github.com/containers/ocicrypt v1.3.0
+## explicit; go 1.24.0
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
 github.com/containers/ocicrypt/config

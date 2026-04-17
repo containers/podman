@@ -13,7 +13,7 @@ require (
 	github.com/containers/buildah v1.42.1-0.20260318164928-eb9c9b9d2fc8
 	github.com/containers/gvisor-tap-vsock v0.8.8
 	github.com/containers/libhvee v0.11.0
-	github.com/containers/ocicrypt v1.2.1
+	github.com/containers/ocicrypt v1.3.0
 	github.com/containers/psgo v1.10.0
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.7.0
