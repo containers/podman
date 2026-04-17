@@ -165,31 +165,6 @@ t POST "libpod/quadlets?replace=true" "$TMPD/$quadlet_2.tar" 200 \
 t GET "libpod/quadlets/$quadlet_2/file" 200
 is "$output" "$quadlet_2_content" "quadlet-1 should be overwritten by quadlet-2"
 
-# Scenario: install multiple quadlets at once in a single tar will fail
-quadlet_3=quadlet-test-3-$(cat /proc/sys/kernel/random/uuid).container
-quadlet_4=quadlet-test-4-$(cat /proc/sys/kernel/random/uuid).container
-
-quadlet_3_content=$(cat << EOF
-[Container]
-ContainerName=quadlet-3
-Image=quay.io/podman/hello
-EOF
-)
-
-quadlet_4_content=$(cat << EOF
-[Container]
-ContainerName=quadlet-4
-Image=quay.io/podman/hello
-EOF
-)
-
-echo "$quadlet_3_content" > "$TMPD/$quadlet_3"
-echo "$quadlet_4_content" > "$TMPD/$quadlet_4"
-tar --format=posix -C "$TMPD" -cvf "$TMPD/$quadlet_3_4.tar" "$quadlet_3" "$quadlet_4" &> /dev/null
-
-t POST "libpod/quadlets" "$TMPD/$quadlet_3_4.tar" 400 \
-    .cause="only a single quadlet file is allowed per request"
-
 # Scenario: install tar that contains one quadlet file and a non-quadlet file will succeed
 # then update the quadlet file, and the non-quadlet file, and verify the update is successful
 quadlet_5=quadlet-test-5-$(cat /proc/sys/kernel/random/uuid).container
@@ -225,33 +200,33 @@ echo "$quadlet_5_content" > "$TMPD/$quadlet_5"
 echo "$containerfile_1_content" > "$TMPD/$containerfile_1"
 tar --format=posix -C "$TMPD" -cvf "$TMPD/$quadlet_5$containerfile_1.tar" "$quadlet_5" "$containerfile_1" &> /dev/null
 
-t POST "libpod/quadlets" "$TMPD/$quadlet_5$containerfile_1.tar" 200 \
+t POST "libpod/quadlets?application=bar" "$TMPD/$quadlet_5$containerfile_1.tar" 200 \
     '.InstalledQuadlets|length=2' \
     '.QuadletErrors|length=0'
 
 t GET "libpod/quadlets/$quadlet_5/file" 200
 is "$output" "$quadlet_5_content" "quadlet-5 should be installed"
-is "$(cat "$quadlet_install_dir/$containerfile_1")" "$containerfile_1_content" "containerfile_1 should be installed"
+is "$(cat "$quadlet_install_dir/bar/$containerfile_1")" "$containerfile_1_content" "containerfile_1 should be installed"
 
 echo "$quadlet_5_updated_content" > "$TMPD/$quadlet_5"
 echo "$containerfile_1_updated_content" > "$TMPD/$containerfile_1"
 tar --format=posix -C "$TMPD" -cvf "$TMPD/$quadlet_5$containerfile_1.tar" "$quadlet_5" "$containerfile_1" &> /dev/null
 
 # update with no replace and check nothing changed
-t POST "libpod/quadlets" "$TMPD/$quadlet_5$containerfile_1.tar" 400
+t POST "libpod/quadlets?application=bar" "$TMPD/$quadlet_5$containerfile_1.tar" 400
 
 t GET "libpod/quadlets/$quadlet_5/file" 200
 is "$output" "$quadlet_5_content" "quadlet-5 should be installed"
-is "$(cat "$quadlet_install_dir/$containerfile_1")" "$containerfile_1_content" "containerfile_1 should be installed"
+is "$(cat "$quadlet_install_dir/bar/$containerfile_1")" "$containerfile_1_content" "containerfile_1 should be installed"
 
 # replace
-t POST "libpod/quadlets?replace=true" "$TMPD/$quadlet_5$containerfile_1.tar" 200 \
+t POST "libpod/quadlets?replace=true&application=bar" "$TMPD/$quadlet_5$containerfile_1.tar" 200 \
     '.InstalledQuadlets|length=2' \
     '.QuadletErrors|length=0'
 
 t GET "libpod/quadlets/$quadlet_5/file" 200
 is "$output" "$quadlet_5_updated_content" "quadlet-5 should be updated"
-is "$(cat "$quadlet_install_dir/$containerfile_1")" "$containerfile_1_updated_content" "containerfile_1 should be installed"
+is "$(cat "$quadlet_install_dir/bar/$containerfile_1")" "$containerfile_1_updated_content" "containerfile_1 should be installed"
 
 # Scenario: test a multipart call, then update without replace, and then replace
 quadlet_6=quadlet-test-6-$(cat /proc/sys/kernel/random/uuid).container
@@ -307,6 +282,54 @@ t POST "libpod/quadlets?replace=true" --form="quadlet_6=@$TMPD/$quadlet_6" --for
 t GET "libpod/quadlets/$quadlet_6/file" 200
 is "$output" "$quadlet_6_updated_content" "quadlet-6 should be updated"
 is "$(cat "$quadlet_install_dir/$containerfile_2")" "$containerfile_2_updated_content" "containerfile_2 should be updated"
+
+
+# Scenario: install and remove quadlets as application
+quadlet_app_1=quadlet-app-test-1-$(cat /proc/sys/kernel/random/uuid).container
+quadlet_app_2=quadlet-app-test-2-$(cat /proc/sys/kernel/random/uuid).container
+quadlet_app_1_content=$(cat << EOF
+[Container]
+ContainerName=quadlet-1
+Image=quay.io/podman/hello
+EOF
+)
+quadlet_app_2_content=$(cat << EOF
+[Container]
+ContainerName=quadlet-2
+Image=quay.io/podman/hello
+EOF
+)
+
+echo "$quadlet_app_1_content" > "$TMPD/$quadlet_app_1"
+echo "$quadlet_app_2_content" > "$TMPD/$quadlet_app_2"
+tar --format=posix -C "$TMPD" -cvf "$TMPD/$quadlet_app.tar" "$quadlet_app_1" "$quadlet_app_2" &> /dev/null
+
+t POST "libpod/quadlets?application=hello-world" "$TMPD/$quadlet_app.tar" 200 \
+    '.InstalledQuadlets|length=2' \
+    '.QuadletErrors|length=0'
+is "$(cat "$quadlet_install_dir/hello-world/$quadlet_app_1")" "$quadlet_app_1_content" "quadlet_app_1 should be installed in subdirectory"
+is "$(cat "$quadlet_install_dir/hello-world/$quadlet_app_2")" "$quadlet_app_2_content" "quadlet_app_2 should be installed in subdirectory"
+
+t GET "libpod/quadlets/$quadlet_app_1/file" 200
+is "$output" "$quadlet_app_1_content" "quadlet_app_1 should be installed"
+
+t GET "libpod/quadlets/$quadlet_app_2/file" 200
+is "$output" "$quadlet_app_2_content" "quadlet_app_2 should be installed"
+
+filter_param='{"app":["hello-world"]}'
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+    length=2 \
+   .[0].Name="$quadlet_app_1" \
+   .[0].App="hello-world" \
+   .[1].Name="$quadlet_app_2" \
+   .[1].App="hello-world"
+
+t DELETE "libpod/quadlets/hello-world?recursive=true" 200 \
+    '.Removed|length=2' \
+    '.Errors|length=0'
+
+t GET "libpod/quadlets/$quadlet_app_1/file" 404
+t GET "libpod/quadlets/$quadlet_app_2/file" 404
 
 # clean up
 

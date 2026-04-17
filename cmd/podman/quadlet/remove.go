@@ -15,7 +15,7 @@ var (
 	quadletRmDescription = `Remove one or more installed Quadlets from the current user`
 
 	quadletRmCmd = &cobra.Command{
-		Use:               "rm [options] QUADLET [QUADLET...]",
+		Use:               "rm [options] [QUADLET] [QUADLET...]",
 		Short:             "Remove Quadlets",
 		Long:              quadletRmDescription,
 		RunE:              rm,
@@ -35,6 +35,7 @@ func rmFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&removeOptions.All, "all", "a", false, "Remove all Quadlets for the current user")
 	flags.BoolVarP(&removeOptions.Ignore, "ignore", "i", false, "Do not error for Quadlets that do not exist")
 	flags.BoolVar(&removeOptions.ReloadSystemd, "reload-systemd", true, "Reload systemd after removal")
+	flags.BoolVar(&removeOptions.Recursive, "recursive", true, "Used to remove application")
 }
 
 func init() {

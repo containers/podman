@@ -130,7 +130,7 @@ Environment=FOO1=foo1
 Exec=sh -c "echo STARTED NGINX; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
 EOF
     # Test quadlet install with directory
-    run_podman quadlet install $quadlet_dir
+    run_podman quadlet install --application=foo $quadlet_dir
 
     # Test quadlet list to verify all containers were installed
     run_podman quadlet list
@@ -155,7 +155,7 @@ EOF
     assert "$output" =~ "Environment=FOO1=foo1" "print should contain environment for nginx container"
 
     # Test quadlet rm for all containers
-    run_podman quadlet rm ".$app_name.app"
+    run_podman quadlet rm "foo" --recursive
 
     # Verify all containers were removed
     run_podman quadlet list
@@ -231,10 +231,10 @@ EOF
     local install_dir=$(get_quadlet_install_dir)
 
     # Test quadlet install with the directory containing the quadlet and test file
-    run_podman quadlet install $quadlet_dir $test_file
+    run_podman quadlet install --application=bar $quadlet_dir $test_file
 
     # Verify the content of the installed test.txt file
-    run -0 cat "$install_dir/test.txt"
+    run -0 cat "$install_dir/bar/test.txt"
     assert "$output" == "$mount_content" "installed test.txt should have correct content"
 
     # Test quadlet list to verify the container was installed
@@ -508,7 +508,7 @@ EOF
     # Test quadlet rm --ignore behavior
     # Try to remove non-existent quadlets without --ignore (should fail)
     run_podman 125 quadlet rm non-existent.container
-    assert "$output" =~ "could not locate quadlet" "should fail to remove non-existent quadlet without --ignore"
+    assert "$output" =~ "some quadlets could not be removed" "should fail to remove non-existent quadlet without --ignore"
 
     # Try to remove non-existent quadlets with --ignore (should succeed)
     run_podman quadlet rm --ignore non-existent1.container non-existent2.container
@@ -545,28 +545,6 @@ EOF
     local install_dir=$(get_quadlet_install_dir)
     run cat "$install_dir/long.container"
     assert "$output" == "$(<$PODMAN_TMPDIR/long.container)" "File was correctly truncated/replaced atomically"
-
-    # --- VERIFICATION 2: CHECK FOR DUPLICATES IN .APP FILE ---
-
-    local app_file="$install_dir/.long.container.app"
-
-    # Check if the file exists
-    if [ ! -f "$app_file" ]; then
-        # If .app is missing, check if .asset was created instead (debugging IsExtSupported)
-        if [ -f "$install_dir/.long.container.asset" ]; then
-             die "Failed: Created .asset file instead of .app file. IsExtSupported check failed?"
-        fi
-        die "Failed: .app file not found at $app_file"
-    fi
-
-    # Check content of the .app file
-    run cat "$app_file"
-    # It should contain exactly one line: "long.container"
-    assert "$output" == "long.container" ".app file should contain the quadlet name"
-
-    # Ensure no duplicates (line count should be 1)
-    run wc -l < "$app_file"
-    assert "$output" -eq 1 "Should only be listed once in tracking files"
 
     # Cleanup: Remove the installed quadlet
     run_podman quadlet rm long.container

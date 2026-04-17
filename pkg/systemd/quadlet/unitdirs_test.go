@@ -24,11 +24,11 @@ func TestUnitDirs(t *testing.T) {
 	assert.NoError(t, err)
 
 	if os.Getenv("_UNSHARED") != "true" {
-		unitDirs := GetUnitDirs(false)
+		unitDirs := GetUnitDirs(false, true)
 
 		resolvedUnitDirAdminUser := ResolveUnitDirAdminUser()
 		userLevelFilter := GetUserLevelFilter(resolvedUnitDirAdminUser)
-		rootfulPaths := NewSearchPaths()
+		rootfulPaths := NewSearchPaths(true)
 		AppendSubPaths(rootfulPaths, UnitDirTemp, false, userLevelFilter)
 		AppendSubPaths(rootfulPaths, UnitDirAdmin, false, userLevelFilter)
 		AppendSubPaths(rootfulPaths, UnitDirDistro, false, userLevelFilter)
@@ -37,7 +37,7 @@ func TestUnitDirs(t *testing.T) {
 		configDir, err := os.UserConfigDir()
 		assert.NoError(t, err)
 
-		rootlessPaths := NewSearchPaths()
+		rootlessPaths := NewSearchPaths(true)
 
 		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
 		nonNumericFilter := GetNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
@@ -52,20 +52,20 @@ func TestUnitDirs(t *testing.T) {
 		AppendSubPaths(rootlessPaths, filepath.Join(UnitDirDistro, "users"), true, nonNumericFilter)
 		AppendSubPaths(rootlessPaths, filepath.Join(UnitDirDistro, "users", u.Uid), true, userLevelFilter)
 
-		unitDirs = GetUnitDirs(true)
+		unitDirs = GetUnitDirs(true, true)
 		assert.Equal(t, rootlessPaths.GetSortedPaths(), unitDirs, "rootless unit dirs should match")
 
 		// Test that relative path returns an empty list
 		t.Setenv("QUADLET_UNIT_DIRS", "./relative/path")
-		unitDirs = GetUnitDirs(false)
+		unitDirs = GetUnitDirs(false, true)
 		assert.Equal(t, []string{}, unitDirs)
 
 		name := t.TempDir()
 		t.Setenv("QUADLET_UNIT_DIRS", name)
-		unitDirs = GetUnitDirs(false)
+		unitDirs = GetUnitDirs(false, true)
 		assert.Equal(t, []string{name}, unitDirs, "rootful should use environment variable")
 
-		unitDirs = GetUnitDirs(true)
+		unitDirs = GetUnitDirs(true, true)
 		assert.Equal(t, []string{name}, unitDirs, "rootless should use environment variable")
 
 		symLinkTestBaseDir := t.TempDir()
@@ -80,7 +80,7 @@ func TestUnitDirs(t *testing.T) {
 		err = os.Symlink(actualDir, symlink)
 		assert.NoError(t, err)
 		t.Setenv("QUADLET_UNIT_DIRS", symlink)
-		unitDirs = GetUnitDirs(true)
+		unitDirs = GetUnitDirs(true, true)
 		assert.Equal(t, []string{actualDir, innerDir}, unitDirs, "directory resolution should follow symlink")
 
 		// Make a more elborate test with the following structure:
@@ -142,7 +142,7 @@ func TestUnitDirs(t *testing.T) {
 		linkDir(unitsDirPath, "c", linkToDirPath)
 
 		t.Setenv("QUADLET_UNIT_DIRS", unitsDirPath)
-		unitDirs = GetUnitDirs(true)
+		unitDirs = GetUnitDirs(true, true)
 		assert.Equal(t, expectedDirs, unitDirs, "directory resolution should follow symlink")
 		// remove the temporary directory at the end of the program
 		defer os.RemoveAll(symLinkTestBaseDir)
@@ -223,14 +223,14 @@ func TestUnitDirs(t *testing.T) {
 		// Make sure QUADLET_UNIT_DIRS is not set
 		t.Setenv("QUADLET_UNIT_DIRS", "")
 		// Test Rootful
-		unitDirs := GetUnitDirs(false)
+		unitDirs := GetUnitDirs(false, true)
 		assert.NotContains(t, unitDirs, userDir, "rootful should not contain rootless")
 		assert.NotContains(t, unitDirs, userInternalDir, "rootful should not contain rootless")
 		assert.NotContains(t, unitDirs, distroUserDir, "rootful should not contain distro rootless")
 		assert.NotContains(t, unitDirs, distroInternalDir, "rootful should not contain distro rootless")
 
 		// Test Rootless
-		unitDirs = GetUnitDirs(true)
+		unitDirs = GetUnitDirs(true, true)
 		assert.NotContains(t, unitDirs, uidDir2, "rootless should not contain other users'")
 		assert.Contains(t, unitDirs, userInternalDir, "rootless should contain sub-directories of users dir")
 		assert.Contains(t, unitDirs, uidDir, "rootless should contain the directory for its UID")

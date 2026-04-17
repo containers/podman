@@ -29,6 +29,10 @@ Remove running quadlets.
 
 Do not error for Quadlets that do not exist.
 
+#### **--recursive**
+
+When an application name is specified, you need to specify --recursive flag to remove all the Quadlets which belongs to that specific application.
+
 #### **--reload-systemd**
 
 Reload systemd after removing Quadlets (default true).
