@@ -516,7 +516,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// tags:
 	//   - containers (compat)
 	// summary: Wait on a container
-	// description: Block until a container stops or given condition is met.
+	// description: |
+	//   Block until a container stops or given condition is met.
+	//   This is a Docker-compatible endpoint.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -526,19 +528,16 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: condition
 	//    type: string
+	//    default: not-running
 	//    description: |
-	//      wait until container is to a given condition. default is stopped. valid conditions are:
-	//        - configured
-	//        - created
-	//        - exited
-	//        - paused
-	//        - running
-	//        - stopped
-	//  - in: query
-	//    name: interval
-	//    type: string
-	//    default: "250ms"
-	//    description: Time Interval to wait before polling for completion.
+	//      Wait condition.  Valid values are:
+	//        - not-running (default) - return when the container is not running
+	//          (stopped, exited, or was never started).
+	//        - next-exit - wait for the next time the container stops.
+	//          If the container is running, block until it exits.
+	//          If the container is already stopped, block until
+	//          the next start-and-exit cycle.
+	//        - removed - wait until the container is removed.
 	// produces:
 	// - application/json
 	// responses:
