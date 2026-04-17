@@ -204,7 +204,12 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to create tempfile: %w", err))
 			return
 		}
-
+		defer func() {
+			err := os.Remove(f.Name())
+			if err != nil {
+				logrus.Errorf("Failed to remove temporary file: %v.", err)
+			}
+		}()
 		source = f.Name()
 		if err := SaveFromBody(f, r); err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to write temporary file: %w", err))
