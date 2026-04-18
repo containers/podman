@@ -3,10 +3,12 @@
 package compat
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
+	"math/bits"
 	"net"
 	"net/http"
 	"net/netip"
@@ -123,7 +125,9 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 		ipamConfig := dockerNetwork.IPAMConfig{
 			Subnet:  subnet,
 			Gateway: gateway,
-			// TODO add range
+		}
+		if ipRange, ok := leaseRangeToIPRangePrefix(sub.LeaseRange); ok {
+			ipamConfig.IPRange = ipRange
 		}
 		ipamConfigs = append(ipamConfigs, ipamConfig)
 	}
@@ -505,4 +509,60 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 		prunedNetworks = append(prunedNetworks, pr.Name)
 	}
 	utils.WriteResponse(w, http.StatusOK, response{NetworksDeleted: prunedNetworks})
+}
+
+// leaseRangeToIPRangePrefix converts a LeaseRange back to a CIDR prefix for the Docker
+// compat API. This is the reverse of the conversion done in createNetwork, where an
+// IPRange CIDR (e.g. "192.168.0.128/25") is expanded to [FirstIP, LastIP] via
+// FirstIPInSubnet/LastIPInSubnet. FirstIPInSubnet returns network+1 (first usable host),
+// so StartIP is one greater than the network address. LastIPInSubnet returns the broadcast.
+// Only succeeds for IPv4 ranges that form a valid aligned CIDR block.
+func leaseRangeToIPRangePrefix(lr *nettypes.LeaseRange) (netip.Prefix, bool) {
+	if lr == nil || lr.StartIP == nil || lr.EndIP == nil {
+		return netip.Prefix{}, false
+	}
+	start4 := lr.StartIP.To4()
+	end4 := lr.EndIP.To4()
+	if start4 == nil || end4 == nil {
+		// IPv6 not supported: no lossless round-trip without storing the original CIDR
+		return netip.Prefix{}, false
+	}
+
+	startU := binary.BigEndian.Uint32(start4)
+	endU := binary.BigEndian.Uint32(end4)
+
+	if endU < startU {
+		return netip.Prefix{}, false
+	}
+
+	// For /32, FirstIPInSubnet returns the address unchanged so StartIP == EndIP.
+	if startU == endU {
+		addr, _ := netip.AddrFromSlice(start4)
+		return netip.PrefixFrom(addr.Unmap(), 32), true
+	}
+
+	// For all other subnets, FirstIPInSubnet increments the network address by 1,
+	// so the actual network address is StartIP - 1.
+	if startU == 0 {
+		return netip.Prefix{}, false
+	}
+	networkU := startU - 1
+	totalIPs := endU - networkU + 1
+
+	// A valid CIDR block size must be a power of two.
+	if bits.OnesCount32(totalIPs) != 1 {
+		return netip.Prefix{}, false
+	}
+	prefixLen := 32 - bits.TrailingZeros32(totalIPs)
+
+	var netBytes [4]byte
+	binary.BigEndian.PutUint32(netBytes[:], networkU)
+	networkAddr, _ := netip.AddrFromSlice(netBytes[:])
+	proposedPrefix := netip.PrefixFrom(networkAddr.Unmap(), prefixLen)
+
+	// Verify network boundary alignment: network address must be at the subnet boundary.
+	if proposedPrefix.Masked() != proposedPrefix {
+		return netip.Prefix{}, false
+	}
+	return proposedPrefix, true
 }
