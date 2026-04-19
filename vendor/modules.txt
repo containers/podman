@@ -384,8 +384,8 @@ github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.13
 ## explicit; go 1.13
 github.com/mattn/go-shellwords
-# github.com/mattn/go-sqlite3 v1.14.39
-## explicit; go 1.19
+# github.com/mattn/go-sqlite3 v1.14.42
+## explicit; go 1.21
 github.com/mattn/go-sqlite3
 # github.com/mdlayher/socket v0.5.1
 ## explicit; go 1.20
