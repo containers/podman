@@ -798,6 +798,7 @@ type InspectContainerData struct {
 	HostConfig              *InspectContainerHostConfig `json:"HostConfig"`
 	UseImageHosts           bool                        `json:"UseImageHosts"`
 	UseImageHostname        bool                        `json:"UseImageHostname"`
+        CompatDependencies      *InspectDependencies        `json:"CompatDependencies,omitempty"`
 }
 
 // InspectExecSession contains information about a given exec session.
@@ -871,4 +872,10 @@ type InspectSecret struct {
 	GID uint32 `json:"GID"`
 	// ID is the ID of the mode of the mounted secret file
 	Mode uint32 `json:"Mode"`
+}
+
+// InspectDependencies holds basic dependency information for a container.
+type InspectDependencies struct {
+    DependsOn  []string `json:"DependsOn,omitempty"`
+    Dependents []string `json:"Dependents,omitempty"`
 }

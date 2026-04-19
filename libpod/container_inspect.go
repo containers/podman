@@ -165,8 +165,8 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		AppArmorProfile:         ctrSpec.Process.ApparmorProfile,
 		ExecIDs:                 execIDs,
 		GraphDriver:             driverData,
+		Dependencies:		 c.Dependencies(),
 		Mounts:                  inspectMounts,
-		Dependencies:            c.Dependencies(),
 		IsInfra:                 c.IsInfra(),
 		IsService:               c.IsService(),
 		KubeExitCodePropagation: config.KubeExitCodePropagation.String(),
@@ -174,6 +174,27 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		UseImageHosts:           c.config.UseImageHosts,
 		UseImageHostname:        c.config.UseImageHostname,
 	}
+
+		deps := &define.InspectDependencies{
+    			DependsOn:  []string{},
+    			Dependents: []string{},
+		}
+
+		// Read from labels (safe extension)
+		if config != nil && config.Labels != nil {
+    			if dep, ok := config.Labels["depends_on"]; ok && dep != "" {
+        			parts := strings.Split(dep, ",")
+        		for i := range parts {
+            			parts[i] = strings.TrimSpace(parts[i])
+        		}
+        		deps.DependsOn = parts
+    		    }
+		}
+		// Populate CompatDependencies based on "depends_on" label.
+		// This is a non-invasive enhancement to expose user-defined relationships.
+                if len(deps.DependsOn) > 0 {
+    		   data.CompatDependencies = deps
+		}
 
 	if config.RootfsImageID != "" { // May not be set if the container was created with --rootfs
 		image, _, err := c.runtime.libimageRuntime.LookupImage(config.RootfsImageID, nil)
