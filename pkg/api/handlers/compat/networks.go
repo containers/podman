@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"net"
 	"net/http"
 	"net/netip"
@@ -141,12 +140,6 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 	if changeDefaultName && name == runtime.Network().DefaultNetworkName() {
 		name = nettypes.BridgeNetworkDriver
 	}
-	// Make sure to clone the map as we have access to the map stored in
-	// the network backend and will overwrite it which is not good.
-	options := maps.Clone(network.Options)
-	// bridge always has isolate set in the compat API but we should not return it to not confuse callers
-	// https://github.com/containers/podman/issues/15580
-	delete(options, nettypes.IsolateOption)
 
 	report := dockerNetwork.Inspect{
 		Network: dockerNetwork.Network{
@@ -163,7 +156,7 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 			Ingress:    false,
 			ConfigFrom: dockerNetwork.ConfigReference{},
 			ConfigOnly: false,
-			Options:    options,
+			Options:    network.Options,
 			Labels:     network.Labels,
 			Peers:      nil,
 		},
@@ -234,11 +227,6 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	network.Options = make(map[string]string)
-
-	// dockers bridge networks are always isolated from each other
-	if network.Driver == nettypes.BridgeNetworkDriver {
-		network.Options[nettypes.IsolateOption] = "true"
-	}
 
 	for opt, optVal := range networkCreate.Options {
 		switch opt {
