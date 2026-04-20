@@ -41,6 +41,9 @@ type ListQuadlet struct {
 	// If multiple quadlets were installed together they will belong
 	// to common App.
 	App string
+	// Pod is the pod Quadlet file referenced by Pod= in [Container]
+	// Empty for quadlet types that do not support Pod=
+	Pod string
 }
 
 // QuadletRemoveOptions contains parameters for removing Quadlets

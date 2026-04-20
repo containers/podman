@@ -26,6 +26,7 @@ func (s *APIServer) registerQuadletHandlers(r *mux.Router) error {
 	//      JSON encoded value of the filters (a map[string][]string).
 	//      Supported filters:
 	//        - name=<quadlet-name> Filter by quadlet name
+	//        - pod=<pod-quadlet> Filter by Pod= value (container quadlets only)
 	// responses:
 	//   200:
 	//     $ref: "#/responses/quadletListResponse"

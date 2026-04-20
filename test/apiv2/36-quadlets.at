@@ -76,7 +76,28 @@ t GET "libpod/quadlets/json?filters=$filter_param" 200 \
 filter_param=$(printf '{"name":["%s"]}' "$quadlet_container_name")
 t GET "libpod/quadlets/json?filters=$filter_param" 200 \
     length=1 \
-   .[0].Name="$quadlet_container_name"
+   .[0].Name="$quadlet_container_name" \
+   .[0].Pod=""
+
+quadlet_podfilter_pod="${quadlet_name}-pod.pod"
+quadlet_podfilter_ctr="${quadlet_name}-podc.container"
+cat > $TMPD/$quadlet_podfilter_pod << EOF
+[Pod]
+PodName=podfilter-${quadlet_name}
+EOF
+cat > $TMPD/$quadlet_podfilter_ctr << EOF
+[Container]
+Image=$IMAGE
+Pod=$quadlet_podfilter_pod
+EOF
+podman quadlet install $TMPD/$quadlet_podfilter_pod
+podman quadlet install $TMPD/$quadlet_podfilter_ctr
+
+filter_param=$(printf '{"pod":["%s"]}' "$quadlet_podfilter_pod")
+t GET "libpod/quadlets/json?filters=$filter_param" 200 \
+   length=1 \
+   .[0].Name="$quadlet_podfilter_ctr" \
+   .[0].Pod="$quadlet_podfilter_pod"
 
 t GET "libpod/quadlets/$quadlet_name/file" 404
 
@@ -92,8 +113,7 @@ t GET "libpod/quadlets/$quadlet_container_name/exists" 204
 # Test exists endpoint returns 500 for quadlet without extension
 t GET "libpod/quadlets/$quadlet_name/exists" 500
 
-podman quadlet rm $quadlet_container_name
-podman quadlet rm $quadlet_build_name
+podman quadlet rm $quadlet_podfilter_ctr $quadlet_podfilter_pod $quadlet_container_name $quadlet_build_name
 rm -rf $TMPD
 
 

@@ -39,7 +39,7 @@ func listFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.StringArrayVarP(&listOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
-	flags.StringVar(&format, formatFlagName, "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\t{{.App}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
+	flags.StringVar(&format, formatFlagName, "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\t{{.App}}\t{{.Pod}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
 	_ = quadletListCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListQuadlet{}))
 	_ = quadletListCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteQuadletFilters)
 
@@ -92,6 +92,7 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.ListQuadlet) error
 			"Path":     "PATH ON DISK",
 			"Status":   "STATUS",
 			"App":      "APPLICATION",
+			"Pod":      "POD",
 		})
 
 		if err := rpt.Execute(headers); err != nil {
