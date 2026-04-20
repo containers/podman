@@ -64,3 +64,10 @@ t POST "libpod/containers/${cid}/wait?condition=running" 404
 t POST "libpod/containers/${CTR}/wait" 404
 t POST "libpod/containers/${cid}/wait" 200 \
  "3"
+
+CTR2="waitNextExit"
+podman run -d --name "${CTR2}" "${IMAGE}" sh -c "sleep 5; exit 42"
+t POST "containers/${CTR2}/wait?condition=next-exit" 200 \
+  .StatusCode=42 \
+  .Error=null
+podman rm -f "${CTR2}"

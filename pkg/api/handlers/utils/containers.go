@@ -69,6 +69,23 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// For next-exit, subscribe to "died" events BEFORE sending the 200
+	// status.  The Docker client (docker run) sends /wait, then
+	// /start, but it only sends /start after receiving the 200 from
+	// /wait.  By subscribing before the flush, the event listener is
+	// guaranteed to be ready before the container can start and exit.
+	// https://github.com/containers/podman/issues/28514
+	var eventChannel chan events.ReadResult
+	var cancelEvents context.CancelFunc
+	if condition == "next-exit" {
+		eventChannel, cancelEvents, err = subscribeContainerDied(ctx, name)
+		if err != nil {
+			InternalServerError(w, err)
+			return
+		}
+		defer cancelEvents()
+	}
+
 	// In docker compatibility mode we have to send headers in advance,
 	// otherwise docker client would freeze.
 	w.Header().Set("Content-Type", "application/json")
@@ -77,7 +94,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 
-	exitCode, err := waitDockerCondition(ctx, name, interval, condition)
+	exitCode, err := waitDockerCondition(ctx, name, eventChannel, interval, condition)
 	var errStruct *struct{ Message string }
 	if err != nil {
 		logrus.Errorf("While waiting on condition: %q", err)
@@ -182,6 +199,18 @@ func createContainerWaitFn(ctx context.Context, containerName string, interval t
 	}
 }
 
+func containerExists(ctx context.Context, name string) (bool, error) {
+	runtime := ctx.Value(api.RuntimeKey).(*libpod.Runtime)
+	var containerEngine entities.ContainerEngine = &abi.ContainerEngine{Libpod: runtime}
+
+	var ctrExistsOpts entities.ContainerExistsOptions
+	ctrExistRep, err := containerEngine.ContainerExists(ctx, name, ctrExistsOpts)
+	if err != nil {
+		return false, err
+	}
+	return ctrExistRep.Value, nil
+}
+
 func isValidDockerCondition(cond string) bool {
 	switch cond {
 	case "next-exit", "removed", "not-running", "":
@@ -190,14 +219,14 @@ func isValidDockerCondition(cond string) bool {
 	return false
 }
 
-func waitDockerCondition(ctx context.Context, containerName string, interval time.Duration, dockerCondition string) (int32, error) {
+func waitDockerCondition(ctx context.Context, containerName string, eventChannel chan events.ReadResult, interval time.Duration, dockerCondition string) (int32, error) {
 	containerWait := createContainerWaitFn(ctx, containerName, interval)
 
 	var err error
 	var code int32
 	switch dockerCondition {
 	case "next-exit":
-		code, err = waitNextExit(ctx, containerName)
+		code, err = waitNextExit(eventChannel)
 	case "removed":
 		code, err = waitRemoved(containerWait)
 	case "not-running", "":
@@ -209,10 +238,11 @@ func waitDockerCondition(ctx context.Context, containerName string, interval tim
 }
 
 var notRunningStates = []define.ContainerStatus{
-	define.ContainerStateCreated,
-	define.ContainerStateRemoving,
-	define.ContainerStateExited,
 	define.ContainerStateConfigured,
+	define.ContainerStateCreated,
+	define.ContainerStateStopped,
+	define.ContainerStateExited,
+	define.ContainerStateRemoving,
 }
 
 func waitRemoved(ctrWait containerWaitFn) (int32, error) {
@@ -233,7 +263,11 @@ func waitRemoved(ctrWait containerWaitFn) (int32, error) {
 	return code, nil
 }
 
-func waitNextExit(ctx context.Context, containerName string) (int32, error) {
+// subscribeContainerDied starts listening for "died" events for the given
+// container and returns the event channel and a cancel function.
+//
+// The caller must call cancel when done to stop the background goroutine.
+func subscribeContainerDied(ctx context.Context, containerName string) (chan events.ReadResult, context.CancelFunc, error) {
 	runtime := ctx.Value(api.RuntimeKey).(*libpod.Runtime)
 	containerEngine := &abi.ContainerEngine{Libpod: runtime}
 	eventChannel := make(chan events.ReadResult)
@@ -242,42 +276,28 @@ func waitNextExit(ctx context.Context, containerName string) (int32, error) {
 		Filter:    []string{"event=died", fmt.Sprintf("container=%s", containerName)},
 		Stream:    true,
 	}
-
-	// ctx is used to cancel event watching goroutine
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	err := containerEngine.Events(ctx, opts)
-	if err != nil {
-		return -1, err
+	if err := containerEngine.Events(ctx, opts); err != nil {
+		cancel()
+		return nil, nil, err
 	}
+	return eventChannel, cancel, nil
+}
 
+func waitNextExit(eventChannel chan events.ReadResult) (int32, error) {
 	for evt := range eventChannel {
-		if evt.Error == nil {
-			if evt.Event.ContainerExitCode != nil {
-				return int32(*evt.Event.ContainerExitCode), nil
-			}
+		if evt.Error != nil {
+			return -1, evt.Error
+		}
+		if evt.Event.ContainerExitCode != nil {
+			return int32(*evt.Event.ContainerExitCode), nil
 		}
 	}
-	// if we are here then containerEngine.Events() has exited
-	// it may happen if request was canceled (e.g. client closed connection prematurely) or
-	// the server is in process of shutting down
 	return -1, nil
 }
 
 func waitNotRunning(ctrWait containerWaitFn) (int32, error) {
 	return ctrWait(notRunningStates...)
-}
-
-func containerExists(ctx context.Context, name string) (bool, error) {
-	runtime := ctx.Value(api.RuntimeKey).(*libpod.Runtime)
-	var containerEngine entities.ContainerEngine = &abi.ContainerEngine{Libpod: runtime}
-
-	var ctrExistsOpts entities.ContainerExistsOptions
-	ctrExistRep, err := containerEngine.ContainerExists(ctx, name, ctrExistsOpts)
-	if err != nil {
-		return false, err
-	}
-	return ctrExistRep.Value, nil
 }
 
 // PSTitles merges CAPS headers from ps output. All PS headers are single words, except for
