@@ -680,6 +680,22 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      Squash the resulting images layers into a single layer
 	//      (As of version 1.xx)
 	//  - in: query
+	//    name: save-stages
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Preserve intermediate stage images instead of removing them after the build completes.
+	//      By default, they are removed to save space.
+	//      However, they can be useful for debugging multi-stage builds or reusing stages in subsequent builds.
+	//  - in: query
+	//    name: stage-labels
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Add metadata labels to all intermediate stage images of a multistage build, including the final image.
+	//      If set to true, save-stages must also be set to true.
+	//      If enabled, the labels 'io.buildah.stage.name' and 'io.buildah.stage.base' will be added.
+	//  - in: query
 	//    name: labels
 	//    type: string
 	//    default:

@@ -29,10 +29,39 @@ type Command struct {
 	Args []string `json:"args,omitempty"`
 }
 
+// GrpcTLS describes the structure of TLS configuration for gRPC connection, it consist of CA certificate,
+// client certificate and client key
+type GrpcTLS struct {
+	// RootCAFile defines path to the PEM file with the set of root certificate authorities
+	// that clients use when verifying server certificates.
+	// If RootCAs is nil, TLS uses the host's root CA set.
+	RootCAFile string `json:"root-ca-file,omitempty"`
+
+	// CertFile contains the path to the x509 PEM encoded client certificate.
+	CertFile string `json:"cert-file,omitempty"`
+	// KeyFile contains the path to the PEM encoded client key.
+	KeyFile string `json:"key-file,omitempty"`
+
+	// ServerName is used to verify the hostname on the returned
+	// certificates unless InsecureSkipVerify is given. It is also included
+	// in the client's handshake to support virtual hosting unless it is
+	// an IP address.
+	ServerName string `json:"server-name,omitempty"`
+
+	// InsecureSkipVerify controls whether a client verifies the
+	// server's certificate chain and host name.
+	// If InsecureSkipVerify is true, TLS accepts any certificate
+	// presented by the server and any host name in that certificate.
+	// In this mode, TLS is susceptible to man-in-the-middle attacks.
+	// This should be used only for testing.
+	InsecureSkipVerify bool `json:"insecure-skip-verify,omitempty"`
+}
+
 // KeyProviderAttrs describes the structure of key provider, it defines the way of invocation to key provider
 type KeyProviderAttrs struct {
 	Command *Command `json:"cmd,omitempty"`
 	Grpc    string   `json:"grpc,omitempty"`
+	GrpcTLS *GrpcTLS `json:"grpc-tls,omitempty"`
 }
 
 // OcicryptConfig represents the format of an ocicrypt_provider.conf config file

@@ -2,13 +2,17 @@ package blobcache
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	digest "github.com/opencontainers/go-digest"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/internal/image"
+	"go.podman.io/image/v5/pkg/compression"
 	"go.podman.io/image/v5/transports"
 	"go.podman.io/image/v5/types"
 )
@@ -17,6 +21,45 @@ const (
 	compressedNote   = ".compressed"
 	decompressedNote = ".decompressed"
 )
+
+// "Key: <digest>, Value: <algorithm>"
+type compressionNoteContent map[string]string
+
+func (c compressionNoteContent) String() string {
+	var lines []string
+	for digestStr, algoName := range c {
+		if algoName != "" {
+			lines = append(lines, fmt.Sprintf("%s %s", digestStr, algoName))
+		} else {
+			lines = append(lines, digestStr)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// parseCompressedNote reads and parses a .compressed sidecar note file.
+// The format is one "<digest> [<algorithm>]" entry per line.
+// Old caches may have a single line with just "<digest>" (no algorithm, implies gzip).
+// If the file does not exist, an empty map is returned with no error.
+func parseCompressedNote(filePath string) (compressionNoteContent, error) {
+	entries := make(compressionNoteContent)
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return entries, nil
+		}
+		return nil, err
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		digestStr, algoName, _ := strings.Cut(line, " ")
+		entries[digestStr] = algoName
+	}
+	return entries, nil
+}
 
 // BlobCache is an object which saves copies of blobs that are written to it while passing them
 // through to some real destination, and which can be queried directly in order to read them
@@ -29,6 +72,24 @@ type BlobCache struct {
 	// both within this process and by multiple different processes
 	directory string
 	compress  types.LayerCompression
+	// compressAlgorithm specifies compression algorithm for compressed blobs
+	// when compress is set to Compress. Defaults to gzip.
+	// Ignored when compress is Decompress or PreserveOriginal.
+	compressAlgorithm compression.Algorithm
+}
+
+// BlobCacheOption configures optional BlobCache behavior.
+type BlobCacheOption func(*BlobCache)
+
+// WithCompressAlgorithm sets compression algorithm for compressed blobs
+// when compress is set to Compress.
+func WithCompressAlgorithm(algo *compression.Algorithm) BlobCacheOption {
+	return func(b *BlobCache) {
+		if b.compress != types.Compress || algo == nil {
+			return
+		}
+		b.compressAlgorithm = *algo
+	}
 }
 
 // NewBlobCache creates a new blob cache that wraps an image reference.  Any blobs which are
@@ -36,7 +97,8 @@ type BlobCache struct {
 // as-is to the specified directory or a temporary directory.
 // The compress argument controls whether or not the cache will try to substitute a compressed
 // or different version of a blob when preparing the list of layers when reading an image.
-func NewBlobCache(ref types.ImageReference, directory string, compress types.LayerCompression) (*BlobCache, error) {
+// The optional BlobCacheOption values can further refine behavior.
+func NewBlobCache(ref types.ImageReference, directory string, compress types.LayerCompression, opts ...BlobCacheOption) (*BlobCache, error) {
 	if directory == "" {
 		return nil, fmt.Errorf("error creating cache around reference %q: no directory specified", transports.ImageName(ref))
 	}
@@ -46,11 +108,16 @@ func NewBlobCache(ref types.ImageReference, directory string, compress types.Lay
 	default:
 		return nil, fmt.Errorf("unhandled LayerCompression value %v", compress)
 	}
-	return &BlobCache{
-		reference: ref,
-		directory: directory,
-		compress:  compress,
-	}, nil
+	bc := &BlobCache{
+		reference:         ref,
+		directory:         directory,
+		compress:          compress,
+		compressAlgorithm: compression.Gzip,
+	}
+	for _, o := range opts {
+		o(bc)
+	}
+	return bc, nil
 }
 
 func (b *BlobCache) Transport() types.ImageTransport {

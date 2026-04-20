@@ -59,24 +59,3 @@ func (t *TempFileManager) CreateTempFileFromReader(dest string, pattern string, 
 	}
 	return tmpFile.Name(), nil
 }
-
-// CreateTempSecret creates a temporary copy of a secret file in the specified
-// context directory. The original secret file is copied to a new temporary file
-// which is automatically added to the manager's cleanup list.
-//
-// Parameters:
-//   - secretPath: The path to the source secret file to copy
-//   - contextDir: The directory where the temporary secret file should be created
-//
-// Returns:
-//   - string: The path to the created temporary secret file
-//   - error: Any error encountered during the operation
-func (t *TempFileManager) CreateTempSecret(secretPath, contextDir string) (string, error) {
-	secretFile, err := os.Open(secretPath)
-	if err != nil {
-		return "", fmt.Errorf("opening secret file %s: %w", secretPath, err)
-	}
-	defer secretFile.Close()
-
-	return t.CreateTempFileFromReader(contextDir, "podman-build-secret-*", secretFile)
-}

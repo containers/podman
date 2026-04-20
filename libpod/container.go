@@ -119,7 +119,7 @@ type Container struct {
 	// options when calling network setup/teardown. This should be used for
 	// container restore or network reload for example. Leave this nil if
 	// the settings from the container config should be used.
-	perNetworkOpts map[string]types.PerNetworkOptions
+	perNetworkOpts []types.NamedPerNetworkOptions
 
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
@@ -1429,8 +1429,8 @@ func (c *Container) Networks() ([]string, error) {
 
 	names := make([]string, 0, len(networks))
 
-	for name := range networks {
-		names = append(names, name)
+	for _, net := range networks {
+		names = append(names, net.Name)
 	}
 
 	return names, nil
@@ -1479,7 +1479,7 @@ func (c *Container) NetworkMode() string {
 }
 
 // Unlocked accessor for networks
-func (c *Container) networks() (map[string]types.PerNetworkOptions, error) {
+func (c *Container) networks() ([]types.NamedPerNetworkOptions, error) {
 	return c.runtime.state.GetNetworks(c)
 }
 

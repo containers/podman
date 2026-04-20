@@ -1319,20 +1319,23 @@ func Secrets(secrets []string) (map[string]define.Secret, error) {
 		tokens := strings.Split(secret, ",")
 		var id, src, typ string
 		for _, val := range tokens {
-			kv := strings.SplitN(val, "=", 2)
-			switch kv[0] {
+			key, value, ok := strings.Cut(val, "=")
+			if !ok {
+				return nil, errInvalidSecretSyntax
+			}
+			switch key {
 			case "id":
-				id = kv[1]
+				id = value
 			case "src":
-				src = kv[1]
+				src = value
 			case "env":
-				src = kv[1]
+				src = value
 				typ = "env"
 			case "type":
-				if kv[1] != "file" && kv[1] != "env" {
+				if value != "file" && value != "env" {
 					return nil, errors.New("invalid secret type, must be file or env")
 				}
-				typ = kv[1]
+				typ = value
 			default:
 				return nil, errInvalidSecretSyntax
 			}

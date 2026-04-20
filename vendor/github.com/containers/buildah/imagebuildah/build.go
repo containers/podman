@@ -763,12 +763,12 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 						}
 						base := child.Next.Value
 						if base != "" && base != buildah.BaseImageFakeName && !internalUtil.SetHas(nicknames, base) {
+							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
-							// append heading args so if --build-arg key=value is not
-							// specified but default value is set in Containerfile
-							// via `ARG key=value` so default value can be used.
-							userArgs = append(headingArgs, userArgs...)
+							// ProcessWord uses first match; put highest priority first so
+							// --build-arg overrides header ARG overrides builtin.
+							userArgs = slices.Concat(userArgs, headingArgs, builtinArgs)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)

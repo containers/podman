@@ -47,7 +47,7 @@ type APIContainers struct {
 	SizeRootFs int64             `json:"SizeRootFs,omitempty" yaml:"SizeRootFs,omitempty" toml:"SizeRootFs,omitempty"`
 	Names      []string          `json:"Names,omitempty" yaml:"Names,omitempty" toml:"Names,omitempty"`
 	Labels     map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty" toml:"Labels,omitempty"`
-	Networks   NetworkList       `json:"NetworkSettings,omitempty" yaml:"NetworkSettings,omitempty" toml:"NetworkSettings,omitempty"`
+	Networks   NetworkList       `json:"NetworkSettings" yaml:"NetworkSettings,omitempty" toml:"NetworkSettings,omitempty"`
 	Mounts     []APIMount        `json:"Mounts,omitempty" yaml:"Mounts,omitempty" toml:"Mounts,omitempty"`
 }
 
@@ -77,8 +77,8 @@ func (p Port) Proto() string {
 
 // HealthCheck represents one check of health.
 type HealthCheck struct {
-	Start    time.Time `json:"Start,omitempty" yaml:"Start,omitempty" toml:"Start,omitempty"`
-	End      time.Time `json:"End,omitempty" yaml:"End,omitempty" toml:"End,omitempty"`
+	Start    time.Time `json:"Start" yaml:"Start,omitempty" toml:"Start,omitempty"`
+	End      time.Time `json:"End" yaml:"End,omitempty" toml:"End,omitempty"`
 	ExitCode int       `json:"ExitCode,omitempty" yaml:"ExitCode,omitempty" toml:"ExitCode,omitempty"`
 	Output   string    `json:"Output,omitempty" yaml:"Output,omitempty" toml:"Output,omitempty"`
 }
@@ -102,9 +102,9 @@ type State struct {
 	Pid               int       `json:"Pid,omitempty" yaml:"Pid,omitempty" toml:"Pid,omitempty"`
 	ExitCode          int       `json:"ExitCode,omitempty" yaml:"ExitCode,omitempty" toml:"ExitCode,omitempty"`
 	Error             string    `json:"Error,omitempty" yaml:"Error,omitempty" toml:"Error,omitempty"`
-	StartedAt         time.Time `json:"StartedAt,omitempty" yaml:"StartedAt,omitempty" toml:"StartedAt,omitempty"`
-	FinishedAt        time.Time `json:"FinishedAt,omitempty" yaml:"FinishedAt,omitempty" toml:"FinishedAt,omitempty"`
-	Health            Health    `json:"Health,omitempty" yaml:"Health,omitempty" toml:"Health,omitempty"`
+	StartedAt         time.Time `json:"StartedAt" yaml:"StartedAt,omitempty" toml:"StartedAt,omitempty"`
+	FinishedAt        time.Time `json:"FinishedAt" yaml:"FinishedAt,omitempty" toml:"FinishedAt,omitempty"`
+	Health            Health    `json:"Health" yaml:"Health,omitempty" toml:"Health,omitempty"`
 }
 
 // String returns a human-readable description of the state
@@ -314,7 +314,7 @@ type BindOptions struct {
 type VolumeOptions struct {
 	NoCopy       bool               `json:"NoCopy,omitempty" yaml:"NoCopy,omitempty" toml:"NoCopy,omitempty"`
 	Labels       map[string]string  `json:"Labels,omitempty" yaml:"Labels,omitempty" toml:"Labels,omitempty"`
-	DriverConfig VolumeDriverConfig `json:"DriverConfig,omitempty" yaml:"DriverConfig,omitempty" toml:"DriverConfig,omitempty"`
+	DriverConfig VolumeDriverConfig `json:"DriverConfig" yaml:"DriverConfig,omitempty" toml:"DriverConfig,omitempty"`
 }
 
 // TempfsOptions contains optional configuration for the tempfs type
@@ -406,13 +406,13 @@ type HealthConfig struct {
 type Container struct {
 	ID string `json:"Id" yaml:"Id" toml:"Id"`
 
-	Created time.Time `json:"Created,omitempty" yaml:"Created,omitempty" toml:"Created,omitempty"`
+	Created time.Time `json:"Created" yaml:"Created,omitempty" toml:"Created,omitempty"`
 
 	Path string   `json:"Path,omitempty" yaml:"Path,omitempty" toml:"Path,omitempty"`
 	Args []string `json:"Args,omitempty" yaml:"Args,omitempty" toml:"Args,omitempty"`
 
 	Config *Config `json:"Config,omitempty" yaml:"Config,omitempty" toml:"Config,omitempty"`
-	State  State   `json:"State,omitempty" yaml:"State,omitempty" toml:"State,omitempty"`
+	State  State   `json:"State" yaml:"State,omitempty" toml:"State,omitempty"`
 	Image  string  `json:"Image,omitempty" yaml:"Image,omitempty" toml:"Image,omitempty"`
 
 	Node *SwarmNode `json:"Node,omitempty" yaml:"Node,omitempty" toml:"Node,omitempty"`
@@ -507,11 +507,11 @@ type HostConfig struct {
 	ConsoleSize       [2]int                 `json:"ConsoleSize,omitempty" yaml:"ConsoleSize,omitempty" toml:"ConsoleSize,omitempty"` // Windows only height x width
 	PidMode           string                 `json:"PidMode,omitempty" yaml:"PidMode,omitempty" toml:"PidMode,omitempty"`
 	UTSMode           string                 `json:"UTSMode,omitempty" yaml:"UTSMode,omitempty" toml:"UTSMode,omitempty"`
-	RestartPolicy     RestartPolicy          `json:"RestartPolicy,omitempty" yaml:"RestartPolicy,omitempty" toml:"RestartPolicy,omitempty"`
+	RestartPolicy     RestartPolicy          `json:"RestartPolicy" yaml:"RestartPolicy,omitempty" toml:"RestartPolicy,omitempty"`
 	Devices           []Device               `json:"Devices,omitempty" yaml:"Devices,omitempty" toml:"Devices,omitempty"`
 	DeviceCgroupRules []string               `json:"DeviceCgroupRules,omitempty" yaml:"DeviceCgroupRules,omitempty" toml:"DeviceCgroupRules,omitempty"`
 	DeviceRequests    []DeviceRequest        `json:"DeviceRequests,omitempty" yaml:"DeviceRequests,omitempty" toml:"DeviceRequests,omitempty"`
-	LogConfig         LogConfig              `json:"LogConfig,omitempty" yaml:"LogConfig,omitempty" toml:"LogConfig,omitempty"`
+	LogConfig         LogConfig              `json:"LogConfig" yaml:"LogConfig,omitempty" toml:"LogConfig,omitempty"`
 	SecurityOpt       []string               `json:"SecurityOpt,omitempty" yaml:"SecurityOpt,omitempty" toml:"SecurityOpt,omitempty"`
 	CgroupnsMode      string                 `json:"CgroupnsMode,omitempty" yaml:"CgroupnsMode,omitempty" toml:"CgroupnsMode,omitempty"` // v1.40+
 	Cgroup            string                 `json:"Cgroup,omitempty" yaml:"Cgroup,omitempty" toml:"Cgroup,omitempty"`

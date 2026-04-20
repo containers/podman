@@ -688,25 +688,40 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 		return CheckReport{}, err
 	}
 
-	// If the driver can tell us about which layers it knows about, we should have previously
-	// examined all of them.  Any that we didn't are probably just wasted space.
-	// Note: if the driver doesn't support enumerating layers, it returns ErrNotSupported.
-	if err := s.startUsingGraphDriver(); err != nil {
-		return CheckReport{}, err
-	}
-	defer s.stopUsingGraphDriver()
-	layerList, err := s.graphDriver.ListLayers()
-	if err != nil && !errors.Is(err, drivers.ErrNotSupported) {
-		return CheckReport{}, err
-	}
-	if !errors.Is(err, drivers.ErrNotSupported) {
-		for i, id := range layerList {
-			if _, known := referencedLayers[id]; !known {
-				err := fmt.Errorf("layer %s: %w", id, ErrLayerUnaccounted)
-				report.Layers[id] = append(report.Layers[id], err)
-			}
-			report.layerOrder[id] = i + 1
+	if _, err := readPrimaryLayerStore(s, func(store rwLayerStore) (struct{}, error) {
+		// If the driver can tell us about which layers it knows about, we should have
+		// corresponding metadata records.
+		// Any layers without them are probably just wasted space.
+		// Note: if the driver doesn't support enumerating layers, it returns ErrNotSupported.
+		driverLayers, err := s.graphDriver.ListLayers()
+		if err != nil && !errors.Is(err, drivers.ErrNotSupported) {
+			return struct{}{}, err
 		}
+		if !errors.Is(err, drivers.ErrNotSupported) {
+			// Update the list of layers known to the layerStore, something
+			// might have been added recently.
+			currentLayers, err := store.Layers()
+			if err != nil {
+				return struct{}{}, err
+			}
+			for i := range currentLayers {
+				id := currentLayers[i].ID
+				if _, known := referencedLayers[id]; !known {
+					referencedLayers[id] = false
+				}
+			}
+
+			for i, id := range driverLayers {
+				if _, known := referencedLayers[id]; !known {
+					err := fmt.Errorf("layer %s: %w", id, ErrLayerUnaccounted)
+					report.Layers[id] = append(report.Layers[id], err)
+				}
+				report.layerOrder[id] = i + 1
+			}
+		}
+		return struct{}{}, nil
+	}); err != nil {
+		return CheckReport{}, err
 	}
 
 	return report, nil

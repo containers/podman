@@ -3,6 +3,7 @@ package runewidth
 import (
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/clipperhouse/uax29/v2/graphemes"
 )
@@ -178,6 +179,12 @@ func (c *Condition) CreateLUT() {
 
 // StringWidth return width as you can see
 func (c *Condition) StringWidth(s string) (width int) {
+	if len(s) > 0 && len(s) <= utf8.UTFMax {
+		r, size := utf8.DecodeRuneInString(s)
+		if size == len(s) {
+			return c.RuneWidth(r)
+		}
+	}
 	g := graphemes.FromString(s)
 	for g.Next() {
 		var chWidth int
@@ -314,6 +321,11 @@ func RuneWidth(r rune) int {
 // IsAmbiguousWidth returns whether is ambiguous width or not.
 func IsAmbiguousWidth(r rune) bool {
 	return inTables(r, private, ambiguous)
+}
+
+// IsCombiningWidth returns whether is combining width or not.
+func IsCombiningWidth(r rune) bool {
+	return inTable(r, combining)
 }
 
 // IsNeutralWidth returns whether is neutral width or not.

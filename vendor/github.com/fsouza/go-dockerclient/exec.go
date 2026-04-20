@@ -183,7 +183,7 @@ type ExecProcessConfig struct {
 type ExecInspect struct {
 	ID            string            `json:"ID,omitempty" yaml:"ID,omitempty" toml:"ID,omitempty"`
 	ExitCode      int               `json:"ExitCode,omitempty" yaml:"ExitCode,omitempty" toml:"ExitCode,omitempty"`
-	ProcessConfig ExecProcessConfig `json:"ProcessConfig,omitempty" yaml:"ProcessConfig,omitempty" toml:"ProcessConfig,omitempty"`
+	ProcessConfig ExecProcessConfig `json:"ProcessConfig" yaml:"ProcessConfig,omitempty" toml:"ProcessConfig,omitempty"`
 	ContainerID   string            `json:"ContainerID,omitempty" yaml:"ContainerID,omitempty" toml:"ContainerID,omitempty"`
 	DetachKeys    string            `json:"DetachKeys,omitempty" yaml:"DetachKeys,omitempty" toml:"DetachKeys,omitempty"`
 	Running       bool              `json:"Running,omitempty" yaml:"Running,omitempty" toml:"Running,omitempty"`

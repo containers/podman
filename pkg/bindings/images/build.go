@@ -20,6 +20,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/internal/remote_build_helpers"
 	ldefine "github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/auth"
@@ -527,6 +528,13 @@ func prepareParams(options types.BuildOptions) (url.Values, error) {
 		params.Add("unsetannotation", uannotation)
 	}
 
+	if options.SaveStages {
+		params.Set("save-stages", "1")
+	}
+	if options.StageLabels {
+		params.Set("stage-labels", "1")
+	}
+
 	return params, nil
 }
 
@@ -631,46 +639,24 @@ func prepareSecrets(secrets []string, contextDir string, tempManager *remote_bui
 	secretsForRemote := []string{}
 	tarContent := []string{}
 
-	for _, secret := range secrets {
-		secretOpt := strings.Split(secret, ",")
-		modifiedOpt := []string{}
-		for _, token := range secretOpt {
-			opt, val, hasVal := strings.Cut(token, "=")
-			if hasVal {
-				switch opt {
-				case "src":
-					// read specified secret into a tmp file
-					// move tmp file to tar and change secret source to relative tmp file
-					tmpSecretFilePath, err := tempManager.CreateTempSecret(val, contextDir)
-					if err != nil {
-						return nil, nil, err
-					}
+	parsed, err := parse.Secrets(secrets)
+	if err != nil {
+		return nil, nil, err
+	}
 
-					// add tmp file to context dir
-					tarContent = append(tarContent, tmpSecretFilePath)
-
-					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
-					modifiedOpt = append(modifiedOpt, modifiedSrc)
-				case "env":
-					// read specified env into a tmp file
-					// move tmp file to tar and change secret source to relative tmp file
-					secretVal := os.Getenv(val)
-					tmpSecretFilePath, err := tempManager.CreateTempFileFromReader(contextDir, "podman-build-secret-*", strings.NewReader(secretVal))
-					if err != nil {
-						return nil, nil, err
-					}
-
-					// add tmp file to context dir
-					tarContent = append(tarContent, tmpSecretFilePath)
-
-					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
-					modifiedOpt = append(modifiedOpt, modifiedSrc)
-				default:
-					modifiedOpt = append(modifiedOpt, token)
-				}
-			}
+	for _, secret := range parsed {
+		contents, err := secret.ResolveValue()
+		if err != nil {
+			return nil, nil, err
 		}
-		secretsForRemote = append(secretsForRemote, strings.Join(modifiedOpt, ","))
+
+		tmpSecret, err := tempManager.CreateTempFileFromReader(contextDir, "podman-build-secret-*", bytes.NewReader(contents))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		tarContent = append(tarContent, tmpSecret)
+		secretsForRemote = append(secretsForRemote, fmt.Sprintf("id=%s,src=%s", secret.ID, filepath.Base(tmpSecret)))
 	}
 
 	return secretsForRemote, tarContent, nil

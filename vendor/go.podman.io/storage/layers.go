@@ -833,7 +833,47 @@ func (r *layerStore) GarbageCollect() error {
 		logrus.Debugf("removing %q", r.datadir(id))
 		os.RemoveAll(r.datadir(id))
 	}
-	return nil
+
+	// Clean up any orphaned tar-split or data files in the layer metadata
+	// directory that don't correspond to a known layer.
+	entries, err := os.ReadDir(r.layerdir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		var id string
+		var isDataDir bool
+		if strings.HasSuffix(name, tarSplitSuffix) {
+			id = strings.TrimSuffix(name, tarSplitSuffix)
+		} else if stringid.ValidateID(name) == nil {
+			id = name
+			isDataDir = true
+		} else {
+			continue
+		}
+		if stringid.ValidateID(id) != nil {
+			continue
+		}
+		if r.byid[id] != nil {
+			continue
+		}
+		p := filepath.Join(r.layerdir, name)
+		logrus.Debugf("removing %q", p)
+		if isDataDir {
+			moreErr := os.RemoveAll(p)
+			if moreErr != nil && err == nil {
+				err = moreErr
+			}
+		} else {
+			moreErr := os.Remove(p)
+			if moreErr != nil && err == nil {
+				err = moreErr
+			}
+		}
+	}
+
+	return err
 }
 
 func (r *layerStore) mountspath() string {

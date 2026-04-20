@@ -665,13 +665,14 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if len(options.Networks) > 0 {
-		ns, networks, netOpts, err := specgen.ParseNetworkFlag(options.Networks)
+		ns, networks, netOrder, netOpts, err := specgen.ParseNetworkFlag(options.Networks)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		podOpt.Net.Network = ns
 		podOpt.Net.Networks = networks
+		podOpt.Net.NetworkOrder = netOrder
 		podOpt.Net.NetworkOptions = netOpts
 	}
 

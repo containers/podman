@@ -169,12 +169,19 @@ func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOp
 
 	needsPlugin := false
 
-	for network := range opts.Networks {
-		net, err := n.getNetwork(network)
+	foundNetwork := make(map[string]struct{}, len(opts.Networks))
+
+	for _, network := range opts.Networks {
+		if _, ok := foundNetwork[network.Name]; ok {
+			return nil, false, fmt.Errorf("network %s passed twice in NetworkOptions", network.Name)
+		}
+		foundNetwork[network.Name] = struct{}{}
+
+		net, err := n.getNetwork(network.Name)
 		if err != nil {
 			return nil, false, err
 		}
-		netavarkOptions.Networks[network] = net
+		netavarkOptions.Networks[network.Name] = net
 		if !slices.Contains(builtinDrivers, net.Driver) {
 			needsPlugin = true
 		}

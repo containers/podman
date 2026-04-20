@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/version/rawversion"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -390,7 +391,8 @@ func testImagePullTLS(tls *TLSConfig, tlsVerify *bool) {
 
 	i := new(initMachine)
 
-	i.withImage("docker://" + serverAddr + "/testimage")
+	manifestName := serverAddr + "/testimage"
+	i.withImage("docker://" + manifestName)
 
 	if tlsVerify != nil {
 		i.withTlsVerify(tlsVerify)
@@ -402,10 +404,12 @@ func testImagePullTLS(tls *TLSConfig, tlsVerify *bool) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session).To(Exit(125))
 
+	manifestVersion := rawversion.RawVersion[0:3]
+
 	// Note because we don't run a real registry the error you get when TLS is not checked is:
 	// Error: wrong manifest type for disk artifact: text/plain
 	// As such we match the errors strings exactly to ensure we have proper error messages that indicate the TLS error.
-	expectedErr := "Error: pinging container registry " + serverAddr + ": Get \"https://" + serverAddr + "/v2/\": "
+	expectedErr := "Error: fetching manifest " + manifestVersion + " in " + manifestName + ": pinging container registry " + serverAddr + ": Get \"https://" + serverAddr + "/v2/\": "
 
 	switch {
 	case tlsVerify != nil && *tlsVerify == false: // tls-verify explicitly disabled

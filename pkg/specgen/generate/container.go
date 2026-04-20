@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/openshift/imagebuilder"
 	"go.podman.io/common/libimage"
+	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
 )
@@ -548,11 +549,20 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	_, mounts := c.SortUserVolumes(c.ConfigNoCopy().Spec)
 	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
-	specg.Networks = conf.Networks
 	specg.ShmSize = &conf.ShmSize
 	specg.ShmSizeSystemd = &conf.ShmSizeSystemd
 	specg.UseImageHostname = &conf.UseImageHostname
 	specg.UseImageHosts = &conf.UseImageHosts
+
+	finalNetworks := make(map[string]types.PerNetworkOptions, len(conf.Networks))
+	finalNetworkOrder := make([]string, 0, len(conf.Networks))
+	for _, network := range conf.Networks {
+		finalNetworkOrder = append(finalNetworkOrder, network.Name)
+		finalNetworks[network.Name] = network.PerNetworkOptions
+	}
+
+	specg.Networks = finalNetworks
+	specg.NetworkOrder = finalNetworkOrder
 
 	mapSecurityConfig(conf, specg)
 

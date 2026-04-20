@@ -907,7 +907,7 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 }
 
 // GetNetworks returns the networks this container is a part of.
-func (s *SQLiteState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error) {
+func (s *SQLiteState) GetNetworks(ctr *Container) ([]types.NamedPerNetworkOptions, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -929,24 +929,28 @@ func (s *SQLiteState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOp
 		return nil, err
 	}
 
+	if cfg.Networks == nil && cfg.LegacyNetworks != nil {
+		return convertLegacyNetworks(cfg.LegacyNetworks), nil
+	}
+
 	return cfg.Networks, nil
 }
 
 // NetworkConnect adds the given container to the given network. If aliases are
 // specified, those will be added to the given network.
-func (s *SQLiteState) NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error {
-	return s.networkModify(ctr, network, opts, true, false)
+func (s *SQLiteState) NetworkConnect(ctr *Container, network types.NamedPerNetworkOptions) error {
+	return s.networkModify(ctr, network, true, false)
 }
 
 // NetworkModify will allow you to set new options on an existing connected network
-func (s *SQLiteState) NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error {
-	return s.networkModify(ctr, network, opts, false, false)
+func (s *SQLiteState) NetworkModify(ctr *Container, network types.NamedPerNetworkOptions) error {
+	return s.networkModify(ctr, network, false, false)
 }
 
 // NetworkDisconnect disconnects the container from the given network, also
 // removing any aliases in the network.
 func (s *SQLiteState) NetworkDisconnect(ctr *Container, network string) error {
-	return s.networkModify(ctr, network, types.PerNetworkOptions{}, false, true)
+	return s.networkModify(ctr, types.NamedPerNetworkOptions{Name: network}, false, true)
 }
 
 // GetContainerConfig returns a container config from the database by full ID

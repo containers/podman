@@ -76,7 +76,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 	for {
 		res, err := client.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting repository tags: %w", err)
 		}
 		defer res.Body.Close()
 		if res.StatusCode != http.StatusOK {
@@ -87,7 +87,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			Tags []string
 		}
 		if err = json.NewDecoder(res.Body).Decode(&tagsHolder); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("decoding tag list response: %w", err)
 		}
 		for _, tag := range tagsHolder.Tags {
 			if _, err := reference.WithTag(dr.ref, tag); err != nil { // Ensure the tag does not contain unexpected values
@@ -169,7 +169,7 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 
 	res, err := client.makeRequest(ctx, http.MethodHead, path, headers, nil, v2Auth, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("getting digest %s in %s: %w", tagOrDigest, dr.ref.Name(), err)
 	}
 
 	defer res.Body.Close()

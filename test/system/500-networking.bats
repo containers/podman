@@ -1076,4 +1076,22 @@ EOF
     CONTAINERS_CONF_OVERRIDE=$containersconf run_podman rm -f -t0 $cid
 }
 
+@test "Podman run --network net1,net2 setup order is deterministic" {
+    local netname1=net-$(safename)-1
+    local netname2=net-$(safename)-2
+    run_podman network create $netname1
+    run_podman network create $netname2
+
+    # Absurd sed oneliner provided by Google Gemini
+    local ctrname=ctr-$(safename)
+    run_podman run --name $ctrname --net "$netname1:interface_name=first" --net "$netname2:interface_name=second" $IMAGE sh -c "ip link | sed -nE 's/^([0-9]+): ([^:]+):.*/\1 \2/p' | sed 's/@.*//'"
+    assert "$output" =~ "1 lo
+2 first
+3 second"
+
+    run_podman rm $ctrname
+    run_podman network rm $netname1
+    run_podman network rm $netname2
+}
+
 # vim: filetype=sh

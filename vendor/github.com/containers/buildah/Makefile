@@ -118,7 +118,7 @@ bin/imgtype: $(SOURCES)
 bin/copy: $(SOURCES)
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/copy/copy.go
 
-bin/tutorial: $(SOURCES)
+bin/tutorial: $(SOURCES) internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/tutorial/tutorial.go
 
 bin/inet: tests/inet/inet.go
@@ -143,17 +143,21 @@ codespell:
 	codespell -w
 
 .PHONY: validate
-validate: install.tools
+validate: all install.tools lint-entrypoint
 	./tests/validate/whitespace.sh
 	./hack/xref-helpmsgs-manpages
 	./tests/validate/pr-should-include-tests
+
+.PHONY: lint-entrypoint
+lint-entrypoint: internal/mkcw/embed/entrypoint_amd64.gz
+	$(GO) run tests/validate/was-not-go-compiled.go internal/mkcw/embed/entrypoint_amd64.gz
 
 .PHONY: install.tools
 install.tools:
 	$(MAKE) -C tests/tools
 
 .PHONY: install
-install:
+install: bin/buildah
 	install -d -m 755 $(DESTDIR)/$(BINDIR)
 	install -m 755 bin/buildah $(DESTDIR)/$(BINDIR)/buildah
 	$(MAKE) -C docs install
@@ -170,11 +174,11 @@ install.completions:
 	install -m 644 contrib/completions/bash/buildah $(DESTDIR)/$(BASHINSTALLDIR)/buildah
 
 .PHONY: test-conformance
-test-conformance: tests/conformance/testdata/mount-targets/true
+test-conformance: tests/conformance/testdata/mount-targets/true internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover -timeout 60m ./tests/conformance
 
 .PHONY: test-integration
-test-integration: install.tools
+test-integration: all install.tools
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go
@@ -184,7 +188,7 @@ tests/conformance/testdata/mount-targets/true: tests/conformance/testdata/mount-
 	$(GO_BUILD) $(GO_LDFLAGS) "-linkmode external -extldflags -static" -o tests/conformance/testdata/mount-targets/true tests/conformance/testdata/mount-targets/true.go
 
 .PHONY: test-unit
-test-unit: tests/testreport/testreport
+test-unit: tests/testreport/testreport internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover $(RACEFLAGS) $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd | grep -v chroot | grep -v copier) -timeout 45m
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)"        $(RACEFLAGS) ./chroot ./copier -timeout 60m
 	tmp=$(shell mktemp -d) ; \
@@ -207,7 +211,7 @@ vendor:
 	if test -n "$(strip $(shell $(GO) env GOTOOLCHAIN))"; then go mod edit -toolchain none ; fi
 
 .PHONY: lint
-lint: install.tools
+lint: install.tools internal/mkcw/embed/entrypoint_amd64.gz
 	./tests/tools/build/golangci-lint run $(LINTFLAGS)
 	./tests/tools/build/golangci-lint run --tests=false $(LINTFLAGS)
 
@@ -220,11 +224,3 @@ fmt: install.tools
 .PHONY: rpm
 rpm:  ## Build rpm packages
 	$(MAKE) -C rpm
-
-# Remember that rpms install exec to /usr/bin/buildah while a `make install`
-# installs them to /usr/local/bin/buildah which is likely before. Always use
-# a full path to test installed buildah or you risk to call another executable.
-.PHONY: rpm-install
-rpm-install: package  ## Install rpm packages
-	$(call err_if_empty,PKG_MANAGER) -y install rpm/RPMS/*/*.rpm
-	/usr/bin/buildah version
