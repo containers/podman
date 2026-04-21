@@ -439,7 +439,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	if runtime.imageContext.BigFilesTemporaryDir == "" {
 		runtime.imageContext.BigFilesTemporaryDir = parse.GetTempDir()
 	}
-	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]OCIRuntime)

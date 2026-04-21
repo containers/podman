@@ -121,17 +121,11 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
-		return
-	}
 	sc := runtime.SystemContext()
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
 	}
 	options.CommitOptions = buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          os.Stderr,
 		SystemContext:         sc,
 		PreferredManifestType: manifest.DockerV2Schema2MediaType,
@@ -144,10 +138,12 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Changes = util.DecodeChanges(query.Changes)
 	if r.Body != nil {
 		defer r.Body.Close()
-		if options.CommitOptions.OverrideConfig, err = abi.DecodeOverrideConfig(r.Body); err != nil {
+		overrideConfig, err := abi.DecodeOverrideConfig(r.Body)
+		if err != nil {
 			utils.Error(w, http.StatusBadRequest, err)
 			return
 		}
+		options.CommitOptions.OverrideConfig = overrideConfig
 	}
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {

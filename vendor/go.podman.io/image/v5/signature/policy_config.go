@@ -17,25 +17,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
-	"path/filepath"
 
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/signature/internal"
 	"go.podman.io/image/v5/transports"
 	"go.podman.io/image/v5/types"
-	"go.podman.io/storage/pkg/fileutils"
-	"go.podman.io/storage/pkg/homedir"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/regexp"
 )
-
-// systemDefaultPolicyPath is the policy path used for DefaultPolicy().
-// You can override this at build time with
-// -ldflags '-X go.podman.io/image/v5/signature.systemDefaultPolicyPath=$your_path'
-var systemDefaultPolicyPath = builtinDefaultPolicyPath
-
-// userPolicyFile is the path to the per user policy path.
-var userPolicyFile = filepath.FromSlash(".config/containers/policy.json")
 
 // InvalidPolicyFormatError is returned when parsing an invalid policy configuration.
 type InvalidPolicyFormatError string
@@ -51,39 +42,45 @@ func (err InvalidPolicyFormatError) Error() string {
 // NOTE: When this function returns an error, report it to the user and abort.
 // DO NOT hard-code fallback policies in your application.
 func DefaultPolicy(sys *types.SystemContext) (*Policy, error) {
-	policyPath, err := defaultPolicyPath(sys)
-	if err != nil {
-		return nil, err
-	}
-	return NewPolicyFromFile(policyPath)
-}
-
-// defaultPolicyPath returns a path to the relevant policy of the system, or an error if the policy is missing.
-func defaultPolicyPath(sys *types.SystemContext) (string, error) {
-	policyFilePath, err := defaultPolicyPathWithHomeDir(sys, homedir.Get(), systemDefaultPolicyPath)
-	if err != nil {
-		return "", err
-	}
-	return policyFilePath, nil
-}
-
-// defaultPolicyPathWithHomeDir is an internal implementation detail of defaultPolicyPath,
-// it exists only to allow testing it with artificial paths.
-func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string, systemPolicyPath string) (string, error) {
 	if sys != nil && sys.SignaturePolicyPath != "" {
-		return sys.SignaturePolicyPath, nil
+		return NewPolicyFromFile(sys.SignaturePolicyPath)
 	}
-	userPolicyFilePath := filepath.Join(homeDir, userPolicyFile)
-	if err := fileutils.Exists(userPolicyFilePath); err == nil {
-		return userPolicyFilePath, nil
+
+	var rootForImplicitAbsPaths string
+	if sys != nil {
+		rootForImplicitAbsPaths = sys.RootForImplicitAbsolutePaths
 	}
-	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemPolicyPath), nil
+
+	policyFiles := configfile.File{
+		Name:                         "policy",
+		Extension:                    "json",
+		DoNotLoadDropInFiles:         true,
+		EnvironmentName:              "CONTAINERS_POLICY_JSON",
+		RootForImplicitAbsolutePaths: rootForImplicitAbsPaths,
+		ErrorIfNotFound:              true,
 	}
-	if err := fileutils.Exists(systemPolicyPath); err == nil {
-		return systemPolicyPath, nil
+
+	var policy *Policy
+	for item, err := range configfile.Read(&policyFiles) {
+		if err != nil {
+			return nil, err
+		}
+		if policy != nil {
+			// Coverage: This should never happen, configfile.Read ensures at most one policy file.
+			return nil, fmt.Errorf("internal error: expected at most one policy file, got another item %q", item.Name)
+		}
+
+		contents, err := io.ReadAll(item.Reader)
+		if err != nil {
+			return nil, err
+		}
+		policy, err = NewPolicyFromBytes(contents)
+		if err != nil {
+			return nil, fmt.Errorf("invalid policy in %q: %w", item.Name, err)
+		}
 	}
-	return "", fmt.Errorf("no policy.json file found at any of the following: %q, %q", userPolicyFilePath, systemPolicyPath)
+
+	return policy, nil
 }
 
 // NewPolicyFromFile returns a policy configured in the specified file.

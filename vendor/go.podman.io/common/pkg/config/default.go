@@ -15,7 +15,6 @@ import (
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/storage/pkg/configfile"
-	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/unshare"
 	"go.podman.io/storage/types"
@@ -177,9 +176,6 @@ const (
 	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
-	// DefaultRootlessSignaturePolicyPath is the location within
-	// XDG_CONFIG_HOME of the rootless policy.json file.
-	DefaultRootlessSignaturePolicyPath = "containers/policy.json"
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
@@ -203,23 +199,6 @@ func defaultConfig() (*Config, error) {
 	defaultEngineConfig, err := defaultEngineConfig()
 	if err != nil {
 		return nil, err
-	}
-
-	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	// NOTE: For now we want Windows to use system locations.
-	// GetRootlessUID == -1 on Windows, so exclude negative range
-	if unshare.GetRootlessUID() > 0 {
-		configHome, err := homedir.GetConfigHome()
-		if err != nil {
-			return nil, err
-		}
-		sigPath := filepath.Join(configHome, DefaultRootlessSignaturePolicyPath)
-		defaultEngineConfig.SignaturePolicyPath = sigPath
-		if err := fileutils.Exists(sigPath); err != nil {
-			if err := fileutils.Exists(DefaultSignaturePolicyPath); err == nil {
-				defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-			}
-		}
 	}
 
 	return &Config{

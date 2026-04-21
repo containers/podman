@@ -487,6 +487,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	var (
 		destImage string
 		mimeType  string
+		err       error
 	)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
@@ -510,11 +511,6 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
-	rtc, err := runtime.GetConfig()
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to get runtime config: %w", err))
-		return
-	}
 	sc := runtime.SystemContext()
 	tag := "latest"
 	options := libpod.ContainerCommitOptions{
@@ -534,7 +530,6 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	options.CommitOptions = buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          os.Stderr,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

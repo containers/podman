@@ -35,8 +35,9 @@ func init() {
 		Parent:  trustCmd,
 	})
 	setFlags := setTrustCommand.Flags()
-	setFlags.StringVar(&setOptions.PolicyPath, "policypath", "", "")
-	_ = setFlags.MarkHidden("policypath")
+	signaturePolicyFlagName := "signature-policy"
+	setFlags.StringVar(&setOptions.PolicyPath, signaturePolicyFlagName, "", "Path to a signature-policy file")
+	_ = setTrustCommand.RegisterFlagCompletionFunc(signaturePolicyFlagName, completion.AutocompleteDefault)
 
 	pubkeysfileFlagName := "pubkeysfile"
 	setFlags.StringArrayVarP(&setOptions.PubKeysFile, pubkeysfileFlagName, "f", []string{}, `Path of installed public key(s) to trust for TARGET.

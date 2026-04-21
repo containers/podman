@@ -55,6 +55,9 @@ Trust may be updated using the command **podman image trust set** for an existin
   are referenced in policy.json. Any path to a file may be used but locating the file in **/etc/pki/containers** is recommended. Options may be used multiple times to
   require an image be signed by multiple keys.  The **--pubkeysfile** option is required for the **signedBy** and **sigstoreSigned** types.
 
+#### **--signature-policy**=*path*
+  Path to the signature policy file (**policy.json**) that Podman updates. This option is required for **set**.
+
 #### **--type**, **-t**=*value*
   The trust type for this policy entry.
   Accepted values:
@@ -76,16 +79,19 @@ Trust may be updated using the command **podman image trust set** for an existin
 #### **--raw**
   Output trust policy file as raw JSON
 
+#### **--signature-policy**=*path*
+  Path to the signature policy file (**policy.json**) to display. When omitted, Podman resolves the policy path from the system configuration the same way it selects a policy for image pulls.
+
 ## EXAMPLES
 
 Accept all unsigned images from a registry:
 ```
-sudo podman image trust set --type accept docker.io
+sudo podman image trust set --signature-policy /etc/containers/policy.json --type accept docker.io
 ```
 
 Modify default trust policy:
 ```
-sudo podman image trust set -t reject default
+sudo podman image trust set --signature-policy /etc/containers/policy.json -t reject default
 ```
 
 Display system trust policy:

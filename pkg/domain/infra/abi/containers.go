@@ -642,10 +642,6 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	if err != nil {
 		return nil, err
 	}
-	rtc, err := ic.Libpod.GetConfig()
-	if err != nil {
-		return nil, err
-	}
 	switch options.Format {
 	case "oci":
 		mimeType = buildah.OCIv1ImageManifest
@@ -670,7 +666,6 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 		}
 	}
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          options.Writer,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

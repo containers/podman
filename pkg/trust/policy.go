@@ -7,17 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"go.podman.io/common/pkg/config"
-	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/fileutils"
-	"go.podman.io/storage/pkg/homedir"
 )
 
 // policyContent is the overall structure of a policy.json file (= c/image/v5/signature.Policy)
@@ -54,28 +49,6 @@ type genericTransportsContent map[string]genericRepoMap
 
 // genericRepoMap maps a scope name to requirements that apply to that scope (= c/image/v5/signature.PolicyTransportScopes)
 type genericRepoMap map[string]json.RawMessage
-
-// DefaultPolicyPath returns a path to the default policy of the system.
-func DefaultPolicyPath(sys *types.SystemContext) string {
-	if sys != nil && sys.SignaturePolicyPath != "" {
-		return sys.SignaturePolicyPath
-	}
-
-	userPolicyFilePath := filepath.Join(homedir.Get(), filepath.FromSlash(".config/containers/policy.json"))
-	err := fileutils.Exists(userPolicyFilePath)
-	if err == nil {
-		return userPolicyFilePath
-	}
-	if !errors.Is(err, fs.ErrNotExist) {
-		logrus.Warnf("Error trying to read local config file: %s", err.Error())
-	}
-
-	systemDefaultPolicyPath := config.DefaultSignaturePolicyPath
-	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
-	}
-	return systemDefaultPolicyPath
-}
 
 // gpgIDReader returns GPG key IDs of keys stored at the provided path.
 // It exists only for tests, production code should always use getGPGIdFromKeyPath.

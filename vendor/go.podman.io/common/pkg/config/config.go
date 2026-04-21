@@ -488,11 +488,6 @@ type EngineConfig struct {
 	// backwards compat with older version of libpod and Podman.
 	SetOptions
 
-	// SignaturePolicyPath is the path to a signature policy to use for
-	// validating images. If left empty, the containers/image default signature
-	// policy will be used.
-	SignaturePolicyPath string `toml:"-"`
-
 	// SDNotify tells container engine to allow containers to notify the host systemd of
 	// readiness using the SD_NOTIFY mechanism.
 	SDNotify bool `toml:"-"`

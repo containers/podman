@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/report"
 )
 
@@ -35,9 +36,9 @@ func init() {
 	})
 	showFlags := showTrustCommand.Flags()
 	showFlags.BoolVarP(&showTrustOptions.JSON, "json", "j", false, "Output as json")
-	showFlags.StringVar(&showTrustOptions.PolicyPath, "policypath", "", "")
+	showFlags.StringVar(&showTrustOptions.PolicyPath, "signature-policy", "", "Path to a signature-policy file")
+	_ = showTrustCommand.RegisterFlagCompletionFunc("signature-policy", completion.AutocompleteDefault)
 	showFlags.BoolVar(&showTrustOptions.Raw, "raw", false, "Output raw policy file")
-	_ = showFlags.MarkHidden("policypath")
 	showFlags.StringVar(&showTrustOptions.RegistryPath, "registrypath", "", "")
 	showFlags.BoolVarP(&noHeading, "noheading", "n", false, "Do not print column headings")
 	_ = showFlags.MarkHidden("registrypath")
