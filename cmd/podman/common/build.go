@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v6/cmd/podman/utils"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/env"
+	podmanUtil "github.com/containers/podman/v6/pkg/util"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -475,6 +476,22 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	platforms, err := parse.PlatformsFromOptions(c)
 	if err != nil {
 		return nil, err
+	}
+
+	// If no explicit --platform, --os, --arch, or --variant was given,
+	// fall back to CONTAINER_DEFAULT_PLATFORM env var so that
+	// podman-remote transmits the platform to the server.
+	if !c.Flag("platform").Changed && !c.Flag("os").Changed &&
+		!c.Flag("arch").Changed && !c.Flag("variant").Changed {
+		defOS, defArch, defVariant, pErr := podmanUtil.DefaultPlatform()
+		if pErr != nil {
+			return nil, pErr
+		}
+		if defOS != "" || defArch != "" || defVariant != "" {
+			platforms = []struct{ OS, Arch, Variant string }{
+				{OS: defOS, Arch: defArch, Variant: defVariant},
+			}
+		}
 	}
 
 	decConfig, err := getDecryptConfig(flags.DecryptionKeys)
