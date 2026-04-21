@@ -1,21 +1,24 @@
-summary: Run tmt container provision test (downstream only)
+# reverse dependency tests for https://github.com/teemtee/tmt/
+summary: Run podman tests
 
 enabled: false
 adjust+:
-    - enabled: true
-      when: initiator != packit and distro != rhel
+  when: revdeps == yes
+  enabled: true
 
 discover:
     how: fmf
-    filter: 'tag:tmt & tag:downstream'
+    url: https://github.com/teemtee/tmt
+    filter: "tag:podman"
+    adjust-tests:
+      - check: avc
+
+prepare:
+    - name: update-deps
+      when: initiator == packit
+      how: shell
+      script: bash $TMT_TREE/contrib/packit-tmt/update-deps.sh
+      order: 20
 
 execute:
     how: tmt
-
-prepare:
-    - when: distro == centos-stream or distro == rhel
-      how: shell
-      script: |
-        dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm --eval '%{?rhel}').noarch.rpm
-        dnf -y config-manager --set-enabled epel
-      order: 10
