@@ -42,7 +42,7 @@ class PodmanAPI:
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
         os.environ["CONTAINERS_REGISTRIES_CONF"] = os.path.join(
-            self.anchor_directory, "registry.conf"
+            self.anchor_directory, "registries.conf"
         )
 
         # Entry verified by compat/test_system.py

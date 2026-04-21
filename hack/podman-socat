@@ -54,16 +54,6 @@ trap "cleanup $TMPDIR" EXIT
 # Need locations to store stuff
 mkdir -p "${TMPDIR}"/{podman,crio,crio-run,cni/net.d,ctnr,tunnel}
 
-export CONTAINERS_REGISTRIES_CONF=${TMPDIR}/registry.conf
-cat >"$CONTAINERS_REGISTRIES_CONF" <<-EOT
-  [registries.search]
-    registries = ['docker.io']
-  [registries.insecure]
-    registries = []
-  [registries.block]
-    registries = []
-EOT
-
 export CNI_CONFIG_PATH=${TMPDIR}/cni/net.d
 cat >"$CNI_CONFIG_PATH"/87-podman-bridge.conflist <<-EOT
 {
