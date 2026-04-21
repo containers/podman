@@ -292,6 +292,15 @@ func getDBState(runtime *Runtime) (State, error) {
 	case config.DBBackendBoltDB:
 		return nil, fmt.Errorf("the BoltDB database backend was removed in Podman 6.0")
 	case config.DBBackendDefault:
+		// Look for a legacy BoltDB database
+		baseDir := runtime.config.Engine.StaticDir
+		if runtime.storageConfig.TransientStore {
+			baseDir = runtime.config.Engine.TmpDir
+		}
+		boltDBPath := filepath.Join(baseDir, "bolt_state.db")
+		if err := fileutils.Exists(boltDBPath); err == nil {
+			return nil, fmt.Errorf("a legacy BoltDB database was detected. Support for BoltDB was removed in Podman 6. Please downgrade to Podman 5.8 to migrate to the new SQLite database. If migration is not necessary, you can suppress this warning by removing or renaming the BoltDB database located at %q", boltDBPath)
+		}
 		fallthrough
 	case config.DBBackendSQLite:
 		return NewSqliteState(runtime)
