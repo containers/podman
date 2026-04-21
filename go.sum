@@ -55,8 +55,6 @@ github.com/containernetworking/cni v1.3.0 h1:v6EpN8RznAZj9765HhXQrtXgX+ECGebEYEm
 github.com/containernetworking/cni v1.3.0/go.mod h1:Bs8glZjjFfGPHMw6hQu82RUgEPNGEaBb9KS5KtNMnJ4=
 github.com/containernetworking/plugins v1.9.1 h1:8oU6WsIsU3bpnNZuvHp74a6cE1MJwbj2P7s4/yTUNlA=
 github.com/containernetworking/plugins v1.9.1/go.mod h1:fj7kS55qg3o/RgS+WGsF3+ZxwIImMPusQZKzBpcSr4c=
-github.com/containers/buildah v1.42.1-0.20260417103105-4e43fa8d9e07 h1:0N0sTooGSQwgmEC9sBtmSjy0uEiIBnZ6EE9K2gHqzvE=
-github.com/containers/buildah v1.42.1-0.20260417103105-4e43fa8d9e07/go.mod h1:v6yB1iltuFJ55H36HFWb7+TjqyoW4nq3X6sjpvgP6qI=
 github.com/containers/common v0.64.2 h1:1xepE7QwQggUXxmyQ1Dbh6Cn0yd7ktk14sN3McSWf5I=
 github.com/containers/common v0.64.2/go.mod h1:o29GfYy4tefUuShm8mOn2AiL5Mpzdio+viHI7n24KJ4=
 github.com/containers/gvisor-tap-vsock v0.8.8 h1:5FznbOYMIuaCv8B6zQ7M6wjqP63Lasy0A6GpViEnjTg=
@@ -257,8 +255,8 @@ github.com/moby/go-archive v0.2.0 h1:zg5QDUM2mi0JIM9fdQZWC7U8+2ZfixfTYoHL7rWUcP8
 github.com/moby/go-archive v0.2.0/go.mod h1:mNeivT14o8xU+5q1YnNrkQVpK+dnNe/K6fHqnTg4qPU=
 github.com/moby/moby/api v1.54.2 h1:wiat9QAhnDQjA7wk1kh/TqHz2I1uUA7M7t9SAl/JNXg=
 github.com/moby/moby/api v1.54.2/go.mod h1:+RQ6wluLwtYaTd1WnPLykIDPekkuyD/ROWQClE83pzs=
-github.com/moby/moby/client v0.4.0 h1:S+2XegzHQrrvTCvF6s5HFzcrywWQmuVnhOXe2kiWjIw=
-github.com/moby/moby/client v0.4.0/go.mod h1:QWPbvWchQbxBNdaLSpoKpCdf5E+WxFAgNHogCWDoa7g=
+github.com/moby/moby/client v0.4.1 h1:DMQgisVoMkmMs7fp3ROSdiBnoAu8+vo3GggFl06M/wY=
+github.com/moby/moby/client v0.4.1/go.mod h1:z52C9O2POPOsnxZAy//WtKcQ32P+jT/NGeXu/7nfjGQ=
 github.com/moby/patternmatcher v0.6.1 h1:qlhtafmr6kgMIJjKJMDmMWq7WLkKIo23hsrpR3x084U=
 github.com/moby/patternmatcher v0.6.1/go.mod h1:hDPoyOpDY7OrrMDLaYoY3hf52gNCR/YOUYxkhApJIxc=
 github.com/moby/sys/capability v0.4.0 h1:4D4mI6KlNtWMCM1Z/K0i7RV1FkX+DBDHKVJpCndZoHk=
@@ -429,6 +427,8 @@ go.opentelemetry.io/otel/sdk/metric v1.42.0 h1:D/1QR46Clz6ajyZ3G8SgNlTJKBdGp84q9
 go.opentelemetry.io/otel/sdk/metric v1.42.0/go.mod h1:Ua6AAlDKdZ7tdvaQKfSmnFTdHx37+J4ba8MwVCYM5hc=
 go.opentelemetry.io/otel/trace v1.42.0 h1:OUCgIPt+mzOnaUTpOQcBiM/PLQ/Op7oq6g4LenLmOYY=
 go.opentelemetry.io/otel/trace v1.42.0/go.mod h1:f3K9S+IFqnumBkKhRJMeaZeNk9epyhnCmQh/EysQCdc=
+go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85 h1:rVKRagobPO6kGHOg2NhGNs6xWVgZctiOn4tmxa3cytA=
+go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85/go.mod h1:JjFirF1zlILz55ZkVYYhLRnted7mPlmoS2w2ihYw8iw=
 go.podman.io/common v0.67.2-0.20260420103546-618304d6f83d h1:zryioAYWqUu1BUPraJJ6q5mLiclNZ3kTuQyyBO/5vYs=
 go.podman.io/common v0.67.2-0.20260420103546-618304d6f83d/go.mod h1:Pom4Io+8C+CCZzr3CRUkr6A5inTMY8nVaFS3X1Y5NbI=
 go.podman.io/image/v5 v5.39.3-0.20260420103546-618304d6f83d h1:NeMM89Fwaw19guPj/hXEjBtoCeH/mGgbAWoBnpnRiIo=

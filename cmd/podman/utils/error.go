@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/podman/v6/cmd/podman/registry"
+	buildahCLI "go.podman.io/buildah/pkg/cli"
 )
 
 type OutputErrors []error

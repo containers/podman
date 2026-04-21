@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	bdefine "github.com/containers/buildah/define"
 	"github.com/containers/podman/v6/internal/localapi"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/bindings/images"
@@ -19,6 +18,7 @@ import (
 	"github.com/containers/podman/v6/pkg/domain/utils"
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/sirupsen/logrus"
+	bdefine "go.podman.io/buildah/define"
 	"go.podman.io/common/libimage/filter"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker/reference"

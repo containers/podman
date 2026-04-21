@@ -5,12 +5,12 @@ import (
 	"os"
 	"os/exec"
 
-	buildahCLI "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	buildahCLI "go.podman.io/buildah/pkg/cli"
 )
 
 var (

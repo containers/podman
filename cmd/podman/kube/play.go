@@ -12,7 +12,6 @@ import (
 	"strings"
 	"syscall"
 
-	buildahParse "github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/parse"
 	"github.com/containers/podman/v6/cmd/podman/registry"
@@ -24,6 +23,7 @@ import (
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/spf13/cobra"
+	buildahParse "go.podman.io/buildah/pkg/parse"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/image/v5/types"

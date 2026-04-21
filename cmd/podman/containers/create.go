@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/cmd/podman/utils"
@@ -20,6 +19,7 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/buildah/pkg/cli"
 	"go.podman.io/common/pkg/auth"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/transports/alltransports"

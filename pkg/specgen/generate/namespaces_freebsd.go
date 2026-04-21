@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/buildah/pkg/jail"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah/pkg/jail"
 )
 
 func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt *libpod.Runtime, pod *libpod.Pod) error {

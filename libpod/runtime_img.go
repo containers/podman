@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 
-	buildahDefine "github.com/containers/buildah/define"
-	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/sirupsen/logrus"
+	buildahDefine "go.podman.io/buildah/define"
+	"go.podman.io/buildah/imagebuildah"
 	"go.podman.io/common/libimage"
 	"go.podman.io/image/v5/docker/reference"
 )

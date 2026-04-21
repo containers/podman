@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/buildah"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/logs"
@@ -34,6 +33,7 @@ import (
 	"github.com/containers/podman/v6/pkg/util"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
 	"go.podman.io/storage"

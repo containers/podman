@@ -15,8 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	buildahDefine "github.com/containers/buildah/define"
-	bparse "github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/cmd/podman/parse"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
@@ -37,6 +35,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
+	buildahDefine "go.podman.io/buildah/define"
+	bparse "go.podman.io/buildah/pkg/parse"
 	"go.podman.io/common/libimage"
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"

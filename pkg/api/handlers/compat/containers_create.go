@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/api/handlers"
@@ -25,6 +24,7 @@ import (
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/moby/moby/api/types/mount"
+	"go.podman.io/buildah/pkg/parse"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"

@@ -3,8 +3,8 @@ package images
 import (
 	"testing"
 
-	"github.com/containers/buildah/define"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/buildah/define"
 )
 
 func TestBuildMatchIID(t *testing.T) {

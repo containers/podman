@@ -7,6 +7,7 @@ ME=$(basename $0)
 
 # Buildah main repository; unlikely to change often
 BUILDAH_REPO=github.com/containers/buildah
+BUILDAH_MODULE=go.podman.io/buildah
 
 # Tag name used to identify the base checkout
 BASE_TAG=buildah-bud-in-podman
@@ -91,12 +92,12 @@ trap 'if [[ $? != 0 ]]; then if [[ -n $failhint ]]; then echo;echo "************
 
 # Find the version of buildah we've vendored in, so we can run the right tests.
 # Note first check if buildah is being replaced with a different version in which case we need to use that one.
-buildah_replace=$(go list -m -f '{{if .Replace}}{{.Replace}}{{end}}' $BUILDAH_REPO)
+buildah_replace=$(go list -m -f '{{if .Replace}}{{.Replace}}{{end}}' $BUILDAH_MODULE)
 buildah_checkout_repo="$BUILDAH_REPO"
 
 if [[ -z "$buildah_replace" ]]; then
     # No replace this is fine, check the main version
-    buildah_version=$(go list -m -f '{{.Version}}' $BUILDAH_REPO)
+    buildah_version=$(go list -m -f '{{.Version}}' $BUILDAH_MODULE)
 else
     # replace string is "REPO VERSION" so split this into our two vars
     buildah_checkout_repo="${buildah_replace% *}"
@@ -134,7 +135,7 @@ if [[ -n $CIRRUS_CHANGE_IN_REPO ]]; then
         base=$(set -x;git merge-base ${DEST_BRANCH} $head)
         changes=$(set -x;git diff --name-status $base $head)
         if [[ -n $changes ]]; then
-            if [[ $changes =~ vendor/$BUILDAH_REPO ]]; then
+            if [[ $changes =~ vendor/$BUILDAH_MODULE ]]; then
                 is_revendor=y
             fi
         fi

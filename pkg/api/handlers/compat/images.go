@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/pkg/api/handlers"
 	"github.com/containers/podman/v6/pkg/api/handlers/utils"
@@ -28,6 +27,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	imageSpec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/filters"
