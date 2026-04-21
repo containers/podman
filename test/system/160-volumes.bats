@@ -666,4 +666,41 @@ EOF
     run_podman volume rm $volume_name --force
 }
 
+@test "podman volume rename" {
+    local oldname="vol_old_$(random_string 8)"
+    local newname="vol_new_$(random_string 8)"
+
+    # Create volume and write data
+    run_podman volume create $oldname
+    assert "$output" == "$oldname" "volume create returns name"
+
+    local content="data-$(random_string 20)"
+    run_podman run --rm -v $oldname:/data $IMAGE sh -c "echo $content > /data/testfile"
+
+    # Rename the volume — output should be the new name
+    run_podman volume rename $oldname $newname
+    assert "$output" == "$newname" "volume rename prints new name"
+
+    # Old name should no longer exist
+    run_podman 125 volume inspect $oldname
+    assert "$output" =~ "no such volume" "old name should not exist after rename"
+
+    # New name should exist and have the data
+    run_podman volume inspect $newname --format '{{.Name}}'
+    assert "$output" == "$newname" "inspect shows new name"
+
+    run_podman run --rm -v $newname:/data $IMAGE cat /data/testfile
+    assert "$output" == "$content" "data persists after rename"
+
+    # Rename should fail if volume is in use
+    run_podman create -v $newname:/data $IMAGE true
+    local cid="$output"
+
+    run_podman 125 volume rename $newname another_name
+    assert "$output" =~ "volume is being used" "rename should fail when in use"
+
+    run_podman rm $cid
+    run_podman volume rm $newname
+}
+
 # vim: filetype=sh

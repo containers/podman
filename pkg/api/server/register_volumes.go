@@ -208,6 +208,37 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/volumes/{name}/import"), s.APIHandler(libpod.ImportVolume)).Methods(http.MethodPost)
 
+	// swagger:operation POST /libpod/volumes/{name}/rename libpod VolumeRenameLibpod
+	// ---
+	// tags:
+	//  - volumes
+	// summary: Rename an existing volume
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the volume
+	//  - in: query
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: new volume name
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: Volume successfully renamed
+	//   404:
+	//     $ref: "#/responses/volumeNotFound"
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   409:
+	//     description: Volume is in use or new name already exists
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.Handle(VersionedPath("/libpod/volumes/{name}/rename"), s.APIHandler(libpod.RenameVolume)).Methods(http.MethodPost)
+
 	/*
 	 * Docker compatibility endpoints
 	 */

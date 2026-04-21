@@ -1355,6 +1355,65 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 	return nil
 }
 
+// RenameVolume renames the given volume in the database.
+// The new name must not already exist.
+func (s *SQLiteState) RenameVolume(volume *Volume, newName string) (defErr error) {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	newCfg := *volume.config
+	newCfg.Name = newName
+
+	json, err := json.Marshal(&newCfg)
+	if err != nil {
+		return fmt.Errorf("error marshalling volume %s new config JSON: %w", volume.Name(), err)
+	}
+
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction to rename volume %s: %w", volume.Name(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to rename volume %s: %v", volume.Name(), err)
+			}
+		}
+	}()
+
+	// Update VolumeState first.
+	// VolumeState may not exist for all volumes, so we intentionally
+	// do not check RowsAffected here.
+	if _, err := tx.Exec("UPDATE VolumeState SET Name=? WHERE Name=?;", newName, volume.Name()); err != nil {
+		return fmt.Errorf("updating volume state name for volume %s: %w", volume.Name(), err)
+	}
+
+	// Update VolumeConfig (Name column + JSON blob)
+	results, err := tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE Name=?;", newName, json, volume.Name())
+	if err != nil {
+		return fmt.Errorf("updating volume config for volume %s: %w", volume.Name(), err)
+	}
+	rows, err := results.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("retrieving volume %s config rename rows affected: %w", volume.Name(), err)
+	}
+	if rows == 0 {
+		volume.valid = false
+		return fmt.Errorf("no volume with name %q found in DB: %w", volume.Name(), define.ErrNoSuchVolume)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction to rename volume %s: %w", volume.Name(), err)
+	}
+
+	return nil
+}
+
 // Pod retrieves a pod given its full ID
 func (s *SQLiteState) Pod(id string) (*Pod, error) {
 	if id == "" {
