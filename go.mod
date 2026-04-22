@@ -63,7 +63,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vbauerster/mpb/v8 v8.12.0
 	github.com/vishvananda/netlink v1.3.1
-	go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85
+	go.podman.io/buildah v1.43.1
 	go.podman.io/common v0.67.2-0.20260420103546-618304d6f83d
 	go.podman.io/image/v5 v5.39.3-0.20260420103546-618304d6f83d
 	go.podman.io/storage v1.62.1-0.20260420103546-618304d6f83d
