@@ -9,17 +9,17 @@ import (
 	"os"
 	"sort"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/systemd"
-	systemdDefine "github.com/containers/podman/v6/pkg/systemd/define"
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/systemd"
+	systemdDefine "go.podman.io/podman/v6/pkg/systemd/define"
 )
 
 // Policy represents an auto-update policy.

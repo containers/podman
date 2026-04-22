@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/buildah/pkg/jail"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 type Netstat struct {

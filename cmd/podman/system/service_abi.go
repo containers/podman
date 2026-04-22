@@ -10,13 +10,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	api "github.com/containers/podman/v6/pkg/api/server"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	api "go.podman.io/podman/v6/pkg/api/server"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra"
 	"golang.org/x/sys/unix"
 )
 

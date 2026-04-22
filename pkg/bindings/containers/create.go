@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/specgen"
 	jsoniter "github.com/json-iterator/go"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *CreateOptions) (types.ContainerCreateResponse, error) {

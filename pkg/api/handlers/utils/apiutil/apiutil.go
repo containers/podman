@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v6/version"
 	"github.com/gorilla/mux"
+	"go.podman.io/podman/v6/version"
 )
 
 var (

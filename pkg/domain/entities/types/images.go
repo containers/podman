@@ -3,8 +3,8 @@ package types
 import (
 	"time"
 
-	"github.com/containers/podman/v6/pkg/inspect"
-	"github.com/containers/podman/v6/pkg/trust"
+	"go.podman.io/podman/v6/pkg/inspect"
+	"go.podman.io/podman/v6/pkg/trust"
 )
 
 // swagger:model LibpodImageSummary

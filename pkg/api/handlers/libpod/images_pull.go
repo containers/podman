@@ -10,17 +10,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/auth"
-	"github.com/containers/podman/v6/pkg/channel"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/auth"
+	"go.podman.io/podman/v6/pkg/channel"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 // The duration for which we are willing to wait before starting the stream, to be able to decide the HTTP status code more accurately.

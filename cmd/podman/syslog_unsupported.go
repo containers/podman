@@ -7,7 +7,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/registry"
 )
 
 func syslogHook() {

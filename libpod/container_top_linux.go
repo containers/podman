@@ -17,11 +17,11 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/rootless"
 	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sys/unix"
 )

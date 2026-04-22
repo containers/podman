@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // Each of these tests runs with a different GNUPGHOME; gpg-agent blows up

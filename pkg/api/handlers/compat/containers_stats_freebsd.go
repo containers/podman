@@ -5,9 +5,9 @@ package compat
 import (
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/moby/moby/api/types/container"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 func getPreCPUStats(stats *define.ContainerStats) CPUStats {

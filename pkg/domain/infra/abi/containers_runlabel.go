@@ -11,14 +11,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	envLib "github.com/containers/podman/v6/pkg/env"
-	"github.com/containers/podman/v6/utils"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	envLib "go.podman.io/podman/v6/pkg/env"
+	"go.podman.io/podman/v6/utils"
 	"go.podman.io/storage/pkg/fileutils"
 )
 

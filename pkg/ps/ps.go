@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/filters"
-	psdefine "github.com/containers/podman/v6/pkg/ps/define"
 	"github.com/sirupsen/logrus"
 	libnetworkTypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/filters"
+	psdefine "go.podman.io/podman/v6/pkg/ps/define"
 	"go.podman.io/storage"
 	"go.podman.io/storage/types"
 )

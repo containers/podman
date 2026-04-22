@@ -8,15 +8,15 @@ import (
 	"strconv"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/apple"
-	"github.com/containers/podman/v6/pkg/machine/apple/vfkit"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/ignition"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/utils"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/apple"
+	"go.podman.io/podman/v6/pkg/machine/apple/vfkit"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/ignition"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/utils"
 )
 
 // applehcMACAddress is a pre-defined mac address that vfkit recognizes

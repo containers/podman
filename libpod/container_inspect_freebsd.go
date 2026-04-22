@@ -3,8 +3,8 @@
 package libpod
 
 import (
-	"github.com/containers/podman/v6/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostConfig *define.InspectContainerHostConfig) error {

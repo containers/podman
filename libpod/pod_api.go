@@ -10,11 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/parallel"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/parallel"
 )
 
 // startInitContainers starts a pod's init containers.

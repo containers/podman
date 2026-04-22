@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 // ReadyUnitOpts are options for creating the ready unit that reports back to podman

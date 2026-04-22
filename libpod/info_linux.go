@@ -10,9 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/pasta"
@@ -20,6 +17,9 @@ import (
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/seccomp"
 	"go.podman.io/common/pkg/version"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage/pkg/unshare"
 )
 

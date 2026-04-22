@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/emulation"
 	"go.podman.io/buildah/pkg/parse"
 	lplatform "go.podman.io/common/libimage/platform"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/emulation"
 )
 
 // FarmNodeName returns the local engine's name.

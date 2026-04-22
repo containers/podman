@@ -8,11 +8,11 @@ import (
 	"os/exec"
 	"syscall"
 
-	_ "github.com/containers/podman/v6/cmd/podman/completion"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/config"
+	_ "go.podman.io/podman/v6/cmd/podman/completion"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 	"go.podman.io/storage/pkg/reexec"
 	"go.podman.io/storage/pkg/unshare"
 )

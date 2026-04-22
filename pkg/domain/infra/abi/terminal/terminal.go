@@ -8,10 +8,10 @@ import (
 	"os"
 	"os/signal"
 
-	lsignal "github.com/containers/podman/v6/pkg/signal"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/resize"
+	lsignal "go.podman.io/podman/v6/pkg/signal"
 )
 
 // RawTtyFormatter ...

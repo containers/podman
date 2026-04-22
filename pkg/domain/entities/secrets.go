@@ -1,8 +1,8 @@
 package entities
 
 import (
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 type SecretCreateReport = types.SecretCreateReport

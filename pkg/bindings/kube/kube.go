@@ -8,12 +8,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/containers/podman/v6/pkg/auth"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/bindings/generate"
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/auth"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/bindings/generate"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 func Play(ctx context.Context, path string, options *PlayOptions) (*entitiesTypes.KubePlayReport, error) {

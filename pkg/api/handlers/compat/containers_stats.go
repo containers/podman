@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	api "go.podman.io/podman/v6/pkg/api/types"
 )
 
 const defaultStatsPeriod = 5 * time.Second

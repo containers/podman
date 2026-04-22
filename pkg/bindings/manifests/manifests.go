@@ -16,15 +16,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/podman/v6/pkg/auth"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/bindings/images"
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/errorhandling"
 	jsoniter "github.com/json-iterator/go"
 	"go.podman.io/common/libimage/define"
 	"go.podman.io/image/v5/manifest"
 	imageTypes "go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/auth"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/bindings/images"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 // Create creates a manifest for the given name.  Optional images to be associated with

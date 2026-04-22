@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/lock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/lock"
 	"go.podman.io/storage"
 )
 

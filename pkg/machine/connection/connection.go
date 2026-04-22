@@ -8,8 +8,8 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 const LocalhostIP = "127.0.0.1"

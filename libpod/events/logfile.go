@@ -13,9 +13,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/nxadm/tail"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage/pkg/lockfile"
 	"golang.org/x/sys/unix"
 )

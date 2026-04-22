@@ -16,11 +16,11 @@ import (
 	"time"
 
 	winio "github.com/Microsoft/go-winio"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/env"
-	"github.com/containers/podman/v6/pkg/machine/sockets"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/sockets"
 	"go.podman.io/storage/pkg/fileutils"
 )
 

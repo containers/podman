@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Handle volume options from CLI.

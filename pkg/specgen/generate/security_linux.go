@@ -7,10 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/specgen"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
@@ -18,6 +14,10 @@ import (
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/capabilities"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/specgen"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 // setLabelOpts sets the label options of the SecurityConfig according to the

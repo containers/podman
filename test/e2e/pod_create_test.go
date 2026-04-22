@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/util"
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/selinux/go-selinux"
 	"go.podman.io/common/pkg/apparmor"
 	"go.podman.io/common/pkg/seccomp"
 	"go.podman.io/common/pkg/sysinfo"
+	"go.podman.io/podman/v6/pkg/util"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 var _ = Describe("Podman pod create", func() {

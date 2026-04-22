@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 var _ = Describe("podman machine rm", func() {

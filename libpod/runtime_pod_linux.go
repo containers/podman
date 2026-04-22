@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/rootless"
 )
 
 func (r *Runtime) platformMakePod(pod *Pod, resourceLimits *spec.LinuxResources) (string, error) {

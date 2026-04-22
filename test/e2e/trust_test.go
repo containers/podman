@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // Without Ordered, tests flake with "Getting key identity" (#18358)

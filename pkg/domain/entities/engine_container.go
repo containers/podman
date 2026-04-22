@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities/reports"
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/specgen"
 	netTypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities/reports"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 type ContainerCopyFunc = types.ContainerCopyFunc

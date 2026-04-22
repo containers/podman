@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/copy"
 	"go.podman.io/buildah/copier"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/copy"
 )
 
 // statOnHost stats the specified path *on the host*.  It returns the file info

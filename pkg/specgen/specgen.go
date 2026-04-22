@@ -6,10 +6,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/podman/v6/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	nettypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/storage/types"
 )
 

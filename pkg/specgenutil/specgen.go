@@ -9,19 +9,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/cmd/podman/parse"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	envLib "github.com/containers/podman/v6/pkg/env"
-	"github.com/containers/podman/v6/pkg/namespaces"
-	"github.com/containers/podman/v6/pkg/specgen"
-	systemdDefine "github.com/containers/podman/v6/pkg/systemd/define"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/cmd/podman/parse"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	envLib "go.podman.io/podman/v6/pkg/env"
+	"go.podman.io/podman/v6/pkg/namespaces"
+	"go.podman.io/podman/v6/pkg/specgen"
+	systemdDefine "go.podman.io/podman/v6/pkg/systemd/define"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/machine/env"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/pkg/machine/env"
 )
 
 func TestGetSSHIdentityPath(t *testing.T) {

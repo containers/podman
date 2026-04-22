@@ -32,15 +32,11 @@
 %define fips_enabled 1
 %endif
 
-%global container_base_path github.com/containers
-%global container_base_url https://%{container_base_path}
+%global container_base_path go.podman.io
 
 # For LDFLAGS
 %global ld_project %{container_base_path}/%{name}/v6
 %global ld_libpod %{ld_project}/libpod
-
-# %%{name}
-%global git0 %{container_base_url}/%{name}
 
 # podman-machine subpackage will be present only on these architectures
 %global machine_arches x86_64 aarch64
@@ -75,7 +71,7 @@ ExclusiveArch: aarch64 ppc64le s390x x86_64 riscv64
 Summary: Manage Pods, Containers and Container Images
 URL: https://%{name}.io/
 # All SourceN files fetched from upstream
-Source0: %{git0}/archive/v%{version_no_tilde}.tar.gz
+Source0: https://github.com/containers/%{name}/archive/v%{version_no_tilde}.tar.gz
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
 %if %{defined build_with_btrfs}

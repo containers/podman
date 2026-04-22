@@ -17,15 +17,15 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/systemd"
-	"github.com/containers/podman/v6/pkg/systemd/parser"
-	systemdquadlet "github.com/containers/podman/v6/pkg/systemd/quadlet"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/systemd"
+	"go.podman.io/podman/v6/pkg/systemd/parser"
+	systemdquadlet "go.podman.io/podman/v6/pkg/systemd/quadlet"
+	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage/pkg/fileutils"
 )
 

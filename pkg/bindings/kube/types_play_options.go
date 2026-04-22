@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/containers/podman/v6/pkg/bindings/internal/util"
+	"go.podman.io/podman/v6/pkg/bindings/internal/util"
 )
 
 // Changed returns true if named field has been set

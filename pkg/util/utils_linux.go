@@ -10,12 +10,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/containers/psgo"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/rootless"
 	"golang.org/x/sys/unix"
 )
 

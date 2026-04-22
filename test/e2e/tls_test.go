@@ -12,9 +12,9 @@ import (
 	"regexp"
 	"slices"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // tlsConfigServer returns http.StatusTeapot. So if we see that, that indicates a successful TLS connection.

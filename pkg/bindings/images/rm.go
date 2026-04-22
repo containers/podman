@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	handlersTypes "github.com/containers/podman/v6/pkg/api/handlers/types"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/errorhandling"
+	handlersTypes "go.podman.io/podman/v6/pkg/api/handlers/types"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 // Remove removes one or more images from the local storage.  Use optional force option to remove an

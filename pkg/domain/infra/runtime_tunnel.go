@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra/tunnel"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra/tunnel"
 )
 
 var (

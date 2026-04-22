@@ -5,8 +5,8 @@ package grpc
 import (
 	"context"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/api/grpcpb"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/api/grpcpb"
 )
 
 type noopServer struct {

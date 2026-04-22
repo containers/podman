@@ -6,13 +6,13 @@ import (
 	"net"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/namespaces"
-	"github.com/containers/podman/v6/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/namespaces"
+	"go.podman.io/podman/v6/pkg/specgen"
 	"go.podman.io/storage"
 )
 

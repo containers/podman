@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"time"
 
-	libpodEvents "github.com/containers/podman/v6/libpod/events"
-	types "github.com/containers/podman/v6/pkg/domain/entities/types"
 	dockerEvents "github.com/moby/moby/api/types/events"
+	libpodEvents "go.podman.io/podman/v6/libpod/events"
+	types "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 type Event = types.Event

@@ -9,12 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/logs"
-	systemdDefine "github.com/containers/podman/v6/pkg/systemd/define"
 	"github.com/nxadm/tail"
 	"github.com/nxadm/tail/watch"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/logs"
+	systemdDefine "go.podman.io/podman/v6/pkg/systemd/define"
 )
 
 // logDrivers stores the currently available log drivers, do not modify

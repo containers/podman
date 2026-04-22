@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/mdlayher/vsock"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/podman/v6/cmd/podman/registry"
 )
 
 var client9pCommand = &cobra.Command{

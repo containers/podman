@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 // GetDevNullFiles returns pointers to Read-only and Write-only DevNull files

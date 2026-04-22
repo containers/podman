@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	sig "github.com/containers/podman/v6/pkg/signal"
+	sig "go.podman.io/podman/v6/pkg/signal"
 	"golang.org/x/term"
 )
 

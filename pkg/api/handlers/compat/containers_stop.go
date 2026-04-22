@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra/abi"
-	"github.com/containers/podman/v6/pkg/util"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra/abi"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 func StopContainer(w http.ResponseWriter, r *http.Request) {

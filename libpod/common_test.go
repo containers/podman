@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/lock"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/lock"
 )
 
 func getTestContainer(id, name string, manager lock.Manager) (*Container, error) {

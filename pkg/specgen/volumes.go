@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/parse"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // NamedVolume holds information about a named volume that will be mounted into

@@ -12,10 +12,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/systemd/parser"
-	. "github.com/containers/podman/v6/test/utils"
-	"github.com/containers/podman/v6/version"
 	"github.com/mattn/go-shellwords"
+	"go.podman.io/podman/v6/pkg/systemd/parser"
+	. "go.podman.io/podman/v6/test/utils"
+	"go.podman.io/podman/v6/version"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

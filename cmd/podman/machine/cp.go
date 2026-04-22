@@ -6,14 +6,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/copy"
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/shim"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/copy"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/shim"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 type cpOptions struct {

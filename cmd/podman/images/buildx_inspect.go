@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/registry"
 )
 
 type buildNode struct {

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/cmd/podman/validate"
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/report"
+	"go.podman.io/podman/v6/cmd/podman/common"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/validate"
+	"go.podman.io/podman/v6/libpod/define"
 	"sigs.k8s.io/yaml"
 )
 

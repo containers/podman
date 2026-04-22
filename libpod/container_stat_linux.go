@@ -3,8 +3,8 @@
 package libpod
 
 import (
-	"github.com/containers/podman/v6/libpod/define"
 	"go.podman.io/buildah/copier"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // statInsideMount stats the specified path *inside* the container's mount and PID

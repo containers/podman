@@ -14,11 +14,11 @@ import (
 	"syscall"
 	"time"
 
-	testUtils "github.com/containers/podman/v6/test/utils"
-	podmanUtils "github.com/containers/podman/v6/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	testUtils "go.podman.io/podman/v6/test/utils"
+	podmanUtils "go.podman.io/podman/v6/utils"
 )
 
 var _ = Describe("Systemd activate", func() {

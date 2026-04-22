@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/plugin"
+	"go.podman.io/podman/v6/libpod/plugin"
 )
 
 const pluginSockDir = "/run/docker/plugins"

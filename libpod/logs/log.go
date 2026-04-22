@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/logs/reversereader"
 	"github.com/nxadm/tail"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/logs/reversereader"
 )
 
 const (

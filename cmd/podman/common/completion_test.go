@@ -3,9 +3,9 @@ package common_test
 import (
 	"testing"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/cmd/podman/common"
 )
 
 //nolint:recvcheck // We like to test mixed pointer receiver and non-pointer receiver

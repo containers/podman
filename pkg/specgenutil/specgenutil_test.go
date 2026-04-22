@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/stretchr/testify/assert"
 	"go.podman.io/common/pkg/machine"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 func TestWinPath(t *testing.T) {

@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/buildah/pkg/parse"
 	"go.podman.io/image/v5/copy"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/signature"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/storage/pkg/configfile"
 )
 

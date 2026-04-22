@@ -1,8 +1,8 @@
 package validate
 
 import (
-	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/registry"
 )
 
 func AddLatestFlag(cmd *cobra.Command, b *bool) {

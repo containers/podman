@@ -4,9 +4,9 @@
 package swagger
 
 import (
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 // Details for creating a volume

@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/containers/podman/v6/version"
 	"github.com/gorilla/mux"
+	"go.podman.io/podman/v6/version"
 )
 
 func TestSupportedVersion(t *testing.T) {

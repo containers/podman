@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/specgenutil"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/specgenutil"
 )
 
 type HealthCheckConfig struct {

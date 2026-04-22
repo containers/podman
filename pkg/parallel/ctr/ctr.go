@@ -5,9 +5,9 @@ package ctr
 import (
 	"context"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/parallel"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/parallel"
 )
 
 // ContainerOp performs the given function on the given set of

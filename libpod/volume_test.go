@@ -5,9 +5,9 @@ package libpod
 import (
 	"testing"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/stretchr/testify/assert"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Regression test for issue #27858.

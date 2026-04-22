@@ -10,13 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/define"
 
-	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
-	"github.com/containers/podman/v6/pkg/util"
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	v1 "go.podman.io/podman/v6/pkg/k8s.io/api/core/v1"
+	"go.podman.io/podman/v6/pkg/util"
+	. "go.podman.io/podman/v6/test/utils"
 	"sigs.k8s.io/yaml"
 )
 

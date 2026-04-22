@@ -9,15 +9,15 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/namespaces"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/etchosts"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/machine"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/namespaces"
+	"go.podman.io/podman/v6/pkg/rootless"
 	"go.podman.io/storage/pkg/lockfile"
 )
 

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/containers/podman/v6/pkg/logiface"
-	"github.com/containers/podman/v6/pkg/systemd/parser"
-	"github.com/containers/podman/v6/pkg/systemd/quadlet"
-	"github.com/containers/podman/v6/version/rawversion"
+	"go.podman.io/podman/v6/pkg/logiface"
+	"go.podman.io/podman/v6/pkg/systemd/parser"
+	"go.podman.io/podman/v6/pkg/systemd/quadlet"
+	"go.podman.io/podman/v6/version/rawversion"
 )
 
 // This commandline app is the systemd generator (system and user,

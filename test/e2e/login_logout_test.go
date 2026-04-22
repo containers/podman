@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 var _ = Describe("Podman login and logout", func() {

@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 var pruneImage = fmt.Sprintf(`

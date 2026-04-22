@@ -9,12 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/pkg/machine/env"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/pkg/machine/wsl/wutil"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 const gvForwarderPath = "/usr/libexec/podman/gvforwarder"

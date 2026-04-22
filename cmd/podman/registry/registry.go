@@ -4,12 +4,12 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra"
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 // DefaultRootAPIAddress is the default path of the REST socket with unix:// prefix

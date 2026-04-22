@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/util"
 	"go.podman.io/common/pkg/filters"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod.Runtime) (libpod.VolumeFilter, error) {

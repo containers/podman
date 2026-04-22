@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/lock"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/lock"
 )
 
 // Pod represents a group of containers that are managed together.

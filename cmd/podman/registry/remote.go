@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/spf13/pflag"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 // Value for --remote given on command line

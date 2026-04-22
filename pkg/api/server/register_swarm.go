@@ -6,9 +6,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
 )
 
 func (s *APIServer) registerSwarmHandlers(r *mux.Router) error {

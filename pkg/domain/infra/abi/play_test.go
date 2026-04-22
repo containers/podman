@@ -6,9 +6,9 @@ import (
 	"bytes"
 	"testing"
 
-	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
-	v12 "github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
+	v1 "go.podman.io/podman/v6/pkg/k8s.io/api/core/v1"
+	v12 "go.podman.io/podman/v6/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestReadConfigMapFromFile(t *testing.T) {

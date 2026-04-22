@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/registry"
 )
 
 // NoArgs returns an error if any args are included.

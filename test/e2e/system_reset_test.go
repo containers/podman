@@ -5,9 +5,9 @@ package integration
 import (
 	"fmt"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // system reset must run serial: https://github.com/containers/podman/issues/17903

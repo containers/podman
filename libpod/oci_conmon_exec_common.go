@@ -15,15 +15,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/errorhandling"
-	"github.com/containers/podman/v6/pkg/lookup"
-	"github.com/containers/podman/v6/pkg/pidhandle"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/detach"
 	"go.podman.io/common/pkg/resize"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/pkg/lookup"
+	"go.podman.io/podman/v6/pkg/pidhandle"
 	"golang.org/x/sys/unix"
 )
 

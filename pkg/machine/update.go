@@ -5,9 +5,9 @@ package machine
 import (
 	"fmt"
 
-	"github.com/containers/podman/v6/pkg/machine/ignition"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/ignition"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 func UpdatePodmanDockerSockService(mc *vmconfigs.MachineConfig) error {

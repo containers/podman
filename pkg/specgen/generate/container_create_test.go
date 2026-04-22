@@ -5,11 +5,11 @@ package generate
 import (
 	"testing"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 // TestApplyInfraInheritMountOptionsDoNotLeak verifies that mount options from

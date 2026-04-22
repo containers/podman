@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 type ContainerCopyFunc func() error

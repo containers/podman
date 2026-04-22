@@ -4,9 +4,9 @@ package containers
 import (
 	"net/url"
 
-	"github.com/containers/podman/v6/pkg/bindings/internal/util"
+	"go.podman.io/podman/v6/pkg/bindings/internal/util"
 
-	"github.com/containers/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Changed returns true if named field has been set

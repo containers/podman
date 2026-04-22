@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/ssh"
 	"go.podman.io/image/v5/transports/alltransports"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (*entities.ScpExecuteTransferReport, error) {

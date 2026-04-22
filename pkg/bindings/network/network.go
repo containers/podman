@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/bindings"
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/pkg/bindings"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 // Create makes a new network configuration

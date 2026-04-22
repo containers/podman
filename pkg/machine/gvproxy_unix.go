@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	psutil "github.com/shirou/gopsutil/v4/process"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
 	"golang.org/x/sys/unix"
 )
 

@@ -5,8 +5,8 @@ package localapi
 import (
 	"context"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func CheckPathOnRunningMachine(ctx context.Context, path string) (*LocalAPIMap, bool) {

@@ -14,14 +14,14 @@ import (
 	"time"
 
 	"github.com/checkpoint-restore/go-criu/v7/stats"
-	"github.com/containers/podman/v6/pkg/checkpoint/crutils"
-	"github.com/containers/podman/v6/pkg/criu"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	. "github.com/containers/podman/v6/test/utils"
-	"github.com/containers/podman/v6/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/podman/v6/pkg/checkpoint/crutils"
+	"go.podman.io/podman/v6/pkg/criu"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	. "go.podman.io/podman/v6/test/utils"
+	"go.podman.io/podman/v6/utils"
 )
 
 var netname string

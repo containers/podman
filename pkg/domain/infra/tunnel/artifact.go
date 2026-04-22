@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/containers/podman/v6/internal/localapi"
-	"github.com/containers/podman/v6/pkg/bindings/artifacts"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/internal/localapi"
+	"go.podman.io/podman/v6/pkg/bindings/artifacts"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 func (ir *ImageEngine) ArtifactExtract(_ context.Context, name string, target string, opts entities.ArtifactExtractOptions) error {

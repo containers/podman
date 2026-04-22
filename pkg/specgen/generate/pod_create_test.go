@@ -6,10 +6,10 @@ import (
 	"net"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 var (

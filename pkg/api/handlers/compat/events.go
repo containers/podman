@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/util"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils/apiutil"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 // GetEvents endpoint serves both the docker-compatible one and the new libpod one

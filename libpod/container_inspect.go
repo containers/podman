@@ -8,13 +8,13 @@ import (
 	"maps"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/driver"
-	"github.com/containers/podman/v6/pkg/signal"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/driver"
+	"go.podman.io/podman/v6/pkg/signal"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 // inspectLocked inspects a container for low-level information.

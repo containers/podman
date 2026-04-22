@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/slirp4netns" // RootlessKit port mapping only, not the removed slirp4netns backend
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 func (r *Runtime) setupRootlessPortMappingViaRLK(ctr *Container, netnsPath string, netStatus map[string]types.StatusBlock) error {

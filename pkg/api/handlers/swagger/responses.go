@@ -4,17 +4,17 @@
 package swagger
 
 import (
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/api/handlers"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/entities/reports"
-	"github.com/containers/podman/v6/pkg/inspect"
 	"github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/api/types/volume"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/api/handlers"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/entities/reports"
+	"go.podman.io/podman/v6/pkg/inspect"
 )
 
 // Image Tree

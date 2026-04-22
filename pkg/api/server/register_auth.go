@@ -5,8 +5,8 @@ package server
 import (
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/api/handlers/compat"
 	"github.com/gorilla/mux"
+	"go.podman.io/podman/v6/pkg/api/handlers/compat"
 )
 
 func (s *APIServer) registerAuthHandlers(r *mux.Router) error {

@@ -10,16 +10,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/systemd"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/podman/v6/cmd/podman/common"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/systemd"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 var (

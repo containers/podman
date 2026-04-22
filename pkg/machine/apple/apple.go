@@ -13,16 +13,16 @@ import (
 	"time"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/ignition"
-	"github.com/containers/podman/v6/pkg/machine/sockets"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/pkg/systemd/parser"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/ignition"
+	"go.podman.io/podman/v6/pkg/machine/sockets"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/pkg/systemd/parser"
 )
 
 const applehvMACAddress = "5a:94:ef:e4:0c:ee"

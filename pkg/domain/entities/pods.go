@@ -4,12 +4,12 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
-	"github.com/containers/podman/v6/pkg/specgen"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	commonFlag "go.podman.io/common/pkg/flag"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/specgen"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 type PodKillOptions struct {

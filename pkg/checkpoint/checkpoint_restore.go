@@ -9,17 +9,17 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/podman/v6/libpod"
-	ann "github.com/containers/podman/v6/pkg/annotations"
-	"github.com/containers/podman/v6/pkg/checkpoint/crutils"
-	"github.com/containers/podman/v6/pkg/criu"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/specgen/generate"
-	"github.com/containers/podman/v6/pkg/specgenutil"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod"
+	ann "go.podman.io/podman/v6/pkg/annotations"
+	"go.podman.io/podman/v6/pkg/checkpoint/crutils"
+	"go.podman.io/podman/v6/pkg/criu"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/specgen/generate"
+	"go.podman.io/podman/v6/pkg/specgenutil"
 )
 
 // Prefixing the checkpoint/restore related functions with 'cr'

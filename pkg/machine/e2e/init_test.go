@@ -9,10 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/provider"
-	"github.com/containers/podman/v6/utils"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,6 +16,10 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/provider"
+	"go.podman.io/podman/v6/utils"
 )
 
 var _ = Describe("podman machine init", func() {

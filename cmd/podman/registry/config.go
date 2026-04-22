@@ -7,12 +7,12 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage/pkg/fileutils"
 )
 

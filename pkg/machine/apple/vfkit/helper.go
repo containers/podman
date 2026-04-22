@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/crc-org/vfkit/pkg/config"
 	rest "github.com/crc-org/vfkit/pkg/rest/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
 	"golang.org/x/sys/unix"
 )
 

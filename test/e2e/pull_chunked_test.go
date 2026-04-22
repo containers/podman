@@ -14,12 +14,12 @@ import (
 	"slices"
 	"strings"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 func pullChunkedTests() { // included in pull_test.go, must use a Ginkgo DSL at the top level

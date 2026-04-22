@@ -1,9 +1,9 @@
 package images
 
 import (
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/cmd/podman/validate"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/validate"
 )
 
 // Command: podman _buildx_

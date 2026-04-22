@@ -1,11 +1,11 @@
 package quadlet
 
 import (
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/cmd/podman/validate"
-	"github.com/containers/podman/v6/pkg/logiface"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/validate"
+	"go.podman.io/podman/v6/pkg/logiface"
 )
 
 // logrusLogger implements the logiface.Logger interface using logrus

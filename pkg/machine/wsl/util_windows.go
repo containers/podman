@@ -13,8 +13,8 @@ import (
 	"unicode/utf16"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	winutil "github.com/containers/podman/v6/pkg/machine/windows"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	winutil "go.podman.io/podman/v6/pkg/machine/windows"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 	"golang.org/x/sys/windows"

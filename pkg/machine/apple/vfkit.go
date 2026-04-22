@@ -5,10 +5,10 @@ package apple
 import (
 	"errors"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 func GetDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *define.VMFile, error) {

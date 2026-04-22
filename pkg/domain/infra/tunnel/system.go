@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/bindings/system"
-	"github.com/containers/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/bindings/system"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) Info(_ context.Context) (*define.Info, error) {

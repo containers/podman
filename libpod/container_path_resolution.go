@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // pathAbs returns an absolute path.  If the specified path is

@@ -3,11 +3,11 @@ package connection
 import (
 	"fmt"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/cmd/podman/system"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/cmd/podman/common"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/system"
 )
 
 // Skip creating engines since this command will obtain connection information to said engines

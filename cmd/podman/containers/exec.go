@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/cmd/podman/validate"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	envLib "github.com/containers/podman/v6/pkg/env"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/podman/v6/cmd/podman/common"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/validate"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	envLib "go.podman.io/podman/v6/pkg/env"
+	"go.podman.io/podman/v6/pkg/rootless"
 )
 
 var (

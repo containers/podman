@@ -13,13 +13,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/types"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/storage/pkg/stringid"
 )
 

@@ -3,8 +3,8 @@ package types
 import (
 	"time"
 
-	define "github.com/containers/podman/v6/pkg/ps/define"
 	netTypes "go.podman.io/common/libnetwork/types"
+	define "go.podman.io/podman/v6/pkg/ps/define"
 )
 
 // ListContainer describes a container suitable for listing

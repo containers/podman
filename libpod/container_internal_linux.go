@@ -13,9 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/shutdown"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/cyphar/filepath-securejoin/pathrs-lite"
 	"github.com/moby/sys/capability"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -25,6 +22,9 @@ import (
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/shutdown"
+	"go.podman.io/podman/v6/pkg/rootless"
 	"golang.org/x/sys/unix"
 )
 

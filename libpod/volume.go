@@ -8,11 +8,11 @@ import (
 	"maps"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/lock"
-	"github.com/containers/podman/v6/libpod/plugin"
-	"github.com/containers/podman/v6/utils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/lock"
+	"go.podman.io/podman/v6/libpod/plugin"
+	"go.podman.io/podman/v6/utils"
 	"go.podman.io/storage/pkg/chrootarchive"
 	"go.podman.io/storage/pkg/directory"
 )

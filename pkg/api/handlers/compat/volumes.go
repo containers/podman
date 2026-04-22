@@ -11,16 +11,16 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/api/handlers"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/domain/filters"
-	"github.com/containers/podman/v6/pkg/domain/infra/abi/parse"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/moby/moby/api/types/volume"
 	"github.com/moby/moby/client"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/api/handlers"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/domain/filters"
+	"go.podman.io/podman/v6/pkg/domain/infra/abi/parse"
+	"go.podman.io/podman/v6/pkg/util"
 )
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {

@@ -5,8 +5,8 @@ package abi
 import (
 	"testing"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 func TestGetSdNotifyMode(t *testing.T) {

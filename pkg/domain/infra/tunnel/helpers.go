@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/bindings/containers"
-	"github.com/containers/podman/v6/pkg/bindings/pods"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/bindings/containers"
+	"go.podman.io/podman/v6/pkg/bindings/pods"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 // FIXME: the `ignore` parameter is very likely wrong here as it should rather

@@ -13,8 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/podman/v6/pkg/errorhandling"
-	"github.com/containers/podman/v6/pkg/rootless"
 	runcconfig "github.com/opencontainers/cgroups"
 	devices "github.com/opencontainers/cgroups/devices/config"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -23,6 +21,8 @@ import (
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/systemd"
+	"go.podman.io/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/pkg/rootless"
 	pmount "go.podman.io/storage/pkg/mount"
 	"golang.org/x/sys/unix"
 )

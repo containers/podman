@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/cmd/podman/common"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func TestPodOptions(t *testing.T) {

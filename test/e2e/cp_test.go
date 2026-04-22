@@ -9,9 +9,9 @@ import (
 	"os/user"
 	"path/filepath"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // NOTE: Only smoke tests.  The system tests (i.e., "./test/system/*") take

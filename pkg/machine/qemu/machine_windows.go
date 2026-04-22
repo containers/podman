@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/containers/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine"
 )
 
 func isProcessAlive(pid int) bool {

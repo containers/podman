@@ -12,11 +12,11 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // in-container mount point: using a path that is definitely not present

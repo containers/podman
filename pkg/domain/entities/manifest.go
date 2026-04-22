@@ -1,8 +1,8 @@
 package entities
 
 import (
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"go.podman.io/image/v5/types"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 // ManifestCreateOptions provides model for creating manifest list or image index

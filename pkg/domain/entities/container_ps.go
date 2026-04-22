@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 // ExternalContainerFilter is a function to determine whether a container list is included

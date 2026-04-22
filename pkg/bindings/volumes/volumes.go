@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities/reports"
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities/reports"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 // Create creates a volume given its configuration.

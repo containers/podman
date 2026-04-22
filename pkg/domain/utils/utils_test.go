@@ -5,8 +5,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func TestToLibpodFilters(t *testing.T) {

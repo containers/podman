@@ -3,12 +3,12 @@
 package machine
 
 import (
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/shim"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/shim"
 )
 
 var setCmd = &cobra.Command{

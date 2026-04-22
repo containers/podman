@@ -12,12 +12,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/systemd/define"
-	"github.com/containers/podman/v6/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/systemd/define"
+	"go.podman.io/podman/v6/version"
 )
 
 // podInfo contains data required for generating a pod's systemd

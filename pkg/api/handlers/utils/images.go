@@ -9,11 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/api/handlers"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/go-units"
 	"github.com/moby/moby/api/types/jsonstream"
@@ -25,6 +20,11 @@ import (
 	storageTransport "go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/transports/alltransports"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/api/handlers"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils/apiutil"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 	"go.podman.io/storage"
 )
 

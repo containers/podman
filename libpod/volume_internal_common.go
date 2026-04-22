@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
 	"golang.org/x/sys/unix"
 )
 

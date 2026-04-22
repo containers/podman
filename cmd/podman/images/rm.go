@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v6/cmd/podman/common"
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"go.podman.io/podman/v6/cmd/podman/common"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 var (

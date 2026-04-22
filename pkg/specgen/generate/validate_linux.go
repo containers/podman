@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/pkg/specgen"
 	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/podman/v6/pkg/specgen"
 	"go.podman.io/storage/pkg/fileutils"
 )
 

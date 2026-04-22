@@ -7,11 +7,11 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities/reports"
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities/reports"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 var _ = Describe("APIResponse Process method", func() {
