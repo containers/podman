@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/libpod/shutdown"
@@ -27,6 +26,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage"

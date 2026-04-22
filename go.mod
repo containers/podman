@@ -10,7 +10,6 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.5.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
-	github.com/containers/buildah v1.42.1-0.20260417103105-4e43fa8d9e07
 	github.com/containers/gvisor-tap-vsock v0.8.8
 	github.com/containers/libhvee v0.11.0
 	github.com/containers/ocicrypt v1.3.0
@@ -42,7 +41,7 @@ require (
 	github.com/mdlayher/vsock v1.2.1
 	github.com/moby/docker-image-spec v1.3.1
 	github.com/moby/moby/api v1.54.2
-	github.com/moby/moby/client v0.4.0
+	github.com/moby/moby/client v0.4.1
 	github.com/moby/sys/capability v0.4.0
 	github.com/moby/sys/user v0.4.0
 	github.com/moby/term v0.5.2
@@ -64,6 +63,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vbauerster/mpb/v8 v8.12.0
 	github.com/vishvananda/netlink v1.3.1
+	go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85
 	go.podman.io/common v0.67.2-0.20260420103546-618304d6f83d
 	go.podman.io/image/v5 v5.39.3-0.20260420103546-618304d6f83d
 	go.podman.io/storage v1.62.1-0.20260420103546-618304d6f83d

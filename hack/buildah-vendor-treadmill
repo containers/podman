@@ -30,7 +30,7 @@ our $Docs_URL =
     'https://github.com/containers/podman/wiki/Buildah-Vendor-Treadmill';
 
 # github path to buildah
-our $Buildah = 'github.com/containers/buildah';
+our $Buildah = 'go.podman.io/buildah';
 
 # FIXME FIXME FIXME: add 'main'? I hope we never need this script for branches.
 our $Treadmill_PR_Title = 'DO NOT MERGE: buildah vendor treadmill';

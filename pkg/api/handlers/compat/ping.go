@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/buildah"
+	"go.podman.io/buildah"
 )
 
 // Ping returns headers to client about the service

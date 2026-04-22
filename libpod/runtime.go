@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/containers/podman/v6/libpod/lock"
@@ -31,6 +30,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah/pkg/parse"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/network"
 	nettypes "go.podman.io/common/libnetwork/types"

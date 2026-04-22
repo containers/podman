@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	buildahCopiah "github.com/containers/buildah/copier"
 	"github.com/containers/podman/v6/cmd/podman/common"
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/pkg/copy"
@@ -19,6 +18,7 @@ import (
 	"github.com/containers/podman/v6/pkg/errorhandling"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	buildahCopiah "go.podman.io/buildah/copier"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/idtools"
 )

@@ -78,43 +78,6 @@ github.com/containerd/typeurl/v2
 # github.com/containernetworking/plugins v1.9.1
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.42.1-0.20260417103105-4e43fa8d9e07
-## explicit; go 1.25.6
-github.com/containers/buildah
-github.com/containers/buildah/bind
-github.com/containers/buildah/chroot
-github.com/containers/buildah/copier
-github.com/containers/buildah/define
-github.com/containers/buildah/docker
-github.com/containers/buildah/imagebuildah
-github.com/containers/buildah/internal
-github.com/containers/buildah/internal/config
-github.com/containers/buildah/internal/metadata
-github.com/containers/buildah/internal/mkcw
-github.com/containers/buildah/internal/mkcw/types
-github.com/containers/buildah/internal/open
-github.com/containers/buildah/internal/output
-github.com/containers/buildah/internal/parsevolume
-github.com/containers/buildah/internal/pty
-github.com/containers/buildah/internal/sanitize
-github.com/containers/buildah/internal/sbom
-github.com/containers/buildah/internal/tmpdir
-github.com/containers/buildah/internal/util
-github.com/containers/buildah/internal/volumes
-github.com/containers/buildah/pkg/binfmt
-github.com/containers/buildah/pkg/blobcache
-github.com/containers/buildah/pkg/chrootuser
-github.com/containers/buildah/pkg/cli
-github.com/containers/buildah/pkg/completion
-github.com/containers/buildah/pkg/jail
-github.com/containers/buildah/pkg/overlay
-github.com/containers/buildah/pkg/parse
-github.com/containers/buildah/pkg/rusage
-github.com/containers/buildah/pkg/sourcepolicy
-github.com/containers/buildah/pkg/sshagent
-github.com/containers/buildah/pkg/util
-github.com/containers/buildah/pkg/volumes
-github.com/containers/buildah/util
 # github.com/containers/common v0.64.2
 ## explicit; go 1.23.3
 github.com/containers/common/pkg/strongunits
@@ -434,7 +397,7 @@ github.com/moby/moby/api/types/storage
 github.com/moby/moby/api/types/swarm
 github.com/moby/moby/api/types/system
 github.com/moby/moby/api/types/volume
-# github.com/moby/moby/client v0.4.0
+# github.com/moby/moby/client v0.4.1
 ## explicit; go 1.24
 github.com/moby/moby/client
 github.com/moby/moby/client/internal
@@ -733,6 +696,43 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
+# go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85
+## explicit; go 1.25.6
+go.podman.io/buildah
+go.podman.io/buildah/bind
+go.podman.io/buildah/chroot
+go.podman.io/buildah/copier
+go.podman.io/buildah/define
+go.podman.io/buildah/docker
+go.podman.io/buildah/imagebuildah
+go.podman.io/buildah/internal
+go.podman.io/buildah/internal/config
+go.podman.io/buildah/internal/metadata
+go.podman.io/buildah/internal/mkcw
+go.podman.io/buildah/internal/mkcw/types
+go.podman.io/buildah/internal/open
+go.podman.io/buildah/internal/output
+go.podman.io/buildah/internal/parsevolume
+go.podman.io/buildah/internal/pty
+go.podman.io/buildah/internal/sanitize
+go.podman.io/buildah/internal/sbom
+go.podman.io/buildah/internal/tmpdir
+go.podman.io/buildah/internal/util
+go.podman.io/buildah/internal/volumes
+go.podman.io/buildah/pkg/binfmt
+go.podman.io/buildah/pkg/blobcache
+go.podman.io/buildah/pkg/chrootuser
+go.podman.io/buildah/pkg/cli
+go.podman.io/buildah/pkg/completion
+go.podman.io/buildah/pkg/jail
+go.podman.io/buildah/pkg/overlay
+go.podman.io/buildah/pkg/parse
+go.podman.io/buildah/pkg/rusage
+go.podman.io/buildah/pkg/sourcepolicy
+go.podman.io/buildah/pkg/sshagent
+go.podman.io/buildah/pkg/util
+go.podman.io/buildah/pkg/volumes
+go.podman.io/buildah/util
 # go.podman.io/common v0.67.2-0.20260420103546-618304d6f83d
 ## explicit; go 1.25.6
 go.podman.io/common/internal

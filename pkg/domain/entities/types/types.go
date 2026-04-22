@@ -4,7 +4,7 @@ package types
 import (
 	"os"
 
-	buildahDefine "github.com/containers/buildah/define"
+	buildahDefine "go.podman.io/buildah/define"
 )
 
 // ComponentVersion describes the version information for a specific component.

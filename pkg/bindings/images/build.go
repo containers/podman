@@ -19,8 +19,6 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/internal/remote_build_helpers"
 	ldefine "github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/auth"
@@ -34,6 +32,8 @@ import (
 	gzip "github.com/klauspost/pgzip"
 	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah/define"
+	"go.podman.io/buildah/pkg/parse"
 	imageTypes "go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/fileutils"

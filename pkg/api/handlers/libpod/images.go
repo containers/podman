@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/buildah"
 	"github.com/containers/podman/v6/internal/localapi"
 	"github.com/containers/podman/v6/libpod"
 	"github.com/containers/podman/v6/libpod/define"
@@ -34,6 +33,7 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/moby/moby/api/types/jsonstream"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/ssh"
 	"go.podman.io/image/v5/manifest"

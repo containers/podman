@@ -19,8 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	bdefine "github.com/containers/buildah/define"
-	"github.com/containers/buildah/pkg/volumes"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/domain/entities/reports"
@@ -30,6 +28,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	bdefine "go.podman.io/buildah/define"
+	"go.podman.io/buildah/pkg/volumes"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libimage/filter"
 	"go.podman.io/common/pkg/config"

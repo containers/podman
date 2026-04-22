@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/emulation"
+	"go.podman.io/buildah/pkg/parse"
 	lplatform "go.podman.io/common/libimage/platform"
 )
 

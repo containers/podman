@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/buildah"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/libpod/events"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/buildah"
 	"go.podman.io/common/libimage"
 	is "go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/types"

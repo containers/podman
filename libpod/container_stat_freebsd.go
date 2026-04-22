@@ -3,7 +3,7 @@
 package libpod
 
 import (
-	"github.com/containers/buildah/copier"
+	"go.podman.io/buildah/copier"
 )
 
 // On FreeBSD, jails use the global mount namespace, filtered to only
