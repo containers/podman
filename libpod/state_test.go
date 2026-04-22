@@ -2430,3 +2430,17 @@ func TestGetContainerConfigNonExistentIDFails(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestRemoveVolumeNotInDB(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
+		v := &Volume{
+			config: &VolumeConfig{
+				Name: "Test",
+			},
+			valid: true,
+		}
+		err := state.RemoveVolume(v)
+		require.Error(t, err)
+		require.ErrorIs(t, err, define.ErrNoSuchVolume)
+	})
+}
