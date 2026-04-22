@@ -5,9 +5,6 @@ package machine
 import (
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"strconv"
 
 	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/containers/podman/v6/libpod/events"
@@ -15,17 +12,13 @@ import (
 	"github.com/containers/podman/v6/pkg/machine"
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/shim"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/spf13/cobra"
 )
 
 type cpOptions struct {
-	Quiet    bool
-	Machine  *vmconfigs.MachineConfig
-	IsSrc    bool
-	SrcPath  string
-	DestPath string
+	Quiet bool
+	IsSrc bool
 }
 
 var (
@@ -95,11 +88,18 @@ func cp(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("vm %q is not running", mc.Name)
 	}
 
-	cpOpts.Machine = mc
-	cpOpts.SrcPath = srcPath
-	cpOpts.DestPath = destPath
-
-	err = localhostSSHCopy(&cpOpts)
+	sshConfig := mc.SSH
+	username := sshConfig.RemoteUsername
+	if mc.HostUser.Rootful {
+		username = "root"
+	}
+	err = machine.LocalhostSSHCopy(username,
+		sshConfig.IdentityPath,
+		sshConfig.Port,
+		srcPath,
+		destPath,
+		cpOpts.IsSrc,
+		cpOpts.Quiet)
 	if err != nil {
 		return fmt.Errorf("copy failed: %s", err.Error())
 	}
@@ -107,38 +107,6 @@ func cp(_ *cobra.Command, args []string) error {
 	fmt.Println("Copy successful")
 	newMachineEvent(events.Copy, events.Event{Name: mc.Name})
 	return nil
-}
-
-// localhostSSHCopy uses scp to copy files from/to a localhost machine using ssh.
-func localhostSSHCopy(opts *cpOptions) error {
-	srcPath := opts.SrcPath
-	destPath := opts.DestPath
-	sshConfig := opts.Machine.SSH
-
-	username := sshConfig.RemoteUsername
-	if cpOpts.Machine.HostUser.Rootful {
-		username = "root"
-	}
-	username += "@localhost:"
-
-	if opts.IsSrc {
-		srcPath = username + srcPath
-	} else {
-		destPath = username + destPath
-	}
-
-	args := append(
-		machine.LocalhostSSHArgs(), // Warning: This MUST NOT be generalized to allow communication over untrusted networks.
-		"-r",
-		"-i", sshConfig.IdentityPath,
-		"-P", strconv.Itoa(sshConfig.Port),
-		srcPath, destPath)
-	cmd := exec.Command("scp", args...)
-	if !opts.Quiet {
-		cmd.Stdout = os.Stdout
-	}
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
 
 func resolveMachineName(srcMachine, destMachine string) (string, error) {
