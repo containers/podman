@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/hyperv/vsock"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/hyperv/vsock"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/pkg/machine/windows"
 )
 
 func startShares(mc *vmconfigs.MachineConfig) error {

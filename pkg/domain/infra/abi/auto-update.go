@@ -5,8 +5,8 @@ package abi
 import (
 	"context"
 
-	"github.com/containers/podman/v6/pkg/autoupdate"
-	"github.com/containers/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/autoupdate"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) AutoUpdate(ctx context.Context, options entities.AutoUpdateOptions) ([]*entities.AutoUpdateReport, []error) {

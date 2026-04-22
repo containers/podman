@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/cgroups"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/systemd"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
 )

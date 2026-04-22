@@ -6,9 +6,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/shim"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/shim"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 // MachineOS manages machine OS's from outside the machine.

@@ -19,9 +19,9 @@ Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podman/manifest/
 package manifest
 
 import (
-    "github.com/containers/podman/cmd/podman/registry"
-    "github.com/containers/podman/cmd/podman/validate"
-    "github.com/containers/podman/pkg/domain/entities"
+    "go.podman.io/podman/v6/cmd/podman/registry"
+    "go.podman.io/podman/v6/cmd/podman/validate"
+    "go.podman.io/podman/v6/pkg/domain/entities"
     "github.com/spf13/cobra"
 )
 
@@ -48,7 +48,7 @@ To "wire" in the `manifest` command, edit the file ```$GOPATH/src/github.com/con
 ```go
 package main
 
-import	_ "github.com/containers/podman/cmd/podman/manifest"
+import	_ "go.podman.io/podman/v6/cmd/podman/manifest"
 ```
 
 ## Adding a new sub command `podman manifest list`
@@ -57,8 +57,8 @@ Create the file ```$GOPATH/src/github.com/containers/podman/cmd/podman/manifest/
 package manifest
 
 import (
-    "github.com/containers/podman/cmd/podman/registry"
-    "github.com/containers/podman/pkg/domain/entities"
+    "go.podman.io/podman/v6/cmd/podman/registry"
+    "go.podman.io/podman/v6/pkg/domain/entities"
     "github.com/spf13/cobra"
 )
 

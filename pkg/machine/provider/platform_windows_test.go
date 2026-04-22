@@ -5,9 +5,9 @@ package provider
 import (
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func TestGetByVMType_Supported(t *testing.T) {

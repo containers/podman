@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	ientities "github.com/containers/podman/v6/internal/domain/entities"
-	"github.com/containers/podman/v6/internal/domain/infra"
-	"github.com/containers/podman/v6/pkg/domain/entities"
+	ientities "go.podman.io/podman/v6/internal/domain/entities"
+	"go.podman.io/podman/v6/internal/domain/infra"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 	"go.podman.io/storage"
 )
 

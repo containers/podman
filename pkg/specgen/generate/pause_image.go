@@ -5,8 +5,8 @@ package generate
 import (
 	"context"
 
-	"github.com/containers/podman/v6/libpod"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod"
 )
 
 // PullInfraImage pulls down the specified image or the one set in

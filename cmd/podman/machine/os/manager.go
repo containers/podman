@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	pkgOS "github.com/containers/podman/v6/pkg/machine/os"
-	"github.com/containers/podman/v6/pkg/machine/shim"
 	machineconfig "go.podman.io/common/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	pkgOS "go.podman.io/podman/v6/pkg/machine/os"
+	"go.podman.io/podman/v6/pkg/machine/shim"
 )
 
 type ManagerOpts struct {

@@ -7,13 +7,13 @@ import (
 	"net"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/netns"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/rootless"
 )
 
 // Create and configure a new network namespace for a container

@@ -3,7 +3,7 @@ package vmconfigs
 import (
 	"os"
 
-	"github.com/containers/podman/v6/pkg/machine/apple/vfkit"
+	"go.podman.io/podman/v6/pkg/machine/apple/vfkit"
 )
 
 type AppleHVConfig struct {

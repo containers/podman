@@ -12,8 +12,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	envLib "github.com/containers/podman/v6/pkg/env"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -28,6 +26,8 @@ import (
 	"go.podman.io/image/v5/transports"
 	"go.podman.io/image/v5/transports/alltransports"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	envLib "go.podman.io/podman/v6/pkg/env"
 	"go.podman.io/storage"
 )
 

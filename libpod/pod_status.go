@@ -2,7 +2,7 @@
 
 package libpod
 
-import "github.com/containers/podman/v6/libpod/define"
+import "go.podman.io/podman/v6/libpod/define"
 
 // GetPodStatus determines the status of the pod based on the
 // statuses of the containers in the pod.

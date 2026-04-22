@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/provider"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/provider"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/utils"
 )
 
 func TestMain(m *testing.M) {

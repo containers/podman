@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/trust"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/trust"
 	"go.podman.io/storage/pkg/configfile"
 )
 

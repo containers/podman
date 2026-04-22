@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func Test_compressionFromFile(t *testing.T) {

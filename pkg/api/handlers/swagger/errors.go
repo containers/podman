@@ -4,7 +4,7 @@
 package swagger
 
 import (
-	"github.com/containers/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 // Error model embedded in swagger:response to aid in documentation generation

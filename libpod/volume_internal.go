@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Creates a new volume

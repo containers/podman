@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	podmanRegistry "github.com/containers/podman/v6/hack/podman-registry-go"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/bindings/images"
-	"github.com/containers/podman/v6/pkg/bindings/manifests"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	podmanRegistry "go.podman.io/podman/v6/hack/podman-registry-go"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/bindings/images"
+	"go.podman.io/podman/v6/pkg/bindings/manifests"
 )
 
 var _ = Describe("Podman manifests", func() {

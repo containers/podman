@@ -6,10 +6,10 @@ import (
 	"context"
 	"fmt"
 
-	ientities "github.com/containers/podman/v6/internal/domain/entities"
-	"github.com/containers/podman/v6/internal/domain/infra/tunnel"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities"
+	ientities "go.podman.io/podman/v6/internal/domain/entities"
+	"go.podman.io/podman/v6/internal/domain/infra/tunnel"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 // NewTestingEngine factory provides a libpod runtime for testing-specific operations

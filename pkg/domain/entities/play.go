@@ -3,8 +3,8 @@ package entities
 import (
 	"net"
 
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	"go.podman.io/image/v5/types"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 // PlayKubeOptions controls playing kube YAML files.

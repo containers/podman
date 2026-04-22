@@ -10,8 +10,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/wsl/wutil"
 	"golang.org/x/sys/windows/svc/eventlog"
 )
 

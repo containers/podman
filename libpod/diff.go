@@ -5,8 +5,8 @@ package libpod
 import (
 	"fmt"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/layers"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/layers"
 	"go.podman.io/storage/pkg/archive"
 )
 

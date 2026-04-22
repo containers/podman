@@ -9,19 +9,19 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/containers/podman/v6/internal/localapi"
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/auth"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra/abi"
-	domain_utils "github.com/containers/podman/v6/pkg/domain/utils"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/gorilla/schema"
 	libartifact_types "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/oci/layout"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/internal/localapi"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/auth"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra/abi"
+	domain_utils "go.podman.io/podman/v6/pkg/domain/utils"
 )
 
 func InspectArtifact(w http.ResponseWriter, r *http.Request) {

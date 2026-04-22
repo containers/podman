@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v6/utils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/utils"
 )
 
 const (

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/containers/podman/v6/cmd/podman/parse"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/specgen"
-	"github.com/containers/podman/v6/pkg/specgenutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/completion"
+	"go.podman.io/podman/v6/cmd/podman/parse"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/specgen"
+	"go.podman.io/podman/v6/pkg/specgenutil"
 )
 
 func DefineNetFlags(cmd *cobra.Command) {

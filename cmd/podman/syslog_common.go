@@ -5,9 +5,9 @@ package main
 import (
 	"log/syslog"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
 	"github.com/sirupsen/logrus"
 	logrusSyslog "github.com/sirupsen/logrus/hooks/syslog"
+	"go.podman.io/podman/v6/cmd/podman/registry"
 )
 
 func syslogHook() {

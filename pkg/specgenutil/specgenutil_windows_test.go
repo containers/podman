@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 func TestSeccompProfilePath(t *testing.T) {

@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/containers/podman/v6/pkg/machine/sockets"
-	"github.com/containers/podman/v6/utils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/sockets"
+	"go.podman.io/podman/v6/utils"
 	"golang.org/x/sys/windows/registry"
 )
 

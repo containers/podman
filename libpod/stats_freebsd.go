@@ -7,9 +7,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/rctl"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/rctl"
 	"go.podman.io/storage/pkg/system"
 	"golang.org/x/sys/unix"
 )

@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/libpod/define"
 
 	// SQLite backend for database/sql
 	_ "github.com/mattn/go-sqlite3"

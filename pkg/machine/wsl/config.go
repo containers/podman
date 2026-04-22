@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/utils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/utils"
 )
 
 type WSLVirtualization struct{}

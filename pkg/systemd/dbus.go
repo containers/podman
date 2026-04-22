@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/coreos/go-systemd/v22/dbus"
 	godbus "github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/rootless"
 )
 
 // IsSystemdSessionValid checks if sessions is valid for provided rootless uid.

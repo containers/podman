@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 type endpoint struct {

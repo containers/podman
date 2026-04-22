@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/containers/libhvee/pkg/hypervctl"
-	"github.com/containers/podman/v6/pkg/machine/define"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 const podmanBinary = "../../../bin/windows/podman.exe"

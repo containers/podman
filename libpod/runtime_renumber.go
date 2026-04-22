@@ -5,8 +5,8 @@ package libpod
 import (
 	"fmt"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
 )
 
 // RenumberLocks reassigns lock numbers for all containers and pods in the

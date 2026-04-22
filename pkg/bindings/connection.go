@@ -18,11 +18,11 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v6/pkg/util/tlsutil"
-	"github.com/containers/podman/v6/version"
 	"github.com/kevinburke/ssh_config"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/ssh"
+	"go.podman.io/podman/v6/pkg/util/tlsutil"
+	"go.podman.io/podman/v6/version"
 	"go.podman.io/storage/pkg/fileutils"
 	"golang.org/x/net/proxy"
 )

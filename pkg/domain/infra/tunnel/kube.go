@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/containers/podman/v6/pkg/bindings/generate"
-	"github.com/containers/podman/v6/pkg/bindings/kube"
-	"github.com/containers/podman/v6/pkg/bindings/play"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/bindings/generate"
+	"go.podman.io/podman/v6/pkg/bindings/kube"
+	"go.podman.io/podman/v6/pkg/bindings/play"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func (ic *ContainerEngine) GenerateSystemd(_ context.Context, nameOrID string, opts entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {

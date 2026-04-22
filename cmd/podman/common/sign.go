@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/ssh"
@@ -13,6 +11,8 @@ import (
 	"go.podman.io/image/v5/pkg/cli/sigstore"
 	"go.podman.io/image/v5/signature/signer"
 	"go.podman.io/image/v5/signature/simplesequoia"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 // SigningCLIOnlyOptions contains signing-related CLI options.

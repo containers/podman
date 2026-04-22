@@ -13,17 +13,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	ann "github.com/containers/podman/v6/pkg/annotations"
-	envLib "github.com/containers/podman/v6/pkg/env"
-	"github.com/containers/podman/v6/pkg/signal"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/openshift/imagebuilder"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	ann "go.podman.io/podman/v6/pkg/annotations"
+	envLib "go.podman.io/podman/v6/pkg/env"
+	"go.podman.io/podman/v6/pkg/signal"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) (*libimage.Image, string, *libimage.ImageData, error) {

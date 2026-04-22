@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/pidhandle"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/resize"
 	"go.podman.io/common/pkg/util"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/pidhandle"
 	"go.podman.io/storage/pkg/stringid"
 	"golang.org/x/sys/unix"
 )

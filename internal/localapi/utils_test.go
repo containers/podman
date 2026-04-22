@@ -5,10 +5,10 @@ package localapi
 import (
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 func TestIsPathAvailableOnMachine_Unix(t *testing.T) {

@@ -3,8 +3,8 @@
 package server
 
 import (
-	"github.com/containers/podman/v6/pkg/api/handlers/compat"
 	"github.com/gorilla/mux"
+	"go.podman.io/podman/v6/pkg/api/handlers/compat"
 )
 
 func (s *APIServer) registerDistributionHandlers(r *mux.Router) error {

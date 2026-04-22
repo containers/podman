@@ -3,8 +3,8 @@ package types
 import (
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities/reports"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities/reports"
 )
 
 // ServiceOptions provides the input for starting an API and sidecar pprof services

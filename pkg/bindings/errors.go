@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v6/pkg/errorhandling"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 var ErrNotImplemented = errors.New("function not implemented")

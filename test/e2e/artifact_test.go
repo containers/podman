@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/containers/podman/v6/test/utils"
-	"github.com/containers/podman/v6/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
+	. "go.podman.io/podman/v6/test/utils"
+	"go.podman.io/podman/v6/utils"
 )
 
 const (

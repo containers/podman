@@ -8,16 +8,16 @@ import (
 	"path/filepath"
 	"time"
 
-	podmanRegistry "github.com/containers/podman/v6/hack/podman-registry-go"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/bindings/containers"
-	"github.com/containers/podman/v6/pkg/bindings/images"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	. "github.com/onsi/gomega/gstruct"
+	podmanRegistry "go.podman.io/podman/v6/hack/podman-registry-go"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/bindings/containers"
+	"go.podman.io/podman/v6/pkg/bindings/images"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 var _ = Describe("Podman images", func() {

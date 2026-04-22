@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/bindings/images"
-	"github.com/containers/podman/v6/pkg/bindings/manifests"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	envLib "github.com/containers/podman/v6/pkg/env"
 	"go.podman.io/common/libimage/define"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/bindings/images"
+	"go.podman.io/podman/v6/pkg/bindings/manifests"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	envLib "go.podman.io/podman/v6/pkg/env"
 )
 
 // ManifestCreate implements manifest create via ImageEngine

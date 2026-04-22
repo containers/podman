@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices string, cdiSpecDirs []string) {

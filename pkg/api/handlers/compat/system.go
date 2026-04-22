@@ -6,18 +6,18 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/api/handlers"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils/apiutil"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra/abi"
 	"github.com/moby/moby/api/types/build"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/image"
 	dockerSystem "github.com/moby/moby/api/types/system"
 	"github.com/moby/moby/api/types/volume"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/api/handlers"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils/apiutil"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra/abi"
 )
 
 func GetDiskUsage(w http.ResponseWriter, r *http.Request) {

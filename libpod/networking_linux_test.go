@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 func Test_resultToBasicNetworkConfig(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	"github.com/containers/podman/v6/pkg/errorhandling"
 	log "github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 )
 
 func UnsupportedHandler(w http.ResponseWriter, r *http.Request) {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/containers/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/define"
 	"golang.org/x/sys/unix"
 )
 

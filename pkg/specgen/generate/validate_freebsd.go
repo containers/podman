@@ -2,7 +2,7 @@
 
 package generate
 
-import "github.com/containers/podman/v6/pkg/specgen"
+import "go.podman.io/podman/v6/pkg/specgen"
 
 // verifyContainerResources does nothing on freebsd as it has no cgroups
 func verifyContainerResources(_ *specgen.SpecGenerator) ([]string, error) {

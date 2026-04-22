@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/storage"
 )
 

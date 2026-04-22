@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/winquit/pkg/winquit"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
 	"golang.org/x/sys/windows"
 )
 

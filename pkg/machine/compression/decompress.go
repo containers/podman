@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/utils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/utils"
 	"go.podman.io/storage/pkg/archive"
 )
 

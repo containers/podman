@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
 	"github.com/sirupsen/logrus"
 	buildahDefine "go.podman.io/buildah/define"
 	"go.podman.io/buildah/imagebuildah"
 	"go.podman.io/common/libimage"
 	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
 )
 
 // Runtime API

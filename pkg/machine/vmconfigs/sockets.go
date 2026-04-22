@@ -5,7 +5,7 @@ package vmconfigs
 import (
 	"fmt"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func gvProxySocket(name string, machineRuntimeDir *define.VMFile) (*define.VMFile, error) {

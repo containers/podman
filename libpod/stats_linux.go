@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
 	runccgroup "github.com/opencontainers/cgroups"
 	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/podman/v6/libpod/define"
 	"golang.org/x/sys/unix"
 )
 

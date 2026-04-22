@@ -14,14 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/linkmode"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/buildah"
 	"go.podman.io/buildah/pkg/parse"
 	"go.podman.io/buildah/pkg/util"
 	"go.podman.io/common/pkg/version"
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/linkmode"
 	"go.podman.io/storage/pkg/system"
 )
 

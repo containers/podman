@@ -8,8 +8,8 @@ import (
 	"os/user"
 	"unsafe"
 
-	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/machine/windows"
 	syswindows "golang.org/x/sys/windows"
 )
 

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/signal"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/signal"
 )
 
 // Image-related runtime using an ssh-tunnel to utilize Podman service

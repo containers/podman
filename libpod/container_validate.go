@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/common/pkg/libartifact"
 	"go.podman.io/image/v5/docker"
 	"go.podman.io/image/v5/pkg/shortnames"
 	"go.podman.io/image/v5/transports/alltransports"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Validate that the configuration of a container is valid.

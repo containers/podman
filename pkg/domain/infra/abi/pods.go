@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	dfilters "github.com/containers/podman/v6/pkg/domain/filters"
-	"github.com/containers/podman/v6/pkg/signal"
-	"github.com/containers/podman/v6/pkg/specgen"
-	"github.com/containers/podman/v6/pkg/specgen/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	dfilters "go.podman.io/podman/v6/pkg/domain/filters"
+	"go.podman.io/podman/v6/pkg/signal"
+	"go.podman.io/podman/v6/pkg/specgen"
+	"go.podman.io/podman/v6/pkg/specgen/generate"
 )
 
 // getPodsByContext returns a slice of pods. Note that all, latest and pods are

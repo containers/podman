@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"github.com/containers/libhvee/pkg/hypervctl"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/hyperv"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/pkg/machine/wsl"
-	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/hyperv"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"go.podman.io/podman/v6/pkg/machine/wsl"
+	"go.podman.io/podman/v6/pkg/machine/wsl/wutil"
 )
 
 func Get() (vmconfigs.VMProvider, error) {

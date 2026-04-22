@@ -5,8 +5,8 @@ package server
 import (
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/api/handlers/libpod"
 	"github.com/gorilla/mux"
+	"go.podman.io/podman/v6/pkg/api/handlers/libpod"
 )
 
 func (s *APIServer) registerHealthCheckHandlers(r *mux.Router) error {

@@ -3,8 +3,8 @@ package infra
 import (
 	"context"
 
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 // For the meaning of "WithoutLock", compare runtime_tunnel.go:newConnection()

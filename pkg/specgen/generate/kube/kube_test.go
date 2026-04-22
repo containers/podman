@@ -5,9 +5,9 @@ package kube
 import (
 	"testing"
 
-	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
-	"github.com/containers/podman/v6/pkg/k8s.io/apimachinery/pkg/util/intstr"
 	"github.com/stretchr/testify/assert"
+	v1 "go.podman.io/podman/v6/pkg/k8s.io/api/core/v1"
+	"go.podman.io/podman/v6/pkg/k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func testPropagation(t *testing.T, propagation v1.MountPropagationMode, expected string) {

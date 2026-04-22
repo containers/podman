@@ -5,11 +5,11 @@ package integration
 import (
 	"fmt"
 
-	. "github.com/containers/podman/v6/test/utils"
-	"github.com/containers/podman/v6/version"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	. "go.podman.io/podman/v6/test/utils"
+	"go.podman.io/podman/v6/version"
 )
 
 var _ = Describe("Podman version", func() {

@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func TestSupportedProviders(t *testing.T) {

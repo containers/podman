@@ -3,9 +3,9 @@ package fileserver
 import (
 	"fmt"
 
-	"github.com/containers/podman/v6/pkg/fileserver/plan9"
 	"github.com/linuxkit/virtsock/pkg/hvsock"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/fileserver/plan9"
 )
 
 // Start serving the given shares on Windows HVSocks for use by a Hyper-V VM.

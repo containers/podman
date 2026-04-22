@@ -11,12 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/api/handlers"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	api "github.com/containers/podman/v6/pkg/api/types"
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/google/uuid"
 	"github.com/moby/moby/api/types/registry"
 	"github.com/moby/moby/api/types/swarm"
@@ -26,6 +20,12 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/sysinfo"
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/api/handlers"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	api "go.podman.io/podman/v6/pkg/api/types"
+	"go.podman.io/podman/v6/pkg/rootless"
 )
 
 func GetInfo(w http.ResponseWriter, r *http.Request) {

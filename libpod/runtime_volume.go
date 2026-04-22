@@ -6,9 +6,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/domain/entities/reports"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/domain/entities/reports"
 )
 
 // Contains the public Runtime API for volumes

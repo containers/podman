@@ -3,11 +3,11 @@
 package generate
 
 import (
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/specgen"
 	"github.com/opencontainers/runtime-tools/generate"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/specgen"
 )
 
 // setLabelOpts sets the label options of the SecurityConfig according to the

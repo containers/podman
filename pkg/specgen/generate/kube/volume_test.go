@@ -5,8 +5,8 @@ package kube
 import (
 	"testing"
 
-	v1 "github.com/containers/podman/v6/pkg/k8s.io/api/core/v1"
 	"github.com/stretchr/testify/assert"
+	v1 "go.podman.io/podman/v6/pkg/k8s.io/api/core/v1"
 )
 
 func TestVolumeFromEmptyDir(t *testing.T) {

@@ -1,9 +1,9 @@
 package vmconfigs
 
 import (
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/hyperv/vsock"
-	"github.com/containers/podman/v6/pkg/machine/qemu/command"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/hyperv/vsock"
+	"go.podman.io/podman/v6/pkg/machine/qemu/command"
 )
 
 type HyperVConfig struct {

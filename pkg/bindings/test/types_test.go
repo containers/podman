@@ -3,11 +3,11 @@ package bindings_test
 import (
 	"bytes"
 
-	"github.com/containers/podman/v6/pkg/bindings/images"
-	"github.com/containers/podman/v6/pkg/bindings/kube"
-	"github.com/containers/podman/v6/pkg/bindings/manifests"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/podman/v6/pkg/bindings/images"
+	"go.podman.io/podman/v6/pkg/bindings/kube"
+	"go.podman.io/podman/v6/pkg/bindings/manifests"
 )
 
 var _ = Describe("Binding types", func() {

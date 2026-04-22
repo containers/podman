@@ -15,10 +15,6 @@ import (
 
 	encconfig "github.com/containers/ocicrypt/config"
 	enchelpers "github.com/containers/ocicrypt/helpers"
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	"github.com/containers/podman/v6/cmd/podman/utils"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/env"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -31,6 +27,10 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	"go.podman.io/podman/v6/cmd/podman/utils"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/env"
 )
 
 // BuildFlagsWrapper are local to cmd/ as the build code is using Buildah-internal

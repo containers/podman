@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/spf13/cobra"
+	"go.podman.io/podman/v6/pkg/rootless"
 )
 
 func isUnixSocket(file os.DirEntry) bool {

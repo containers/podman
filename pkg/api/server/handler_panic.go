@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
 )
 
 // panicHandler captures panics from endpoint handlers and logs stack trace

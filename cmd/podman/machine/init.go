@@ -9,19 +9,19 @@ import (
 	"runtime"
 	"slices"
 
-	"github.com/containers/podman/v6/cmd/podman/registry"
-	ldefine "github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/provider"
-	"github.com/containers/podman/v6/pkg/machine/shim"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 	"go.podman.io/common/pkg/strongunits"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/cmd/podman/registry"
+	ldefine "go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/provider"
+	"go.podman.io/podman/v6/pkg/machine/shim"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 var (

@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/containers/podman/v6/pkg/rootless"
-	"github.com/containers/podman/v6/pkg/systemd"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/rootless"
+	"go.podman.io/podman/v6/pkg/systemd"
 )
 
 func checkCgroups2UnifiedMode(runtime *Runtime) {

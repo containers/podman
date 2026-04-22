@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/auth"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	imageTypes "go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/auth"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func Push(ctx context.Context, name string, options *PushOptions) (*entities.ArtifactPushReport, error) {

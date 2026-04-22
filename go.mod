@@ -1,4 +1,4 @@
-module github.com/containers/podman/v6
+module go.podman.io/podman/v6
 
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.

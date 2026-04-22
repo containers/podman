@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 func Test_statToPercent(t *testing.T) {

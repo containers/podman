@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/version/rawversion"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/version/rawversion"
 )
 
 const TESTIMAGE = "quay.io/libpod/testimage:20241011"

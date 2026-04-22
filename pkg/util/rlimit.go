@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/rootless"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/pkg/rootless"
 	"golang.org/x/sys/unix"
 )
 

@@ -6,11 +6,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/containers/podman/v6/libpod"
-	"github.com/containers/podman/v6/pkg/api/handlers/utils"
-	"github.com/containers/podman/v6/pkg/api/server/idle"
-	api "github.com/containers/podman/v6/pkg/api/types"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod"
+	"go.podman.io/podman/v6/pkg/api/handlers/utils"
+	"go.podman.io/podman/v6/pkg/api/server/idle"
+	api "go.podman.io/podman/v6/pkg/api/types"
 )
 
 func AttachContainer(w http.ResponseWriter, r *http.Request) {

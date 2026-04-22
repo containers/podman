@@ -14,16 +14,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/pkg/machine/env"
-	"github.com/containers/podman/v6/pkg/machine/ignition"
-	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	winutil "github.com/containers/podman/v6/pkg/machine/windows"
-	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
-	"github.com/containers/podman/v6/utils"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/env"
+	"go.podman.io/podman/v6/pkg/machine/ignition"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	winutil "go.podman.io/podman/v6/pkg/machine/windows"
+	"go.podman.io/podman/v6/pkg/machine/wsl/wutil"
+	"go.podman.io/podman/v6/utils"
 )
 
 var (

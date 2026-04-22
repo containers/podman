@@ -3,11 +3,11 @@ package e2e_test
 import (
 	"strconv"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 var _ = Describe("podman machine info", func() {

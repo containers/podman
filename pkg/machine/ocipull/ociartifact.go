@@ -10,9 +10,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine/compression"
-	"github.com/containers/podman/v6/pkg/machine/define"
-	"github.com/containers/podman/v6/utils"
 	"github.com/opencontainers/go-digest"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -21,6 +18,9 @@ import (
 	"go.podman.io/image/v5/image"
 	"go.podman.io/image/v5/transports/alltransports"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/machine/compression"
+	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/utils"
 )
 
 const (

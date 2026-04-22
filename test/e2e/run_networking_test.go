@@ -10,12 +10,12 @@ import (
 	"strings"
 	"syscall"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/vishvananda/netlink"
 	"go.podman.io/common/pkg/netns"
+	. "go.podman.io/podman/v6/test/utils"
 	"go.podman.io/storage/pkg/stringid"
 )
 

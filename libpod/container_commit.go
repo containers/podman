@@ -9,13 +9,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/events"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/buildah"
 	"go.podman.io/common/libimage"
 	is "go.podman.io/image/v5/storage"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/events"
 )
 
 // ContainerCommitOptions is a struct used to commit a container to an image

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/containers/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/bindings"
 	"go.podman.io/storage/pkg/archive"
 )
 

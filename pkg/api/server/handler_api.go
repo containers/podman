@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/containers/podman/v6/version"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/version"
 )
 
 type BufferedResponseWriter struct {

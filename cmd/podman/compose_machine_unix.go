@@ -5,7 +5,7 @@ package main
 import (
 	"errors"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func extractConnectionString(podmanSocket *define.VMFile, _ *define.VMFile) (string, error) {

@@ -4,9 +4,9 @@ import (
 	"io"
 
 	encconfig "github.com/containers/ocicrypt/config"
-	entitiesTypes "github.com/containers/podman/v6/pkg/domain/entities/types"
 	libartifactTypes "go.podman.io/common/pkg/libartifact/types"
 	"go.podman.io/image/v5/types"
+	entitiesTypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 type ArtifactAddOptions struct {

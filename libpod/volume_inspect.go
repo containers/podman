@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"maps"
 
-	"github.com/containers/podman/v6/libpod/define"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Inspect provides detailed information about the configuration of the given

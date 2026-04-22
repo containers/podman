@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"go.podman.io/common/pkg/secrets"
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 func Test_secretToReport(t *testing.T) {

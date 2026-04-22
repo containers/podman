@@ -10,10 +10,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/containers/podman/v6/pkg/auth"
-	"github.com/containers/podman/v6/pkg/bindings"
-	"github.com/containers/podman/v6/pkg/domain/entities/types"
 	imageTypes "go.podman.io/image/v5/types"
+	"go.podman.io/podman/v6/pkg/auth"
+	"go.podman.io/podman/v6/pkg/bindings"
+	"go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 // Push is the binding for libpod's endpoints for push images.  Note that

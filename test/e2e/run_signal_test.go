@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 	"golang.org/x/sys/unix"
 )
 

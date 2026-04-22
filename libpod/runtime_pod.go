@@ -9,7 +9,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // Contains the public Runtime API for pods

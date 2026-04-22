@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/containers/podman/v6/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 // TODO: we need to check the output. Currently, we only check the exit codes

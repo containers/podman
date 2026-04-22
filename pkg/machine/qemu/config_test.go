@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/containers/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
 func TestUSBParsing(t *testing.T) {

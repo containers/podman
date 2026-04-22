@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/types"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/storage"
 
 	// SQLite backend for database/sql

@@ -11,13 +11,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/buildah/define"
 	lplatform "go.podman.io/common/libimage/platform"
 	"go.podman.io/common/pkg/config"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra"
 )
 
 // Farm represents a group of connections to builders.

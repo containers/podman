@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containers/podman/v6/pkg/machine"
 	jsoniter "github.com/json-iterator/go"
+	"go.podman.io/podman/v6/pkg/machine"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

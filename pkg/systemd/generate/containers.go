@@ -12,13 +12,13 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containers/podman/v6/libpod"
-	libpodDefine "github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/systemd/define"
-	"github.com/containers/podman/v6/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"go.podman.io/podman/v6/libpod"
+	libpodDefine "go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/systemd/define"
+	"go.podman.io/podman/v6/version"
 )
 
 // containerInfo contains data required for generating a container's systemd

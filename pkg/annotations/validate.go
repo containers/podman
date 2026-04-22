@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/define"
 )
 
 // regexErrorMsg returns a string explanation of a regex validation failure.

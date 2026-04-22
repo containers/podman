@@ -5,9 +5,9 @@ package infra
 import (
 	"context"
 
-	"github.com/containers/podman/v6/pkg/domain/entities"
-	"github.com/containers/podman/v6/pkg/domain/infra/abi"
 	flag "github.com/spf13/pflag"
+	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/domain/infra/abi"
 )
 
 // ContainerEngine Proxy will be EOL'ed after podman is separated from libpod repo

@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v6/libpod/define"
-	"github.com/containers/podman/v6/libpod/lock"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/pasta"
@@ -23,6 +21,8 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/secrets"
 	"go.podman.io/image/v5/manifest"
+	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/podman/v6/libpod/lock"
 	"go.podman.io/storage"
 	"golang.org/x/sys/unix"
 )
