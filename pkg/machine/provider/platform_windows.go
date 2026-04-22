@@ -8,16 +8,10 @@ import (
 	"github.com/containers/podman/v6/pkg/machine/define"
 	"github.com/containers/podman/v6/pkg/machine/hyperv"
 	"github.com/containers/podman/v6/pkg/machine/vmconfigs"
-	"github.com/containers/podman/v6/pkg/machine/windows"
 	"github.com/containers/podman/v6/pkg/machine/wsl"
 	"github.com/containers/podman/v6/pkg/machine/wsl/wutil"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
-)
-
-// Variable to hold permission check function for testing purposes.
-var (
-	hasHyperVPermissionsFunc = hyperv.HasHyperVPermissions
 )
 
 func Get() (vmconfigs.VMProvider, error) {
@@ -44,12 +38,9 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
-		// Check permissions before returning the Hyper-V provider.
-		// Working with Hyper-V requires users to be at least members of the Hyper-V admin group.
-		// Init and remove actions have custom use cases and they are checked on the stubber.
-		if !hasHyperVPermissionsFunc() {
-			return nil, hyperv.ErrHypervUserNotInAdminGroup
-		}
+		// Permission checks for Hyper-V are handled at the stubber method level
+		// rather than here, because `init` needs to proceed even when the user is
+		// not yet in the Hyper-V admin group (it will add them to the group during CreateVM).
 		return new(hyperv.HyperVStubber), nil
 	default:
 	}
@@ -57,13 +48,10 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 }
 
 func GetAll() []vmconfigs.VMProvider {
-	providers := []vmconfigs.VMProvider{
+	return []vmconfigs.VMProvider{
 		new(wsl.WSLStubber),
+		new(hyperv.HyperVStubber),
 	}
-	if hasHyperVPermissionsFunc() {
-		providers = append(providers, new(hyperv.HyperVStubber))
-	}
-	return providers
 }
 
 // SupportedProviders returns the providers that are supported on the host operating system
@@ -97,7 +85,11 @@ func HasPermsForProvider(provider define.VMType) bool {
 	case define.AppleHvVirt:
 		return false
 	case define.HyperVVirt:
-		return windows.HasAdminRights()
+		err := hyperv.VerifyHyperVPermissions()
+		if err != nil {
+			logrus.Warn(err)
+		}
+		return err == nil
 	}
 
 	return true

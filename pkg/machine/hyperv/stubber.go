@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 
 	"github.com/Microsoft/go-winio"
@@ -67,11 +68,24 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		// If it returns ErrHypervRegistryInitRequiresElevation and we're not already re-executing,
 		// offer to elevate automatically if user is in admin group
 		if err == ErrHypervRegistryInitRequiresElevation && !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
-			message := "To initialize the first Hyper-V machine, Podman requires admin rights to set up the Windows Registry.\n\n" +
-				windows.UACConfirmationPrompt
+			message := fmt.Sprintf("%s.\n\n%s", ErrHypervPrepareHostForHyperV.Error(), windows.UACConfirmationPrompt)
 			return launchElevate(message)
 		}
 		return err
+	}
+
+	// Once here, we know the user has admin rights but may not be in
+	// the Hyper-V Administrators group yet. Add them if necessary so
+	// that future commands work without elevation.
+	if windows.IsReExecuting() && !IsHyperVAdminsGroupMember() {
+		u, err := user.Current()
+		if err != nil {
+			return err
+		}
+		logrus.Infof("Adding user %s to the Hyper-V Administrators group", u.Username)
+		if err := AddUserToHyperVAdminGroup(u.Username); err != nil {
+			return err
+		}
 	}
 
 	// count number of existing machines, used later to determine if Registry should be cleaned over a failure
@@ -165,6 +179,13 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 }
 
 func (h HyperVStubber) Exists(name string) (bool, error) {
+	// If the user lacks permissions, WMI will throw an access denied error.
+	// We return false to prevent breaking commands like `init`
+	// that loop over all providers to verify machine name uniqueness.
+	if err := VerifyHyperVPermissions(); err != nil {
+		return false, nil //nolint:nilerr
+	}
+
 	vmm := hypervctl.NewVirtualMachineManager()
 	exists, _, err := vmm.GetMachineExists(name)
 	return exists, err
@@ -246,10 +267,7 @@ func (h HyperVStubber) canCreate() error {
 	}
 	// at least 1 machine exists
 	// if user is member of the hyperv admin group, allow creation
-	if HasHyperVAdminRights() {
-		return nil
-	}
-	return ErrHypervUserNotInAdminGroup
+	return VerifyHyperVPermissions()
 }
 
 // launchElevate attempts to automatically re-run the command as administrator
@@ -304,8 +322,8 @@ func (h HyperVStubber) canRemove(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 	// more than 1 machine exists, allow removal if user has hyperv admin rights
-	if machines > 1 && HasHyperVAdminRights() {
-		return nil
+	if machines > 1 {
+		return VerifyHyperVPermissions()
 	}
 	return ErrHypervRegistryRemoveRequiresElevation
 }
@@ -320,6 +338,10 @@ func (h HyperVStubber) canStartOrStop(mc *vmconfigs.MachineConfig) error {
 	// if machine is legacy (machineName field), require admin rights to start or stop
 	if isLegacyMachine(mc) {
 		return ErrHypervLegacyMachineRequiresElevation
+	}
+
+	if err := VerifyHyperVPermissions(); err != nil {
+		return err
 	}
 
 	return nil
@@ -460,6 +482,12 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 // state is determined by the VM itself.  normally this can be done with vm.State() and a conversion
 // but doing here as well.  this requires a little more interaction with the hypervisor
 func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
+	// If the user does not have permissions, WMI will fail with an error anyway.
+	// Just return Unknown.
+	if !windows.HasAdminRights() && !IsHyperVAdminsGroupMember() {
+		return define.Unknown, nil
+	}
+
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {
 		return define.Unknown, err
@@ -525,6 +553,10 @@ func stateConversion(s hypervctl.EnabledState) (define.Status, error) {
 }
 
 func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.SetOptions) error {
+	if err := VerifyHyperVPermissions(); err != nil {
+		return err
+	}
+
 	var cpuChanged, memoryChanged bool
 
 	_, vm, err := GetVMFromMC(mc)
@@ -593,8 +625,7 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.
 	if err != nil {
 		if !windows.HasAdminRights() {
 			if !windows.IsReExecuting() && windows.IsInAdministratorsGroup() {
-				message := "Initializing the first Hyper-V machine requires admin rights to set up the Windows Registry.\n\n" +
-					windows.UACConfirmationPrompt
+				message := fmt.Sprintf("%s.\n\n%s", ErrHypervPrepareHostForHyperV.Error(), windows.UACConfirmationPrompt)
 				return nil, launchElevate(message)
 			}
 			return nil, ErrHypervRegistryInitRequiresElevation
