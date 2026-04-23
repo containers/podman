@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/version/rawversion"
+	"go.podman.io/storage/pkg/configfile"
 )
 
 const TESTIMAGE = "quay.io/libpod/testimage:20241011"
@@ -30,6 +31,26 @@ var _ = Describe("run basic podman commands", func() {
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
+
+		// Check that we mount the host config dir to the machine /etc/containers and and can write content from the host there.
+		path, err := configfile.UserConfigPath()
+		Expect(err).ToNot(HaveOccurred())
+		err = os.MkdirAll(path, 0o755)
+		Expect(err).ToNot(HaveOccurred())
+
+		content := randomString()
+		f, err := os.Create(filepath.Join(path, "podman-machine-tmpfile"))
+		Expect(err).ToNot(HaveOccurred())
+		_, err = f.WriteString(content)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		ssh := new(sshMachine).withSSHCommand([]string{"cat /etc/containers/podman-machine-tmpfile"})
+		sshRun, err := mb.setName(name).setCmd(ssh).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshRun).To(Exit(0))
+		Expect(sshRun.outputToString()).To(Equal(content))
 
 		bm := basicMachine{}
 		imgs, err := mb.setCmd(bm.withPodmanCommand([]string{"images", "-q"})).run()
@@ -105,18 +126,8 @@ var _ = Describe("run basic podman commands", func() {
 		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", "-t", name, "-v", tDir + ":/test", tDir})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(build).To(Exit(0))
-	})
 
-	It("Single character volume mount", func() {
-		name := randomString()
-		i := new(initMachine).withImage(mb.imagePath).withNow()
-
-		session, err := mb.setName(name).setCmd(i).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
-		bm := basicMachine{}
-
+		// check we can use a single character volume name as mount
 		volumeCreate, err := mb.setCmd(bm.withPodmanCommand([]string{"volume", "create", "a"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(volumeCreate).To(Exit(0))
@@ -124,33 +135,15 @@ var _ = Describe("run basic podman commands", func() {
 		run, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", "a:/test:Z", TESTIMAGE, "true"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(run).To(Exit(0))
-	})
 
-	It("Volume should be virtiofs", func() {
-		// In theory this could run on MacOS too, but we know virtiofs works for that now,
-		// this is just testing linux
-		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
-
-		tDir, err := filepath.Abs(GinkgoT().TempDir())
-		Expect(err).ToNot(HaveOccurred())
-
-		err = os.WriteFile(filepath.Join(tDir, "testfile"), []byte("some test contents"), 0o644)
-		Expect(err).ToNot(HaveOccurred())
-
-		name := randomString()
-		i := new(initMachine).withImage(mb.imagePath).withNow()
-
-		// Ensure that this is a volume, it may not be automatically on qemu
-		i.withVolume(tDir)
-		session, err := mb.setName(name).setCmd(i).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
-		ssh := new(sshMachine).withSSHCommand([]string{"findmnt", "-no", "FSTYPE", tDir})
-		findmnt, err := mb.setName(name).setCmd(ssh).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(findmnt).To(Exit(0))
-		Expect(findmnt.outputToString()).To(ContainSubstring("virtiofs"))
+		if isVmtype(define.QemuVirt) {
+			// ensure we are actually using virtiofs on linux
+			ssh := new(sshMachine).withSSHCommand([]string{"findmnt", "-no", "FSTYPE", tDir})
+			findmnt, err := mb.setName(name).setCmd(ssh).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(findmnt).To(Exit(0))
+			Expect(findmnt.outputToString()).To(ContainSubstring("virtiofs"))
+		}
 	})
 
 	It("Volume should be disabled by command line", func() {

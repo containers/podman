@@ -364,7 +364,9 @@ func (n HTTPServer) MetricAttributes(server string, req *http.Request, statusCod
 	if statusCode > 0 {
 		num++
 	}
-
+	if route == "" && req.Pattern != "" {
+		route = httpRoute(req.Pattern)
+	}
 	if route != "" {
 		num++
 	}

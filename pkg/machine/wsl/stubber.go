@@ -11,6 +11,8 @@ import (
 
 	"go.podman.io/podman/v6/pkg/machine/env"
 	"go.podman.io/podman/v6/pkg/machine/wsl/wutil"
+	"go.podman.io/podman/v6/pkg/specgen"
+	"go.podman.io/storage/pkg/configfile"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/sirupsen/logrus"
@@ -210,9 +212,24 @@ func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool
 func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
 	dist := env.WithPodmanPrefix(mc.Name)
 
-	err := wslInvoke(dist, "/root/bootstrap")
+	path, err := configfile.UserConfigPath()
 	if err != nil {
-		err = fmt.Errorf("the WSL bootstrap script failed: %w", err)
+		return nil, nil, err
+	}
+	winPath, err := specgen.ConvertWinMountPath(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	const linuxPath = "/etc/containers"
+
+	err = wslInvoke(dist, "/root/bootstrap")
+	if err != nil {
+		return nil, nil, fmt.Errorf("the WSL bootstrap script failed: %w", err)
+	}
+
+	err = wslInvoke(dist, "mount", "--bind", winPath, linuxPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to bind mount %s:%s: %w", winPath, linuxPath, err)
 	}
 
 	readyFunc := func() error {
