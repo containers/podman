@@ -25,18 +25,23 @@ class Podman:
         self.cmd.append("--runroot=" + os.path.join(self.anchor_directory, "crio-run"))
 
         os.environ["CONTAINERS_REGISTRIES_CONF"] = os.path.join(
-            self.anchor_directory, "registry.conf"
+            self.anchor_directory, "registries.conf"
         )
-        p = configparser.ConfigParser()
-        p.read_dict(
-            {
-                "registries.search": {"registries": "['quay.io']"},
-                "registries.insecure": {"registries": "[]"},
-                "registries.block": {"registries": "[]"},
-            }
-        )
-        with open(os.environ["CONTAINERS_REGISTRIES_CONF"], "w") as w:
-            p.write(w)
+
+        # Assume developer-mode testing by default
+        reg_conf_source_path="./test/registries.conf"
+
+        # When operating in a CI environment, use the local registry server.
+        # Ref: https://github.com/containers/automation_images/pull/357
+        #      https://github.com/containers/podman/pull/22726
+        if os.getenv("CI_USE_REGISTRY_CACHE"):
+            reg_conf_source_path = "./test/registries-cached.conf"
+
+        with open(os.path.join(reg_conf_source_path)) as file:
+            conf = file.read()
+
+        with open(os.environ["CONTAINERS_REGISTRIES_CONF"], "w") as file:
+            file.write(conf)
 
     def open(self, command, *args, **kwargs):
         """Podman initialized instance to run a given command
