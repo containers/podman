@@ -178,12 +178,13 @@ var _ = Describe("Podman checkpoint", func() {
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal("test_name"))
+		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -191,7 +192,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal("test_name"))
+		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
@@ -263,12 +264,13 @@ var _ = Describe("Podman checkpoint", func() {
 		session2 := podmanTest.Podman(localRunString)
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(ExitCleanly())
+		cid2 := session2.OutputToString()
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", "second"})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal("second"))
+		Expect(result.OutputToString()).To(Equal(cid2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		ps := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
@@ -281,7 +283,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(Equal("second"))
+		Expect(result.OutputToString()).To(Equal(cid2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 		Expect(podmanTest.GetContainerStatus()).To(Not(ContainSubstring("Exited")))
