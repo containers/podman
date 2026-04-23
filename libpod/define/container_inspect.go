@@ -1,6 +1,7 @@
 package define
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -153,11 +154,16 @@ func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 }
 
 func (insp *InspectContainerConfig) MarshalJSON() ([]byte, error) {
+	buf := bytes.Buffer{}
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+
 	// the alias is needed otherwise MarshalJSON will
 	type Alias InspectContainerConfig
 	conf := (*Alias)(insp)
 	if !insp.V4PodmanCompatMarshal {
-		return json.Marshal(conf)
+		err := enc.Encode(conf)
+		return buf.Bytes(), err
 	}
 
 	type v4InspectContainerConfig struct {
@@ -171,7 +177,8 @@ func (insp *InspectContainerConfig) MarshalJSON() ([]byte, error) {
 		StopSignal: uint(stopSignal),
 		Alias:      conf,
 	}
-	return json.Marshal(newConf)
+	err := enc.Encode(newConf)
+	return buf.Bytes(), err
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

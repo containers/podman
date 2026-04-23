@@ -263,6 +263,15 @@ var _ = Describe("Podman inspect", func() {
 		Expect(baseJSON[0]).To(HaveField("Name", ctrName))
 	})
 
+	It("podman inspect should not escape special chars", func() {
+		ctrName := "testlabel"
+		podmanTest.PodmanExitCleanly("create", "--name", ctrName, "--label", "abc=&&**<>123", ALPINE, "sh")
+
+		// see https://github.com/containers/podman/issues/28560
+		inspect := podmanTest.PodmanExitCleanly("inspect", ctrName)
+		Expect(inspect.OutputToString()).To(ContainSubstring(`"abc=&&**<>123"`))
+	})
+
 	It("podman inspect - HostConfig.SecurityOpt ", func() {
 		if !selinux.GetEnabled() {
 			Skip("SELinux not enabled")
