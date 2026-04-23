@@ -201,6 +201,11 @@ func defaultConfig() (*Config, error) {
 		return nil, err
 	}
 
+	machineConfig, err := defaultMachineConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		Containers: ContainersConfig{
 			Annotations:         configfile.Slice{},
@@ -247,7 +252,7 @@ func defaultConfig() (*Config, error) {
 		},
 		Engine:   *defaultEngineConfig,
 		Secrets:  defaultSecretConfig(),
-		Machine:  defaultMachineConfig(),
+		Machine:  machineConfig,
 		Farms:    defaultFarmConfig(),
 		Podmansh: defaultPodmanshConfig(),
 	}, nil
@@ -262,20 +267,35 @@ func defaultSecretConfig() SecretConfig {
 }
 
 // defaultMachineConfig returns the default machine configuration.
-func defaultMachineConfig() MachineConfig {
+func defaultMachineConfig() (MachineConfig, error) {
 	cpus := runtime.NumCPU() / 2
 	if cpus == 0 {
 		cpus = 1
 	}
+
+	volumes := getDefaultMachineVolumes()
+	path, err := configfile.UserConfigPath()
+	if err != nil {
+		return MachineConfig{}, err
+	}
+	// Mount the (host side) user config dir to the machine /etc/containers
+	// This is done per request from PD who like to be able to persist config
+	// files changes and be able to edit files on the host.
+	// It also removes some confusion for machine users where they did not know
+	// if the config setting applies on the host or sever, with the mount host
+	// and server should see the same files and thus there is only one place to
+	// put it into.
+	volumes = append(volumes, path+":/etc/containers")
+
 	return MachineConfig{
 		CPUs:     uint64(cpus),
 		DiskSize: 100,
 		Image:    "docker://quay.io/podman/machine-os",
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  configfile.NewSlice(getDefaultMachineVolumes()),
+		Volumes:  configfile.NewSlice(volumes),
 		Rosetta:  true,
-	}
+	}, nil
 }
 
 // defaultFarmConfig returns the default farms configuration.
