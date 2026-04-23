@@ -35,7 +35,7 @@ class ImageTestCase(APITestCase):
             self.assertIn("sha256:",item['Id'])
 
     def test_inspect(self):
-        r = requests.get(self.podman_url + "/v1.40/images/alpine/json")
+        r = requests.get(self.podman_url + "/v1.40/images/quay.io/libpod/testimage:20241011/json")
         self.assertEqual(r.status_code, 200, r.text)
 
         # See https://docs.docker.com/engine/api/v1.40/#operation/ImageInspect
@@ -152,7 +152,7 @@ class ImageTestCase(APITestCase):
 
     def test_create(self):
         r = requests.post(
-            self.podman_url + "/v1.40/images/create?fromImage=alpine&platform=linux/amd64/v8",
+            self.podman_url + "/v1.40/images/create?fromImage=quay.io/libpod/testimage:20241011&platform=linux/amd64/v8",
             timeout=15,
         )
         self.assertEqual(r.status_code, 200, r.text)

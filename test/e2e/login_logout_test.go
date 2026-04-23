@@ -46,7 +46,7 @@ var _ = Describe("Podman login and logout", func() {
 		port := GetPort()
 		server = strings.Join([]string{"localhost", strconv.Itoa(port)}, ":")
 
-		registriesConfWithSearch = fmt.Appendf(nil, "[registries.search]\nregistries = ['%s']", server)
+		registriesConfWithSearch = fmt.Appendf(nil, "unqualified-search-registries = ['%s']", server)
 
 		testImg = strings.Join([]string{server, "test-alpine"}, "/")
 

@@ -28,19 +28,19 @@ func (e *endpoint) Address() string {
 
 var _ = Describe("Podman search", func() {
 	const regFileContents = `
-[registries.search]
-registries = ['{{.Host}}:{{.Port}}']
-
-[registries.insecure]
-registries = ['{{.Host}}:{{.Port}}']`
+unqualified-search-registries = ["{{.Host}}:{{.Port}}"]
+[[registry]]
+location = "{{.Host}}:{{.Port}}"
+insecure = true
+`
 	registryFileTmpl := template.Must(template.New("registryFile").Parse(regFileContents))
 
 	const badRegFileContents = `
-[registries.search]
-registries = ['{{.Host}}:{{.Port}}']
-# empty
-[registries.insecure]
-registries = []`
+unqualified-search-registries = ["{{.Host}}:{{.Port}}"]
+[[registry]]
+location = "{{.Host}}:{{.Port}}"
+insecure = false
+`
 	registryFileBadTmpl := template.Must(template.New("registryFileBad").Parse(badRegFileContents))
 
 	mockFakeRegistryServerAsContainer := func(name string) endpoint {

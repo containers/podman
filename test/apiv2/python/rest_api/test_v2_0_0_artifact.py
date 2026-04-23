@@ -531,13 +531,17 @@ class ArtifactTestCase(APITestCase):
         r = requests.post(url, params=parameters)
         rjson = r.json()
 
-        # Assert correct response code
-        self.assertEqual(r.status_code, 401, r.text)
+        # Assert correct response code, depending on the registry it may give the real 404 error or unauthorized
+        self.assertIn(r.status_code, (401, 404), r.text)
 
         # Assert return error response is json and contains correct message
+        message = "unauthorized: access to the requested resource is not authorized"
+        if r.status_code == 404:
+            message = "manifest unknown: manifest unknown"
+
         self.assertEqual(
             rjson["cause"],
-            "unauthorized: access to the requested resource is not authorized",
+            message,
         )
 
     def test_pull_missing_fails(self):
