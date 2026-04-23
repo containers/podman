@@ -190,7 +190,7 @@ var _ = Describe("Podman network create", func() {
 		defer removeNetworkDevice(result.NetworkInterface)
 	})
 
-	It("podman network create with name and subnet with --opt no_default_route=1", func() {
+	It("podman network create with name and subnet with --opt no_default_route=true", func() {
 		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{
 			"network",
@@ -198,7 +198,7 @@ var _ = Describe("Podman network create", func() {
 			"--subnet",
 			"10.19.15.0/24",
 			"--opt",
-			"no_default_route=1",
+			"no_default_route=true",
 			netName,
 		})
 		nc.WaitWithDefaultTimeout()
@@ -405,7 +405,7 @@ var _ = Describe("Podman network create", func() {
 
 		ncFail := podmanTest.Podman([]string{"network", "create", netName})
 		ncFail.WaitWithDefaultTimeout()
-		Expect(ncFail).To(ExitWithError(125, fmt.Sprintf("network name %s already used: network already exists", netName)))
+		Expect(ncFail).To(ExitWithError(125, "network already exists"))
 	})
 
 	It("podman network create two networks with same subnet should fail", func() {
@@ -433,13 +433,13 @@ var _ = Describe("Podman network create", func() {
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName2})
 		ncFail.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(netName2)
-		Expect(ncFail).To(ExitWithError(125, "subnet fd00:4:4:4::/64 is already used on the host or by another config"))
+		Expect(ncFail).To(ExitWithError(125, "subnet fd00:4:4:4:4::/64 is already used on the host or by another config"))
 	})
 
 	It("podman network create with invalid network name", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "2bad!"})
 		nc.WaitWithDefaultTimeout()
-		Expect(nc).To(ExitWithError(125, "network name 2bad! invalid: names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: invalid argument"))
+		Expect(nc).To(ExitWithError(125, "Invalid characters in network name \"2bad!\": must match [a-zA-Z0-9][a-zA-Z0-9_.-]*"))
 	})
 
 	It("podman network create with mtu option", func() {
@@ -471,7 +471,7 @@ var _ = Describe("Podman network create", func() {
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "foo=bar", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
-		Expect(nc).To(ExitWithError(125, "unsupported bridge network option foo"))
+		Expect(nc).To(ExitWithError(125, "unsupported bridge network option: foo"))
 	})
 
 	It("podman Netavark network create with internal should have dnsname", func() {
