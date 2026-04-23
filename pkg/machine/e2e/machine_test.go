@@ -150,6 +150,9 @@ func setup() (string, *machineTestBuilder) {
 			Fail("unable to set home dir on windows")
 		}
 	}
+	if err := os.Setenv("XDG_CONFIG_HOME", filepath.Join(homeDir, ".config")); err != nil {
+		Fail("failed to set XDG_CONFIG_HOME dir")
+	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", homeDir); err != nil {
 		Fail("failed to set xdg_runtime dir")
 	}

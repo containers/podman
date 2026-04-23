@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/version/rawversion"
+	"go.podman.io/storage/pkg/configfile"
 )
 
 const TESTIMAGE = "quay.io/libpod/testimage:20241011"
@@ -30,6 +31,26 @@ var _ = Describe("run basic podman commands", func() {
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
+
+		// Check that we mount the host config dir to the machine /etc/containers and and can write content from the host there.
+		path, err := configfile.UserConfigPath()
+		Expect(err).ToNot(HaveOccurred())
+		err = os.MkdirAll(path, 0o755)
+		Expect(err).ToNot(HaveOccurred())
+
+		content := randomString()
+		f, err := os.Create(filepath.Join(path, "podman-machine-tmpfile"))
+		Expect(err).ToNot(HaveOccurred())
+		_, err = f.WriteString(content)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		ssh := new(sshMachine).withSSHCommand([]string{"cat /etc/containers/podman-machine-tmpfile"})
+		sshRun, err := mb.setName(name).setCmd(ssh).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshRun).To(Exit(0))
+		Expect(sshRun.outputToString()).To(Equal(content))
 
 		bm := basicMachine{}
 		imgs, err := mb.setCmd(bm.withPodmanCommand([]string{"images", "-q"})).run()
