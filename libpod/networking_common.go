@@ -417,12 +417,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 	}
 	opts.PortMappings = c.convertPortMappings()
 
-	for _, net := range networks {
-		if net.Name == netName {
-			opts.Networks = []types.NamedPerNetworkOptions{net}
-			break
-		}
-	}
+	opts.Networks = []types.NamedPerNetworkOptions{network}
 
 	if err := c.runtime.teardownNetworkBackend(c.state.NetNS, opts); err != nil {
 		addContainerNetworkToDB()
