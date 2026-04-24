@@ -57,6 +57,5 @@ func logout(_ *cobra.Command, args []string) error {
 	sysCtx := &types.SystemContext{
 		BaseTLSConfig: baseTLSConfig.TLSConfig(),
 	}
-	common.SetRegistriesConfPath(sysCtx)
 	return auth.Logout(sysCtx, &logoutOptions, args)
 }

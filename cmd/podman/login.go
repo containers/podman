@@ -104,7 +104,6 @@ func login(cmd *cobra.Command, args []string) error {
 		DockerInsecureSkipTLSVerify: skipTLS,
 		BaseTLSConfig:               baseTLSConfig.TLSConfig(),
 	}
-	common.SetRegistriesConfPath(sysCtx)
 	loginOptions.GetLoginSet = cmd.Flag("get-login").Changed
 	return auth.Login(context.Background(), sysCtx, &loginOptions.LoginOptions, args)
 }
