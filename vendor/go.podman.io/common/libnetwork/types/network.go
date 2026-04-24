@@ -361,6 +361,9 @@ type RootlessNetnsInfo struct {
 	DnsForwardIps []string
 	// MapGuestIps should be used for the host.containers.internal entry when set
 	MapGuestIps []string
+	// PestoSocketPath is the path to the pasta control socket for dynamic
+	// port forwarding via pesto. Empty when pasta was started without -c.
+	PestoSocketPath string
 }
 
 // FilterFunc can be passed to NetworkList to filter the networks.

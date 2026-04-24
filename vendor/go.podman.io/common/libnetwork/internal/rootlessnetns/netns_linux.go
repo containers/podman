@@ -40,6 +40,11 @@ const (
 	// rootlessNetNsConnPidFile is the name of the rootless netns slirp4netns/pasta pid file.
 	rootlessNetNsConnPidFile = "rootless-netns-conn.pid"
 
+	// pestoSocketFile is the name of the UNIX domain socket file used by
+	// pesto to communicate with the running pasta instance. Pasta is started
+	// with "-c <socketPath>" to enable this control channel.
+	pestoSocketFile = "pasta.sock"
+
 	tmpfs          = "tmpfs"
 	none           = "none"
 	resolvConfName = "resolv.conf"
@@ -197,11 +202,12 @@ func (n *Netns) cleanup() error {
 
 func (n *Netns) setupPasta(nsPath string) error {
 	pidPath := n.getPath(rootlessNetNsConnPidFile)
+	socketPath := n.getPath(pestoSocketFile)
 
 	pastaOpts := pasta.SetupOptions{
 		Config:       n.config,
 		Netns:        nsPath,
-		ExtraOptions: []string{"--pid", pidPath},
+		ExtraOptions: []string{"--pid", pidPath, "-c", socketPath},
 	}
 	res, err := pasta.Setup(&pastaOpts)
 	if err != nil {
@@ -235,9 +241,10 @@ func (n *Netns) setupPasta(nsPath string) error {
 	}
 
 	n.info = &types.RootlessNetnsInfo{
-		IPAddresses:   res.IPAddresses,
-		DnsForwardIps: res.DNSForwardIPs,
-		MapGuestIps:   res.MapGuestAddrIPs,
+		IPAddresses:     res.IPAddresses,
+		DnsForwardIps:   res.DNSForwardIPs,
+		MapGuestIps:     res.MapGuestAddrIPs,
+		PestoSocketPath: socketPath,
 	}
 	if err := n.serializeInfo(); err != nil {
 		return wrapError("serialize info", err)

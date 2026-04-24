@@ -108,9 +108,6 @@ type Container struct {
 	runtime    *Runtime
 	ociRuntime OCIRuntime
 
-	rootlessPortSyncR *os.File
-	rootlessPortSyncW *os.File
-
 	// reservedPorts contains the fds for the bound ports when using the
 	// bridge network mode as root.
 	reservedPorts []*os.File

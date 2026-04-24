@@ -1,12 +1,8 @@
 package sysregistriesv2
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"maps"
-	"os"
-	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
@@ -17,22 +13,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/fileutils"
-	"go.podman.io/storage/pkg/homedir"
 	"go.podman.io/storage/pkg/regexp"
+	"go.podman.io/storage/pkg/unshare"
 )
-
-// systemRegistriesConfPath is the path to the system-wide registry
-// configuration file and is used to add/subtract potential registries for
-// obtaining images.  You can override this at build time with
-// -ldflags '-X go.podman.io/image/v5/sysregistries.systemRegistriesConfPath=$your_path'
-var systemRegistriesConfPath = builtinRegistriesConfPath
-
-// systemRegistriesConfDirPath is the path to the system-wide registry
-// configuration directory and is used to add/subtract potential registries for
-// obtaining images.  You can override this at build time with
-// -ldflags '-X go.podman.io/image/v5/sysregistries.systemRegistriesConfDirectoryPath=$your_path'
-var systemRegistriesConfDirPath = builtinRegistriesConfDirPath
 
 // AuthenticationFileHelper is a special key for credential helpers indicating
 // the usage of consulting containers-auth.json files instead of a credential
@@ -72,12 +57,6 @@ type Endpoint struct {
 	// This per-mirror setting is allowed only when mirror-by-digest-only is not configured for the primary registry.
 	PullFromMirror string `toml:"pull-from-mirror,omitempty"`
 }
-
-// userRegistriesFile is the path to the per user registry configuration file.
-var userRegistriesFile = filepath.FromSlash(".config/containers/registries.conf")
-
-// userRegistriesDir is the path to the per user registry configuration file.
-var userRegistriesDir = filepath.FromSlash(".config/containers/registries.conf.d")
 
 // rewriteReference will substitute the provided reference `prefix` to the
 // endpoints `location` from the `ref` and creates a new named reference from it.
@@ -185,11 +164,15 @@ func (r *Registry) PullSourcesFromReference(ref reference.Named) ([]PullSource, 
 }
 
 // V1TOMLregistries is for backwards compatibility to sysregistries v1
+//
+// Deprecated: This format is no longer accepted, use [V2RegistriesConf] instead.
 type V1TOMLregistries struct {
 	Registries []string `toml:"registries"`
 }
 
 // V1TOMLConfig is for backwards compatibility to sysregistries v1
+//
+// Deprecated: This format is no longer accepted, use [V2RegistriesConf] instead.
 type V1TOMLConfig struct {
 	Search   V1TOMLregistries `toml:"search"`
 	Insecure V1TOMLregistries `toml:"insecure"`
@@ -197,6 +180,9 @@ type V1TOMLConfig struct {
 }
 
 // V1RegistriesConf is the sysregistries v1 configuration format.
+//
+// Deprecated: This format is no longer accepted, use [V2RegistriesConf] instead.
+// You can use [V1RegistriesConf.ConvertToV2] to convert the type.
 type V1RegistriesConf struct {
 	V1TOMLConfig `toml:"registries"`
 }
@@ -529,95 +515,90 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 }
 
 // ConfigPath returns the path to the system-wide registry configuration file.
+// This may return an empty string if it fails to resolve a home directory.
 //
 // Deprecated: This API implies configuration is read from files, and that there is only one.
 // Please use ConfigurationSourceDescription to obtain a string usable for error messages.
 func ConfigPath(ctx *types.SystemContext) string {
-	return newConfigWrapper(ctx).configPath
+	configWrapper := newConfigWrapper(ctx)
+	paths, err := configfile.GetSearchPaths(configWrapper.toConfigFileOptions())
+	if err == nil && len(paths.MainFiles) > 0 {
+		for _, file := range paths.MainFiles {
+			if fileutils.Exists(file) == nil {
+				return file
+			}
+		}
+		// nothing exists return first file
+		return paths.MainFiles[0]
+	}
+	return ""
 }
 
 // ConfigDirPath returns the path to the directory for drop-in
-// registry configuration files.
+// registry configuration files. This may return an empty string if it fails to resolve a home directory.
 //
 // Deprecated: This API implies configuration is read from directories, and that there is only one.
 // Please use ConfigurationSourceDescription to obtain a string usable for error messages.
 func ConfigDirPath(ctx *types.SystemContext) string {
 	configWrapper := newConfigWrapper(ctx)
-	if configWrapper.userConfigDirPath != "" {
-		return configWrapper.userConfigDirPath
+	paths, err := configfile.GetSearchPaths(configWrapper.toConfigFileOptions())
+	if err == nil && len(paths.DropInDirectories) > 0 {
+		return paths.DropInDirectories[0]
 	}
-	return configWrapper.configDirPath
+	return ""
 }
 
 // configWrapper is used to store the paths from ConfigPath and ConfigDirPath
 // and acts as a key to the internal cache.
+//
+// Note some env vars like CONTAINERS_REGISTRIES_CONF or $HOME will effect the
+// parsing behavior but are not used for the cache key here, if these env change
+// at runtime then the cache will result in correct results. This is a known trade
+// off as regular callers are not expected to modify the envs at runtime.
+// If they do so they should call [InvalidateCache].
 type configWrapper struct {
-	// path to the registries.conf file
-	configPath string
-	// path to system-wide registries.conf.d directory, or "" if not used
-	configDirPath string
-	// path to user specified registries.conf.d directory, or "" if not used
-	userConfigDirPath string
+	// system context override to specific path
+	systemRegistriesConfPath string
+	// system context override to specific drop in directory
+	systemRegistriesConfDirPath string
+
+	// system context override to root directory
+	rootForImplicitAbsolutePaths string
+}
+
+func (c *configWrapper) toConfigFileOptions() *configfile.File {
+	return &configfile.File{
+		Name:                            "registries",
+		Extension:                       "conf",
+		EnvironmentName:                 "CONTAINERS_REGISTRIES_CONF",
+		RootForImplicitAbsolutePaths:    c.rootForImplicitAbsolutePaths,
+		CustomConfigFilePath:            c.systemRegistriesConfPath,
+		CustomConfigFileDropInDirectory: c.systemRegistriesConfDirPath,
+		UserId:                          unshare.GetRootlessUID(),
+	}
 }
 
 // newConfigWrapper returns a configWrapper for the specified SystemContext.
 func newConfigWrapper(ctx *types.SystemContext) configWrapper {
-	return newConfigWrapperWithHomeDir(ctx, homedir.Get())
-}
-
-// newConfigWrapperWithHomeDir is an internal implementation detail of newConfigWrapper,
-// it exists only to allow testing it with an artificial home directory.
-func newConfigWrapperWithHomeDir(ctx *types.SystemContext, homeDir string) configWrapper {
 	var wrapper configWrapper
-	userRegistriesFilePath := filepath.Join(homeDir, userRegistriesFile)
-	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
-
-	// decide configPath using per-user path or system file
-	if ctx != nil && ctx.SystemRegistriesConfPath != "" {
-		wrapper.configPath = ctx.SystemRegistriesConfPath
-	} else if err := fileutils.Exists(userRegistriesFilePath); err == nil {
-		// per-user registries.conf exists, not reading system dir
-		// return config dirs from ctx or per-user one
-		wrapper.configPath = userRegistriesFilePath
-		if ctx != nil && ctx.SystemRegistriesConfDirPath != "" {
-			wrapper.configDirPath = ctx.SystemRegistriesConfDirPath
-		} else {
-			wrapper.userConfigDirPath = userRegistriesDirPath
-		}
-
-		return wrapper
-	} else if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
-		wrapper.configPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
-	} else {
-		wrapper.configPath = systemRegistriesConfPath
-	}
-
-	// potentially use both system and per-user dirs if not using per-user config file
-	if ctx != nil && ctx.SystemRegistriesConfDirPath != "" {
-		// dir explicitly chosen: use only that one
-		wrapper.configDirPath = ctx.SystemRegistriesConfDirPath
-	} else if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
-		wrapper.configDirPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfDirPath)
-		wrapper.userConfigDirPath = userRegistriesDirPath
-	} else {
-		wrapper.configDirPath = systemRegistriesConfDirPath
-		wrapper.userConfigDirPath = userRegistriesDirPath
+	if ctx != nil {
+		wrapper.systemRegistriesConfPath = ctx.SystemRegistriesConfPath
+		wrapper.systemRegistriesConfDirPath = ctx.SystemRegistriesConfDirPath
+		wrapper.rootForImplicitAbsolutePaths = ctx.RootForImplicitAbsolutePaths
 	}
 
 	return wrapper
 }
 
-// ConfigurationSourceDescription returns a string containers paths of registries.conf and registries.conf.d
+// ConfigurationSourceDescription returns a string of one or more paths to registries.conf and registries.conf.d.
+// This may return an empty string in case it fails to resolve all paths.
 func ConfigurationSourceDescription(ctx *types.SystemContext) string {
-	wrapper := newConfigWrapper(ctx)
-	configSources := []string{wrapper.configPath}
-	if wrapper.configDirPath != "" {
-		configSources = append(configSources, wrapper.configDirPath)
+	configWrapper := newConfigWrapper(ctx)
+	paths, err := configfile.GetSearchPaths(configWrapper.toConfigFileOptions())
+	if err != nil {
+		return ""
 	}
-	if wrapper.userConfigDirPath != "" {
-		configSources = append(configSources, wrapper.userConfigDirPath)
-	}
-	return strings.Join(configSources, ", ")
+	return fmt.Sprintf("%q", slices.Concat(paths.MainFiles, paths.DropInDirectories))
 }
 
 // configMutex is used to synchronize concurrent accesses to configCache.
@@ -647,58 +628,7 @@ func getConfig(ctx *types.SystemContext) (*parsedConfig, error) {
 	}
 	configMutex.Unlock()
 
-	return tryUpdatingCache(ctx, wrapper)
-}
-
-// dropInConfigs returns a slice of drop-in-configs from the registries.conf.d
-// directory.
-func dropInConfigs(wrapper configWrapper) ([]string, error) {
-	var (
-		configs  []string
-		dirPaths []string
-	)
-	if wrapper.configDirPath != "" {
-		dirPaths = append(dirPaths, wrapper.configDirPath)
-	}
-	if wrapper.userConfigDirPath != "" {
-		dirPaths = append(dirPaths, wrapper.userConfigDirPath)
-	}
-	for _, dirPath := range dirPaths {
-		err := filepath.WalkDir(dirPath,
-			// WalkFunc to read additional configs
-			func(path string, d fs.DirEntry, err error) error {
-				switch {
-				case err != nil:
-					// return error (could be a permission problem)
-					return err
-				case d == nil:
-					// this should only happen when err != nil but let's be sure
-					return nil
-				case d.IsDir():
-					if path != dirPath {
-						// make sure to not recurse into sub-directories
-						return filepath.SkipDir
-					}
-					// ignore directories
-					return nil
-				default:
-					// only add *.conf files
-					if strings.HasSuffix(path, ".conf") {
-						configs = append(configs, path)
-					}
-					return nil
-				}
-			},
-		)
-
-		if err != nil && !os.IsNotExist(err) {
-			// Ignore IsNotExist errors: most systems won't have a registries.conf.d
-			// directory.
-			return nil, fmt.Errorf("reading registries.conf.d: %w", err)
-		}
-	}
-
-	return configs, nil
+	return tryUpdatingCache(wrapper)
 }
 
 // TryUpdatingCache loads the configuration from the provided `SystemContext`
@@ -707,7 +637,7 @@ func dropInConfigs(wrapper configWrapper) ([]string, error) {
 // It returns the resulting configuration; this is DEPRECATED and may not correctly
 // reflect any future data handled by this package.
 func TryUpdatingCache(ctx *types.SystemContext) (*V2RegistriesConf, error) {
-	config, err := tryUpdatingCache(ctx, newConfigWrapper(ctx))
+	config, err := tryUpdatingCache(newConfigWrapper(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -716,47 +646,31 @@ func TryUpdatingCache(ctx *types.SystemContext) (*V2RegistriesConf, error) {
 
 // tryUpdatingCache implements TryUpdatingCache with an additional configWrapper
 // argument to avoid redundantly calculating the config paths.
-func tryUpdatingCache(ctx *types.SystemContext, wrapper configWrapper) (*parsedConfig, error) {
+func tryUpdatingCache(wrapper configWrapper) (*parsedConfig, error) {
 	configMutex.Lock()
 	defer configMutex.Unlock()
 
-	// load the config
-	config, err := loadConfigFile(wrapper.configPath, false)
-	if err != nil {
-		// Continue with an empty []Registry if we use the default config, which
-		// implies that the config path of the SystemContext isn't set.
-		//
-		// Note: if ctx.SystemRegistriesConfPath points to the default config,
-		// we will still return an error.
-		if os.IsNotExist(err) && (ctx == nil || ctx.SystemRegistriesConfPath == "") {
-			config = &parsedConfig{}
-			config.partialV2 = V2RegistriesConf{Registries: []Registry{}}
-			config.aliasCache, err = newShortNameAliasCache("", &shortNameAliasConf{})
-			if err != nil {
-				return nil, err // Should never happen
-			}
-		} else {
-			return nil, fmt.Errorf("loading registries configuration %q: %w", wrapper.configPath, err)
-		}
+	config := &parsedConfig{
+		partialV2: V2RegistriesConf{Registries: []Registry{}},
 	}
 
-	// Load the configs from the conf directory path.
-	dinConfigs, err := dropInConfigs(wrapper)
+	var err error
+	config.aliasCache, err = newShortNameAliasCache("", &shortNameAliasConf{})
 	if err != nil {
-		return nil, err
+		return nil, err // Should never happen
 	}
-	for _, path := range dinConfigs {
-		// Enforce v2 format for drop-in-configs.
-		dropIn, err := loadConfigFile(path, true)
+
+	for item, err := range configfile.Read(wrapper.toConfigFileOptions()) {
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				// file must have been removed between the directory listing
-				// and the open call, ignore that as it is a expected race
-				continue
-			}
-			return nil, fmt.Errorf("loading drop-in registries configuration %q: %w", path, err)
+			return nil, err
 		}
-		config.updateWithConfigurationFrom(dropIn)
+		logrus.Debugf("Loading registries configuration %q", item.Name)
+
+		parsed, err := loadConfigFile(item)
+		if err != nil {
+			return nil, fmt.Errorf("loading registries configuration %q: %w", item.Name, err)
+		}
+		config.updateWithConfigurationFrom(parsed)
 	}
 
 	if config.shortNameMode == types.ShortNameModeInvalid {
@@ -947,42 +861,26 @@ func findRegistryWithParsedConfig(config *parsedConfig, ref string) (*Registry, 
 }
 
 // loadConfigFile loads and unmarshals a single config file.
-// Use forceV2 if the config must in the v2 format.
-func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
-	logrus.Debugf("Loading registries configuration %q", path)
-
+func loadConfigFile(item *configfile.Item) (*parsedConfig, error) {
 	// tomlConfig allows us to unmarshal either V1 or V2 simultaneously.
 	type tomlConfig struct {
 		V2RegistriesConf
-		V1RegistriesConf // for backwards compatibility with sysregistries v1
+		V1RegistriesConf // to detect no-longer-supported use of the v1 format
 	}
 
 	// Load the tomlConfig. Note that `DecodeFile` will overwrite set fields.
 	var combinedTOML tomlConfig
-	meta, err := toml.DecodeFile(path, &combinedTOML)
+	meta, err := toml.NewDecoder(item.Reader).Decode(&combinedTOML)
 	if err != nil {
 		return nil, err
 	}
 	if keys := meta.Undecoded(); len(keys) > 0 {
-		logrus.Debugf("Failed to decode keys %q from %q", keys, path)
+		logrus.Debugf("Failed to decode keys %q from %q", keys, item.Name)
 	}
 
 	if combinedTOML.V1RegistriesConf.hasSetField() {
-		// Enforce the v2 format if requested.
-		if forceV2 {
-			return nil, &InvalidRegistries{s: "registry must be in v2 format but is in v1"}
-		}
-
-		// Convert a v1 config into a v2 config.
-		if combinedTOML.V2RegistriesConf.hasSetField() {
-			return nil, &InvalidRegistries{s: fmt.Sprintf("mixing sysregistry v1/v2 is not supported: %#v", combinedTOML)}
-		}
-		converted, err := combinedTOML.V1RegistriesConf.ConvertToV2()
-		if err != nil {
-			return nil, err
-		}
-		combinedTOML.V1RegistriesConf = V1RegistriesConf{}
-		combinedTOML.V2RegistriesConf = *converted
+		// V1 format is no longer supported, produce hard error so callers know they must update the config.
+		return nil, &InvalidRegistries{s: "registries.conf must be in v2 format but is in v1"}
 	}
 
 	res := parsedConfig{partialV2: combinedTOML.V2RegistriesConf}
@@ -992,7 +890,7 @@ func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
 		return nil, err
 	}
 
-	res.unqualifiedSearchRegistriesOrigin = path
+	res.unqualifiedSearchRegistriesOrigin = item.Name
 
 	if len(res.partialV2.ShortNameMode) > 0 {
 		mode, err := parseShortNameMode(res.partialV2.ShortNameMode)
@@ -1016,7 +914,7 @@ func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
 	}
 
 	// Parse and validate short-name aliases.
-	cache, err := newShortNameAliasCache(path, &res.partialV2.shortNameAliasConf)
+	cache, err := newShortNameAliasCache(item.Name, &res.partialV2.shortNameAliasConf)
 	if err != nil {
 		return nil, fmt.Errorf("validating short-name aliases: %w", err)
 	}

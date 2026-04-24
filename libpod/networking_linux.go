@@ -59,15 +59,11 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[strin
 		}
 	}()
 
-	// set up rootless port forwarder when rootless with ports and the network status is empty,
-	// if this is called from network reload the network status will not be empty and we should
-	// not set up port because they are still active
-	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
-		// set up port forwarder for rootless netns
-		// make sure to fix this in container.handleRestartPolicy() as well
-		// Important we have to call this after r.setUpNetwork() so that
-		// we can use the proper netStatus
-		err = r.setupRootlessPortMappingViaRLK(ctr, ctrNS, netStatus)
+	// Set up port forwarding for rootless bridge networks via pesto.
+	// Pesto replaces the forwarding table on the running pasta instance,
+	// preserving source IPs.
+	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 {
+		err = r.setupRootlessPortMappingViaPesto(ctr)
 	}
 	return netStatus, err
 }

@@ -1049,6 +1049,279 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 	})
 
+	// verifyBridgeSourceIP sends a message to hostPort, waits for it in the
+	// container logs, and asserts the source IP behavior:
+	//   rootless: source NOT from bridgeSubnet (pesto preserves real IP)
+	//   rootful:  source FROM bridgeSubnet (netavark masquerades to gateway)
+	verifyBridgeSourceIP := func(ncCtrName string, hostPort int, bridgeSubnet string) {
+		GinkgoHelper()
+		msg := RandomString(20)
+		sendMessageToPort(hostPort, msg)
+		podmanTest.WaitForContainerLog(ncCtrName, msg)
+
+		logs := podmanTest.PodmanExitCleanly("logs", ncCtrName)
+		output := logs.OutputToString()
+		Expect(output).To(MatchRegexp(`connect to .* from`))
+		subnetPrefix := strings.Split(bridgeSubnet, ".0")[0] + `\.`
+		if isRootless() {
+			// In rootless mode we verify the source is NOT from the bridge subnet
+			// rather than matching an exact IP because pasta maps localhost traffic
+			// to a host virtual IP (e.g. 192.168.64.2) whose value depends on the
+			// pasta version, host network config, and whether the traffic arrives
+			// via splice (localhost) or TAP (external).
+			//
+			// The important invariant is that the old rootlessport proxy behavior
+			// (source == bridge gateway) is gone.
+			//
+			// The exact mapped address is a pasta implementation detail.
+			Expect(output).ToNot(MatchRegexp(`connect to .* from .*` + subnetPrefix))
+		} else {
+			Expect(output).To(MatchRegexp(`connect to .* from .*` + subnetPrefix))
+		}
+	}
+
+	It("podman run bridge network preserves source IP", func() {
+		subnet := "172.30.0.0/24"
+		netName := createNetworkName("srcip")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		port := GetPort()
+		ctr := podmanTest.startNCContainer(
+			"srcip-ctr", port,
+			"--network", netName,
+			"-p", fmt.Sprintf("127.0.0.1:%d:%d", port, port),
+		)
+		verifyBridgeSourceIP(ctr, port, subnet)
+	})
+
+	It("podman run bridge network preserves source IP without explicit HostIP", func() {
+		subnet := "172.33.0.0/24"
+		netName := createNetworkName("srcip-nohost")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		port := GetPort()
+		ctr := podmanTest.startNCContainer(
+			"srcip-nohost-ctr", port,
+			"--network", netName,
+			"-p", fmt.Sprintf("%d:%d", port, port),
+		)
+		verifyBridgeSourceIP(ctr, port, subnet)
+	})
+
+	It("podman run bridge network preserves source IP with different host and container ports", func() {
+		subnet := "172.34.0.0/24"
+		netName := createNetworkName("srcip-diffport")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		hostPort := GetPort()
+		ctrPort := GetPort()
+		ctr := podmanTest.startNCContainer(
+			"srcip-diffport-ctr", ctrPort,
+			"--network", netName,
+			"-p", fmt.Sprintf("%d:%d", hostPort, ctrPort),
+		)
+		verifyBridgeSourceIP(ctr, hostPort, subnet)
+	})
+
+	It("podman run bridge network preserves source IP with multiple port mappings", func() {
+		subnet := "172.36.0.0/24"
+		netName := createNetworkName("srcip-multiport")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		// Two different host:container port mappings on the same container.
+		// nginx listens on 80; both host ports should reach it.
+		hostPort1 := GetPort()
+		hostPort2 := GetPort()
+		podmanTest.PodmanExitCleanly(
+			"run", "-d",
+			"--name", "srcip-multiport-ctr",
+			"--network", netName,
+			"-p", fmt.Sprintf("%d:80", hostPort1),
+			"-p", fmt.Sprintf("%d:80", hostPort2),
+			NGINX_IMAGE,
+		)
+
+		testPortConnection(hostPort1)
+		testPortConnection(hostPort2)
+	})
+
+	It("podman run bridge network source IP preserved with multiple containers", func() {
+		subnet := "172.31.0.0/24"
+		netName := createNetworkName("srcip-multi")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		port1 := GetPort()
+		port2 := GetPort()
+		ctr1 := podmanTest.startNCContainer(
+			"srcip-multi-1", port1,
+			"--network", netName,
+			"-p", fmt.Sprintf("127.0.0.1:%d:%d", port1, port1),
+		)
+		ctr2 := podmanTest.startNCContainer(
+			"srcip-multi-2", port2,
+			"--network", netName,
+			"-p", fmt.Sprintf("127.0.0.1:%d:%d", port2, port2),
+		)
+
+		verifyBridgeSourceIP(ctr1, port1, subnet)
+		verifyBridgeSourceIP(ctr2, port2, subnet)
+	})
+
+	It("podman run bridge network port cleanup on container stop", func() {
+		subnet := "172.32.0.0/24"
+		netName := createNetworkName("srcip-cleanup")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		port := GetPort()
+		ctr := podmanTest.startNCContainer(
+			"srcip-cleanup-ctr", port,
+			"--network", netName,
+			"-p", fmt.Sprintf("127.0.0.1:%d:%d", port, port),
+		)
+
+		sendMessageToPort(port, "done")
+		podmanTest.WaitForContainerLog(ctr, "done")
+		podmanTest.PodmanExitCleanly("rm", "-f", ctr)
+
+		ctr2 := podmanTest.startNCContainer(
+			"srcip-cleanup-ctr2", port,
+			"--network", netName,
+			"-p", fmt.Sprintf("127.0.0.1:%d:%d", port, port),
+		)
+		verifyBridgeSourceIP(ctr2, port, subnet)
+	})
+
+	It("podman run pasta network preserves source IP", func() {
+		SkipIfNotRootless("pasta network mode is only supported rootless")
+		port := GetPort()
+		ctrName := podmanTest.startNCContainer(
+			"srcip-pasta-ctr", port,
+			"--net=pasta",
+			"-p", fmt.Sprintf("%d:%d", port, port),
+		)
+
+		msg := RandomString(20)
+		sendMessageToPort(port, msg)
+		podmanTest.WaitForContainerLog(ctrName, msg)
+
+		logs := podmanTest.PodmanExitCleanly("logs", ctrName)
+		output := logs.OutputToString()
+		// With --net=pasta, pasta handles port forwarding directly without
+		// a bridge or netavark. The source IP is the host address (not a
+		// bridge gateway), confirming pasta's native source preservation.
+		Expect(output).To(MatchRegexp(`connect to .* from`))
+		Expect(output).ToNot(MatchRegexp(`connect to .* from .*127\.0\.0\.`))
+	})
+
+	It("podman run bridge network port forwarding survives restart", func() {
+		netName := createNetworkName("srcip-restart")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", "172.35.0.0/24", netName)
+		defer podmanTest.removeNetwork(netName)
+
+		port := GetPort()
+		podmanTest.PodmanExitCleanly(
+			"run", "-d",
+			"--name", "srcip-restart-ctr",
+			"--network", netName,
+			"-p", fmt.Sprintf("127.0.0.1:%d:80", port),
+			NGINX_IMAGE,
+		)
+
+		testPortConnection(port)
+		podmanTest.PodmanExitCleanly("restart", "-t", "3", "srcip-restart-ctr")
+		testPortConnection(port)
+	})
+
+	It("podman network reload preserves port forwarding", func() {
+		SkipIfRemote("podman network reload does not have remote support")
+
+		subnet := "172.37.0.0/24"
+		netName := createNetworkName("srcip-reload")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet, netName)
+		defer podmanTest.removeNetwork(netName)
+
+		port := GetPort()
+		podmanTest.PodmanExitCleanly(
+			"run", "-d",
+			"--name", "srcip-reload-ctr",
+			"--network", netName,
+			"-p", fmt.Sprintf("%d:80", port),
+			NGINX_IMAGE,
+		)
+
+		testPortConnection(port)
+
+		podmanTest.PodmanExitCleanly("network", "reload", "srcip-reload-ctr")
+
+		testPortConnection(port)
+	})
+
+	It("podman network connect preserves port forwarding", func() {
+		subnet1 := "172.38.0.0/24"
+		netName1 := createNetworkName("srcip-conn1")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet1, netName1)
+		defer podmanTest.removeNetwork(netName1)
+
+		subnet2 := "172.39.0.0/24"
+		netName2 := createNetworkName("srcip-conn2")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet2, netName2)
+		defer podmanTest.removeNetwork(netName2)
+
+		port := GetPort()
+		podmanTest.PodmanExitCleanly(
+			"run", "-d",
+			"--name", "srcip-conn-ctr",
+			"--network", netName1,
+			"-p", fmt.Sprintf("%d:80", port),
+			NGINX_IMAGE,
+		)
+
+		testPortConnection(port)
+
+		podmanTest.PodmanExitCleanly("network", "connect", netName2, "srcip-conn-ctr")
+		inspect := podmanTest.PodmanExitCleanly("container", "inspect", "srcip-conn-ctr",
+			"--format", "{{len .NetworkSettings.Networks}}")
+		Expect(inspect.OutputToString()).To(Equal("2"))
+
+		testPortConnection(port)
+	})
+
+	It("podman network disconnect preserves port forwarding on remaining networks", func() {
+		subnet1 := "172.40.0.0/24"
+		netName1 := createNetworkName("srcip-disc1")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet1, netName1)
+		defer podmanTest.removeNetwork(netName1)
+
+		subnet2 := "172.41.0.0/24"
+		netName2 := createNetworkName("srcip-disc2")
+		podmanTest.PodmanExitCleanly("network", "create", "--subnet", subnet2, netName2)
+		defer podmanTest.removeNetwork(netName2)
+
+		port := GetPort()
+		podmanTest.PodmanExitCleanly(
+			"run", "-d",
+			"--name", "srcip-disc-ctr",
+			"--network", fmt.Sprintf("%s,%s", netName1, netName2),
+			"-p", fmt.Sprintf("%d:80", port),
+			NGINX_IMAGE,
+		)
+
+		testPortConnection(port)
+
+		podmanTest.PodmanExitCleanly("network", "disconnect", netName2, "srcip-disc-ctr")
+		inspect := podmanTest.PodmanExitCleanly("container", "inspect", "srcip-disc-ctr",
+			"--format", "{{len .NetworkSettings.Networks}}")
+		Expect(inspect.OutputToString()).To(Equal("1"))
+
+		testPortConnection(port)
+	})
+
 	It("Rootless podman run with --net=bridge works and connects to default network", func() {
 		// This is harmless when run as root, so we'll just let it run.
 		ctrName := "testctr"
