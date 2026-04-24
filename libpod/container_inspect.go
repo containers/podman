@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"strings"
 
 	"github.com/docker/go-units"
@@ -15,6 +16,7 @@ import (
 	"go.podman.io/podman/v6/libpod/driver"
 	"go.podman.io/podman/v6/pkg/signal"
 	"go.podman.io/podman/v6/pkg/util"
+	xterm "golang.org/x/term"
 )
 
 // inspectLocked inspects a container for low-level information.
@@ -630,11 +632,32 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 	}
 
-	// Terminal size
-	// We can't actually get this for now...
-	// So default to something sane.
-	// TODO: Populate this.
+	// ConsoleSize.
+	// Default to [0,0] if we can't get it for some reason,
+	// or if the container doesn't have a TTY.
 	hostConfig.ConsoleSize = []uint{0, 0}
+
+	if c.Terminal() {
+		procPath := fmt.Sprintf("/proc/%d/fd/0", c.state.PID)
+
+		f, err := os.Open(procPath)
+		if err != nil {
+			if c.state.State != define.ContainerStateRunning {
+				logrus.Warnf("container %q is not running, unable to get console size", c.ID())
+			} else {
+				logrus.Warnf("unable to open %s", procPath)
+			}
+		} else {
+			defer f.Close()
+
+			height, width, err := xterm.GetSize(int(f.Fd()))
+			if err != nil {
+				logrus.Warnf("Could not get terminal size %v", err)
+			} else {
+				hostConfig.ConsoleSize = []uint{uint(height), uint(width)}
+			}
+		}
+	}
 
 	return hostConfig, nil
 }
