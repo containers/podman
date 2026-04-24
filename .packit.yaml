@@ -121,6 +121,7 @@ jobs:
     targets:
       - fedora-latest-stable
       - fedora-development
+    tmt_plan: "/plans/cockpit-podman"
     tf_extra_params:
       environments:
         - artifacts:
