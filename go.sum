@@ -20,6 +20,8 @@ github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpH
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 h1:5L8Mj9Co9sJVgW3TpYk2gxGJnDjsYuboNTcRmbtGKGs=
 github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6/go.mod h1:3HgLJ9d18kXMLQlJvIY3+FszZYMxCz8WfE2MQ7hDY0w=
+github.com/ashley-cui/container-libs/common v0.0.0-20260425024905-0c8ff086460a h1:FcnRlhYuN6bg6NqR5UEefY9ydR33jdcwEeCs462FI1o=
+github.com/ashley-cui/container-libs/common v0.0.0-20260425024905-0c8ff086460a/go.mod h1:dxkgre+xzxpAUuDsXBeAgTcNR4jN8d/00oHYt8QcNHs=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
@@ -261,6 +263,8 @@ github.com/moby/patternmatcher v0.6.1 h1:qlhtafmr6kgMIJjKJMDmMWq7WLkKIo23hsrpR3x
 github.com/moby/patternmatcher v0.6.1/go.mod h1:hDPoyOpDY7OrrMDLaYoY3hf52gNCR/YOUYxkhApJIxc=
 github.com/moby/sys/capability v0.4.0 h1:4D4mI6KlNtWMCM1Z/K0i7RV1FkX+DBDHKVJpCndZoHk=
 github.com/moby/sys/capability v0.4.0/go.mod h1:4g9IK291rVkms3LKCDOoYlnV8xKwoDTpIrNEE35Wq0I=
+github.com/moby/sys/devices v0.1.0 h1:uaMrDm1U3h0AwUDNWeT5lBV40v0eayt+VuukRbYn5K4=
+github.com/moby/sys/devices v0.1.0/go.mod h1:nIV6AO7t0DY2ObAm1GfL4AX9mBRqzxzHwGfvNCR9lfI=
 github.com/moby/sys/mountinfo v0.7.2 h1:1shs6aH5s4o5H2zQLn796ADW1wMrIwHsyJ2v9KouLrg=
 github.com/moby/sys/mountinfo v0.7.2/go.mod h1:1YOa8w8Ih7uW0wALDUgT1dTTSBrZ+HiBLGws92L2RU4=
 github.com/moby/sys/sequential v0.6.0 h1:qrx7XFUd/5DxtqcoH1h438hF5TmOvzC/lspjy7zgvCU=
@@ -429,8 +433,6 @@ go.opentelemetry.io/otel/trace v1.43.0 h1:BkNrHpup+4k4w+ZZ86CZoHHEkohws8AY+WTX09
 go.opentelemetry.io/otel/trace v1.43.0/go.mod h1:/QJhyVBUUswCphDVxq+8mld+AvhXZLhe+8WVFxiFff0=
 go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85 h1:rVKRagobPO6kGHOg2NhGNs6xWVgZctiOn4tmxa3cytA=
 go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85/go.mod h1:JjFirF1zlILz55ZkVYYhLRnted7mPlmoS2w2ihYw8iw=
-go.podman.io/common v0.67.2-0.20260423135811-cbaa5f41e643 h1:WwUcVKPEUoSDiQ22osdYGqM3q9IDB4viqSASPCdw1K0=
-go.podman.io/common v0.67.2-0.20260423135811-cbaa5f41e643/go.mod h1:kBztCGxEhou0OO0O4yJXAKC3JEQTmOxCJPni90+sQKY=
 go.podman.io/image/v5 v5.39.3-0.20260423135811-cbaa5f41e643 h1:1LuhuiiXHHteVXULDV/x9qxJtFozQPLEYKHCbYdOuP0=
 go.podman.io/image/v5 v5.39.3-0.20260423135811-cbaa5f41e643/go.mod h1:sAszAH18v4KPpzPZdav9ovjEBcIDkmqdhbJV9SmnzfE=
 go.podman.io/storage v1.62.1-0.20260423135811-cbaa5f41e643 h1:/zmZ36KkCZumHK0EDH5QpSjyM3fY09YuyIfqoXxEI48=

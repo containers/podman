@@ -182,7 +182,7 @@ func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOp
 			return nil, false, err
 		}
 		netavarkOptions.Networks[network.Name] = net
-		if !slices.Contains(builtinDrivers, net.Driver) {
+		if !slices.Contains(BuiltinDrivers, net.Driver) {
 			needsPlugin = true
 		}
 	}

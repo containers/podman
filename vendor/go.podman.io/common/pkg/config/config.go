@@ -635,10 +635,10 @@ type NetworkConfig struct {
 type SubnetPool struct {
 	// Base is a bigger subnet which will be used to allocate a subnet with
 	// the given size.
-	Base *types.IPNet `toml:"base,omitempty"`
+	Base *types.IPNet `toml:"base,omitempty" json:"base,omitempty"`
 	// Size is the CIDR for the new subnet. It must be equal or small
 	// than the CIDR from the base subnet.
-	Size int `toml:"size,omitempty"`
+	Size int `toml:"size,omitempty" json:"size,omitempty"`
 }
 
 // SecretConfig represents the "secret" TOML config table.
