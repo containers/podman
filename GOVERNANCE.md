@@ -77,8 +77,6 @@ Reviewers have all the rights and responsibilities of a Contributor, plus:
     * Has permissions to change labels on Github to aid in triage
 	* For repositories hosted on Github, Reviewers receive Triage privileges
 
-In repositories using an OWNERS file, Reviewers are listed as Reviewers in that file.
-
 #### The process of becoming a Reviewer is:
 1. The contributor must be sponsored by a Maintainer. That sponsor will open a PR against the appropriate repository, which adds the nominee to the [MAINTAINERS.md](./MAINTAINERS.md) file as a reviewer.
 2. The contributor will add a comment to the pull request indicating their willingness to assume the responsibilities of a Reviewer.
@@ -86,8 +84,6 @@ In repositories using an OWNERS file, Reviewers are listed as Reviewers in that 
 
 ### Maintainer
 Description: Maintainers are established contributors with deep technical knowledge of the Podman project and/or one of its subprojects. Maintainers are granted the authority to merge pull requests, and are expected to participate in making decisions about the strategy and priorities of the project. Maintainers are responsible for code review and merging in a single repository or subproject. It is possible to become Maintainer of additional repositories or subprojects, but each additional repository or project will require a separate application and vote. They are able to participate in all maintainer activities, including Core Maintainer meetings, but do not have a vote at Core Maintainer meetings.
-
-In repositories using an OWNERS file, Maintainers are listed as Approvers in that file.
 
 A Maintainer must meet the responsibilities and requirements of a Reviewer, plus:
 * Responsibilities include:
@@ -173,14 +169,14 @@ Emeritus Maintainers are former Maintainers or Core Maintainers whose status has
 Emeritus Maintainers have no responsibilities or requirements beyond those of an ordinary Contributor.
 
 #### Process of becoming an Emeritus Maintainer:
-1. A current Maintainer or Core Maintainer may voluntarily resign from their position by making a pull request changing their role in the OWNERS file. They may choose to remove themselves entirely or to change their role to Emeritus Maintainer.
+1. A current Maintainer or Core Maintainer may voluntarily resign from their position by making a pull request changing their role in the MAINTAINERS file. They may choose to remove themselves entirely or to change their role to Emeritus Maintainer.
 2. Maintainers and Core Maintainers removed due to the Inactivity policy below may be moved to Emeritus Status.
 
 ---
 
 # Maintainers File
 
-The definitive source of truth for maintainers of this repository is the local [MAINTAINERS.md](./MAINTAINERS.md) file. The [MAINTAINERS.md](./MAINTAINERS.md) file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have a local [OWNERS](./OWNERS) file, which the CI system uses to map users to roles. Any changes to the [OWNERS](./OWNERS) file must make a corresponding change to the [MAINTAINERS.md](./MAINTAINERS.md) file to ensure that file remains up to date. Most changes to [MAINTAINERS.md](./MAINTAINERS.md) will require a change to the repository’s [OWNERS](./OWNERS) file (e.g., adding a Reviewer), but some will not (e.g., promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
+The definitive source of truth for maintainers of this repository is the local [MAINTAINERS.md](./MAINTAINERS.md) file. The [MAINTAINERS.md](./MAINTAINERS.md) file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager.
 
 ---
 
