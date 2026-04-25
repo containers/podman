@@ -159,27 +159,45 @@ load helpers.network
     run_podman rm $cid
 }
 
-# bats test_tags=ci:parallel
-@test "podman pod manages /etc/hosts correctly" {
-    local pod_name=pod-$(safename)
-    local infra_name=infra-$(safename)
+
+# run_pod_etc_hosts_test() - Run tests involving /etc/hosts inside Pods
+#
+# This helper function is invoked with pod_name, infra_name, pod_fqdn and expected_infra
+# With pod_fqdn not-empty, additional tests assert the survival of the pod fqdn hostname across container stops/starts
+function run_pod_etc_hosts_test(){
+    local pod_name=$1
+    local infra_name=$2
     local con1_name=con1-$(safename)
     local con2_name=con2-$(safename)
-    run_podman pod create --name $pod_name  --infra-name $infra_name
+    local pod_fqdn=$3
+    local expected_infra=$4
+    local additional_host=""
+    if [ -n "$pod_fqdn" ]; then
+      additional_host="--add-host \"$pod_fqdn;$pod_name:127.0.0.1\""
+    fi
+    run_podman pod create --name $pod_name  --infra-name $infra_name $additional_host
     pid="$output"
     run_podman run --rm --pod $pod_name --name $con1_name $IMAGE cat /etc/hosts
-    assert "$output" =~ ".*\s$pod_name $infra_name.*" \
+    assert "$output" =~ ".*\s$expected_infra*" \
            "Pod hostname in /etc/hosts"
     assert "$output" =~ ".*127.0.0.1\s$con1_name.*" \
            "Container1 name in /etc/hosts"
+    if [ -n "$pod_fqdn" ]; then
+        assert "$output" =~ ".*127.0.0.1\s$pod_fqdn $pod_name.*" \
+               "Pod FQDN name in /etc/hosts"
+    fi
     # get the length of the hosts file
     old_lines=${#lines[@]}
 
     # since the first container should be cleaned up now we should only see the
     # new host entry and the old one should be removed (lines check)
     run_podman run --pod $pod_name --name $con2_name $IMAGE cat /etc/hosts
-    assert "$output" =~ ".*\s$pod_name $infra_name.*" \
+    assert "$output" =~ ".*\s$expected_infra*" \
            "Pod hostname in /etc/hosts"
+    if [ -n "$pod_fqdn" ]; then
+        assert "$output" =~ ".*127.0.0.1\s$pod_fqdn $pod_name.*" \
+               "Pod FQDN name in /etc/hosts"
+    fi
     assert "$output" =~ ".*127.0.0.1\s$con2_name.*" \
            "Container2 name in /etc/hosts"
     assert "$output" !~ "$con1_name" \
@@ -187,12 +205,38 @@ load helpers.network
     is "${#lines[@]}" "$old_lines" \
        "Number of hosts lines is equal"
 
-    run_podman run --pod $pod_name  $IMAGE sh -c  "hostname && cat /etc/hostname"
+    if [ -n "$pod_fqdn" ]; then
+        run_podman run --pod $pod_name  $IMAGE sh -c  "hostname && cat /etc/hostname && hostname -f"
+    else
+        run_podman run --pod $pod_name  $IMAGE sh -c  "hostname && cat /etc/hostname"
+    fi
     is "${lines[0]}" "$pod_name" "hostname is the pod hostname"
     is "${lines[1]}" "$pod_name" "/etc/hostname contains correct pod hostname"
+    if [ -n "$pod_fqdn" ]; then
+        is "${lines[2]}" "$pod_fqdn" "fqdn hostname is the correct hostname with fqdn"
+    fi
 
     run_podman pod rm -f -t0 $pod_name
     is "$output" "$pid" "Only ID in output (no extra errors)"
+}
+
+# bats test_tags=ci:parallel
+@test "podman pod manages /etc/hosts correctly" {
+    local pod_name=pod-$(safename)
+    local infra_name=infra-$(safename)
+    local pod_fqdn=""
+    local expected_infra="$pod_name $infra_name"
+
+    run_pod_etc_hosts_test "$pod_name" "$infra_name" "$pod_fqdn" "$expected_infra"
+}
+# bats test_tags=ci:parallel
+@test "podman pod manages /etc/hosts correctly with fqdn" {
+    local pod_name=pod-$(safename)
+    local infra_name=infra-$(safename)
+    local pod_fqdn="${pod_name}.fqdn"
+    local expected_infra="$infra_name"
+
+    run_pod_etc_hosts_test "$pod_name" "$infra_name" "$pod_fqdn" "$expected_infra"
 }
 
 # "network create" now works rootless, with the help of a special container

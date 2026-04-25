@@ -2334,7 +2334,7 @@ func (c *Container) removeNameserver(ips []string) error {
 }
 
 func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
-	return etchosts.HostEntries{{IP: "127.0.0.1", Names: []string{c.Hostname(), c.config.Name}}}
+	return etchosts.HostEntries{{IP: "127.0.0.1", Names: []string{c.config.Name}}}
 }
 
 // getHostsEntries returns the container ip host entries for the correct netmode
