@@ -174,7 +174,7 @@ func (hv *HVSockRegistryEntry) exists() (bool, error) {
 // already being used by another hvsock in the Windows registry.
 func findOpenHVSockPort() (uint64, error) {
 	// If we cannot find a free port in 10 attempts, something is wrong
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		port, err := utils.GetRandomPort()
 		if err != nil {
 			return 0, err
