@@ -1172,7 +1172,7 @@ func (c *Container) cGroupPath() (string, error) {
 		}
 		// cgroups(7) nails it down to three fields with the 3rd
 		// pointing to the cgroup's path which works both on v1 and v2.
-		fields := bytes.Split(line, []byte(":"))
+		fields := bytes.SplitN(line, []byte(":"), 3)
 		if len(fields) != 3 {
 			logrus.Debugf("Error parsing cgroup: expected 3 fields but got %d: %s", len(fields), procPath)
 			continue
