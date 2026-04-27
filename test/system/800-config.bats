@@ -198,8 +198,6 @@ EOF
     skip_if_remote "--module is not supported for remote clients"
     skip_if_not_rootless "loading a module from XDG_CONFIG_HOME requires rootless"
 
-    skip "FIXME: re-enable modules shell completion once it works again in container-libs"
-
     fake_home="$PODMAN_TMPDIR/home/.config"
     fake_modules_dir="$fake_home/containers/containers.conf.modules"
     mkdir -p $fake_modules_dir

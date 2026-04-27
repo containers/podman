@@ -553,7 +553,7 @@ func ConfigDirPath(ctx *types.SystemContext) string {
 //
 // Note some env vars like CONTAINERS_REGISTRIES_CONF or $HOME will effect the
 // parsing behavior but are not used for the cache key here, if these env change
-// at runtime then the cache will result in correct results. This is a known trade
+// at runtime then the cache will return incorrect results. This is a known trade
 // off as regular callers are not expected to modify the envs at runtime.
 // If they do so they should call [InvalidateCache].
 type configWrapper struct {
