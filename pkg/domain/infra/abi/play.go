@@ -78,7 +78,7 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		MemorySwappiness: -1,
 		ReadOnly:         true,
 		ReadWriteTmpFS:   false,
-		// No need to spin up slirp etc.
+		// No need to set up networking.
 		Net:                  &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
 		StopTimeout:          rtc.Engine.StopTimeout,
 		HealthLogDestination: define.DefaultHealthCheckLocalDestination,

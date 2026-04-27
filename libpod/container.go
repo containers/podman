@@ -1445,7 +1445,7 @@ func (c *Container) NetworkMode() string {
 	switch {
 	case c.config.CreateNetNS:
 		// We actually store the network
-		// mode for Slirp and Bridge, so
+		// mode for Pasta and Bridge, so
 		// we can just use that
 		networkMode = string(c.config.NetMode)
 	case c.config.NetNsCtr != "":
@@ -1463,7 +1463,7 @@ func (c *Container) NetworkMode() string {
 						networkMode = fmt.Sprintf("ns:%s", ns.Path)
 					} else {
 						// We're making a network ns, but not
-						// configuring with Slirp. That means
+						// configuring networking. That means
 						// it's --net=none
 						networkMode = "none"
 					}
