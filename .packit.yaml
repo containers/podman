@@ -121,6 +121,7 @@ jobs:
     targets:
       - fedora-latest-stable
       - fedora-development
+    tmt_plan: "/plans/cockpit-podman"
     tf_extra_params:
       environments:
         - artifacts:
@@ -141,10 +142,15 @@ jobs:
         message: "tmt tests failed for commit {commit_sha}. @lsm5, @psss, @thrix please check."
     targets:
       - fedora-latest
-    fmf_url: https://github.com/teemtee/tmt
-    fmf_path: /plans/friends
-    fmf_ref: main
-    tmt_plan: "/podman"
+    tmt_plan: "/plans/tmt"
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-$releasever/rhcontainerbot-podman-next-fedora-$releasever.repo
+          tmt:
+            context:
+              revdeps: "yes"
 
   - job: propose_downstream
     trigger: release
