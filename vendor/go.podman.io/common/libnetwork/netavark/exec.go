@@ -101,10 +101,6 @@ func (n *netavarkNetwork) execNetavark(args []string, needPlugin bool, stdin, re
 	return n.execBinary(n.netavarkBinary, append(n.getCommonNetavarkOptions(needPlugin), args...), stdin, result, env)
 }
 
-func (n *netavarkNetwork) execPlugin(path string, args []string, stdin, result any) error {
-	return n.execBinary(path, args, stdin, result, nil)
-}
-
 func (n *netavarkNetwork) execBinary(path string, args []string, stdin, result any, env []string) error {
 	stdinR, stdinW, err := os.Pipe()
 	if err != nil {

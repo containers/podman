@@ -10,11 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
-	"time"
+	"strings"
 
 	internalutil "go.podman.io/common/libnetwork/internal/util"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/config"
 	"go.podman.io/storage/pkg/stringid"
 )
 
@@ -100,13 +100,14 @@ func (n *netavarkNetwork) NetworkCreate(net types.Network, options *types.Networ
 	if err != nil {
 		return types.Network{}, err
 	}
+
+	if options != nil && options.IgnoreIfExists {
+		if network, ok := n.networks[net.Name]; ok {
+			return *network, nil
+		}
+	}
 	network, err := n.networkCreate(&net, false)
 	if err != nil {
-		if options != nil && options.IgnoreIfExists && errors.Is(err, types.ErrNetworkExists) {
-			if network, ok := n.networks[net.Name]; ok {
-				return *network, nil
-			}
-		}
 		return types.Network{}, err
 	}
 	// add the new network to the map
@@ -139,251 +140,86 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 			return nil, errors.New("failed to create random network ID")
 		}
 	}
+	if newNetwork.Name == "" {
+		name, err := internalutil.GetFreeDeviceName(n)
+		if err != nil {
+			return nil, err
+		}
+		newNetwork.Name = name
+	}
 
-	err := internalutil.CommonNetworkCreate(n, newNetwork)
+	usedSubnets, err := internalutil.GetUsedSubnets(n)
 	if err != nil {
 		return nil, err
 	}
 
-	err = validateIPAMDriver(newNetwork)
+	usedNames := make(map[string]string, len(n.networks))
+	for name, network := range n.networks {
+		usedNames[name] = network.ID
+	}
+
+	type Used struct {
+		Interfaces []string          `json:"interfaces"`
+		Names      map[string]string `json:"names"`
+		Subnets    []types.IPNet     `json:"subnets"`
+	}
+
+	type ConfigOpts struct {
+		SubnetPools          []config.SubnetPool `json:"subnet_pools"`
+		DefaultInterfaceName string              `json:"default_interface_name"`
+		CheckUsedSubnets     bool                `json:"check_used_subnets"`
+	}
+
+	type CreateConfigOptions struct {
+		Network types.Network `json:"network"`
+		Used    Used          `json:"used"`
+		Options ConfigOpts    `json:"options"`
+	}
+
+	subnets := make([]types.IPNet, len(usedSubnets))
+	for i, subnet := range usedSubnets {
+		subnets[i] = types.IPNet{IPNet: *subnet}
+	}
+
+	opts := CreateConfigOptions{
+		Network: *newNetwork,
+		Used: Used{
+			Interfaces: internalutil.GetBridgeInterfaceNames(n),
+			Names:      usedNames,
+			Subnets:    subnets,
+		},
+		Options: ConfigOpts{
+			SubnetPools:          n.defaultsubnetPools,
+			DefaultInterfaceName: n.DefaultInterfaceName(),
+			CheckUsedSubnets:     !defaultNet,
+		},
+	}
+	var needsPlugin bool
+	if !slices.Contains(BuiltinDrivers, newNetwork.Driver) {
+		needsPlugin = true
+	}
+	var result *types.Network
+	err = n.execNetavark([]string{"create"}, needsPlugin, &opts, &result)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return nil, fmt.Errorf("network name %v already used: %w", newNetwork.Name, types.ErrNetworkExists)
+		}
 		return nil, err
 	}
 
-	// Only get the used networks for validation if we do not create the default network.
-	// The default network should not be validated against used subnets, we have to ensure
-	// that this network can always be created even when a subnet is already used on the host.
-	// This could happen if you run a container on this net, then the network interface will be
-	// created on the host and "block" this subnet from being used again.
-	// Therefore the next podman command tries to create the default net again and it would
-	// fail because it thinks the network is used on the host.
-	var usedNetworks []*net.IPNet
-	if !defaultNet && newNetwork.Driver == types.BridgeNetworkDriver {
-		usedNetworks, err = internalutil.GetUsedSubnets(n)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	switch newNetwork.Driver {
-	case types.BridgeNetworkDriver:
-		internalutil.MapDockerBridgeDriverOptions(newNetwork)
-
-		checkBridgeConflict := true
-		// validate the given options,
-		for key, value := range newNetwork.Options {
-			switch key {
-			case types.MTUOption:
-				_, err = internalutil.ParseMTU(value)
-				if err != nil {
-					return nil, err
-				}
-
-			case types.VLANOption:
-				_, err = internalutil.ParseVlan(value)
-				if err != nil {
-					return nil, err
-				}
-				// Unset used networks here to ensure that when using vlan networks
-				// we do not error if the subnet is already in use on the host.
-				// https://github.com/containers/podman/issues/25736
-				usedNetworks = nil
-				// If there is no vlan there should be no other config with the same bridge.
-				// However with vlan we want to allow that so that you can have different
-				// configs on the same bridge but different vlans
-				// https://github.com/containers/common/issues/2095
-				checkBridgeConflict = false
-
-			case types.IsolateOption:
-				val, err := internalutil.ParseIsolate(value)
-				if err != nil {
-					return nil, err
-				}
-				newNetwork.Options[types.IsolateOption] = val
-			case types.MetricOption:
-				_, err := strconv.ParseUint(value, 10, 32)
-				if err != nil {
-					return nil, err
-				}
-			case types.NoDefaultRoute:
-				val, err := strconv.ParseBool(value)
-				if err != nil {
-					return nil, err
-				}
-				// rust only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
-				newNetwork.Options[types.NoDefaultRoute] = strconv.FormatBool(val)
-			case types.VRFOption:
-				if len(value) == 0 {
-					return nil, errors.New("invalid vrf name")
-				}
-			case types.ModeOption:
-				switch value {
-				case types.BridgeModeManaged:
-				case types.BridgeModeUnmanaged:
-					// Unset used networks here to ensure that when using unmanaged networks
-					// we do not error if the subnet is already in use on the host.
-					// https://github.com/containers/common/issues/2322
-					usedNetworks = nil
-					// Also make sure we don't error if the bridge name is already used as well.
-					checkBridgeConflict = false
-				default:
-					return nil, fmt.Errorf("unknown bridge mode %q", value)
-				}
-			default:
-				return nil, fmt.Errorf("unsupported bridge network option %s", key)
-			}
-		}
-
-		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools, checkBridgeConflict)
-		if err != nil {
-			return nil, err
-		}
-
-	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
-		err = createIpvlanOrMacvlan(newNetwork)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		net, err := n.createPlugin(newNetwork)
-		if err != nil {
-			return nil, err
-		}
-		newNetwork = net
-	}
-
-	// when we do not have ipam we must disable dns
-	internalutil.IpamNoneDisableDNS(newNetwork)
-
-	// process NetworkDNSServers
-	if len(newNetwork.NetworkDNSServers) > 0 && !newNetwork.DNSEnabled {
-		return nil, fmt.Errorf("cannot set NetworkDNSServers if DNS is not enabled for the network: %w", types.ErrInvalidArg)
-	}
-	// validate ip address
-	for _, dnsServer := range newNetwork.NetworkDNSServers {
-		if net.ParseIP(dnsServer) == nil {
-			return nil, fmt.Errorf("unable to parse ip %s specified in NetworkDNSServers: %w", dnsServer, types.ErrInvalidArg)
-		}
-	}
-
-	// add gateway when not internal or dns enabled
-	addGateway := !newNetwork.Internal || newNetwork.DNSEnabled
-	err = internalutil.ValidateSubnets(newNetwork, addGateway, usedNetworks)
-	if err != nil {
+	// normalize network fields
+	if err := parseNetwork(result); err != nil {
 		return nil, err
 	}
-
-	// validate routes
-	err = internalutil.ValidateRoutes(newNetwork.Routes)
-	if err != nil {
-		return nil, err
-	}
-
-	newNetwork.Created = time.Now()
 
 	if !defaultNet {
-		err = n.commitNetwork(newNetwork)
+		err := n.commitNetwork(result)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return newNetwork, nil
-}
-
-// ipvlan shares the same mac address so supporting DHCP is not really possible.
-var errIpvlanNoDHCP = errors.New("ipam driver dhcp is not supported with ipvlan")
-
-func createIpvlanOrMacvlan(network *types.Network) error {
-	if network.NetworkInterface != "" {
-		interfaceNames, err := internalutil.GetLiveNetworkNames()
-		if err != nil {
-			return err
-		}
-		if !slices.Contains(interfaceNames, network.NetworkInterface) {
-			return fmt.Errorf("parent interface %s does not exist", network.NetworkInterface)
-		}
-	}
-
-	driver := network.Driver
-	isMacVlan := driver != types.IPVLANNetworkDriver
-
-	// always turn dns off with macvlan, it is not implemented in netavark
-	// and makes little sense to support with macvlan
-	// see https://github.com/containers/netavark/pull/467
-	network.DNSEnabled = false
-
-	// we already validated the drivers before so we just have to set the default here
-	switch network.IPAMOptions[types.Driver] {
-	case "":
-		if len(network.Subnets) == 0 {
-			// if no subnets and no driver choose dhcp
-			network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
-			if !isMacVlan {
-				return errIpvlanNoDHCP
-			}
-		} else {
-			network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
-		}
-	case types.HostLocalIPAMDriver:
-		if len(network.Subnets) == 0 {
-			return fmt.Errorf("%s driver needs at least one subnet specified when the host-local ipam driver is set", driver)
-		}
-	case types.DHCPIPAMDriver:
-		if !isMacVlan {
-			return errIpvlanNoDHCP
-		}
-		if len(network.Subnets) > 0 {
-			return errors.New("ipam driver dhcp set but subnets are set")
-		}
-	}
-
-	// validate the given options, we do not need them but just check to make sure they are valid
-	for key, value := range network.Options {
-		switch key {
-		case types.ModeOption:
-			if isMacVlan {
-				if !slices.Contains(types.ValidMacVLANModes, value) {
-					return fmt.Errorf("unknown macvlan mode %q", value)
-				}
-			} else {
-				if !slices.Contains(types.ValidIPVLANModes, value) {
-					return fmt.Errorf("unknown ipvlan mode %q", value)
-				}
-			}
-		case types.MetricOption:
-			_, err := strconv.ParseUint(value, 10, 32)
-			if err != nil {
-				return err
-			}
-		case types.MTUOption:
-			_, err := internalutil.ParseMTU(value)
-			if err != nil {
-				return err
-			}
-		case types.NoDefaultRoute:
-			val, err := strconv.ParseBool(value)
-			if err != nil {
-				return err
-			}
-			// rust only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
-			network.Options[types.NoDefaultRoute] = strconv.FormatBool(val)
-		case types.BclimOption:
-			if isMacVlan {
-				_, err := strconv.ParseInt(value, 10, 32)
-				if err != nil {
-					return fmt.Errorf("failed to parse %q option: %w", key, err)
-				}
-				// do not fallthrough for macvlan
-				break
-			}
-			// bclim is only valid for macvlan not ipvlan so fallthrough to error case
-			fallthrough
-		default:
-			return fmt.Errorf("unsupported %s network option %s", driver, key)
-		}
-	}
-	return nil
+	return result, nil
 }
 
 // NetworkRemove will remove the Network with the given name or ID.
@@ -461,45 +297,6 @@ func (n *netavarkNetwork) NetworkInspect(nameOrID string) (types.Network, error)
 	return *network, nil
 }
 
-func validateIPAMDriver(n *types.Network) error {
-	ipamDriver := n.IPAMOptions[types.Driver]
-	switch ipamDriver {
-	case "", types.HostLocalIPAMDriver, types.DHCPIPAMDriver:
-	case types.NoneIPAMDriver:
-		if len(n.Subnets) > 0 {
-			return errors.New("none ipam driver is set but subnets are given")
-		}
-	default:
-		return fmt.Errorf("unsupported ipam driver %q", ipamDriver)
-	}
-	return nil
-}
-
-var errInvalidPluginResult = errors.New("invalid plugin result")
-
-func (n *netavarkNetwork) createPlugin(net *types.Network) (*types.Network, error) {
-	path, err := getPlugin(net.Driver, n.pluginDirs)
-	if err != nil {
-		return nil, err
-	}
-	result := new(types.Network)
-	err = n.execPlugin(path, []string{"create"}, net, result)
-	if err != nil {
-		return nil, fmt.Errorf("plugin %s failed: %w", path, err)
-	}
-	// now make sure that neither the name, ID, driver were changed by the plugin
-	if net.Name != result.Name {
-		return nil, fmt.Errorf("%w: changed network name", errInvalidPluginResult)
-	}
-	if net.ID != result.ID {
-		return nil, fmt.Errorf("%w: changed network ID", errInvalidPluginResult)
-	}
-	if net.Driver != result.Driver {
-		return nil, fmt.Errorf("%w: changed network driver", errInvalidPluginResult)
-	}
-	return result, nil
-}
-
 func getAllPlugins(dirs []string) []string {
 	var plugins []string
 	for _, dir := range dirs {
@@ -514,15 +311,4 @@ func getAllPlugins(dirs []string) []string {
 		}
 	}
 	return plugins
-}
-
-func getPlugin(name string, dirs []string) (string, error) {
-	for _, dir := range dirs {
-		fullpath := filepath.Join(dir, name)
-		st, err := os.Stat(fullpath)
-		if err == nil && st.Mode().IsRegular() {
-			return fullpath, nil
-		}
-	}
-	return "", fmt.Errorf("failed to find driver or plugin %q", name)
 }

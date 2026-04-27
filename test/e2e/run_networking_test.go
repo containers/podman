@@ -1114,7 +1114,7 @@ options ndots:1
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet, "--subnet", subnet, netName})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).ShouldNot(ExitCleanly())
-		Expect(nc.ErrorToString()).To(ContainSubstring("duplicate subnets"))
+		Expect(nc.ErrorToString()).To(ContainSubstring("duplicate subnet"))
 	})
 
 	It("podman network create with same IPv6 subnets", func() {
@@ -1124,7 +1124,7 @@ options ndots:1
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", subnet, "--subnet", subnet, netName})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).ShouldNot(ExitCleanly())
-		Expect(nc.ErrorToString()).To(ContainSubstring("duplicate subnets"))
+		Expect(nc.ErrorToString()).To(ContainSubstring("duplicate subnet"))
 	})
 
 	It("podman network create with overlapping subnets", func() {
