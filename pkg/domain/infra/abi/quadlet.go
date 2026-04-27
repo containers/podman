@@ -703,7 +703,8 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 	}
 
 	reports := make([]*entities.ListQuadlet, 0, len(quadletPaths))
-	allServiceNames := make([]string, 0, len(quadletPaths))
+	concreteServiceNames := make([]string, 0, len(quadletPaths))
+	templateServiceNames := make([]string, 0, len(quadletPaths))
 	partialReports := make(map[string]entities.ListQuadlet)
 
 	for _, path := range quadletPaths {
@@ -728,16 +729,21 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 			report.Pod = pod
 		}
 		partialReports[serviceName] = report
-		allServiceNames = append(allServiceNames, serviceName)
+
+		if systemdquadlet.IsTemplateUnitFileName(serviceName) {
+			templateServiceNames = append(templateServiceNames, serviceName)
+		} else {
+			concreteServiceNames = append(concreteServiceNames, serviceName)
+		}
 	}
 
-	// Get status of all systemd units with given names.
-	statuses, err := conn.ListUnitsByNamesContext(ctx, allServiceNames)
+	// Get status of concrete systemd units with given names.
+	statuses, err := conn.ListUnitsByNamesContext(ctx, concreteServiceNames)
 	if err != nil {
 		return nil, fmt.Errorf("querying systemd for unit status: %w", err)
 	}
-	if len(statuses) != len(allServiceNames) {
-		logrus.Warnf("Queried for %d services but received %d responses", len(allServiceNames), len(statuses))
+	if len(statuses) != len(concreteServiceNames) {
+		logrus.Warnf("Queried for %d services but received %d responses", len(concreteServiceNames), len(statuses))
 	}
 	for _, unitStatus := range statuses {
 		report, ok := partialReports[unitStatus.Name]
@@ -756,6 +762,30 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 		}
 		reports = append(reports, &report)
 		delete(partialReports, unitStatus.Name)
+	}
+
+	// Uninstantiated template units need to be handled separately.
+	unitFiles, err := conn.ListUnitFilesByPatternsContext(ctx, []string{}, templateServiceNames)
+	if err != nil {
+		return nil, fmt.Errorf("querying systemd for unit file: %w", err)
+	}
+	unitFilesFound := make(map[string]struct{})
+	for _, unitFile := range unitFiles {
+		unitFilesFound[filepath.Base(unitFile.Path)] = struct{}{}
+	}
+	for _, templateServiceName := range templateServiceNames {
+		report := partialReports[templateServiceName]
+
+		report.UnitName = templateServiceName
+
+		if _, ok := unitFilesFound[templateServiceName]; ok {
+			report.Status = "loaded template"
+		} else {
+			report.Status = "Not loaded"
+		}
+
+		reports = append(reports, &report)
+		delete(partialReports, templateServiceName)
 	}
 
 	// This should not happen.
@@ -869,10 +899,11 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	}
 	quadlets = expandQuadletList
 	allQuadletPaths := make([]string, 0, len(quadlets))
-	allServiceNames := make([]string, 0, len(quadlets))
+	concreteServiceNames := make([]string, 0, len(quadlets))
+	templateServiceNames := make([]string, 0, len(quadlets))
 	runningQuadlets := make([]string, 0, len(quadlets))
 	serviceNameToQuadletName := make(map[string]string)
-	needReload := options.ReloadSystemd
+	needReload := false
 
 	if len(quadlets) == 0 && !options.All {
 		return nil, errors.New("must provide at least 1 quadlet to remove")
@@ -949,15 +980,19 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			continue
 		}
 
-		allServiceNames = append(allServiceNames, serviceName)
+		if systemdquadlet.IsTemplateUnitFileName(serviceName) {
+			templateServiceNames = append(templateServiceNames, serviceName)
+		} else {
+			concreteServiceNames = append(concreteServiceNames, serviceName)
+		}
 		serviceNameToQuadletName[serviceName] = quadlet
 	}
 
-	if len(allServiceNames) != 0 {
+	if len(concreteServiceNames) != 0 {
 		// Check if units are loaded into systemd, and further if they are running.
 		// If running and force is not set, error.
 		// If force is set, try and stop the unit.
-		statuses, err := conn.ListUnitsByNamesContext(ctx, allServiceNames)
+		statuses, err := conn.ListUnitsByNamesContext(ctx, concreteServiceNames)
 		if err != nil {
 			return nil, fmt.Errorf("querying systemd for unit status: %w", err)
 		}
@@ -968,7 +1003,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 				// Nothing to do here if it doesn't exist in systemd
 				continue
 			}
-			needReload = options.ReloadSystemd
+			needReload = needReload || options.ReloadSystemd
 			if unitStatus.ActiveState == "active" {
 				if !options.Force {
 					report.Errors[quadletName] = fmt.Errorf("quadlet %s is running and force is not set, refusing to remove: %w", quadletName, define.ErrQuadletRunning)
@@ -990,6 +1025,17 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 					continue
 				}
 			}
+		}
+	}
+
+	if len(templateServiceNames) != 0 {
+		// Uninstantiated template units need to be handled separately.
+		unitFiles, err := conn.ListUnitFilesByPatternsContext(ctx, []string{}, templateServiceNames)
+		if err != nil {
+			return nil, fmt.Errorf("querying systemd for unit file: %w", err)
+		}
+		if len(unitFiles) != 0 {
+			needReload = needReload || options.ReloadSystemd
 		}
 	}
 
