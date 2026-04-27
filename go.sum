@@ -261,6 +261,8 @@ github.com/moby/patternmatcher v0.6.1 h1:qlhtafmr6kgMIJjKJMDmMWq7WLkKIo23hsrpR3x
 github.com/moby/patternmatcher v0.6.1/go.mod h1:hDPoyOpDY7OrrMDLaYoY3hf52gNCR/YOUYxkhApJIxc=
 github.com/moby/sys/capability v0.4.0 h1:4D4mI6KlNtWMCM1Z/K0i7RV1FkX+DBDHKVJpCndZoHk=
 github.com/moby/sys/capability v0.4.0/go.mod h1:4g9IK291rVkms3LKCDOoYlnV8xKwoDTpIrNEE35Wq0I=
+github.com/moby/sys/devices v0.1.0 h1:uaMrDm1U3h0AwUDNWeT5lBV40v0eayt+VuukRbYn5K4=
+github.com/moby/sys/devices v0.1.0/go.mod h1:nIV6AO7t0DY2ObAm1GfL4AX9mBRqzxzHwGfvNCR9lfI=
 github.com/moby/sys/mountinfo v0.7.2 h1:1shs6aH5s4o5H2zQLn796ADW1wMrIwHsyJ2v9KouLrg=
 github.com/moby/sys/mountinfo v0.7.2/go.mod h1:1YOa8w8Ih7uW0wALDUgT1dTTSBrZ+HiBLGws92L2RU4=
 github.com/moby/sys/sequential v0.6.0 h1:qrx7XFUd/5DxtqcoH1h438hF5TmOvzC/lspjy7zgvCU=
@@ -429,12 +431,12 @@ go.opentelemetry.io/otel/trace v1.43.0 h1:BkNrHpup+4k4w+ZZ86CZoHHEkohws8AY+WTX09
 go.opentelemetry.io/otel/trace v1.43.0/go.mod h1:/QJhyVBUUswCphDVxq+8mld+AvhXZLhe+8WVFxiFff0=
 go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85 h1:rVKRagobPO6kGHOg2NhGNs6xWVgZctiOn4tmxa3cytA=
 go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85/go.mod h1:JjFirF1zlILz55ZkVYYhLRnted7mPlmoS2w2ihYw8iw=
-go.podman.io/common v0.67.2-0.20260423135811-cbaa5f41e643 h1:WwUcVKPEUoSDiQ22osdYGqM3q9IDB4viqSASPCdw1K0=
-go.podman.io/common v0.67.2-0.20260423135811-cbaa5f41e643/go.mod h1:kBztCGxEhou0OO0O4yJXAKC3JEQTmOxCJPni90+sQKY=
-go.podman.io/image/v5 v5.39.3-0.20260423135811-cbaa5f41e643 h1:1LuhuiiXHHteVXULDV/x9qxJtFozQPLEYKHCbYdOuP0=
-go.podman.io/image/v5 v5.39.3-0.20260423135811-cbaa5f41e643/go.mod h1:sAszAH18v4KPpzPZdav9ovjEBcIDkmqdhbJV9SmnzfE=
-go.podman.io/storage v1.62.1-0.20260423135811-cbaa5f41e643 h1:/zmZ36KkCZumHK0EDH5QpSjyM3fY09YuyIfqoXxEI48=
-go.podman.io/storage v1.62.1-0.20260423135811-cbaa5f41e643/go.mod h1:13aOBf6782/fbAzH7QNEqlVzFu+X4sS4MxDM/VdJGZU=
+go.podman.io/common v0.67.2-0.20260427104901-081c2519fc6a h1:cWMyBIJJe5g67dRtnzstL/tneqk2zUFDOrWHuX88tfg=
+go.podman.io/common v0.67.2-0.20260427104901-081c2519fc6a/go.mod h1:dxkgre+xzxpAUuDsXBeAgTcNR4jN8d/00oHYt8QcNHs=
+go.podman.io/image/v5 v5.39.3-0.20260427104901-081c2519fc6a h1:8tXwkOe3xho4XKZcsGu8PPMZi80bwQ/IR0Blr8dH69I=
+go.podman.io/image/v5 v5.39.3-0.20260427104901-081c2519fc6a/go.mod h1:sAszAH18v4KPpzPZdav9ovjEBcIDkmqdhbJV9SmnzfE=
+go.podman.io/storage v1.62.1-0.20260427104901-081c2519fc6a h1:i1Imee48BwEq66Kkwb2TAUnwDTOeGNLkUsXyjcdYHeA=
+go.podman.io/storage v1.62.1-0.20260427104901-081c2519fc6a/go.mod h1:13aOBf6782/fbAzH7QNEqlVzFu+X4sS4MxDM/VdJGZU=
 go.yaml.in/yaml/v2 v2.4.3 h1:6gvOSjQoTB3vt1l+CU+tSyi/HOjfOjRLJ4YwYZGwRO0=
 go.yaml.in/yaml/v2 v2.4.3/go.mod h1:zSxWcmIDjOzPXpjlTTbAsKokqkDNAVtZO0WOMiT90s8=
 go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=

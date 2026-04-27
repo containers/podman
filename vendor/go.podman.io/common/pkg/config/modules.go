@@ -1,5 +1,7 @@
 package config
 
+import "go.podman.io/storage/pkg/configfile"
+
 // LoadedModules returns absolute paths to loaded containers.conf modules.
 func (c *Config) LoadedModules() []string {
 	// Required for conmon's callback to Podman's cleanup.
@@ -12,6 +14,9 @@ func (c *Config) LoadedModules() []string {
 // 2) /etc/
 // 3) /usr/share.
 func ModuleDirectories() ([]string, error) { // Public API for shell completions in Podman
-	// FIXME: expose this again
-	return nil, nil
+	conf := defaultConfigFileOpts()
+	// API needs us to pass an non empty string to trigger module path resolution
+	conf.Modules = []string{""}
+	paths, err := configfile.GetSearchPaths(conf)
+	return paths.ModuleDirectories, err
 }

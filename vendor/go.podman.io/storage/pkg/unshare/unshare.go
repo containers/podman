@@ -7,26 +7,18 @@ import (
 	"sync"
 )
 
-var (
-	homeDirOnce sync.Once
-	homeDirErr  error
-	homeDir     string
-)
+var lookupHomeDir = sync.OnceValues(func() (string, error) {
+	usr, err := user.LookupId(fmt.Sprintf("%d", GetRootlessUID()))
+	if err != nil {
+		return "", fmt.Errorf("unable to resolve HOME directory: %w", err)
+	}
+	return usr.HomeDir, nil
+})
 
 // HomeDir returns the home directory for the current user.
 func HomeDir() (string, error) {
-	homeDirOnce.Do(func() {
-		home := os.Getenv("HOME")
-		if home == "" {
-			usr, err := user.LookupId(fmt.Sprintf("%d", GetRootlessUID()))
-			if err != nil {
-				homeDir, homeDirErr = "", fmt.Errorf("unable to resolve HOME directory: %w", err)
-				return
-			}
-			homeDir, homeDirErr = usr.HomeDir, nil
-			return
-		}
-		homeDir, homeDirErr = home, nil
-	})
-	return homeDir, homeDirErr
+	if home := os.Getenv("HOME"); home != "" {
+		return home, nil
+	}
+	return lookupHomeDir()
 }
