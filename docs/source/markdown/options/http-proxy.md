@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman build, create, farm build, run
+####>   podman build, podman-container.unit.5.md.in, create, farm build, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+<< if is_quadlet >>
+### `HttpProxy=`
+<< else >>
 #### **--http-proxy**
+<< endif>>
 
 By default proxy environment variables are passed into the container if set
 for the Podman process. This can be disabled by setting the value to **false**.

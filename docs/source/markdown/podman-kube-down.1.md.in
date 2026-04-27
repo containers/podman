@@ -18,9 +18,7 @@ When multiple YAML files are specified (local files, URLs, or a combination), th
 
 ## OPTIONS
 
-#### **--force**
-
-Tear down the volumes linked to the PersistentVolumeClaims as part --down
+@@option force.kube-down
 
 ## EXAMPLES
 
