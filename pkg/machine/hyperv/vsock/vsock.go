@@ -27,6 +27,11 @@ const (
 	PodmanToolName = "podman"
 	// HvsockPurpose is the string identifier for the sock purpose in a registry entry
 	HvsockPurpose = "Purpose"
+	// HvsockKeepAfterMachineRemove is a flag to avoid that the entry gets deleted when
+	// the last machine gets deleted. This is important for use cases where an Administrator
+	// wants to pre-create the registry key so that the user can create and delete machines
+	// without requiring admin privileges.
+	HvsockKeepAfterMachineRemove = "KeepAfterMachineRemove"
 	// VsockRegistryPath describes the registry path to where the hvsock registry entries live
 	VsockRegistryPath = `SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization\GuestCommunicationServices`
 	// LinuxVM is the default guid for a Linux VM on Windows
@@ -45,7 +50,7 @@ const (
 	Fileserver
 )
 
-func (hv HVSockPurpose) string() string {
+func (hv HVSockPurpose) String() string {
 	switch hv {
 	case Network:
 		return "Network"
@@ -58,7 +63,7 @@ func (hv HVSockPurpose) string() string {
 }
 
 func (hv HVSockPurpose) Equal(purpose string) bool {
-	return hv.string() == purpose
+	return hv.String() == purpose
 }
 
 func toHVSockPurpose(p string) (HVSockPurpose, error) {
@@ -92,6 +97,24 @@ type HVSockRegistryEntry struct {
 	// if purpose is not enough.
 	ToolName string       `json:"creator_tool,omitempty"`
 	Key      registry.Key `json:"key,omitempty"`
+
+	// KeepAfterMachineRemove is set to true if the registry entry should not be deleted
+	// when the user deletes or reset the Podman machines.
+	// This is useful to let unprivileged users create and delete machines without
+	// requiring privileges to edit the registry.
+	KeepAfterMachineRemove bool `json:"keep_after_machine_remove,omitempty"`
+}
+
+func (hv *HVSockRegistryEntry) String() string {
+	keepStatus := ""
+	if hv.KeepAfterMachineRemove {
+		keepStatus = " (persistent)"
+	}
+	return fmt.Sprintf("- Key: %s\n  Purpose: %s\n  Port: %d%s\n",
+		hv.KeyName,
+		hv.Purpose,
+		hv.Port,
+		keepStatus)
 }
 
 // Add creates a new Windows registry entry with string values from the
@@ -105,31 +128,41 @@ func (hv *HVSockRegistryEntry) Add() error {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("%q: %s", ErrVSockRegistryEntryExists, hv.KeyName)
+		return fmt.Errorf("%w: %s", ErrVSockRegistryEntryExists, hv.KeyName)
 	}
 	parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		if err := parentKey.Close(); err != nil {
 			logrus.Error(err)
 		}
 	}()
+	newKey, _, err := registry.CreateKey(parentKey, hv.KeyName, registry.WRITE)
 	if err != nil {
 		return err
 	}
-	newKey, _, err := registry.CreateKey(parentKey, hv.KeyName, registry.WRITE)
 	defer func() {
 		if err := newKey.Close(); err != nil {
 			logrus.Error(err)
 		}
 	}()
-	if err != nil {
-		return err
-	}
 
-	if err := newKey.SetStringValue(HvsockPurpose, hv.Purpose.string()); err != nil {
+	if err := newKey.SetStringValue(HvsockPurpose, hv.Purpose.String()); err != nil {
 		return err
 	}
-	return newKey.SetStringValue(HvsockToolName, hv.ToolName)
+	if err := newKey.SetStringValue(HvsockToolName, hv.ToolName); err != nil {
+		return err
+	}
+	// Save KeepAfterMachineRemove flag if set
+	if hv.KeepAfterMachineRemove {
+		var value uint32 = 1
+		if err := newKey.SetDWordValue(HvsockKeepAfterMachineRemove, value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Remove deletes the registry key and its string values
@@ -145,7 +178,7 @@ func (hv *HVSockRegistryEntry) validate() error {
 	if hv.Port < 1 {
 		return errors.New("port must be larger than 1")
 	}
-	if len(hv.Purpose.string()) < 1 {
+	if len(hv.Purpose.String()) < 1 {
 		return errors.New("required field purpose is empty")
 	}
 	if len(hv.ToolName) < 1 {
@@ -170,11 +203,11 @@ func (hv *HVSockRegistryEntry) exists() (bool, error) {
 	return false, err
 }
 
-// findOpenHVSockPort looks for an open random port. it verifies the port is not
+// FindOpenHVSockPort looks for an open random port. it verifies the port is not
 // already being used by another hvsock in the Windows registry.
-func findOpenHVSockPort() (uint64, error) {
+func FindOpenHVSockPort() (uint64, error) {
 	// If we cannot find a free port in 10 attempts, something is wrong
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		port, err := utils.GetRandomPort()
 		if err != nil {
 			return 0, err
@@ -190,29 +223,27 @@ func findOpenHVSockPort() (uint64, error) {
 			// the port is good to go
 			return uint64(port), nil
 		}
-		if err != nil {
-			// something went wrong
-			return 0, err
-		}
+		return 0, err
 	}
 	return 0, errors.New("unable to find a free port for hvsock use")
 }
 
 // NewHVSockRegistryEntry is a constructor to make a new registry entry in Windows.  After making the new
 // object, you must call the add() method to *actually* add it to the Windows registry.
-func NewHVSockRegistryEntry(purpose HVSockPurpose) (*HVSockRegistryEntry, error) {
+func NewHVSockRegistryEntry(purpose HVSockPurpose, keep bool) (*HVSockRegistryEntry, error) {
 	// a so-called wildcard entry ... everything from FACB -> 6D3 is MS special sauce
 	// for a " linux vm".  this first segment is hexi for the hvsock port number
 	// 00000400-FACB-11E6-BD58-64006A7986D3
-	port, err := findOpenHVSockPort()
+	port, err := FindOpenHVSockPort()
 	if err != nil {
 		return nil, err
 	}
 	r := HVSockRegistryEntry{
-		KeyName:  portToKeyName(port),
-		Purpose:  purpose,
-		Port:     port,
-		ToolName: PodmanToolName,
+		KeyName:                PortToKeyName(port),
+		Purpose:                purpose,
+		Port:                   port,
+		ToolName:               PodmanToolName,
+		KeepAfterMachineRemove: keep,
 	}
 	if err := r.Add(); err != nil {
 		return nil, err
@@ -220,7 +251,7 @@ func NewHVSockRegistryEntry(purpose HVSockPurpose) (*HVSockRegistryEntry, error)
 	return &r, nil
 }
 
-func portToKeyName(port uint64) string {
+func PortToKeyName(port uint64) string {
 	// this could be flattened but given the complexity, I thought it might
 	// be more difficult to read
 	hexi := strings.ToUpper(fmt.Sprintf("%08x", port))
@@ -228,7 +259,7 @@ func portToKeyName(port uint64) string {
 }
 
 func LoadHVSockRegistryEntry(port uint64) (*HVSockRegistryEntry, error) {
-	keyName := portToKeyName(port)
+	keyName := PortToKeyName(port)
 	fqPath := fmt.Sprintf("%s\\%s", VsockRegistryPath, keyName)
 	k, err := openVSockRegistryEntry(fqPath)
 	if err != nil {
@@ -290,8 +321,6 @@ func (hv *HVSockRegistryEntry) ListenSetupWait() (func() error, io.Closer, error
 
 // loadAllHVSockRegistryEntries loads HVSock registry entries, filtered by purpose and optionally limited by size.
 // If limit is -1, it returns all matching entries. Otherwise, it returns up to 'limit' entries.
-// The caller is responsible for closing the registry.Key in each returned HVSockRegistryEntry.
-// Non-matching or excess keys are closed within this function.
 func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegistryEntry, error) {
 	parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.ENUMERATE_SUB_KEYS)
 	if err != nil {
@@ -318,6 +347,12 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 
 		fqPath := fmt.Sprintf("%s\\%s", VsockRegistryPath, subKeyName)
 		k, err := openVSockRegistryEntry(fqPath)
+		defer func(key registry.Key) {
+			if err := key.Close(); err != nil {
+				logrus.Errorf("failed to close registry key: %v", err)
+			}
+		}(k)
+
 		if err != nil {
 			logrus.Debugf("Could not open registry entry %s: %v", fqPath, err)
 			continue
@@ -326,18 +361,20 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 		p, _, err := k.GetStringValue(HvsockPurpose)
 		if err != nil {
 			logrus.Debugf("Could not read purpose from registry entry %s: %v", fqPath, err)
-			k.Close()
 			continue
 		}
 
 		toolName, _, err := k.GetStringValue(HvsockToolName)
 		if err != nil {
 			logrus.Debugf("Could not read tool name from registry entry %s: %v", fqPath, err)
-			k.Close()
 			continue
 		}
 
-		k.Close()
+		keep, _, err := k.GetIntegerValue(HvsockKeepAfterMachineRemove)
+		keepBool := false
+		if err == nil {
+			keepBool = keep != 0
+		}
 
 		entryPurpose, err := toHVSockPurpose(p)
 		if err != nil {
@@ -345,7 +382,7 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 			continue
 		}
 
-		if !entryPurpose.Equal(purpose.string()) {
+		if !entryPurpose.Equal(purpose.String()) {
 			continue
 		}
 
@@ -367,15 +404,33 @@ func loadHVSockRegistryEntries(purpose HVSockPurpose, limit int) ([]*HVSockRegis
 		}
 
 		allEntries = append(allEntries, &HVSockRegistryEntry{
-			KeyName:  subKeyName,
-			Purpose:  entryPurpose,
-			Port:     port,
-			Key:      k,
-			ToolName: PodmanToolName,
+			KeyName:                subKeyName,
+			Purpose:                entryPurpose,
+			Port:                   port,
+			Key:                    k,
+			ToolName:               PodmanToolName,
+			KeepAfterMachineRemove: keepBool,
 		})
 	}
 
 	return allEntries, nil
+}
+
+func CheckIfHVSockRegistryEntriesExist(mountsNum int) bool {
+	// The number or required HVSock registry entries
+	// depends on the purpose
+	requiredEntries := map[HVSockPurpose]int{
+		Network:    1,
+		Events:     1,
+		Fileserver: mountsNum,
+	}
+	for p, i := range requiredEntries {
+		entries, err := loadHVSockRegistryEntries(p, i)
+		if len(entries) < i || err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func LoadHVSockRegistryEntryByPurpose(purpose HVSockPurpose) (*HVSockRegistryEntry, error) {
@@ -384,7 +439,7 @@ func LoadHVSockRegistryEntryByPurpose(purpose HVSockPurpose) (*HVSockRegistryEnt
 		return nil, err
 	}
 	if len(entries) != 1 {
-		return nil, fmt.Errorf("no hvsock registry entry found for purpose: %s", purpose.string())
+		return nil, fmt.Errorf("no hvsock registry entry found for purpose: %s", purpose.String())
 	}
 
 	return entries[0], nil
@@ -429,6 +484,10 @@ func RemoveAllHVSockRegistryEntries() error {
 
 	var removalErrors []error
 	for _, sock := range allSocks {
+		// Don't remove registry entries if KeepAfterMachineRemove is set to true
+		if sock.KeepAfterMachineRemove {
+			continue
+		}
 		if err := sock.Remove(); err != nil {
 			logrus.Errorf("unable to remove registry entry for %s: %q", sock.KeyName, err)
 			removalErrors = append(removalErrors, fmt.Errorf("failed to remove sock %s: %w", sock.KeyName, err))

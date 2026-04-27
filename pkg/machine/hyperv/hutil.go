@@ -24,6 +24,7 @@ var (
 	// Lazily load the NetAPI32 DLL and the function we need
 	modnetapi32                 = syswindows.NewLazySystemDLL("netapi32.dll")
 	procNetLocalGroupAddMembers = modnetapi32.NewProc("NetLocalGroupAddMembers")
+	procNetLocalGroupDelMembers = modnetapi32.NewProc("NetLocalGroupDelMembers")
 	procNetLocalGroupGetMembers = modnetapi32.NewProc("NetLocalGroupGetMembers")
 	procNetApiBufferFree        = modnetapi32.NewProc("NetApiBufferFree")
 )
@@ -85,6 +86,40 @@ func AddUserToHyperVAdminGroup(username string) error {
 	// https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--1300-1699-
 	if errno != syswindows.NO_ERROR && errno != syswindows.ERROR_MEMBER_IN_ALIAS {
 		return fmt.Errorf("NetLocalGroupAddMembers failed with error: %w", errno)
+	}
+
+	return nil
+}
+
+// RemoveUserFromHyperVAdminGroup removes the specified user from the local Hyper-V Administrators group.
+func RemoveUserFromHyperVAdminGroup(username string) error {
+	groupPtr, err := getHyperVAdminGroupNamePtr()
+	if err != nil {
+		return err
+	}
+
+	userSid, _, _, err := syswindows.LookupSID("", username)
+	if err != nil {
+		return fmt.Errorf("failed to look up SID for user %q: %w", username, err)
+	}
+
+	info := localGroupMembersInfo0{
+		Sid: userSid,
+	}
+
+	// C Signature: NET_API_STATUS NetLocalGroupDelMembers(LPCWSTR servername, LPCWSTR groupname, DWORD level, LPBYTE buf, DWORD totalentries)
+	ret, _, _ := procNetLocalGroupDelMembers.Call(
+		0,                                 // ServerName (0 = local machine)
+		uintptr(unsafe.Pointer(groupPtr)), // GroupName
+		0,                                 // Level 0 (we are passing a SID)
+		uintptr(unsafe.Pointer(&info)),    // Buffer containing our struct
+		1,                                 // Total Entries being removed
+	)
+
+	errno := syswindows.Errno(ret)
+	// ERROR_MEMBER_NOT_IN_ALIAS = "The specified account name is not a member of the group."
+	if errno != syswindows.NO_ERROR && errno != syswindows.ERROR_MEMBER_NOT_IN_ALIAS {
+		return fmt.Errorf("NetLocalGroupDelMembers failed with error: %w", errno)
 	}
 
 	return nil

@@ -12,6 +12,8 @@ type HyperVConfig struct {
 	ReadyVsock vsock.HVSockRegistryEntry
 	// NetworkVSock is for the user networking
 	NetworkVSock vsock.HVSockRegistryEntry
+	// FileserverVSocks are for machine mounts (one entry per mount)
+	FileserverVSocks []vsock.HVSockRegistryEntry
 }
 
 type WSLConfig struct {

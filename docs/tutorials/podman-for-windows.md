@@ -55,9 +55,13 @@ a VM, you must have a VM that supports nested virtualization.
 
 Hyper-V is only available on Windows Enterprise, Pro, or Education editions (not
 Home). The command to initialize the first Hyper-V Podman machine, and the command
-to remove the last one, both require administrator privileges. Other commands for
-machine management (start, stop, etc...) require that the current user is a member
-of the Hyper-V administrators group.
+to remove the last one, both require administrator privileges because they create
+and delete machine-scope registry keys. Additionally, all Hyper-V machine commands
+require that the current user is a member of the Hyper-V Administrators group. To
+avoid these requirements, an administrator can run `podman system hyperv-prep`
+once to pre-create the registry entries and add the current user to the Hyper-V
+Administrators group, after which no machine operation requires administrator
+privileges.
 
 It is also recommended to install the modern "Windows Terminal," which
 provides a superior user experience to the standard PowerShell and CMD
@@ -176,10 +180,14 @@ PS C:\Users\User> podman machine init --provider hyperv
 
 **Note:** Hyper-V requires administrator privileges to initialize the first
 podman machine. Similarly it requires administrator privileges to remove the
-last machine. That's because these operation create and delete
-machine-scope registry keys, required to support the communication between the
-guest OS and the host. Other commands such as machine start and stop require
-that the current user is a member of the Hyper-V Administrator group.
+last machine. That's because these operations create and delete machine-scope
+registry keys, required to support the communication between the guest OS and
+the host. Additionally, all Hyper-V machine commands require that the current
+user is a member of the Hyper-V Administrators group. To avoid these
+requirements, run `podman system hyperv-prep` once from an administrator
+terminal to pre-create persistent registry entries and add the current user
+to the Hyper-V Administrators group, so that all subsequent machine operations
+can run without administrator privileges.
 
 Starting Machine
 ----------------
