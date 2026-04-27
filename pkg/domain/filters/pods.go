@@ -122,7 +122,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 	case "label!":
 		return func(p *libpod.Pod) bool {
 			labels := p.Labels()
-			return !filters.MatchLabelFilters(filterValues, labels)
+			return filters.MatchNegatedLabelFilters(filterValues, labels)
 		}, nil
 	case "until":
 		return func(p *libpod.Pod) bool {

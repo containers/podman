@@ -189,7 +189,7 @@ var _ = Describe("Podman volume ls", func() {
 
 		vol1Name := session.OutputToString()
 
-		session = podmanTest.Podman([]string{"volume", "create", "--label", "b=c", "--label", "a=b", "vol2"})
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "--label", "b=c", "--label", "d=e", "vol2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -208,11 +208,18 @@ var _ = Describe("Podman volume ls", func() {
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol1Name))
 		Expect(session.OutputToStringArray()[1]).To(Equal(vol2Name))
 
-		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=c=d", "--filter", "label=b=c"})
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=b=c", "--filter", "label=c=d"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol3Name))
+
+		// Filters with label! key
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label!=c=d", "--filter", "label!=d=e"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		Expect(session.OutputToStringArray()[0]).To(Equal(vol1Name))
 	})
 
 	It("podman ls volume with --filter since/after", func() {
