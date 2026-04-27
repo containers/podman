@@ -82,7 +82,7 @@ func PipeNameAvailable(pipeName string, maxWait time.Duration) bool {
 
 func WaitPipeExists(pipeName string, retries int, checkFailure func() error) error {
 	var err error
-	for i := 0; i < retries; i++ {
+	for range retries {
 		err = fileutils.Exists(`\\.\pipe\` + pipeName)
 		if err == nil {
 			break

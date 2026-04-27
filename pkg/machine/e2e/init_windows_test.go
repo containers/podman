@@ -174,7 +174,7 @@ var _ = Describe("podman machine init - windows only", func() {
 		newFileServerVsocks, err := vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Fileserver)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(newFileServerVsocks).To(HaveLen(countFileServerVsocks))
-		for i := 0; i < countFileServerVsocks; i++ {
+		for i := range countFileServerVsocks {
 			Expect(newFileServerVsocks[i].Port).To(Equal(fileServerVsocks[i].Port))
 		}
 

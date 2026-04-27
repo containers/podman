@@ -210,12 +210,7 @@ func wrapMaybef(err error, format string, args ...any) error {
 
 // IsReExecuting checks if the current process was re-executed with --reexec flag
 func IsReExecuting() bool {
-	for _, arg := range os.Args {
-		if arg == "--reexec" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(os.Args, "--reexec")
 }
 
 func CreateOrTruncateElevatedOutputFile() error {
