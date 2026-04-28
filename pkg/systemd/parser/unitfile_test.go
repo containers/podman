@@ -371,6 +371,91 @@ func TestLookupQuoteStripping(t *testing.T) {
 	}
 }
 
+func TestLookupAllKeyVal(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    map[string]*string
+		wantWarning bool
+	}{
+		{
+			name:  "single KEY=VALUE no whitespace",
+			input: "Label=foo=bar\n",
+			expected: map[string]*string{
+				"foo": stringPtr("bar"),
+			},
+			wantWarning: false,
+		},
+		{
+			name:  "two KEY=VALUE space-separated on one line",
+			input: "Label=foo=bar baz=qux\n",
+			expected: map[string]*string{
+				"foo": stringPtr("bar"),
+				"baz": stringPtr("qux"),
+			},
+			wantWarning: false,
+		},
+		{
+			name:  "bare key (no '=') as the only token, historical flag-style",
+			input: "Label=read-only\n",
+			expected: map[string]*string{
+				"read-only": nil,
+			},
+			wantWarning: false,
+		},
+		{
+			name:  "unquoted whitespace inside value gets truncated and warned",
+			input: "Label=traefik.http.routers.foo.rule=Host(`x`) && PathPrefix(`/y`)\n",
+			expected: map[string]*string{
+				"traefik.http.routers.foo.rule": stringPtr("Host(`x`)"),
+				"&&":                            nil,
+				"PathPrefix(`/y`)":              nil,
+			},
+			wantWarning: true,
+		},
+		{
+			name:  "value containing whitespace correctly quoted, no truncation",
+			input: "Label=\"traefik.http.routers.foo.rule=Host(`x`) && PathPrefix(`/y`)\"\n",
+			expected: map[string]*string{
+				"traefik.http.routers.foo.rule": stringPtr("Host(`x`) && PathPrefix(`/y`)"),
+			},
+			wantWarning: false,
+		},
+		{
+			name:  "multiple physical Label= lines, last bare token still warned",
+			input: "Label=alpha=1\nLabel=beta=value with space\n",
+			expected: map[string]*string{
+				"alpha": stringPtr("1"),
+				"beta":  stringPtr("value"),
+				"with":  nil,
+				"space": nil,
+			},
+			wantWarning: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			unitData := "[Container]\n" + tt.input
+			f := NewUnitFile()
+			err := f.Parse(unitData)
+			assert.NoError(t, err)
+
+			got, warn := f.LookupAllKeyVal("Container", "Label")
+			assert.Equal(t, tt.expected, got)
+			if tt.wantWarning {
+				assert.Error(t, warn, "expected a warning about unquoted whitespace")
+			} else {
+				assert.NoError(t, warn, "did not expect a warning")
+			}
+		})
+	}
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
 func FuzzParser(f *testing.F) {
 	for _, sample := range samples {
 		f.Add([]byte(sample))
