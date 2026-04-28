@@ -6,6 +6,8 @@ type QuadletInstallOptions struct {
 	ReloadSystemd bool
 	// Replace the installation even if the quadlet already exists
 	Replace bool
+	// The application to install the quadlet to
+	Application string
 }
 
 // QuadletInstallReport contains the output of the `quadlet install` command
@@ -56,6 +58,8 @@ type QuadletRemoveOptions struct {
 	Ignore bool
 	// ReloadSystemd determines whether systemd will be reloaded after the Quadlet is removed.
 	ReloadSystemd bool
+	// You can specify recursive when targeting an application
+	Recursive bool
 }
 
 // QuadletRemoveReport contains the results of an operation to remove obe or more quadlets

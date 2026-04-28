@@ -37,6 +37,8 @@ func installFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&installOptions.ReloadSystemd, "reload-systemd", true, "Reload systemd after installing Quadlets")
 	flags.BoolVarP(&installOptions.Replace, "replace", "r", false, "Replace the installation even if the quadlet already exists")
+	flags.StringVar(&installOptions.Application, "application", "", "Group quadlets and associated file in a directory named after the application")
+	_ = quadletInstallCmd.RegisterFlagCompletionFunc("application", completion.AutocompleteNone)
 }
 
 func init() {

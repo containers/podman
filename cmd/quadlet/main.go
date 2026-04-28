@@ -478,7 +478,7 @@ func process() bool {
 		Debugf("Starting quadlet-generator, output to: %s", outputPath)
 	}
 
-	sourcePathsMap := quadlet.GetUnitDirs(isUserFlag)
+	sourcePathsMap := quadlet.GetUnitDirs(isUserFlag, true)
 
 	var units []*parser.UnitFile
 	for _, d := range sourcePathsMap {
