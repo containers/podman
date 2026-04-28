@@ -847,7 +847,36 @@ func (f *UnitFile) LookupLastArgs(groupName string, key string) ([]string, bool,
 	return execArgs, true, nil
 }
 
-// Look up 'Environment' style key-value keys
+// Look up 'Environment' style key-value keys.
+//
+// The value is split on unquoted whitespace, so each space-separated token is
+// expected to be its own KEY=VALUE assignment. A value that itself contains
+// whitespace MUST be wrapped in double quotes, exactly like systemd's own
+// Environment= parser. Without the quotes, only the first whitespace-separated
+// token of the intended value is kept on KEY, and every subsequent token is
+// (mis)interpreted as another standalone assignment, almost always silently.
+//
+// Example of the trap (Quadlet .container file):
+//
+//	Label=traefik.http.routers.foo.rule=Host(`x`) && PathPrefix(`/y`)
+//
+// produces three map entries:
+//
+//	"traefik.http.routers.foo.rule" -> "Host(`x`)"
+//	"&&"                            -> nil
+//	"PathPrefix(`/y`)"              -> nil
+//
+// instead of the operator-intended single entry mapping the rule key to the
+// full Host() && PathPrefix() expression. Quoting the value fixes it:
+//
+//	Label="traefik.http.routers.foo.rule=Host(`x`) && PathPrefix(`/y`)"
+//
+// To make that mistake easier to spot, this function emits a warning for every
+// post-split token that does not contain '=' (i.e. is not itself a valid
+// KEY=VALUE assignment). Such a token is almost always a fragment of a value
+// that the user forgot to quote. The warning is non-fatal: the map is still
+// returned (with the bare token recorded as a key with nil value, matching the
+// pre-warning behavior) so callers can decide whether to abort or carry on.
 func (f *UnitFile) LookupAllKeyVal(groupName string, key string) (map[string]*string, error) {
 	var warnings error
 	res := make(map[string]*string)
@@ -858,13 +887,39 @@ func (f *UnitFile) LookupAllKeyVal(groupName string, key string) (map[string]*st
 			warnings = errors.Join(warnings, err)
 			continue
 		}
+		// Track whether we have already seen a valid KEY=VALUE token in
+		// this physical line. If so, a subsequent bare token is almost
+		// certainly a value fragment that escaped its (missing) quotes,
+		// not an intentional flag-style label like `Label=read-only`.
+		// We use that distinction to emit a more pointed warning.
+		sawAssignment := false
 		for _, assign := range assigns {
 			key, value, found := strings.Cut(assign, "=")
 			if found {
 				res[key] = &value
-			} else {
-				res[key] = nil
+				sawAssignment = true
+				continue
 			}
+			// No '=' in this token. Two cases:
+			//   1. It is the very first token on the line. The user
+			//      may legitimately want a bare key (some downstream
+			//      consumers, e.g. podman --label foo, accept that).
+			//      Preserve historical behavior: store as key with
+			//      nil value, no warning.
+			//   2. It comes AFTER a valid KEY=VALUE on the same line.
+			//      That is the unquoted-whitespace trap described in
+			//      the function-level comment above. Warn loudly so
+			//      the operator notices, but still record it the old
+			//      way to avoid changing observable map shape for
+			//      callers that already cope with the nil-value form.
+			if sawAssignment {
+				warnings = errors.Join(warnings, fmt.Errorf(
+					"%s=: token %q has no '=' and follows a KEY=VALUE on the same line; "+
+						"this usually means an earlier value contained unquoted whitespace and was truncated. "+
+						"Wrap values containing spaces in double quotes, e.g. %s=\"KEY=value with spaces\"",
+					key, assign, key))
+			}
+			res[key] = nil
 		}
 	}
 	return res, warnings
