@@ -289,6 +289,67 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 	}
 }
 
+// Migrates all nodes from BoltDB to SQLite
+func migrateNodeDatabase(node *containerNode, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool, sqliteState State) {
+	// First, check if we have already visited the node
+	if ctrsVisited[node.id] {
+		return
+	}
+
+	// If setError is true, a dependency of us failed
+	// Mark us as failed and recurse
+	if setError {
+		// Mark us as visited, and set an error
+		ctrsVisited[node.id] = true
+		ctrErrors[node.id] = fmt.Errorf("a dependency of container %s failed to migrate: %w", node.id, define.ErrCtrStateInvalid)
+
+		// Hit anyone who depends on us, and set errors on them too
+		for _, successor := range node.dependedOn {
+			migrateNodeDatabase(successor, true, ctrErrors, ctrsVisited, sqliteState)
+		}
+
+		return
+	}
+
+	// Have all our dependencies started?
+	// If not, don't visit the node yet
+	depsVisited := true
+	for _, dep := range node.dependsOn {
+		depsVisited = depsVisited && ctrsVisited[dep.id]
+	}
+	if !depsVisited {
+		// Don't visit us yet, all dependencies are not up
+		// We'll hit the dependencies eventually, and when we do it will
+		// recurse here
+		return
+	}
+
+	// Going to try to migrate the container, mark us as visited
+	ctrsVisited[node.id] = true
+
+	ctrErrored := false
+
+	// Add and save the container
+	if err := sqliteState.AddContainer(node.container); err != nil {
+		if errors.Is(err, define.ErrCtrExists) {
+			logrus.Warnf("Container with name %s already exists in the SQLite database; refusing to migrate from BoltDB", node.container.Name())
+		} else {
+			ctrErrored = true
+			ctrErrors[node.id] = err
+		}
+	} else {
+		if err := sqliteState.SaveContainer(node.container); err != nil {
+			ctrErrored = true
+			ctrErrors[node.id] = err
+		}
+	}
+
+	// Recurse to anyone who depends on us and start them
+	for _, successor := range node.dependedOn {
+		migrateNodeDatabase(successor, ctrErrored, ctrErrors, ctrsVisited, sqliteState)
+	}
+}
+
 // Contains all details required for traversing the container graph.
 type nodeTraversal struct {
 	// Optional. but *MUST* be locked.

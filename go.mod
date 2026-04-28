@@ -63,6 +63,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vbauerster/mpb/v8 v8.12.0
 	github.com/vishvananda/netlink v1.3.1
+	go.etcd.io/bbolt v1.4.3
 	go.podman.io/buildah v1.42.1-0.20260421143840-0acb6b8cca85
 	go.podman.io/common v0.67.2-0.20260427104901-081c2519fc6a
 	go.podman.io/image/v5 v5.39.3-0.20260427104901-081c2519fc6a
@@ -171,7 +172,6 @@ require (
 	github.com/vbatts/tar-split v0.12.2 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	go.etcd.io/bbolt v1.4.3 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect

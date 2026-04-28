@@ -792,6 +792,16 @@ func (r *Runtime) Shutdown(force bool) error {
 func (r *Runtime) refresh(ctx context.Context, alivePath string) error {
 	logrus.Debugf("Podman detected system restart - performing state refresh")
 
+	if err := r.checkCanMigrate(); err != nil {
+		if errors.Is(err, errCannotMigrateHardcodedBolt) {
+			logrus.Infof("Refusing to automatically migrate from BoltDB to SQLite as BoltDB is hardcoded in containers.conf")
+		}
+	} else {
+		if err := r.migrateDB(); err != nil {
+			logrus.Errorf("Automatic migration from BoltDB to SQLite failed: %v", err)
+		}
+	}
+
 	// Clear state of database if not running in container
 	if !graphRootMounted() {
 		// First clear the state in the database

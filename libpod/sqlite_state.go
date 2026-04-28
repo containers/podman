@@ -32,6 +32,8 @@ type SQLiteState struct {
 }
 
 const (
+	// Name of the actual database file
+	sqliteDbFilename = "db.sql"
 	// Deal with timezone automatically.
 	sqliteOptionLocation = "_loc=auto"
 	// Force an fsync after each transaction (https://www.sqlite.org/pragma.html#pragma_synchronous).
@@ -44,7 +46,7 @@ const (
 	sqliteOptionCaseSensitiveLike = "&_cslike=TRUE"
 
 	// Assembled sqlite options used when opening the database.
-	sqliteOptions = "db.sql?" +
+	sqliteOptions = "?" +
 		sqliteOptionLocation +
 		sqliteOptionSynchronous +
 		sqliteOptionForeignKeys +
@@ -57,17 +59,12 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	logrus.Info("Using sqlite as database backend")
 	state := new(SQLiteState)
 
-	basePath := runtime.storageConfig.GraphRoot
-	if runtime.storageConfig.TransientStore {
-		basePath = runtime.storageConfig.RunRoot
-	} else if !runtime.storageSet.StaticDirSet {
-		basePath = runtime.config.Engine.StaticDir
-	}
+	dbPath := sqliteStatePath(runtime)
 
 	// c/storage is set up *after* the DB - so even though we use the c/s
 	// root (or, for transient, runroot) dir, we need to make the dir
 	// ourselves.
-	if err := os.MkdirAll(basePath, 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o700); err != nil {
 		return nil, fmt.Errorf("creating root directory: %w", err)
 	}
 
@@ -82,7 +79,7 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	}
 	sqliteOptionBusyTimeout := "&_busy_timeout=" + busyTimeout
 
-	conn, err := sql.Open("sqlite3", filepath.Join(basePath, sqliteOptions+sqliteOptionBusyTimeout))
+	conn, err := sql.Open("sqlite3", dbPath+sqliteOptions+sqliteOptionBusyTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("initializing sqlite database: %w", err)
 	}

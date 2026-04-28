@@ -44,6 +44,8 @@ func init() {
 	newRuntimeFlagName := "new-runtime"
 	flags.StringVar(&migrateOptions.NewRuntime, newRuntimeFlagName, "", "Specify a new runtime for all containers")
 	_ = migrateCommand.RegisterFlagCompletionFunc(newRuntimeFlagName, completion.AutocompleteNone)
+
+	flags.BoolVar(&migrateOptions.MigrateDB, "migrate-db", false, "Migrate database from BoltDB to SQLite")
 }
 
 func migrate(_ *cobra.Command, _ []string) error {
