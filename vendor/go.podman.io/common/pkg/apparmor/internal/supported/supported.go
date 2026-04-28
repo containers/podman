@@ -1,5 +1,3 @@
-//go:build linux
-
 package supported
 
 import (
@@ -10,8 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/sirupsen/logrus"
-	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/unshare"
 )
 
@@ -104,7 +102,7 @@ func (d *defaultVerifier) UnshareIsRootless() bool {
 }
 
 func (d *defaultVerifier) RuncIsEnabled() bool {
-	return IsEnabledOnHost()
+	return runcaa.IsEnabled()
 }
 
 func (d *defaultVerifier) OsStat(name string) (os.FileInfo, error) {
@@ -113,20 +111,4 @@ func (d *defaultVerifier) OsStat(name string) (os.FileInfo, error) {
 
 func (d *defaultVerifier) ExecLookPath(file string) (string, error) {
 	return exec.LookPath(file)
-}
-
-var isEnabledOnHost = sync.OnceValue(func() bool {
-	if err := fileutils.Exists("/sys/kernel/security/apparmor"); err != nil {
-		return false
-	}
-	buf, err := os.ReadFile("/sys/module/apparmor/parameters/enabled")
-	if err != nil {
-		return false
-	}
-	return len(buf) >= 1 && buf[0] == 'Y'
-})
-
-// IsEnabled returns true if apparmor is enabled for the host.
-func IsEnabledOnHost() bool {
-	return isEnabledOnHost()
 }

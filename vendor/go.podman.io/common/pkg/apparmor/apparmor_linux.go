@@ -15,6 +15,7 @@ import (
 	"strings"
 	"text/template"
 
+	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/apparmor/internal/supported"
 	"go.podman.io/storage/pkg/fileutils"
@@ -270,7 +271,7 @@ func CheckProfileAndLoadDefault(name string) (string, error) {
 	}
 
 	// Check if AppArmor is disabled and error out if a profile is to be set.
-	if !supported.IsEnabledOnHost() {
+	if !runcaa.IsEnabled() {
 		if name == "" {
 			return "", nil
 		}

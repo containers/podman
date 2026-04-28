@@ -384,7 +384,7 @@ func readDropInsFromPaths(paths []string, suffix string) ([]string, error) {
 			return nil, err
 		}
 		for _, entry := range entries {
-			if entry.Type().IsRegular() && strings.HasSuffix(entry.Name(), suffix) {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), suffix) {
 				dropInMap[entry.Name()] = filepath.Join(path, entry.Name())
 			}
 		}
