@@ -226,7 +226,7 @@ func newTarSplitData(createZstdWriter minimal.CreateZstdWriterFunc) (*tarSplitDa
 	}, nil
 }
 
-func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, reader io.Reader, createZstdWriter minimal.CreateZstdWriterFunc) error {
+func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, reader io.Reader, createZstdWriter minimal.CreateZstdWriterFunc) (retErr error) {
 	// total written so far.  Used to retrieve partial offsets in the file
 	dest := ioutils.NewWriteCounter(destFile)
 
@@ -240,10 +240,20 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 		}
 	}()
 
-	its, err := asm.NewInputTarStream(reader, tarSplitData.packer, nil)
+	its, done, err := asm.NewInputTarStreamWithDone(reader, tarSplitData.packer, nil)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if its != nil {
+			its.Close()
+		}
+		if done != nil {
+			if doneErr := <-done; doneErr != nil && retErr == nil {
+				retErr = doneErr
+			}
+		}
+	}()
 
 	tr := tar.NewReader(its)
 	tr.RawAccounting = true

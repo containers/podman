@@ -2699,21 +2699,30 @@ func applyDiff(layerOptions *LayerOptions, diff io.Reader, tarSplitFile *os.File
 		if uncompressedDigester != nil {
 			uncompressedWriter = io.MultiWriter(uncompressedWriter, uncompressedDigester.Hash())
 		}
-		payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
+		payload, done, err := asm.NewInputTarStreamWithDone(io.TeeReader(uncompressed, uncompressedWriter), metadata, storage.NewDiscardFilePutter())
 		if err != nil {
 			return -1, err
 		}
 
 		size, err := applyDriverFunc(payload)
 		if err != nil {
+			payload.Close()
+			<-done
 			return -1, err
 		}
 		// Fully consume the payload; it may contain trailing zero padding, and we need all of that
-		// recorded in tar-split (which happens when the data passes through NewInputTarStream).
+		// recorded in tar-split (which happens when the data passes through NewInputTarStreamWithDone).
 		if _, err := io.Copy(io.Discard, payload); err != nil {
+			payload.Close()
+			<-done
 			return -1, err
 		}
 
+		// Wait until tar-split has fully completed parsing and has drained the
+		// final padding loop. This prevents uncompressed.Close() races.
+		if doneErr := <-done; doneErr != nil {
+			return -1, doneErr
+		}
 		return size, nil
 	}()
 	if err != nil {

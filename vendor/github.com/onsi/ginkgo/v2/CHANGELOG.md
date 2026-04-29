@@ -1,3 +1,8 @@
+## 2.28.3
+
+### Maintenance
+Bump all dependencies
+
 ## 2.28.2
 
 - Add ArtifactDir() to support Go 1.26 testing.TB interface [f3a36b6]
