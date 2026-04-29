@@ -1,3 +1,4 @@
+// Deprecated: The podman go module has been moved to go.podman.io/podman starting with the v6 release (i.e. go.podman.io/podman/v6)
 module github.com/containers/podman/v5
 
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
