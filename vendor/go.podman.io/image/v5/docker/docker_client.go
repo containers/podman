@@ -33,8 +33,9 @@ import (
 	"go.podman.io/image/v5/pkg/sysregistriesv2"
 	"go.podman.io/image/v5/pkg/tlsclientconfig"
 	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/fileutils"
-	"go.podman.io/storage/pkg/homedir"
+	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -58,19 +59,6 @@ const (
 	backoffNumIterations = 5
 	backoffInitialDelay  = 2 * time.Second
 	backoffMaxDelay      = 60 * time.Second
-)
-
-type certPath struct {
-	path     string
-	absolute bool
-}
-
-var (
-	homeCertDir     = filepath.FromSlash(".config/containers/certs.d")
-	perHostCertDirs = []certPath{
-		{path: etcDir + "/containers/certs.d", absolute: true},
-		{path: etcDir + "/docker/certs.d", absolute: true},
-	}
 )
 
 // extensionSignature and extensionSignatureList come from github.com/openshift/origin/pkg/dockerregistry/server/signaturedispatcher.go:
@@ -167,22 +155,35 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 		return filepath.Join(sys.DockerPerHostCertDirPath, hostPort), nil
 	}
 
-	var (
-		hostCertDir     string
-		fullCertDirPath string
-	)
+	rootForImplicitAbsolutePaths := ""
+	if sys != nil {
+		rootForImplicitAbsolutePaths = sys.RootForImplicitAbsolutePaths
+	}
 
-	for _, perHostCertDir := range append([]certPath{{path: filepath.Join(homedir.Get(), homeCertDir), absolute: false}}, perHostCertDirs...) {
-		if sys != nil && sys.RootForImplicitAbsolutePaths != "" && perHostCertDir.absolute {
-			hostCertDir = filepath.Join(sys.RootForImplicitAbsolutePaths, perHostCertDir.path)
-		} else {
-			hostCertDir = perHostCertDir.path
-		}
+	paths, err := configfile.GetSearchPaths(&configfile.File{
+		Name:                           "certs",
+		Extension:                      "d",
+		DoNotUseExtensionForConfigName: true,
+		UserId:                         unshare.GetRootlessUID(),
+		RootForImplicitAbsolutePaths:   rootForImplicitAbsolutePaths,
+	})
+	if err != nil {
+		return "", err
+	}
 
-		fullCertDirPath = filepath.Join(hostCertDir, hostPort)
-		err := fileutils.Exists(fullCertDirPath)
+	candidates := make([]string, 0, len(paths.DropInDirectories)+1)
+	candidates = append(candidates, paths.DropInDirectories...)
+	perHostCertDir := etcDir + "/docker/certs.d"
+	if rootForImplicitAbsolutePaths != "" {
+		perHostCertDir = filepath.Join(rootForImplicitAbsolutePaths, perHostCertDir)
+	}
+	candidates = append(candidates, perHostCertDir)
+
+	for _, baseDir := range candidates {
+		fullCertDirPath := filepath.Join(baseDir, hostPort)
+		err = fileutils.Exists(fullCertDirPath)
 		if err == nil {
-			break
+			return fullCertDirPath, nil
 		}
 		if os.IsNotExist(err) {
 			continue
@@ -193,7 +194,7 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 		}
 		return "", err
 	}
-	return fullCertDirPath, nil
+	return "", nil
 }
 
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
@@ -263,8 +264,10 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	if err != nil {
 		return nil, err
 	}
-	if err := tlsclientconfig.SetupCertificates(certDir, tlsClientConfig); err != nil {
-		return nil, err
+	if certDir != "" {
+		if err := tlsclientconfig.SetupCertificates(certDir, tlsClientConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	// Check if TLS verification shall be skipped (default=false) which can
