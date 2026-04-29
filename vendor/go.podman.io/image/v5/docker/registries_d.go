@@ -3,34 +3,21 @@ package docker
 import (
 	"errors"
 	"fmt"
-	"io/fs"
+	"io"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/internal/rootless"
 	"go.podman.io/image/v5/types"
-	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/configfile"
 	"go.podman.io/storage/pkg/homedir"
+	"go.podman.io/storage/pkg/unshare"
 	"gopkg.in/yaml.v3"
 )
-
-// systemRegistriesDirPath is the path to registries.d, used for locating lookaside Docker signature storage.
-// You can override this at build time with
-// -ldflags '-X go.podman.io/image/v5/docker.systemRegistriesDirPath=$your_path'
-var systemRegistriesDirPath = builtinRegistriesDirPath
-
-// builtinRegistriesDirPath is the path to registries.d.
-// DO NOT change this, instead see systemRegistriesDirPath above.
-const builtinRegistriesDirPath = etcDir + "/containers/registries.d"
-
-// userRegistriesDirPath is the path to the per user registries.d.
-var userRegistriesDir = filepath.FromSlash(".config/containers/registries.d")
 
 // defaultUserDockerDir is the default lookaside directory for unprivileged user
 var defaultUserDockerDir = filepath.FromSlash(".local/share/containers/sigstore")
@@ -38,7 +25,7 @@ var defaultUserDockerDir = filepath.FromSlash(".local/share/containers/sigstore"
 // defaultDockerDir is the default lookaside directory for root
 var defaultDockerDir = "/var/lib/containers/sigstore"
 
-// registryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
+// registryConfiguration is one of the files configuring lookaside locations, or the result of merging them all.
 // NOTE: Keep this in sync with docs/registries.d.md!
 type registryConfiguration struct {
 	DefaultDocker *registryNamespace `yaml:"default-docker"`
@@ -78,91 +65,56 @@ func SignatureStorageBaseURL(sys *types.SystemContext, ref types.ImageReference,
 
 // loadRegistryConfiguration returns a registryConfiguration appropriate for sys.
 func loadRegistryConfiguration(sys *types.SystemContext) (*registryConfiguration, error) {
-	dirPath := registriesDirPath(sys)
-	logrus.Debugf(`Using registries.d directory %s`, dirPath)
-	return loadAndMergeConfig(dirPath)
-}
-
-// registriesDirPath returns a path to registries.d
-func registriesDirPath(sys *types.SystemContext) string {
-	return registriesDirPathWithHomeDir(sys, homedir.Get())
-}
-
-// registriesDirPathWithHomeDir is an internal implementation detail of registriesDirPath,
-// it exists only to allow testing it with an artificial home directory.
-func registriesDirPathWithHomeDir(sys *types.SystemContext, homeDir string) string {
-	if sys != nil && sys.RegistriesDirPath != "" {
-		return sys.RegistriesDirPath
+	registriesFiles := configfile.File{
+		Name:                           "registries",
+		Extension:                      "yaml",
+		DoNotLoadMainFiles:             true,
+		DoNotUseExtensionForConfigName: true,
+		UserId:                         unshare.GetRootlessUID(),
+		ErrorIfNotFound:                false,
 	}
-	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
-	if err := fileutils.Exists(userRegistriesDirPath); err == nil {
-		return userRegistriesDirPath
+	if sys != nil {
+		registriesFiles.RootForImplicitAbsolutePaths = sys.RootForImplicitAbsolutePaths
+		if sys.RegistriesDirPath != "" {
+			registriesFiles.CustomConfigFileDropInDirectory = sys.RegistriesDirPath
+			logrus.Debugf(`Using registries.d directory %s`, registriesFiles.CustomConfigFileDropInDirectory)
+		}
 	}
-	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
-	}
-
-	return systemRegistriesDirPath
-}
-
-// loadAndMergeConfig loads configuration files in dirPath
-// FIXME: Probably rename to loadRegistryConfigurationForPath
-func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 	mergedConfig := registryConfiguration{Docker: map[string]registryNamespace{}}
 	dockerDefaultMergedFrom := ""
 	nsMergedFrom := map[string]string{}
-
-	dir, err := os.Open(dirPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &mergedConfig, nil
-		}
-		return nil, err
-	}
-	configNames, err := dir.Readdirnames(0)
-	if err != nil {
-		return nil, err
-	}
-	for _, configName := range configNames {
-		if !strings.HasSuffix(configName, ".yaml") {
-			continue
-		}
-		configPath := filepath.Join(dirPath, configName)
-		configBytes, err := os.ReadFile(configPath)
+	for item, err := range configfile.Read(&registriesFiles) {
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				// file must have been removed between the directory listing
-				// and the open call, ignore that as it is a expected race
-				continue
-			}
 			return nil, err
 		}
-
-		var config registryConfiguration
-		err = yaml.Unmarshal(configBytes, &config)
+		contents, err := io.ReadAll(item.Reader)
 		if err != nil {
-			return nil, fmt.Errorf("parsing %s: %w", configPath, err)
+			return nil, err
+		}
+		logrus.Debugf(`Reading registries signature storage configuration from %q`, item.Name)
+		var config registryConfiguration
+		if err := yaml.Unmarshal(contents, &config); err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", item.Name, err)
 		}
 
 		if config.DefaultDocker != nil {
 			if mergedConfig.DefaultDocker != nil {
 				return nil, fmt.Errorf(`Error parsing signature storage configuration: "default-docker" defined both in %q and %q`,
-					dockerDefaultMergedFrom, configPath)
+					dockerDefaultMergedFrom, item.Name)
 			}
 			mergedConfig.DefaultDocker = config.DefaultDocker
-			dockerDefaultMergedFrom = configPath
+			dockerDefaultMergedFrom = item.Name
 		}
 
-		for nsName, nsConfig := range config.Docker { // includes config.Docker == nil
+		for nsName, nsConfig := range config.Docker {
 			if _, ok := mergedConfig.Docker[nsName]; ok {
 				return nil, fmt.Errorf(`Error parsing signature storage configuration: "docker" namespace %q defined both in %q and %q`,
-					nsName, nsMergedFrom[nsName], configPath)
+					nsName, nsMergedFrom[nsName], item.Name)
 			}
 			mergedConfig.Docker[nsName] = nsConfig
-			nsMergedFrom[nsName] = configPath
+			nsMergedFrom[nsName] = item.Name
 		}
 	}
-
 	return &mergedConfig, nil
 }
 
