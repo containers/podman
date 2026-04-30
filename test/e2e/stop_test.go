@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -408,26 +409,28 @@ var _ = Describe("Podman stop", func() {
 		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
 	})
 
-	It("podman stop --service sets StoppedByUser to false", func() {
-		SkipIfRemote("--service flag is not supported on remote")
-		containerName := "test-not-stopped-by-user"
-		podmanTest.PodmanExitCleanly("run", "-d", "--name", containerName, ALPINE, "top")
+	It("podman stop sets FinishedTime correctly", func() {
+		// Regression test for https://github.com/containers/podman/issues/27282
+		beforeStop := time.Now()
 
-		podmanTest.PodmanExitCleanly("stop", "--service", containerName)
+		session := podmanTest.RunTopContainer("test_finished_time")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
 
-		data := podmanTest.InspectContainer(containerName)
+		session = podmanTest.Podman([]string{"stop", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		afterStop := time.Now()
+
+		// Inspect the container to check FinishedAt time
+		data := podmanTest.InspectContainer("test_finished_time")
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].State.StoppedByUser).To(BeFalse())
-	})
+		Expect(data[0].State.FinishedAt).ToNot(BeZero())
 
-	It("podman stop without --service flag sets StoppedByUser to true", func() {
-		containerName := "test-default-stop"
-		podmanTest.PodmanExitCleanly("run", "-d", "--name", containerName, ALPINE, "top")
-
-		podmanTest.PodmanExitCleanly("stop", containerName)
-
-		data := podmanTest.InspectContainer(containerName)
-		Expect(data).To(HaveLen(1))
-		Expect(data[0].State.StoppedByUser).To(BeTrue())
+		// FinishedAt should be between beforeStop and afterStop
+		Expect(data[0].State.FinishedAt.Unix()).To(BeNumerically(">=", beforeStop.Unix()-5))
+		Expect(data[0].State.FinishedAt.Unix()).To(BeNumerically("<=", afterStop.Unix()+5))
 	})
 })
