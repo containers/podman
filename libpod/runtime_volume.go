@@ -5,7 +5,13 @@ package libpod
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/sirupsen/logrus"
 	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/podman/v6/libpod/events"
 	"go.podman.io/podman/v6/pkg/domain/entities/reports"
@@ -108,6 +114,93 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 	}
 
 	return r.state.AllVolumes()
+}
+
+// RenameVolume renames the given volume to a new name.
+// The volume must not be in use by any containers, and must use the local
+// driver.
+func (r *Runtime) RenameVolume(_ context.Context, vol *Volume, newName string) (*Volume, error) {
+	if !r.valid {
+		return nil, define.ErrRuntimeStopped
+	}
+
+	vol.lock.Lock()
+	defer vol.lock.Unlock()
+
+	if err := vol.update(); err != nil {
+		return nil, err
+	}
+
+	if newName == "" || !define.NameRegex.MatchString(newName) {
+		return nil, define.RegexError
+	}
+
+	if vol.Name() == newName {
+		return nil, fmt.Errorf("renaming volume %s: new name is the same as the old name: %w", vol.Name(), define.ErrInvalidArg)
+	}
+
+	// Only local-driver volumes can be renamed
+	driver := vol.Driver()
+	if driver != "" && driver != define.VolumeDriverLocal {
+		return nil, fmt.Errorf("renaming volume %s: rename is not supported for volumes using driver %q: %w", vol.Name(), driver, define.ErrInvalidArg)
+	}
+
+	// Refuse rename if the volume is currently mounted
+	if vol.state.MountCount > 0 {
+		return nil, fmt.Errorf("renaming volume %s: volume is currently mounted: %w", vol.Name(), define.ErrVolumeBeingUsed)
+	}
+
+	// Refuse rename if the volume is in use by any container
+	ctrs, err := r.state.VolumeInUse(vol)
+	if err != nil {
+		return nil, fmt.Errorf("checking if volume %s is in use: %w", vol.Name(), err)
+	}
+	if len(ctrs) > 0 {
+		return nil, fmt.Errorf("volume %s is being used by the following container(s): %s: %w", vol.Name(), strings.Join(ctrs, ", "), define.ErrVolumeBeingUsed)
+	}
+
+	// Check that no volume with the new name already exists
+	exists, err := r.state.HasVolume(newName)
+	if err != nil {
+		return nil, fmt.Errorf("checking if volume with name %q exists: %w", newName, err)
+	}
+	if exists {
+		return nil, fmt.Errorf("volume with name %q already exists: %w", newName, define.ErrVolumeExists)
+	}
+
+	oldName := vol.config.Name
+	newConfig := *vol.config
+	newConfig.Name = newName
+	newConfig.MountPoint = filepath.Join(r.config.Engine.VolumePath, newName, "_data")
+	newConfig.IsAnon = false
+
+	// Rename the filesystem directory
+	oldPath := filepath.Join(r.config.Engine.VolumePath, oldName)
+	newPath := filepath.Join(r.config.Engine.VolumePath, newName)
+	renamedDir := false
+	if err := os.Rename(oldPath, newPath); err != nil {
+		// If the backing directory is already absent, there is no filesystem
+		// payload to move; the state rename can still proceed.
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("renaming volume directory %q to %q: %w", oldPath, newPath, err)
+		}
+	} else {
+		renamedDir = true
+	}
+
+	if err := r.state.RenameVolume(vol, &newConfig); err != nil {
+		if renamedDir {
+			if rerr := os.Rename(newPath, oldPath); rerr != nil {
+				logrus.Errorf("Failed to rollback volume directory rename from %q to %q: %v", newPath, oldPath, rerr)
+			}
+		}
+		return nil, fmt.Errorf("renaming volume %s in database: %w", oldName, err)
+	}
+
+	vol.config = &newConfig
+
+	vol.newVolumeEvent(events.Rename)
+	return vol, nil
 }
 
 // PruneVolumes removes unused volumes from the system
