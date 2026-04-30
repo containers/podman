@@ -310,18 +310,33 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 
 func (n *Netns) cleanupRootlessNetns() error {
 	pidFile := n.getPath(rootlessNetNsConnPidFile)
+
+	// Resolve any symlinks to ensure the path doesn't escape
+	resolvedPath, err := filepath.EvalSymlinks(pidFile)
+	if err == nil {
+		pidFile = resolvedPath
+	}
+	// Ensure the path is local to prevent escape via symlinks
+	if !filepath.IsLocal(pidFile) {
+		logrus.Warnf("Rootless netns conn pid file is not local: %s", pidFile)
+		return nil
+	}
+
 	pid, err := readPidFile(pidFile)
 	// do not hard error if the file does not exist, cleanup should be idempotent
 	if errors.Is(err, fs.ErrNotExist) {
 		logrus.Debugf("Rootless netns conn pid file does not exist %s", pidFile)
 		return nil
 	}
-	if err == nil {
-		// kill the slirp/pasta process so we do not leak it
-		err = unix.Kill(pid, unix.SIGTERM)
-		if err == unix.ESRCH {
-			err = nil
-		}
+	// if the pid file is empty, pasta failed to start so there is nothing to clean up
+	if err != nil {
+		logrus.Warnf("Rootless netns conn pid file is empty or invalid: %v", err)
+		return nil
+	}
+	// kill the slirp/pasta process so we do not leak it
+	err = unix.Kill(pid, unix.SIGTERM)
+	if err == unix.ESRCH {
+		err = nil
 	}
 	return err
 }
@@ -652,7 +667,11 @@ func readPidFile(path string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return strconv.Atoi(strings.TrimSpace(string(b)))
+	s := strings.TrimSpace(string(b))
+	if s == "" {
+		return 0, fmt.Errorf("pid file %q is empty", path)
+	}
+	return strconv.Atoi(s)
 }
 
 func (n *Netns) serializeInfo() error {
