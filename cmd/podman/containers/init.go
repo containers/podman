@@ -74,8 +74,6 @@ func initContainer(_ *cobra.Command, args []string) error {
 		switch {
 		case r.Err != nil:
 			errs = append(errs, r.Err)
-		case r.RawInput != "":
-			fmt.Println(r.RawInput)
 		default:
 			fmt.Println(r.Id)
 		}

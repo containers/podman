@@ -89,7 +89,7 @@ func stop(cmd *cobra.Command, args []string) error {
 	// in the cli, first we print out all the successful attempts
 	for _, r := range responses {
 		if len(r.Errs) == 0 {
-			fmt.Println(r.RawInput)
+			fmt.Println(r.Id)
 		} else {
 			errs = append(errs, r.Errs...)
 		}

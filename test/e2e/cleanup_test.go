@@ -39,17 +39,18 @@ var _ = Describe("Podman container cleanup", func() {
 		session = podmanTest.Podman([]string{"container", "cleanup", shortID})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal(shortID))
+		Expect(session.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman cleanup container by name", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "foo", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"container", "cleanup", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("foo"))
+		Expect(session.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman cleanup all containers", func() {

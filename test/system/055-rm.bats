@@ -8,7 +8,8 @@ load helpers
 # bats test_tags=ci:parallel
 @test "podman rm" {
     cname=c-$(safename)
-    run_podman run --name $cname $IMAGE /bin/true
+    run_podman run --name $cname -d $IMAGE /bin/true
+    cid="$output"
 
     # Don't care about output, just check exit status (it should exist)
     run_podman 0 inspect $cname
@@ -19,7 +20,7 @@ load helpers
 
     # Remove container; now 'inspect' should fail
     run_podman rm $cname
-    is "$output" "$cname" "display raw input"
+    is "$output" "$cid" "display raw input"
     run_podman 125 inspect $cname
     is "$output" "\[\].Error: no such object: \"$cname\""
     run_podman 125 wait $cname
@@ -116,8 +117,9 @@ load helpers
     is "$output" "" "Should print no output"
 
     run_podman create --name testctr-$(safename) $IMAGE
+    cid="$output"
     run_podman container rm --force bogus-$(safename) testctr-$(safename)
-    assert "$output" = "testctr-$(safename)" "should delete test"
+    assert "$output" = "$cid" "should delete test"
 
     run_podman ps -a -q
     assert "$output" !~ "$(safename)" "container should be removed"

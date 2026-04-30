@@ -247,6 +247,7 @@ var _ = Describe("Podman rm", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
 
 		session = podmanTest.Podman([]string{"rm", "--ignore", "test1", "bogus"})
 		session.WaitWithDefaultTimeout()
@@ -255,7 +256,7 @@ var _ = Describe("Podman rm", func() {
 		session = podmanTest.Podman([]string{"rm", "-t", "0", "--force", "--ignore", "bogus", "test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(BeEquivalentTo("test1"))
+		Expect(session.OutputToString()).To(BeEquivalentTo(cid))
 	})
 
 	It("podman rm --filter", func() {
