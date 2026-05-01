@@ -965,6 +965,12 @@ cid=$(jq -r '.Id' <<<"$output")
 
 t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
+echo "EXPERIMENT DEBUG INFO: test-breaking container id"
+echo "id: $cid"
+
+echo "EXPERIMENT DEBUG INFO: dump all containers (20)"
+podman container ps --all
+
 
 # clean up
 podman rmi -f $IMAGE

@@ -5,8 +5,14 @@
 
 podman pull "${IMAGE}" &>/dev/null
 
+echo "EXPERIMENT DEBUG INFO: dump all containers (26-A)"
+podman container ps --all
+
 # Ensure clean slate
 podman rm -a -f &>/dev/null
+
+echo "EXPERIMENT DEBUG INFO: dump all containers (26-B)"
+podman container ps --all
 
 CTR="WaitTestingCtr"
 
