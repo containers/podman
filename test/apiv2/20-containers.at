@@ -954,10 +954,10 @@ done
 
 t POST libpod/containers/create \
   image=$IMAGE \
-  UserNS='{"NSMode":"auto"}' \
-  IDMappings='{"AutoUserNs":true,"AutoUserNsOpts":{"AdditionalUIDMappings":[],"AdditionalGIDMappings":[],"PasswdFile":"","GroupFile":"","InitialSize":0,"Size":0}}' \
   201
 cid=$(jq -r '.Id' <<<"$output")
+#  UserNS='{"NSMode":"auto"}' \
+#  IDMappings='{"AutoUserNs":true,"AutoUserNsOpts":{"AdditionalUIDMappings":[],"AdditionalGIDMappings":[],"PasswdFile":"","GroupFile":"","InitialSize":0,"Size":0}}' \
 
 #t GET libpod/containers/$cid/json \
 #  200 \
