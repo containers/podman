@@ -15,7 +15,6 @@ import (
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
-	"go.podman.io/image/v5/manifest"
 	"go.podman.io/storage/pkg/idtools"
 	stypes "go.podman.io/storage/types"
 )
@@ -213,7 +212,6 @@ func TestPostDeleteHooks(t *testing.T) {
 func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 	tmpDir := t.TempDir()
 	notifySock := filepath.Join(tmpDir, "notify.sock")
-
 	addr := &net.UnixAddr{Name: notifySock, Net: "unixgram"}
 	serverConn, err := net.ListenUnixgram("unixgram", addr)
 	if err != nil {
@@ -227,10 +225,7 @@ func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 	go func() {
 		buf := make([]byte, 2048)
 		for {
-			err := serverConn.SetReadDeadline(time.Now().Add(1 * time.Second))
-			if err != nil {
-				return
-			}
+			_ = serverConn.SetReadDeadline(time.Now().Add(1 * time.Second))
 			n, _, err := serverConn.ReadFromUnix(buf)
 			if err != nil {
 				close(done)
@@ -246,15 +241,12 @@ func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 				ContainerMiscConfig: ContainerMiscConfig{
 					SdNotifyMode:   "healthy",
 					SdNotifySocket: notifySock,
-					HealthCheckConfig: &manifest.Schema2HealthConfig{
-						StartPeriod: 20 * time.Minute,
-					},
 				},
 			},
 		},
 
 		waitFunc: func(waitTimeout time.Duration, cond ...string) (int32, error) {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 			return 1, nil
 		},
 	}
@@ -269,24 +261,26 @@ func TestWaitForHealthyExtendsStartupTimeout(t *testing.T) {
 
 	<-done
 
-	sawExtend := false
+	extendCount := 0
 	sawReady := false
 
 	for _, m := range received {
 		if strings.HasPrefix(m, "EXTEND_TIMEOUT_USEC=") {
-			sawExtend = true
+			extendCount++
 		}
 		if m == "READY=1" {
 			sawReady = true
 		}
 	}
 
-	if !sawExtend {
+	if extendCount == 0 {
 		t.Fatalf("expected EXTEND_TIMEOUT_USEC messages but none were sent")
 	}
+
 	if !sawReady {
 		t.Fatalf("expected READY=1 but none were sent")
 	}
+
 }
 
 type fakeContainer struct {

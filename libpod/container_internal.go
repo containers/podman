@@ -1343,7 +1343,6 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 		c.lock.Unlock()
 		defer c.lock.Lock()
 	}
-
 	var healthStartPeriod time.Duration
 
 	if shc := c.config.StartupHealthCheckConfig; shc != nil && shc.StartPeriod > 0 {
@@ -1353,49 +1352,28 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 	}
 
 	if healthStartPeriod > 0 {
-		var extendedTotal time.Duration
-		timer := time.NewTicker(25 * time.Second)
 		extendCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		defer timer.Stop()
-		// compute next chunk
-		sendExtend := func() {
-			remaining := healthStartPeriod - extendedTotal
-			if remaining <= 0 {
-				return
-			}
 
-			step := 30 * time.Second
-			if step > remaining {
-				step = remaining
-			}
+		ticker := time.NewTicker(25 * time.Second)
+		defer ticker.Stop()
 
-			// Build the EXTEND message
-			msg := fmt.Sprintf("EXTEND_TIMEOUT_USEC=%d", step.Microseconds())
-			if err := notifyproxy.SendMessage(c.config.SdNotifySocket, msg); err != nil {
-				logrus.Errorf("EXTEND_TIMEOUT_USEC failed in health-wait: %v", err)
-			} else {
-				logrus.Debugf("Extended startup by %v (total %v / %v)",
-					step, extendedTotal+step, healthStartPeriod)
-			}
+		msg := fmt.Sprintf("EXTEND_TIMEOUT_USEC=%d", (30 * time.Second).Microseconds())
 
-			extendedTotal += step
+		// Send first extension immediately
+		// systemd.service(5): "The first receipt of this message must occur before TimeoutStartSec= is exceeded."
+		if err := notifyproxy.SendMessage(c.config.SdNotifySocket, msg); err != nil {
+			logrus.Errorf("Sending EXTEND_TIMEOUT_USEC failed: %v", err)
 		}
-
-		// First extension immediately
-		sendExtend()
-
-		// Background periodic extension loop
 		go func() {
 			for {
 				select {
 				case <-extendCtx.Done():
 					return
-				case <-timer.C:
-					if extendedTotal >= healthStartPeriod {
-						return
+				case <-ticker.C:
+					if err := notifyproxy.SendMessage(c.config.SdNotifySocket, msg); err != nil {
+						logrus.Errorf("Sending EXTEND_TIMEOUT_USEC failed: %v", err)
 					}
-					sendExtend()
 				}
 			}
 		}()
