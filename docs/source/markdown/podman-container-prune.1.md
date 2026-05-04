@@ -18,12 +18,13 @@ If there is more than one filter, the `--filter` option should be passed multipl
 
 Supported filters:
 
-| Filter | Description                                                                                          |
-|:------:|------------------------------------------------------------------------------------------------------|
-| label  | Only remove containers, with (or without, in the case of label!=[...] is used) the specified labels. |
-| until  | Only remove containers created before given timestamp.                                               |
+| Filter      | Description                                                                                                    |
+|:-----------:|----------------------------------------------------------------------------------------------------------------|
+| annotation  | Only remove containers, with (or without, in the case of annotation!=[...] is used) the specified annotations. |
+| label       | Only remove containers, with (or without, in the case of label!=[...] is used) the specified labels.           |
+| until       | Only remove containers created before given timestamp.                                                         |
 
-The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers without the specified labels.
+The `label` *filter* accepts two formats. One is the `label`=*key* or `label`=*key*=*value*, which removes containers with the specified labels. The other format is the `label!`=*key* or `label!`=*key*=*value*, which removes containers without the specified labels. The `annotation` and `annotation!` filters work the same way for container annotations.
 
 **NOTE:** `label!` filters are combined with **AND**, so that the behavior is consistent with `label`, while in Docker, they are combined with **OR**.
 

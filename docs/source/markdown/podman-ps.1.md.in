@@ -36,6 +36,8 @@ Note: Podman shares containers storage with other tools such as Buildah and CRI-
 
 Display external containers that are not controlled by Podman but are stored in containers storage.  These external containers are generally created via other container technology such as Buildah or CRI-O and may depend on the same container images that Podman is also using.  External containers are denoted with either a 'buildah' or 'storage' in the COMMAND and STATUS column of the ps output.
 
+The **restart-policy**, **volume**, **health**, and **annotation** filters are not applicable for external containers.
+
 @@option filter.container
 
 #### **--format**=*format*
@@ -249,6 +251,14 @@ $ podman ps --filter label=app=frontend
 CONTAINER ID  IMAGE                           COMMAND               CREATED        STATUS        PORTS                 NAMES
 ff660efda598  docker.io/library/nginx:latest  nginx -g daemon o...  3 minutes ago  Up 3 minutes  0.0.0.0:8080->80/tcp  webserver
 ```
+
+Filter containers by annotation.
+```
+$ podman ps --filter annotation=io.podman.annotations.autoremove=false
+CONTAINER ID  IMAGE                             COMMAND     CREATED        STATUS        PORTS       NAMES
+5e3694604817  quay.io/centos/centos:latest      sleep 300   3 minutes ago  Up 3 minutes              centos-test
+```
+
 Filter containers by volume.
 ```
 $ podman ps --filter volume=mydata
