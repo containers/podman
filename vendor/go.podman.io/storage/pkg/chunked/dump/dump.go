@@ -191,7 +191,10 @@ func dumpNode(out io.Writer, added map[string]*minimal.FileMetadata, links map[s
 	if _, err := fmt.Fprint(out, " "); err != nil {
 		return err
 	}
-	digest := verityDigests[payload]
+	digest := ""
+	if entry.Type == minimal.TypeReg {
+		digest = verityDigests["/"+payload]
+	}
 	if _, err := fmt.Fprint(out, escapedOptional([]byte(digest), ESCAPE_LONE_DASH)); err != nil {
 		return err
 	}

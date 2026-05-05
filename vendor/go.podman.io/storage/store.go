@@ -46,10 +46,11 @@ const (
 )
 
 const (
-	volatileFlag     = "Volatile"
-	mountLabelFlag   = "MountLabel"
-	processLabelFlag = "ProcessLabel"
-	mountOptsFlag    = "MountOpts"
+	volatileFlag      = "Volatile"
+	mountLabelFlag    = "MountLabel"
+	processLabelFlag  = "ProcessLabel"
+	mountOptsFlag     = "MountOpts"
+	verityDigestsFlag = "VerityDigests"
 )
 
 var (
@@ -3061,6 +3062,9 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 				}
 			}
 		}
+		if v, found := container.Flags[verityDigestsFlag]; found {
+			setLayerOptsVerity(&options.LayerOpts, v)
+		}
 	}
 
 	// We need to make sure the home mount is present when the Mount is done, which happens by possibly reinitializing the graph driver
@@ -3099,6 +3103,58 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	}
 
 	return "", ErrLayerUnknown
+}
+
+func ensureLayerOpts(layerOpts *[]drivers.LayerMountOpts, n int) {
+	if len(*layerOpts) < n {
+		grown := make([]drivers.LayerMountOpts, n)
+		copy(grown, *layerOpts)
+		*layerOpts = grown
+	}
+}
+
+func setLayerOptsVerity(layerOpts *[]drivers.LayerMountOpts, v any) {
+	var perLayer [][]string
+	switch val := v.(type) {
+	case [][]string:
+		perLayer = val
+	case []any:
+		for _, item := range val {
+			allowed := anyToStringSlice(item)
+			if allowed == nil {
+				return
+			}
+			perLayer = append(perLayer, allowed)
+		}
+	default:
+		return
+	}
+	if len(perLayer) == 0 {
+		return
+	}
+	n := len(perLayer)
+	// +1 for the container's own rw layer at index 0
+	ensureLayerOpts(layerOpts, n+1)
+	for i, allowed := range perLayer {
+		(*layerOpts)[n-i].AllowedFsVerity = allowed
+	}
+}
+
+func anyToStringSlice(v any) []string {
+	switch val := v.(type) {
+	case []string:
+		return val
+	case []any:
+		result := make([]string, 0, len(val))
+		for _, item := range val {
+			if s, ok := item.(string); ok {
+				result = append(result, s)
+			}
+		}
+		return result
+	default:
+		return nil
+	}
 }
 
 func (s *store) Mounted(id string) (int, error) {
