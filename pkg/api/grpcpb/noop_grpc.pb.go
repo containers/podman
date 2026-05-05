@@ -8,6 +8,7 @@ package grpcpb
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -51,7 +52,7 @@ func (c *noopClient) Noop(ctx context.Context, in *NoopRequest, opts ...grpc.Cal
 // All implementations must embed UnimplementedNoopServer
 // for forward compatibility.
 type NoopServer interface {
-	Noop(context.Context, *NoopRequest) (*NoopResponse, error)
+	Noop(ctx context.Context, in *NoopRequest) (*NoopResponse, error)
 	mustEmbedUnimplementedNoopServer()
 }
 
@@ -62,7 +63,7 @@ type NoopServer interface {
 // pointer dereference when methods are called.
 type UnimplementedNoopServer struct{}
 
-func (UnimplementedNoopServer) Noop(context.Context, *NoopRequest) (*NoopResponse, error) {
+func (UnimplementedNoopServer) Noop(ctx context.Context, in *NoopRequest) (*NoopResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Noop not implemented")
 }
 func (UnimplementedNoopServer) mustEmbedUnimplementedNoopServer() {}
