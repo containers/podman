@@ -17,6 +17,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/libnetwork/pasta"
+	dockerTransport "go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/image"
+	"go.podman.io/image/v5/signature"
 	"go.podman.io/podman/v6/libpod"
 	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/podman/v6/pkg/namespaces"
@@ -188,6 +192,13 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		}
 
 		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), resolvedImageName, s.RawImageName))
+
+		if s.SignaturePolicy != "" {
+			requireSigned := s.SignaturePolicy == "require"
+			if err := validateManifestSignature(ctx, rt, newImage, requireSigned); err != nil {
+				return nil, nil, nil, err
+			}
+		}
 	}
 
 	_, err = rt.LookupPod(s.Hostname)
@@ -759,4 +770,55 @@ func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runti
 // applyInfraInherit copies the InfraInherit fields into the SpecGenerator.
 func applyInfraInherit(compatibleOptions *libpod.InfraInherit, s *specgen.SpecGenerator) error {
 	return copier.CopyWithOption(s, compatibleOptions, copier.Option{IgnoreEmpty: true})
+}
+
+func validateManifestSignature(ctx context.Context, rt *libpod.Runtime, img *libimage.Image, requireSigned bool) error {
+	names := img.Names()
+	if len(names) == 0 {
+		return fmt.Errorf("manifest signature verification failed: image has no names")
+	}
+
+	named, err := reference.ParseNormalizedNamed(names[0])
+	if err != nil {
+		return fmt.Errorf("parsing image name %q: %w", names[0], err)
+	}
+	dockerRef, err := dockerTransport.NewReference(named)
+	if err != nil {
+		return fmt.Errorf("creating docker reference for %q: %w", names[0], err)
+	}
+
+	policy, err := signature.DefaultPolicy(rt.SystemContext())
+	if err != nil {
+		return fmt.Errorf("loading signature policy: %w", err)
+	}
+	pc, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return fmt.Errorf("creating policy context: %w", err)
+	}
+	defer pc.Destroy()
+
+	if requireSigned {
+		pc.RequireSignatureVerification(true)
+	}
+
+	src, err := img.ImageSource(ctx)
+	if err != nil {
+		return fmt.Errorf("getting image source: %w", err)
+	}
+
+	// This will access the cached manifest from ImageSource that was also
+	// used in image.Inspect(), which means we can trust the parsed ImageData
+	// from it with no risk for TOCTOU races.
+	// We use UnparsedInstanceWithReference to override Reference() with the
+	// docker transport reference so that policy.json lookup matches "docker"
+	// transport entries rather than "containers-storage".
+	unparsed := image.UnparsedInstanceWithReference(
+		image.UnparsedInstance(src, nil),
+		dockerRef,
+	)
+	allowed, err := pc.IsRunningImageAllowed(ctx, unparsed)
+	if !allowed {
+		return fmt.Errorf("manifest signature verification failed: %w", err)
+	}
+	return nil
 }

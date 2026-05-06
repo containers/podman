@@ -445,6 +445,9 @@ type ContainerSecurityConfig struct {
 	// Optional.
 	LabelNested *bool `json:"label_nested,omitempty"`
 
+	// SignaturePolicy controls manifest signature verification.
+	// "check" validates if signatures exist, "require" fails without a valid signature.
+	SignaturePolicy string `json:"signature_policy,omitempty"`
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.
