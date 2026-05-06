@@ -199,6 +199,14 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 				return nil, nil, nil, err
 			}
 		}
+
+		if s.VerityEnforce != nil && *s.VerityEnforce {
+			digests, err := extractVerityDigests(imageData)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			options = append(options, libpod.WithVerityEnforce(digests))
+		}
 	}
 
 	_, err = rt.LookupPod(s.Hostname)
@@ -770,6 +778,34 @@ func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runti
 // applyInfraInherit copies the InfraInherit fields into the SpecGenerator.
 func applyInfraInherit(compatibleOptions *libpod.InfraInherit, s *specgen.SpecGenerator) error {
 	return copier.CopyWithOption(s, compatibleOptions, copier.Option{IgnoreEmpty: true})
+}
+
+const verityDigestAnnotation = "io.containers.composefs.digest"
+
+func extractVerityDigests(imageData *libimage.ImageData) ([][]string, error) {
+	if len(imageData.LayersData) == 0 {
+		return nil, fmt.Errorf("verity enforcement: image has no layer data")
+	}
+	digests := make([][]string, len(imageData.LayersData))
+	for i, layer := range imageData.LayersData {
+		val, ok := layer.Annotations[verityDigestAnnotation]
+		if !ok || val == "" {
+			return nil, fmt.Errorf("verity enforcement: layer %d missing %s annotation", i, verityDigestAnnotation)
+		}
+		parts := strings.Split(val, ",")
+		allowed := make([]string, 0, len(parts))
+		for _, p := range parts {
+			d := strings.TrimSpace(p)
+			if d != "" {
+				allowed = append(allowed, d)
+			}
+		}
+		if len(allowed) == 0 {
+			return nil, fmt.Errorf("verity enforcement: layer %d has empty %s annotation", i, verityDigestAnnotation)
+		}
+		digests[i] = allowed
+	}
+	return digests, nil
 }
 
 func validateManifestSignature(ctx context.Context, rt *libpod.Runtime, img *libimage.Image, requireSigned bool) error {

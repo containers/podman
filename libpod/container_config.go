@@ -177,6 +177,14 @@ type ContainerRootFSConfig struct {
 	// Volatile specifies whether the container storage can be optimized
 	// at the cost of not syncing all the dirty files in memory.
 	Volatile bool `json:"volatile,omitempty"`
+	// VerityEnforce requires composefs blob layers to have fs-verity
+	// digests matching those from the OCI manifest.
+	VerityEnforce bool `json:"verityEnforce,omitempty"`
+	// VerityDigests are per-layer lists of allowed fs-verity digests from
+	// the OCI manifest's io.containers.composefs.digest annotations.
+	// Each element is the set of accepted digests for that layer, indexed
+	// in manifest order (bottom-to-top).
+	VerityDigests [][]string `json:"verityDigests,omitempty"`
 	// Passwd allows to user to override podman's passwd/group file setup
 	Passwd *bool `json:"passwd,omitempty"`
 	// ChrootDirs is an additional set of directories that need to be

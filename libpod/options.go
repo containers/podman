@@ -2206,6 +2206,21 @@ func WithVolatile() CtrCreateOption {
 	}
 }
 
+// WithVerityEnforce enables fs-verity digest enforcement for composefs
+// blob layers using the given per-layer digests from the OCI manifest.
+func WithVerityEnforce(digests [][]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.VerityEnforce = true
+		ctr.config.VerityDigests = digests
+
+		return nil
+	}
+}
+
 // WithChrootDirs is an additional set of directories that need to be
 // treated as root directories. Standard bind mounts will be mounted
 // into paths relative to these directories.

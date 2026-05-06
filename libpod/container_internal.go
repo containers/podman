@@ -500,6 +500,14 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	options.Volatile = c.config.Volatile
 
+	if c.config.VerityEnforce && len(c.config.VerityDigests) > 0 {
+		if options.Flags == nil {
+			options.Flags = make(map[string]any)
+		}
+		options.Flags["VerityDigests"] = c.config.VerityDigests
+		options.MountOpts = append(options.MountOpts, "verity=require")
+	}
+
 	c.setupStorageMapping(&options.IDMappingOptions, &c.config.IDMappings)
 
 	// Unless the user has specified a name, use a randomly generated one.
