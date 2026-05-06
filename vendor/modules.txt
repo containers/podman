@@ -735,7 +735,7 @@ go.podman.io/buildah/pkg/sshagent
 go.podman.io/buildah/pkg/util
 go.podman.io/buildah/pkg/volumes
 go.podman.io/buildah/util
-# go.podman.io/common v0.67.2-0.20260506114327-35c76125c5b5
+# go.podman.io/common v0.67.2-0.20260506125647-380549a2bd33
 ## explicit; go 1.25.6
 go.podman.io/common/internal
 go.podman.io/common/libimage
@@ -878,7 +878,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.62.1-0.20260506114327-35c76125c5b5
+# go.podman.io/storage v1.62.1-0.20260506114327-35c76125c5b5 => github.com/giuseppe/container-libs/storage v0.0.0-20260506143911-d06e746b86ab
 ## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1182,3 +1182,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/storage => github.com/giuseppe/container-libs/storage v0.0.0-20260506143911-d06e746b86ab
