@@ -671,6 +671,14 @@ var libimageEventsMap = map[libimage.EventType]events.Status{
 	libimage.EventTypeImageUnmount:   events.Unmount,
 }
 
+// libartifactEventsMap translates a libartifact event type to a libpod event status.
+var libartifactEventsMap = map[artStore.EventType]events.Status{
+	artStore.EventTypeArtifactPull:   events.Pull,
+	artStore.EventTypeArtifactPush:   events.Push,
+	artStore.EventTypeArtifactRemove: events.Remove,
+	artStore.EventTypeArtifactAdd:    events.Create,
+}
+
 // libimageEvents spawns a goroutine which will listen for events on
 // the libimage.Runtime.  The goroutine will be cleaned up implicitly
 // when the main() exists.
