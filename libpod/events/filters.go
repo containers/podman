@@ -39,6 +39,16 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 			}
 			return strings.HasPrefix(e.ID, filterValue)
 		}, nil
+	case "ARTIFACT":
+		return func(e *Event) bool {
+			if e.Type != Artifact {
+				return false
+			}
+			if e.Name == filterValue {
+				return true
+			}
+			return strings.HasPrefix(e.ID, filterValue)
+		}, nil
 	case "POD":
 		return func(e *Event) bool {
 			if e.Type != Pod {

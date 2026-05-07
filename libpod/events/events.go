@@ -79,7 +79,7 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		} else {
 			humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", e.Time, e.Type, e.Status, id, id, e.Network)
 		}
-	case Image:
+	case Image, Artifact:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, id, e.Name)
 		if e.Error != "" {
 			humanFormat += " " + e.Error
@@ -111,6 +111,8 @@ func (s Status) String() string {
 // StringToType converts string to an EventType
 func StringToType(name string) (Type, error) {
 	switch name {
+	case Artifact.String():
+		return Artifact, nil
 	case Container.String():
 		return Container, nil
 	case Image.String():

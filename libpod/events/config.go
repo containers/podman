@@ -122,6 +122,8 @@ const (
 	Container Type = "container"
 	// Image - event is related to images
 	Image Type = "image"
+	// Artifact - event is related to artifacts
+	Artifact Type = "artifact"
 	// Network - event is related to networks
 	Network Type = "network"
 	// Pod - event is related to pods

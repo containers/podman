@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
@@ -69,21 +68,23 @@ type Runtime struct {
 	storageConfig storage.StoreOptions
 	storageSet    storageSet
 
-	state                  State
-	store                  storage.Store
-	storageService         *storageService
-	imageContext           types.SystemContext
-	defaultOCIRuntime      OCIRuntime
-	ociRuntimes            map[string]OCIRuntime
-	runtimeFlags           []string
-	network                nettypes.ContainerNetwork
-	conmonPath             string
-	libimageRuntime        *libimage.Runtime
-	libimageEventsShutdown chan bool
-	lockManager            lock.Manager
+	state                     State
+	store                     storage.Store
+	storageService            *storageService
+	imageContext              types.SystemContext
+	defaultOCIRuntime         OCIRuntime
+	ociRuntimes               map[string]OCIRuntime
+	runtimeFlags              []string
+	network                   nettypes.ContainerNetwork
+	conmonPath                string
+	libimageRuntime           *libimage.Runtime
+	libimageEventsShutdown    chan bool
+	libartifactEventsShutdown chan bool
+	lockManager               lock.Manager
 
 	// ArtifactStore returns the artifact store created from the runtime.
-	ArtifactStore func() (*artStore.ArtifactStore, error)
+	ArtifactStore         func() (*artStore.ArtifactStore, error)
+	shutdownArtifactStore func()
 
 	// Worker
 	workerChannel chan func()
@@ -452,6 +453,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		return fmt.Errorf("namespaces are not supported by this version of Libpod, please unset the `namespace` field in containers.conf: %w", define.ErrNotImplemented)
 	}
 
+	// Set up the eventer
+	// WARN: This must be done synchronously before spawning any event listeners
+	// (e.g., libimageEvents, libartifactEvents) to prevent race conditions.
+	// TODO: Remove this temporal coupling.
+	eventer, err := runtime.newEventer()
+	if err != nil {
+		return err
+	}
+	runtime.eventer = eventer
+
 	needsUserns := os.Geteuid() != 0
 	if !needsUserns {
 		hasCapSysAdmin, err := unshare.HasCapSysAdmin()
@@ -484,13 +495,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 			}
 		}
 	}()
-
-	// Set up the eventer
-	eventer, err := runtime.newEventer()
-	if err != nil {
-		return err
-	}
-	runtime.eventer = eventer
 
 	// Set up containers/image
 	if runtime.imageContext.BigFilesTemporaryDir == "" {
@@ -558,7 +562,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 		// Using sync once value to only init the store exactly once and only when it will be actually be used.
 		runtime.ArtifactStore = sync.OnceValues(func() (*artStore.ArtifactStore, error) {
-			return artStore.NewArtifactStore(filepath.Join(runtime.storageConfig.GraphRoot, "artifacts"), runtime.SystemContext())
+			artifactStore, err := artStore.NewArtifactStore(filepath.Join(runtime.storageConfig.GraphRoot, "artifacts"), runtime.SystemContext())
+			if err != nil {
+				return nil, err
+			}
+			runtime.libartifactEvents(artifactStore)
+			runtime.shutdownArtifactStore = func() {
+				artifactStore.CloseEventChannel()
+			}
+			return artifactStore, nil
 		})
 	}
 
@@ -743,50 +755,59 @@ var libimageEventsMap = map[libimage.EventType]events.Status{
 // when the main() exists.
 func (r *Runtime) libimageEvents() {
 	r.libimageEventsShutdown = make(chan bool)
-
-	toLibpodEventStatus := func(e *libimage.Event) events.Status {
-		status, found := libimageEventsMap[e.Type]
-		if !found {
-			return "Unknown"
-		}
-		return status
-	}
-
 	eventChannel := r.libimageRuntime.EventChannel()
-	go func() {
-		sawShutdown := false
-		for {
-			// Make sure to read and write all events before
-			// shutting down.
-			for len(eventChannel) > 0 {
-				libimageEvent := <-eventChannel
-				e := events.Event{
-					ID:     libimageEvent.ID,
-					Name:   libimageEvent.Name,
-					Status: toLibpodEventStatus(libimageEvent),
-					Time:   libimageEvent.Time,
-					Type:   events.Image,
-				}
-				if libimageEvent.Error != nil {
-					e.Error = libimageEvent.Error.Error()
-				}
-				if err := r.eventer.Write(e); err != nil {
-					logrus.Errorf("Unable to write image event: %q", err)
-				}
-			}
-
-			if sawShutdown {
-				close(r.libimageEventsShutdown)
-				return
-			}
-
-			select {
-			case <-r.libimageEventsShutdown:
-				sawShutdown = true
-			case <-time.After(100 * time.Millisecond):
-			}
+	toLibpodEventFunc := func(libimageEvent *libimage.Event) events.Event {
+		status, found := libimageEventsMap[libimageEvent.Type]
+		if !found {
+			status = "Unknown"
 		}
-	}()
+		event := events.Event{
+			ID:     libimageEvent.ID,
+			Name:   libimageEvent.Name,
+			Status: status,
+			Time:   libimageEvent.Time,
+			Type:   events.Image,
+		}
+		if libimageEvent.Error != nil {
+			event.Error = libimageEvent.Error.Error()
+		}
+		return event
+	}
+	spawnEventForwarder(r.eventer, toLibpodEventFunc, eventChannel, r.libimageEventsShutdown)
+}
+
+// libartifactEventsMap translates a libartifact event type to a libpod event status.
+var libartifactEventsMap = map[artStore.EventType]events.Status{
+	artStore.EventTypeArtifactPull:   events.Pull,
+	artStore.EventTypeArtifactPush:   events.Push,
+	artStore.EventTypeArtifactRemove: events.Remove,
+	artStore.EventTypeArtifactAdd:    events.Create,
+}
+
+// libartifactEvents spawns a goroutine which will listen for events on
+// the artStore.ArtifactStore.  The goroutine will be cleaned up implicitly
+// when the main() exists.
+func (r *Runtime) libartifactEvents(store *artStore.ArtifactStore) {
+	r.libartifactEventsShutdown = make(chan bool)
+	eventChannel := store.EventChannel()
+	toLibpodEventFunc := func(artStoreEvent *artStore.Event) events.Event {
+		status, found := libartifactEventsMap[artStoreEvent.Type]
+		if !found {
+			status = "Unknown"
+		}
+		event := events.Event{
+			ID:     artStoreEvent.ID,
+			Name:   artStoreEvent.Name,
+			Status: status,
+			Time:   artStoreEvent.Time,
+			Type:   events.Artifact,
+		}
+		if artStoreEvent.Error != nil {
+			event.Error = artStoreEvent.Error.Error()
+		}
+		return event
+	}
+	spawnEventForwarder(r.eventer, toLibpodEventFunc, eventChannel, r.libartifactEventsShutdown)
 }
 
 // DeferredShutdown shuts down the runtime without exposing any
@@ -843,6 +864,18 @@ func (r *Runtime) Shutdown(force bool) error {
 			lastError = fmt.Errorf("shutting down container storage: %w", err)
 		}
 	}
+
+	// Shutdown the artifact store if it exists
+	if r.libartifactEventsShutdown != nil {
+		// Tell loop to shutdown
+		r.libartifactEventsShutdown <- true
+		// Wait for close to signal shutdown
+		<-r.libartifactEventsShutdown
+	}
+	if r.shutdownArtifactStore != nil {
+		r.shutdownArtifactStore()
+	}
+
 	if err := r.state.Close(); err != nil {
 		if lastError != nil {
 			logrus.Error(lastError)
