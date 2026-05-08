@@ -904,11 +904,7 @@ EOF
     skip_if_no_selinux
     skip_if_rootless
 
-    # Mount a container image to use as rootfs. Because we (may) run in
-    # parallel, mount a working container, not $IMAGE
-    cname="c-$(safename)"
-    run_podman run -d --name $cname $IMAGE top
-    run_podman container mount $cname
+    run_podman image mount $IMAGE
     mountpoint="$output"
 
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
@@ -926,8 +922,7 @@ EOF
 
     # Done. Clean up.
     service_cleanup $QUADLET_SERVICE_NAME failed
-    run_podman container unmount $cname
-    run_podman rm -f -t0 $cname
+    run_podman image unmount $IMAGE
 }
 
 @test "quadlet - selinux disable" {
