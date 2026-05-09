@@ -334,16 +334,11 @@ func getAutoUserNSIDMappings(
 
 // Securely open (read-only) a file in a container mount.
 func secureOpen(containerMount, file string) (*os.File, error) {
-	filePath, err := securejoin.SecureJoin(containerMount, file)
+	tmpFile, err := securejoin.OpenInRoot(containerMount, file)
 	if err != nil {
 		return nil, err
 	}
+	defer tmpFile.Close()
 
-	flags := unix.O_PATH | unix.O_CLOEXEC | unix.O_RDONLY
-	fileHandle, err := os.OpenFile(filePath, flags, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return fileHandle, nil
+	return securejoin.Reopen(tmpFile, unix.O_RDONLY)
 }
