@@ -45,6 +45,7 @@ func init() {
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteVolumePruneFilters)
 	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
 	flags.BoolP("all", "a", false, "Remove all unused volumes, both anonymous and named")
+	flags.Bool("dry-run", false, "Show what would be pruned without actually pruning")
 }
 
 func prune(cmd *cobra.Command, _ []string) error {
@@ -74,7 +75,13 @@ func prune(cmd *cobra.Command, _ []string) error {
 		pruneOptions.Filters.Set("all", "true")
 	}
 
-	if !force {
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if force && dryRun {
+		return errors.New("--force and --dry-run cannot be used together")
+	}
+	pruneOptions.DryRun = dryRun
+
+	if !force && !dryRun {
 		reader := bufio.NewReader(os.Stdin)
 		if allFlag {
 			fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
@@ -134,6 +141,9 @@ func prune(cmd *cobra.Command, _ []string) error {
 	responses, err := registry.ContainerEngine().VolumePrune(context.Background(), pruneOptions)
 	if err != nil {
 		return err
+	}
+	if dryRun {
+		fmt.Println("Volumes that would be pruned:")
 	}
 	return utils.PrintVolumePruneResults(responses, false)
 }
