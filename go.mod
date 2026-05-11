@@ -65,7 +65,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.4.3
 	go.podman.io/buildah v1.42.1-0.20260501153811-377cf64e213b
-	go.podman.io/common v0.67.2-0.20260506114327-35c76125c5b5
+	go.podman.io/common v0.67.2-0.20260506125647-380549a2bd33
 	go.podman.io/image/v5 v5.39.3-0.20260506114327-35c76125c5b5
 	go.podman.io/storage v1.62.1-0.20260506114327-35c76125c5b5
 	golang.org/x/crypto v0.51.0
@@ -188,3 +188,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace go.podman.io/storage => github.com/giuseppe/container-libs/storage v0.0.0-20260506143911-d06e746b86ab
