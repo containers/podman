@@ -28,3 +28,11 @@ Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINE
 
 Port publishing is only supported for containers utilizing their own network namespace
 through `bridge` networks, or the `pasta` network mode.
+
+For rootless bridge networks, port forwarding uses `rootlessport` by default, which
+is a userspace proxy that does not preserve client source IPs. Setting
+`rootless_port_forwarder="pasta"` in the `[network]` section of
+**[containers.conf(5)](https://github.com/containers/container-libs/blob/main/common/docs/containers.conf.5.md)**
+switches to pasta's kernel-level forwarding via `pesto`, preserving the original
+client IP address inside the container. This option is experimental and its
+behavior is subject to change.
