@@ -185,6 +185,41 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.OutputToString()).To(Equal(customNetName))
 	})
 
+	It("Podman info: check CDI spec dirs and devices from configuration", func() {
+		cdiDir := filepath.Join(podmanTest.TempDir, "cdi")
+		err := os.MkdirAll(cdiDir, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+
+		cdiSpec := []byte(`{
+  "cdiVersion": "0.3.0",
+  "kind": "vendor.com/device",
+  "devices": [
+    {
+      "name": "myKmsg",
+      "containerEdits": {
+        "env": ["PODMAN_CDI_INFO_TEST=1"]
+      }
+    }
+  ]
+}`)
+		err = os.WriteFile(filepath.Join(cdiDir, "device.json"), cdiSpec, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+
+		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf("[engine]\ncdi_spec_dirs = [%q]\n", cdiDir)
+		err = os.WriteFile(configPath, []byte(configContent), os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", configPath)
+		podmanTest.RestartRemoteService()
+
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.CDISpecDirs}} {{.Host.DiscoveredDevices}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring(cdiDir))
+		Expect(session.OutputToString()).To(ContainSubstring("vendor.com/device=myKmsg"))
+	})
+
 	It("Podman info: check desired storage driver", func() {
 		// defined in .cirrus.yml
 		want := os.Getenv("CI_DESIRED_STORAGE")
