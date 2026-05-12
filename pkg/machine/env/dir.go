@@ -13,7 +13,10 @@ import (
 	"go.podman.io/storage/pkg/homedir"
 )
 
-var getToolName = sync.OnceValue(func() string {
+// GetToolName returns the tool name derived from PODMAN_TOOL_PREFIX env var.
+// Defaults to "podman". Used by macadam, CRC, and other tools to identify
+// their own resources (file paths, named pipes, registry entries).
+var GetToolName = sync.OnceValue(func() string {
 	toolName := os.Getenv("PODMAN_TOOL_PREFIX")
 	if toolName == "" {
 		toolName = "podman"
@@ -162,7 +165,7 @@ func GetSSHIdentityPath(name string) (string, error) {
 }
 
 func WithToolPrefix(name string) string {
-	toolName := getToolName()
+	toolName := GetToolName()
 	if !strings.HasPrefix(name, toolName) {
 		name = fmt.Sprintf("%s-%s", toolName, name)
 	}

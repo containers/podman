@@ -15,6 +15,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/Microsoft/go-winio"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -150,7 +152,7 @@ func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineC
 				return nil
 			}
 
-			if err := vsock.RemoveAllHVSockRegistryEntries(); err != nil {
+			if err := vsock.RemoveAllHVSockRegistryEntries(false); err != nil {
 				return fmt.Errorf("unable to remove hvsock registry entries: %q", err)
 			}
 
@@ -368,7 +370,10 @@ func checkCanCreate(checks permissionChecks, mounts int) error {
 // launchElevate attempts to automatically re-run the command as administrator
 // This is similar to how WSL handles elevation.
 func launchElevate(message string) error {
-	if windows.MessageBox(message, "Podman Machine", false) != 1 {
+	toolName := env.GetToolName()
+	r, size := utf8.DecodeRuneInString(toolName)
+	title := fmt.Sprintf("%s Machine", string(unicode.ToUpper(r))+toolName[size:]) //nolint:staticcheck
+	if windows.MessageBox(message, title, false) != 1 {
 		return errors.New("elevation process cancelled by user. Please rerun the command as administrator")
 	}
 	err := windows.CreateOrTruncateElevatedOutputFile()
@@ -451,6 +456,76 @@ func canSkipVSockEntriesRemoval(machines int, hv vmconfigs.HyperVConfig) bool {
 	return true
 }
 
+// ensureAllHvsocksAvailable checks all hvsock ports referenced by the machine config
+// and reassigns any that are busy from the registry pool. Returns true if any
+// port was reassigned (meaning the config should be persisted).
+func (h HyperVStubber) ensureAllHvsocksAvailable(mc *vmconfigs.MachineConfig) (bool, error) {
+	if mc.HyperVHypervisor == nil {
+		return false, nil
+	}
+	changed := false
+
+	// Check ReadyVsock (Events purpose)
+	replacement, err := ensureHvsockAvailable(&mc.HyperVHypervisor.ReadyVsock)
+	if err != nil {
+		return false, fmt.Errorf("ready vsock: %w", err)
+	}
+	if replacement.Port != mc.HyperVHypervisor.ReadyVsock.Port {
+		mc.HyperVHypervisor.ReadyVsock = *replacement
+		changed = true
+	}
+
+	// Check NetworkVSock (Network purpose) -- only if user-mode networking
+	if mc.HyperVHypervisor.UserModeNetworking {
+		replacement, err = ensureHvsockAvailable(&mc.HyperVHypervisor.NetworkVSock)
+		if err != nil {
+			return false, fmt.Errorf("network vsock: %w", err)
+		}
+		if replacement.Port != mc.HyperVHypervisor.NetworkVSock.Port {
+			mc.HyperVHypervisor.NetworkVSock = *replacement
+			changed = true
+		}
+	}
+
+	// Check Fileserver vsocks
+	for i := range mc.HyperVHypervisor.FileserverVSocks {
+		replacement, err = ensureHvsockAvailable(&mc.HyperVHypervisor.FileserverVSocks[i])
+		if err != nil {
+			return false, fmt.Errorf("fileserver vsock [%d]: %w", i, err)
+		}
+		if replacement.Port != mc.HyperVHypervisor.FileserverVSocks[i].Port {
+			mc.HyperVHypervisor.FileserverVSocks[i] = *replacement
+			// Update the corresponding mount's VSockNumber
+			if i < len(mc.Mounts) {
+				mc.Mounts[i].VSockNumber = &replacement.Port
+			}
+			changed = true
+		}
+	}
+
+	return changed, nil
+}
+
+// ensureHvsockAvailable checks whether the given hvsock entry's port is free.
+// If busy, it searches the registry pool for an alternative entry with the same
+// purpose. Returns the original entry if free, or a replacement if found.
+// Returns an error if no free entry is available.
+func ensureHvsockAvailable(entry *vsock.HVSockRegistryEntry) (*vsock.HVSockRegistryEntry, error) {
+	if entry.Port == 0 || entry.KeyName == "" {
+		return entry, nil
+	}
+	if err := vsock.CheckPortAvailable(entry.Port); err == nil {
+		return entry, nil
+	}
+	logrus.Infof("hvsock port %d (%s) is busy, searching for an available alternative", entry.Port, entry.Purpose)
+	replacement, err := vsock.FindAvailableEntryByPurpose(entry.Purpose)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("reassigned %s hvsock from port %d to port %d", entry.Purpose, entry.Port, replacement.Port)
+	return replacement, nil
+}
+
 // canStartOrStop checks if the machine can be started or stopped.
 // Legacy machines require admin rights to start or stop.
 func (h HyperVStubber) canStartOrStop(mc *vmconfigs.MachineConfig) error {
@@ -470,7 +545,7 @@ func (h HyperVStubber) canStartOrStop(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-// countMachinesWithToolname counts only machines that have a toolname field with value "podman".
+// countMachinesWithToolname counts machines whose ReadyVsock.ToolName matches the current tool name.
 func (h HyperVStubber) countMachinesWithToolname() (int, error) {
 	dirs, err := env.GetMachineDirs(h.VMType())
 	if err != nil {
@@ -480,9 +555,10 @@ func (h HyperVStubber) countMachinesWithToolname() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	toolName := env.GetToolName()
 	count := 0
 	for _, mc := range mcs {
-		if mc.HyperVHypervisor != nil && mc.HyperVHypervisor.ReadyVsock.ToolName == "podman" {
+		if mc.HyperVHypervisor != nil && mc.HyperVHypervisor.ReadyVsock.ToolName == toolName {
 			count++
 		}
 	}
@@ -537,7 +613,7 @@ func (h HyperVStubber) removeHvSockFromRegistry() error {
 	if machines > 1 {
 		return nil
 	}
-	return vsock.RemoveAllHVSockRegistryEntries()
+	return vsock.RemoveAllHVSockRegistryEntries(false)
 }
 
 func (h HyperVStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
@@ -555,6 +631,18 @@ func (h HyperVStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy
 func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
 	if err := h.canStartOrStop(mc); err != nil {
 		return nil, nil, err
+	}
+
+	// Ensure all hvsock ports are available, reassigning from the registry pool if busy.
+	// Persist immediately so the new assignments survive even if the VM fails to start.
+	configChanged, err := h.ensureAllHvsocksAvailable(mc)
+	if err != nil {
+		return nil, nil, err
+	}
+	if configChanged {
+		if err := mc.Write(); err != nil {
+			return nil, nil, fmt.Errorf("persisting hvsock reassignment: %w", err)
+		}
 	}
 
 	_, vm, err := GetVMFromMC(mc)
