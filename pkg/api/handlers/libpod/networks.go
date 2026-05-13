@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,8 +26,8 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	network := types.Network{}
-	if err := json.NewDecoder(r.Body).Decode(&network); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to decode request JSON payload: %w", err))
+	if err := utils.ReadJSONFromBody(r, &network); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -59,8 +58,8 @@ func UpdateNetwork(w http.ResponseWriter, r *http.Request) {
 	ic := abi.ContainerEngine{Libpod: runtime}
 
 	networkUpdateOptions := entities.NetworkUpdateOptions{}
-	if err := json.NewDecoder(r.Body).Decode(&networkUpdateOptions); err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode request JSON payload: %w", err))
+	if err := utils.ReadJSONFromBody(r, &networkUpdateOptions); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -174,8 +173,8 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	var netConnect entities.NetworkConnectOptions
-	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to decode request JSON payload: %w", err))
+	if err := utils.ReadJSONFromBody(r, &netConnect); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 	name := utils.GetName(r)

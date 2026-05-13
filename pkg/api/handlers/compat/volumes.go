@@ -4,7 +4,6 @@ package compat
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -108,8 +107,8 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 	// decode params from body
 	input := client.VolumeCreateOptions{}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &input); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

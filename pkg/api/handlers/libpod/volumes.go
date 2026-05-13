@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -39,9 +38,8 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := entities.VolumeCreateOptions{}
-	// decode params from body
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &input); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

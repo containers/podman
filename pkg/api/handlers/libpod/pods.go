@@ -35,8 +35,8 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		err     error
 	)
 	psg := specgen.PodSpecGenerator{InfraContainerSpec: &specgen.SpecGenerator{}}
-	if err = json.NewDecoder(r.Body).Decode(&psg); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("%v: %w", failedToDecodeSpecgen, err))
+	if err := utils.ReadJSONFromBody(r, &psg); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

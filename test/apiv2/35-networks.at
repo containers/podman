@@ -46,10 +46,10 @@ t POST libpod/networks/create name="network4" \
   .labels.zaq=val
 
 # test for empty mask
-t POST libpod/networks/create subnets='[{"subnet":"10.10.134.0"}]' 500 \
+t POST libpod/networks/create subnets='[{"subnet":"10.10.134.0"}]' 400 \
   .cause~'.*invalid CIDR address: 10.10.134.0'
 # test for invalid mask
-t POST libpod/networks/create subnets='[{"subnet":"10.10.134.0/65"}]' 500 \
+t POST libpod/networks/create subnets='[{"subnet":"10.10.134.0/65"}]' 400 \
   .cause~'.*invalid CIDR address: 10.10.134.0/65'
 
 # network list

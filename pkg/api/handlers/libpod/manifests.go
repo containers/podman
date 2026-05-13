@@ -212,8 +212,8 @@ func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 		entities.ManifestAddOptions
 		TLSVerify bool `schema:"tlsVerify"`
 	}{}
-	if err := json.NewDecoder(r.Body).Decode(&query); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding AddV3 query: %w", err))
+	if err := utils.ReadJSONFromBody(r, &query); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -495,8 +495,8 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		multireader = nil
 		// not multipart - request is just encoded JSON, nothing else
-		if err := json.NewDecoder(r.Body).Decode(body); err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding modify request: %w", err))
+		if err := utils.ReadJSONFromBody(r, &body); err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
 			return
 		}
 	} else {

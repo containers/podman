@@ -3,7 +3,6 @@
 package compat
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -210,8 +209,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		responseWarning string
 	)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	if err := json.NewDecoder(r.Body).Decode(&networkCreate); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+
+	if err := utils.ReadJSONFromBody(r, &networkCreate); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -376,8 +376,8 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	var netConnect dockerNetwork.ConnectRequest
-	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &netConnect); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -441,8 +441,8 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	var netDisconnect dockerNetwork.DisconnectRequest
-	if err := json.NewDecoder(r.Body).Decode(&netDisconnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &netDisconnect); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
