@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
@@ -59,6 +60,59 @@ func LocalhostSSHCopy(username, identityPath string, sshPort int, srcPath, destP
 	}
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// SSHSession holds a reusable SSH connection to a guest VM, allowing multiple
+// commands to be run over a single TCP connection and SSH handshake.
+type SSHSession struct {
+	client *ssh.Client
+	name   string
+}
+
+// NewSSHSession dials an SSH connection to the guest VM and returns a session
+// that can run multiple commands without re-dialing.
+func NewSSHSession(username, identityPath, name string, sshPort int) (*SSHSession, error) {
+	config, err := createLocalhostConfig(username, identityPath)
+	if err != nil {
+		return nil, err
+	}
+	start := time.Now()
+	client, err := ssh.Dial("tcp", fmt.Sprintf("localhost:%d", sshPort), config)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("SSH session to %q opened: dial=%v", name, time.Since(start))
+	return &SSHSession{client: client, name: name}, nil
+}
+
+func (s *SSHSession) Close() error {
+	return s.client.Close()
+}
+
+// Run executes a command on the guest VM over the existing SSH connection.
+func (s *SSHSession) Run(inputArgs []string, passOutput bool, stdin io.Reader) error {
+	start := time.Now()
+	session, err := s.client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	cmd := strings.Join(inputArgs, " ")
+	logrus.Debugf("Running ssh command on machine %q: %s", s.name, cmd)
+	session.Stdin = stdin
+	if passOutput {
+		session.Stdout = os.Stdout
+		session.Stderr = os.Stderr
+	} else if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		err = runSessionWithDebug(session, cmd)
+		logrus.Debugf("SSH to %q: dial=0s run=%v total=%v cmd=%s", s.name, time.Since(start), time.Since(start), cmd)
+		return err
+	}
+
+	err = session.Run(cmd)
+	logrus.Debugf("SSH to %q: dial=0s run=%v total=%v cmd=%s", s.name, time.Since(start), time.Since(start), cmd)
+	return err
 }
 
 func localhostBuiltinSSH(username, identityPath, name string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {

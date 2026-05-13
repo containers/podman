@@ -338,24 +338,32 @@ func (q *QEMUStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 // machine
 // TODO this should probably be temporary; mount code should probably be its own package and shared completely
 func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) error {
+	if len(mc.Mounts) == 0 {
+		return nil
+	}
+
+	sess, err := machine.NewSSHSession(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port)
+	if err != nil {
+		return err
+	}
+	defer sess.Close()
+
 	for _, mount := range mc.Mounts {
 		if !quiet {
 			fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
 		}
-		// create mountpoint directory if it doesn't exist
-		// because / is immutable, we have to monkey around with permissions
+		// create mountpoint directory if it doesn't exist, then mount
+		// combined into a single SSH command per volume.
+		// Because / is immutable, we have to monkey around with permissions
 		// if we dont mount in /home or /mnt
-		var args []string
-		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-			args = append(args, "sudo", "chattr", "-i", "/", ";")
+		var parts []string
+		requiresChattr := !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt")
+		if requiresChattr {
+			parts = append(parts, "sudo chattr -i /")
 		}
-		args = append(args, "sudo", "mkdir", "-p", strconv.Quote(mount.Target))
-		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
-		}
-		err := machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args)
-		if err != nil {
-			return err
+		parts = append(parts, "sudo mkdir -p "+strconv.Quote(mount.Target))
+		if requiresChattr {
+			parts = append(parts, "sudo chattr +i /")
 		}
 
 		mountFlags := fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext)
@@ -366,13 +374,12 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		// but we ignore it now because we want the mount type to be dynamic, not static.  Or
 		// in other words we don't want to make people unnecessarily reprovision their machines
 		// to upgrade from 9p to virtiofs.
-		mountOptions := []string{
-			"-t", "virtiofs",
-			mount.Tag, strconv.Quote(mount.Target),
-			"-o", mountFlags,
-		}
-		err = machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
-		if err != nil {
+		parts = append(parts, fmt.Sprintf("sudo mount -t virtiofs %s %s -o %s",
+			mount.Tag, strconv.Quote(mount.Target), mountFlags))
+
+		script := strings.Join(parts, " && ")
+		args := []string{"bash", "-c", script}
+		if err := sess.Run(args, true, nil); err != nil {
 			return err
 		}
 	}
