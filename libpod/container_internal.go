@@ -24,6 +24,7 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/buildah/copier"
@@ -44,7 +45,6 @@ import (
 	envLib "go.podman.io/podman/v6/pkg/env"
 	"go.podman.io/podman/v6/pkg/lookup"
 	"go.podman.io/podman/v6/pkg/rootless"
-	"go.podman.io/podman/v6/pkg/selinux"
 	"go.podman.io/podman/v6/pkg/systemd/notifyproxy"
 	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage"
@@ -573,9 +573,9 @@ func (c *Container) processLabel(processLabel string) (string, error) {
 	if !ok || !strings.Contains(label, "type:") {
 		switch {
 		case c.ociRuntime.SupportsKVM():
-			return selinux.KVMLabel(processLabel)
+			return selinux.ChangeLabelType(processLabel, selinux.TypeKVMProcess)
 		case c.Systemd():
-			return selinux.InitLabel(processLabel)
+			return selinux.ChangeLabelType(processLabel, selinux.TypeInitProcess)
 		}
 	}
 	return processLabel, nil

@@ -53,7 +53,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20260316125833-8a4db579f5c8
-	github.com/opencontainers/selinux v1.14.1
+	github.com/opencontainers/selinux v1.15.0
 	github.com/openshift/imagebuilder v1.2.21
 	github.com/rootless-containers/rootlesskit/v2 v2.3.6
 	github.com/shirou/gopsutil/v4 v4.26.4
@@ -188,3 +188,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace github.com/opencontainers/selinux => github.com/kolyshkin/selinux v1.0.0-rc1.0.20260518175914-f8d72733cb1b

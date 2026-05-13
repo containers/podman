@@ -48,6 +48,22 @@ var (
 	privContainerMountLabel string
 )
 
+// LabelType is a type to use for [ChangeLabelType]
+type LabelType int
+
+const (
+	TypeProcess     LabelType = 1
+	TypeInitProcess LabelType = 2
+	TypeKVMProcess  LabelType = 3
+)
+
+// ChangeLabelType modifies the cLabel, changing its type component
+// to the one corresponding to the lType. Other cLabel components
+// are kept intact.
+func ChangeLabelType(cLabel string, lType LabelType) (string, error) {
+	return changeLabelType(cLabel, lType)
+}
+
 // Context is a representation of the SELinux label broken into 4 parts
 type Context map[string]string
 
@@ -292,6 +308,8 @@ func KVMContainerLabels() (string, string) {
 
 // KVMContainerLabel returns the default process label to be used
 // for KVM containers by the calling process.
+//
+// If you only need to change a type of existing label, use [ChangeLabelType] instead.
 func KVMContainerLabel() (string, error) {
 	return kvmContainerLabel()
 }
@@ -306,6 +324,8 @@ func InitContainerLabels() (string, string) {
 
 // InitContainerLabel returns the default process label to be used
 // for containers running an init system like systemd by the calling process.
+//
+// If you only need to change a type of existing label, use [ChangeLabelType] instead.
 func InitContainerLabel() (string, error) {
 	return initContainerLabel()
 }

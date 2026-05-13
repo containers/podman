@@ -79,6 +79,11 @@ linters:
       - linters:
           - unused
         text: "(rootlessPortSyncR|rootlessPortSyncW)"
+      # TODO: remove once https://github.com/leighmcculloch/gocheckcompilerdirectives/issues/7 is fixed.
+      - text: "compiler directive unrecognized: //go:fix"
+        linters:
+          - gocheckcompilerdirectives
+
 
 issues:
   max-issues-per-linter: 0
