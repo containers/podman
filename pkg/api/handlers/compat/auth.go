@@ -3,9 +3,7 @@
 package compat
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -22,9 +20,8 @@ import (
 
 func Auth(w http.ResponseWriter, r *http.Request) {
 	var authConfig registry.AuthConfig
-	err := json.NewDecoder(r.Body).Decode(&authConfig)
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse request: %w", err))
+	if err := utils.ReadJSONFromBody(r, &authConfig); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

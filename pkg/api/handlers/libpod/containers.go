@@ -496,8 +496,8 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wire := updateEntitiesWire{}
-	if err := json.NewDecoder(r.Body).Decode(&wire); err != nil {
-		utils.InternalServerError(w, fmt.Errorf("decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &wire); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

@@ -5,7 +5,6 @@ package compat
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -123,8 +122,8 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		Labels map[string]string `schema:"labels"`
 	}{}
 
-	if err := json.NewDecoder(r.Body).Decode(&createParams); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &createParams); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

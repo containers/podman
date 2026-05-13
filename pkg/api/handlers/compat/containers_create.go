@@ -48,8 +48,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 	// compatible configuration
 	body := handlers.CreateContainerConfig{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &body); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

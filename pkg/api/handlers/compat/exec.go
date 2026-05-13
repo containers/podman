@@ -3,7 +3,6 @@
 package compat
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,8 +27,8 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	input := new(handlers.ExecCreateConfig)
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.InternalServerError(w, fmt.Errorf("decoding request body as JSON: %w", err))
+	if err := utils.ReadJSONFromBody(r, &input); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -142,11 +141,11 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: We should read/support Tty from here.
 	bodyParams := new(handlers.ExecStartConfig)
-
-	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode parameters for %s: %w", r.URL.String(), err))
+	if err := utils.ReadJSONFromBody(r, &bodyParams); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
+
 	// TODO: Verify TTY setting against what inspect session was made with
 
 	sessionCtr, err := runtime.GetExecSessionContainer(sessionID)
@@ -219,9 +218,8 @@ func ExecRemoveHandler(w http.ResponseWriter, r *http.Request) {
 	sessionID := mux.Vars(r)["id"]
 
 	bodyParams := new(handlers.ExecRemoveConfig)
-
-	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode parameters for %s: %w", r.URL.String(), err))
+	if err := utils.ReadJSONFromBody(r, &bodyParams); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

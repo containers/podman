@@ -152,6 +152,19 @@ func MarshalErrorSliceJSONIsEmpty(ptr unsafe.Pointer) bool {
 	return len(*((*[]error)(ptr))) == 0
 }
 
+// ReadJSONFromBody reads JSON from a request body into the given struct.
+// If the body is not provided/is empty, this returns immediately with no modification to the given struct.
+// This means that defaults will NOT be overwritten in this case.
+func ReadJSONFromBody(r *http.Request, unmarshalTo any) error {
+	if r.Body == nil || r.ContentLength == 0 {
+		return nil
+	}
+	if err := json.NewDecoder(r.Body).Decode(unmarshalTo); err != nil {
+		return fmt.Errorf("decoding request body as JSON: %w", err)
+	}
+	return nil
+}
+
 // WriteJSON writes an interface value encoded as JSON to w
 func WriteJSON(w http.ResponseWriter, code int, value any) {
 	// FIXME: we don't need to write the header in all/some circumstances.

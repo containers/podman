@@ -766,8 +766,8 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	options := new(container.UpdateConfig)
-	if err := json.NewDecoder(r.Body).Decode(options); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decoding request body: %w", err))
+	if err := utils.ReadJSONFromBody(r, &options); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 

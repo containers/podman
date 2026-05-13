@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -62,8 +61,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&wire); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
+	if err := utils.ReadJSONFromBody(r, &wire); err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
 
