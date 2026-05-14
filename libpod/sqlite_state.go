@@ -1417,6 +1417,9 @@ func (s *SQLiteState) RenameVolume(volume *Volume, newCfg *VolumeConfig) (defErr
 		volume.valid = false
 		return fmt.Errorf("no volume with name %q found in DB: %w", volume.Name(), define.ErrNoSuchVolume)
 	}
+	if rows > 1 {
+		return fmt.Errorf("renaming volume %s affected %d rows: %w", volume.Name(), rows, define.ErrInternal)
+	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction to rename volume %s: %w", volume.Name(), err)
