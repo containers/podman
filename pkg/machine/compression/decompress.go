@@ -96,7 +96,7 @@ func runDecompression(d decompressor, decompressedFilePath string) (retErr error
 	}
 	defer func() {
 		if err := decompressedFileWriter.Close(); err != nil {
-			logrus.Warnf("Unable to to close destination file %s: %q", decompressedFilePath, err)
+			logrus.Warnf("Unable to close destination file %s: %q", decompressedFilePath, err)
 			if retErr == nil {
 				retErr = err
 			}

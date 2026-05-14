@@ -156,7 +156,7 @@ const (
 	// of the container
 	UlimitAnnotation = "io.podman.annotations.ulimit"
 
-	// VolumesFromAnnotation is used by by play kube when playing a kube
+	// VolumesFromAnnotation is used by play kube when playing a kube
 	// yaml to specify volumes-from of the container
 	// It is expected to be a semicolon-separated list of container names and/or
 	// IDs optionally with colon separated mount options.
