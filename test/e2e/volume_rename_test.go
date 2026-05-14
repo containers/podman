@@ -3,6 +3,9 @@
 package integration
 
 import (
+	"strconv"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "go.podman.io/podman/v6/test/utils"
@@ -14,6 +17,7 @@ var _ = Describe("Podman volume rename", func() {
 	})
 
 	It("podman volume rename", func() {
+		start := time.Now()
 		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
 
 		rename := podmanTest.PodmanExitCleanly("volume", "rename", "myvol", "newvol")
@@ -26,6 +30,9 @@ var _ = Describe("Podman volume rename", func() {
 		check = podmanTest.Podman([]string{"volume", "inspect", "myvol"})
 		check.WaitWithDefaultTimeout()
 		Expect(check).To(ExitWithError(125, "no such volume"))
+
+		events := podmanTest.PodmanExitCleanly("events", "--stream=false", "--since", strconv.FormatInt(start.Unix(), 10), "--filter", "event=rename", "--filter", "volume=newvol", "--format", "{{json .}}")
+		Expect(events.OutputToString()).To(ContainSubstring(`"oldName":"myvol"`))
 	})
 
 	It("podman volume rename data persists", func() {

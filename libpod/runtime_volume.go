@@ -159,7 +159,8 @@ func (r *Runtime) RenameVolume(_ context.Context, vol *Volume, newName string) (
 		return nil, fmt.Errorf("volume %s is being used by the following container(s): %s: %w", vol.Name(), strings.Join(ctrs, ", "), define.ErrVolumeBeingUsed)
 	}
 
-	// Check that no volume with the new name already exists
+	// Check that no volume with the new name already exists. The state rename
+	// repeats this check in its transaction to handle concurrent volume creates.
 	exists, err := r.state.HasVolume(newName)
 	if err != nil {
 		return nil, fmt.Errorf("checking if volume with name %q exists: %w", newName, err)
@@ -169,37 +170,34 @@ func (r *Runtime) RenameVolume(_ context.Context, vol *Volume, newName string) (
 	}
 
 	oldName := vol.config.Name
-	newConfig := *vol.config
-	newConfig.Name = newName
-	newConfig.MountPoint = filepath.Join(r.config.Engine.VolumePath, newName, "_data")
-	newConfig.IsAnon = false
+	oldConfig := *vol.config
+	config := *vol.config
+	config.Name = newName
+	config.MountPoint = filepath.Join(r.config.Engine.VolumePath, newName, "_data")
+	config.IsAnon = false
+
+	if err := r.state.RenameVolume(vol, &config); err != nil {
+		return nil, fmt.Errorf("renaming volume %s in database: %w", oldName, err)
+	}
+	vol.config = &config
 
 	// Rename the filesystem directory
 	oldPath := filepath.Join(r.config.Engine.VolumePath, oldName)
 	newPath := filepath.Join(r.config.Engine.VolumePath, newName)
-	renamedDir := false
 	if err := os.Rename(oldPath, newPath); err != nil {
 		// If the backing directory is already absent, there is no filesystem
 		// payload to move; the state rename can still proceed.
 		if !errors.Is(err, fs.ErrNotExist) {
+			if rerr := r.state.RenameVolume(vol, &oldConfig); rerr != nil {
+				logrus.Errorf("Failed to rollback volume %s database rename to %q after filesystem rename failed: %v", newName, oldName, rerr)
+			} else {
+				vol.config = &oldConfig
+			}
 			return nil, fmt.Errorf("renaming volume directory %q to %q: %w", oldPath, newPath, err)
 		}
-	} else {
-		renamedDir = true
 	}
 
-	if err := r.state.RenameVolume(vol, &newConfig); err != nil {
-		if renamedDir {
-			if rerr := os.Rename(newPath, oldPath); rerr != nil {
-				logrus.Errorf("Failed to rollback volume directory rename from %q to %q: %v", newPath, oldPath, rerr)
-			}
-		}
-		return nil, fmt.Errorf("renaming volume %s in database: %w", oldName, err)
-	}
-
-	vol.config = &newConfig
-
-	vol.newVolumeEvent(events.Rename)
+	vol.newVolumeRenameEvent(oldName)
 	return vol, nil
 }
 

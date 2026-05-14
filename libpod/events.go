@@ -185,9 +185,18 @@ func (r *Runtime) NewSystemEvent(status events.Status) {
 
 // newVolumeEvent creates a new event for a libpod volume
 func (v *Volume) newVolumeEvent(status events.Status) {
+	v.newVolumeEventWithAttributes(status, nil)
+}
+
+func (v *Volume) newVolumeRenameEvent(oldName string) {
+	v.newVolumeEventWithAttributes(events.Rename, map[string]string{"oldName": oldName})
+}
+
+func (v *Volume) newVolumeEventWithAttributes(status events.Status, attributes map[string]string) {
 	e := events.NewEvent(status)
 	e.Name = v.Name()
 	e.Type = events.Volume
+	e.Attributes = attributes
 	if err := v.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write volume event: %q", err)
 	}

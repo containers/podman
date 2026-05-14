@@ -1388,6 +1388,15 @@ func (s *SQLiteState) RenameVolume(volume *Volume, newCfg *VolumeConfig) (defErr
 		}
 	}()
 
+	var exists int
+	if err := tx.QueryRow("SELECT 1 FROM VolumeConfig WHERE Name=?;", newName).Scan(&exists); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if volume with name %q already exists: %w", newName, err)
+		}
+	} else {
+		return fmt.Errorf("volume with name %q already exists: %w", newName, define.ErrVolumeExists)
+	}
+
 	// Update VolumeState first.
 	// VolumeState may not exist for all volumes, so we intentionally
 	// do not check RowsAffected here.

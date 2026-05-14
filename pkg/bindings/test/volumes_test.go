@@ -80,6 +80,7 @@ var _ = Describe("Podman volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = volumes.Inspect(connText, oldName, nil)
+		Expect(err).To(HaveOccurred())
 		code, err := bindings.CheckResponseCode(err)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
