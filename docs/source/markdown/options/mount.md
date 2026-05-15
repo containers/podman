@@ -116,9 +116,13 @@ Options specific to type=**tmpfs** and **ramfs**:
 
 - *tmpcopyup*: Enable copyup from the image directory at the same location to the tmpfs/ramfs. Used by default.
 
+When the tmpfs destination is inside a volume or bind mount, files from the parent mount are also copied into the tmpfs, so the parent content remains visible. Use **notmpcopyup** to mount an empty tmpfs that shadows the parent mount's subtree.
+
 - *noatime*: Disable updating file access times when the file is read.
 
 - *notmpcopyup*: Disable copying files from the image to the tmpfs/ramfs.
+
+Use this option when mounting a tmpfs inside a volume or bind mount to ensure the tmpfs properly shadows the parent mount's subtree.
 
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Set the uid and gid options for the tmpfs filesystem based on the UID and GID of the container. This is **not** recursive.
 
