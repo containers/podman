@@ -110,7 +110,7 @@ require (
 	github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e // indirect
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker-credential-helpers v0.9.6 // indirect
+	github.com/docker/docker-credential-helpers v0.9.7 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
@@ -189,7 +189,7 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
 
-replace go.podman.io/common => github.com/Luap99/container-libs/common v0.0.0-20260507114201-8488036ffdbc
+replace go.podman.io/common => github.com/zvenigorodsky/container-libs/common v0.0.0-20260513201046-29c417f5d0a4
 
 replace go.podman.io/image/v5 => github.com/Luap99/container-libs/image/v5 v5.0.0-20260507114201-8488036ffdbc
 
