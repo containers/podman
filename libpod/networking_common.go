@@ -325,7 +325,9 @@ func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNet
 				if config.IPAddress == "" {
 					config.IPAddress = netAddress.IPNet.IP.String()
 					config.IPPrefixLen = size
-					config.Gateway = netAddress.Gateway.String()
+					if netAddress.Gateway != nil {
+						config.Gateway = netAddress.Gateway.String()
+					}
 				} else {
 					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
 				}
@@ -334,7 +336,9 @@ func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNet
 				if config.GlobalIPv6Address == "" {
 					config.GlobalIPv6Address = netAddress.IPNet.IP.String()
 					config.GlobalIPv6PrefixLen = size
-					config.IPv6Gateway = netAddress.Gateway.String()
+					if netAddress.Gateway != nil {
+						config.IPv6Gateway = netAddress.Gateway.String()
+					}
 				} else {
 					config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
 				}
