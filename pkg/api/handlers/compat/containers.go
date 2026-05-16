@@ -472,8 +472,8 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 				NetworkMode string            `json:",omitempty"`
 				Annotations map[string]string `json:",omitempty"`
 			}{
-				NetworkMode: "host",
-				// TODO: add annotations here for >= v1.46
+				NetworkMode: inspect.HostConfig.NetworkMode,
+				Annotations: inspect.HostConfig.Annotations,
 			},
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,
