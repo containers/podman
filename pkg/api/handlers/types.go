@@ -10,7 +10,6 @@ import (
 	swarm "github.com/moby/moby/api/types/swarm"
 	dockerSystem "github.com/moby/moby/api/types/system"
 	"github.com/moby/moby/api/types/volume"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/podman/v6/pkg/domain/entities"
@@ -107,18 +106,8 @@ type Info struct {
 	Uptime             string
 }
 
-// ContainerCreateConfig is the parameter set to ContainerCreate()
-type ContainerCreateConfig struct {
-	Name                        string
-	Config                      *dockerContainer.Config
-	HostConfig                  *dockerContainer.HostConfig
-	NetworkingConfig            *network.NetworkingConfig
-	Platform                    *ocispec.Platform
-	DefaultReadOnlyNonRecursive bool
-}
 type Container struct {
 	dockerContainer.Summary
-	ContainerCreateConfig
 }
 
 // swagger:model LegacyImageSummary

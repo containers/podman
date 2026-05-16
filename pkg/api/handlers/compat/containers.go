@@ -468,7 +468,6 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 			State:      container.ContainerState(stateStr),
 			Status:     status,
 			Health:     healthSummary,
-			// FIXME: this seems broken, the field is never shown in the API output.
 			HostConfig: struct {
 				NetworkMode string            `json:",omitempty"`
 				Annotations map[string]string `json:",omitempty"`
@@ -479,7 +478,6 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,
 		},
-		ContainerCreateConfig: handlers.ContainerCreateConfig{},
 	}, nil
 }
 
