@@ -63,6 +63,7 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 		}
 		return nil, err
 	}
+	defer dir.Close()
 	configNames, err := dir.Readdirnames(0)
 	if err != nil {
 		return nil, err
