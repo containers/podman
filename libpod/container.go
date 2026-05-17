@@ -393,6 +393,7 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 	returnSpec := c.config.Spec
 
 	if f, err := os.Open(c.state.ConfigPath); err == nil {
+		defer f.Close()
 		returnSpec = new(spec.Spec)
 		content, err := io.ReadAll(f)
 		if err != nil {
