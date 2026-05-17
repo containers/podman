@@ -1,13 +1,8 @@
 package config
 
 import (
-	selinux "github.com/opencontainers/selinux/go-selinux"
 	"go.podman.io/common/pkg/capabilities"
 )
-
-func selinuxEnabled() bool {
-	return selinux.GetEnabled()
-}
 
 var defaultHelperBinariesDir = []string{
 	"/usr/local/libexec/podman",

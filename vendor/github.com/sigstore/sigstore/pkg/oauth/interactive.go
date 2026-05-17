@@ -65,18 +65,12 @@ func GetInteractiveSuccessHTML(autoclose bool, timeout int) (string, error) {
 					<span class="sigstore">sigstore </span>
 					<span>authentication successful!</span>
 				</div>
-				{{ if .Autoclose -}}
 				<small name="autoclose"></small>
 				<noscript>
 					<div class="content">
 						<span>You may now close this page.</span>
 					</div>
 				</noscript>
-				{{- else -}}
-				<div class="content">
-					<span>You may now close this page.</span>
-				</div>
-				{{- end }}
 			</div>
 			<div class="anchor">
 				<div class="links">

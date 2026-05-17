@@ -94,6 +94,16 @@ func (as *ArtifactStore) EventChannel() chan *Event {
 	return as.eventChannel
 }
 
+// CloseEventChannel closes the event channel to signal listeners that
+// the artifact store has stopped emitting events.
+// WARNING: EventChannel and CloseEventChannel are not safe for concurrent use.
+func (as *ArtifactStore) CloseEventChannel() {
+	if as.eventChannel != nil {
+		close(as.eventChannel)
+		as.eventChannel = nil
+	}
+}
+
 // lookupArtifactLocked looks up an artifact by fully qualified name,
 // or name@digest, full ID, or partial ID.
 // note: lookupArtifactLocked must be called while under a store lock
