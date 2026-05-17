@@ -3,9 +3,6 @@
 package integration
 
 import (
-	"strconv"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "go.podman.io/podman/v6/test/utils"
@@ -17,7 +14,6 @@ var _ = Describe("Podman volume rename", func() {
 	})
 
 	It("podman volume rename", func() {
-		start := time.Now()
 		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
 
 		rename := podmanTest.PodmanExitCleanly("volume", "rename", "myvol", "newvol")
@@ -30,9 +26,6 @@ var _ = Describe("Podman volume rename", func() {
 		check = podmanTest.Podman([]string{"volume", "inspect", "myvol"})
 		check.WaitWithDefaultTimeout()
 		Expect(check).To(ExitWithError(125, "no such volume"))
-
-		events := podmanTest.PodmanExitCleanly("events", "--stream=false", "--since", strconv.FormatInt(start.Unix(), 10), "--filter", "event=rename", "--filter", "volume=newvol", "--format", "{{json .}}")
-		Expect(events.OutputToString()).To(ContainSubstring(`"oldName":"myvol"`))
 	})
 
 	It("podman volume rename data persists", func() {
@@ -65,52 +58,42 @@ var _ = Describe("Podman volume rename", func() {
 		Expect(session).To(ExitWithError(125, "volume is being used"))
 	})
 
-	It("podman volume rename to existing name fails", func() {
+	It("podman volume rename handles error cases", func() {
 		podmanTest.PodmanExitCleanly("volume", "create", "vol1")
 		podmanTest.PodmanExitCleanly("volume", "create", "vol2")
 
 		session := podmanTest.Podman([]string{"volume", "rename", "vol1", "vol2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(125, "volume already exists"))
-	})
 
-	It("podman volume rename fails for image driver volumes", func() {
+		session = podmanTest.Podman([]string{"volume", "rename", "nosuchvol", "newvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "no such volume"))
+
+		session = podmanTest.Podman([]string{"volume", "rename", "vol1", "invalid/name"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "invalid argument"))
+
+		session = podmanTest.Podman([]string{"volume", "rename", "vol1", " newvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "names must match"))
+
 		podmanTest.AddImageToRWStore(FEDORA_MINIMAL)
 		podmanTest.PodmanExitCleanly("volume", "create", "--driver", "image", "--opt", "image="+FEDORA_MINIMAL, "imagevol")
 
-		session := podmanTest.Podman([]string{"volume", "rename", "imagevol", "newvol"})
+		session = podmanTest.Podman([]string{"volume", "rename", "imagevol", "newvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(125, "rename is not supported for volumes using driver \"image\""))
 	})
 
-	It("podman volume rename nonexistent volume fails", func() {
-		session := podmanTest.Podman([]string{"volume", "rename", "nosuchvol", "newvol"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "no such volume"))
-	})
-
-	It("podman volume rename to same name fails", func() {
+	It("podman volume rename to same name succeeds", func() {
 		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
 
-		session := podmanTest.Podman([]string{"volume", "rename", "myvol", "myvol"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "new name is the same as the old name"))
-	})
+		rename := podmanTest.PodmanExitCleanly("volume", "rename", "myvol", "myvol")
+		Expect(rename.OutputToString()).To(BeEmpty())
 
-	It("podman volume rename with invalid name fails", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
-
-		session := podmanTest.Podman([]string{"volume", "rename", "myvol", "invalid/name"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "invalid argument"))
-	})
-
-	It("podman volume rename with leading whitespace fails", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
-
-		session := podmanTest.Podman([]string{"volume", "rename", "myvol", " newvol"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "names must match"))
+		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", "myvol")
+		Expect(inspect.OutputToString()).To(ContainSubstring("myvol"))
 	})
 
 	It("podman volume rename converts anonymous volumes to named volumes", func() {

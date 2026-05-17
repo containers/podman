@@ -14,32 +14,7 @@ var _ = Describe("podman rename", func() {
 	It("podman rename on non-existent container", func() {
 		session := podmanTest.Podman([]string{"rename", "doesNotExist", "aNewName"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, `no such object: "doesNotExist"`))
-	})
-
-	It("Successfully rename a volume", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
-
-		rename := podmanTest.PodmanExitCleanly("rename", "myvol", "newvol")
-		Expect(rename.OutputToString()).To(BeEmpty())
-
-		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", "newvol")
-		Expect(inspect.OutputToString()).To(ContainSubstring("newvol"))
-
-		oldNameInspect := podmanTest.Podman([]string{"volume", "inspect", "myvol"})
-		oldNameInspect.WaitWithDefaultTimeout()
-		Expect(oldNameInspect).To(ExitWithError(125, "no such volume"))
-	})
-
-	It("podman container rename does not rename a volume", func() {
-		podmanTest.PodmanExitCleanly("volume", "create", "myvol")
-
-		rename := podmanTest.Podman([]string{"container", "rename", "myvol", "newvol"})
-		rename.WaitWithDefaultTimeout()
-		Expect(rename).To(ExitWithError(125, `no container with name or ID "myvol" found: no such container`))
-
-		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", "myvol")
-		Expect(inspect.OutputToString()).To(ContainSubstring("myvol"))
+		Expect(session).To(ExitWithError(125, `no container with name or ID "doesNotExist" found: no such container`))
 	})
 
 	It("Podman rename on existing container with bad name", func() {

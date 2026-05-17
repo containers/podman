@@ -27,12 +27,6 @@ Rename volume `mydata` to `data_backup`:
 $ podman volume rename mydata data_backup
 ```
 
-## EXIT CODES
-
-**0**  Success.\
-**125** The command fails (volume in use, new name already exists, driver not
-supported, or invalid name).
-
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-volume(1)](podman-volume.1.md)**, **[podman-volume-inspect(1)](podman-volume-inspect.1.md)**
 

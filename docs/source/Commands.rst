@@ -83,7 +83,7 @@ Commands
 
 :doc:`quadlet <markdown/podman-quadlet.1>` Allows users to manage Quadlets
 
-:doc:`rename <markdown/podman-rename.1>` Rename an existing container or volume
+:doc:`rename <markdown/podman-rename.1>` Rename an existing container
 
 :doc:`restart <markdown/podman-restart.1>` Restart one or more containers
 
