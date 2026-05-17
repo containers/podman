@@ -65,7 +65,7 @@ func (ir *ImageEngine) ArtifactRm(_ context.Context, opts entities.ArtifactRemov
 		Ignore:    &opts.Ignore,
 	}
 
-	return artifacts.Remove(ir.ClientCtx, "", &removeOptions)
+	return artifacts.Remove(ir.ClientCtx, &removeOptions)
 }
 
 func (ir *ImageEngine) ArtifactPush(_ context.Context, name string, opts entities.ArtifactPushOptions) (*entities.ArtifactPushReport, error) {
@@ -146,7 +146,7 @@ func artifactAddErrorCleanup(ctx context.Context, index int, name string, err er
 	removeOptions := artifacts.RemoveOptions{
 		Artifacts: []string{name},
 	}
-	_, recoverErr := artifacts.Remove(ctx, "", &removeOptions)
+	_, recoverErr := artifacts.Remove(ctx, &removeOptions)
 	if recoverErr != nil {
 		return fmt.Errorf("failed to cleanup unfinished artifact add: %w", errors.Join(err, recoverErr))
 	}
