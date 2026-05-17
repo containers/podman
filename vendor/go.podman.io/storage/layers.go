@@ -980,7 +980,9 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 			tocsums[layer.TOCDigest] = append(tocsums[layer.TOCDigest], layer.ID)
 		}
 		if layer.MountLabel != "" {
-			selinux.ReserveLabel(layer.MountLabel)
+			if err := selinux.ReserveLabelV2(layer.MountLabel); err != nil && !errors.Is(err, selinux.ErrMCSAlreadyExists) {
+				return false, fmt.Errorf("unable to reserve SELinux label: %w", err)
+			}
 		}
 		layer.ReadOnly = !r.lockfile.IsReadWrite()
 		// The r.lockfile.IsReadWrite() condition maintains past practice:
@@ -1574,7 +1576,9 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 		templateIDMappings = &idtools.IDMappings{}
 	}
 	if mountLabel != "" {
-		selinux.ReserveLabel(mountLabel)
+		if err := selinux.ReserveLabelV2(mountLabel); err != nil && !errors.Is(err, selinux.ErrMCSAlreadyExists) {
+			return nil, -1, fmt.Errorf("unable to reserve SELinux label: %w", err)
+		}
 	}
 
 	// Before actually creating the layer, make a persistent record of it

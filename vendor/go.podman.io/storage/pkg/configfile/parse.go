@@ -400,26 +400,32 @@ func readDropInsFromPaths(paths []string, suffix string) ([]string, error) {
 
 func getDropInPathsUnderMain(mainPath, suffix string, uid int) []string {
 	paths := make([]string, 0, 3)
-	paths = append(paths, mainPath+dropInSuffix)
 
-	rootless := uid > 0
-	var specialName string
-	if rootless {
-		specialName = "rootless"
-	} else {
-		specialName = "rootful"
+	// Extra condition for windows where uid is always -1 per os.Getuid().
+	// In this case it makes no sense to give the rootful path, just ignore
+	// the special drop in locations.
+	if uid >= 0 {
+		rootless := uid > 0
+		var specialName string
+		if rootless {
+			specialName = "rootless"
+		} else {
+			specialName = "rootful"
+		}
+		// insert the name after the main config name but before the extension if it has one.
+		specialPrefix, cut := strings.CutSuffix(mainPath, suffix)
+		specialPath := specialPrefix + "." + specialName
+		if cut {
+			specialPath += suffix
+		}
+		specialPath += dropInSuffix
+		if rootless {
+			paths = append(paths, filepath.Join(specialPath, strconv.Itoa(uid)))
+		}
+		paths = append(paths, specialPath)
 	}
-	// insert the name after the main config name but before the extension if it has one.
-	mainPath, cut := strings.CutSuffix(mainPath, suffix)
-	specialPath := mainPath + "." + specialName
-	if cut {
-		specialPath += suffix
-	}
-	specialPath += dropInSuffix
-	paths = append(paths, specialPath)
-	if rootless {
-		paths = append(paths, filepath.Join(specialPath, strconv.Itoa(uid)))
-	}
+
+	paths = append(paths, mainPath+dropInSuffix)
 	return paths
 }
 

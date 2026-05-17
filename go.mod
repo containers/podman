@@ -65,9 +65,9 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.4.3
 	go.podman.io/buildah v1.42.1-0.20260501153811-377cf64e213b
-	go.podman.io/common v0.67.2-0.20260511131139-020a2274da88
-	go.podman.io/image/v5 v5.39.3-0.20260511131139-020a2274da88
-	go.podman.io/storage v1.62.1-0.20260511131139-020a2274da88
+	go.podman.io/common v0.67.2-0.20260515151312-e2c14667a598
+	go.podman.io/image/v5 v5.39.3-0.20260515151312-e2c14667a598
+	go.podman.io/storage v1.62.1-0.20260515151312-e2c14667a598
 	golang.org/x/crypto v0.51.0
 	golang.org/x/net v0.54.0
 	golang.org/x/sync v0.20.0
@@ -110,7 +110,7 @@ require (
 	github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e // indirect
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker-credential-helpers v0.9.6 // indirect
+	github.com/docker/docker-credential-helpers v0.9.7 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
@@ -159,7 +159,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0 // indirect
 	github.com/sigstore/fulcio v1.8.5 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect
-	github.com/sigstore/sigstore v1.10.5 // indirect
+	github.com/sigstore/sigstore v1.10.6 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/smallstep/pkcs7 v0.1.1 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
@@ -188,9 +188,3 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
-
-replace go.podman.io/common => github.com/Luap99/container-libs/common v0.0.0-20260507114201-8488036ffdbc
-
-replace go.podman.io/image/v5 => github.com/Luap99/container-libs/image/v5 v5.0.0-20260507114201-8488036ffdbc
-
-replace go.podman.io/storage => github.com/Luap99/container-libs/storage v0.0.0-20260507114201-8488036ffdbc

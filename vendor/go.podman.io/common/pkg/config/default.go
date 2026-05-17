@@ -220,7 +220,7 @@ func defaultConfig() (*Config, error) {
 			DefaultSysctls:      configfile.Slice{},
 			Devices:             configfile.Slice{},
 			EnableKeyring:       true,
-			EnableLabeling:      selinuxEnabled(),
+			EnableLabeling:      selinux.GetEnabled(),
 			Env:                 configfile.NewSlice(defaultContainerEnv),
 			EnvHost:             false,
 			HTTPProxy:           true,
