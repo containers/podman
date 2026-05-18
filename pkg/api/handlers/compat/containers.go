@@ -308,6 +308,10 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 		sizeRW     int64
 		state      define.ContainerStatus
 		status     string
+		hostConfig = struct {
+			NetworkMode string            `json:",omitempty"`
+			Annotations map[string]string `json:",omitempty"`
+		}{}
 	)
 
 	if state, err = l.State(); err != nil {
@@ -453,6 +457,12 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 		}
 	}
 
+	hc := inspect.HostConfig
+	if hc != nil {
+		hostConfig.NetworkMode = inspect.HostConfig.NetworkMode
+		hostConfig.Annotations = inspect.HostConfig.Annotations
+	}
+
 	return &handlers.Container{
 		Summary: container.Summary{
 			ID:         l.ID(),
@@ -468,13 +478,7 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 			State:      container.ContainerState(stateStr),
 			Status:     status,
 			Health:     healthSummary,
-			HostConfig: struct {
-				NetworkMode string            `json:",omitempty"`
-				Annotations map[string]string `json:",omitempty"`
-			}{
-				NetworkMode: inspect.HostConfig.NetworkMode,
-				Annotations: inspect.HostConfig.Annotations,
-			},
+			HostConfig: hostConfig,
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,
 		},
