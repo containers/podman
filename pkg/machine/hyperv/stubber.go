@@ -33,7 +33,7 @@ type HyperVStubber struct {
 
 type permissionChecks struct {
 	isElevatedProcess   func() bool
-	isHyperVAdminMember func() bool
+	isHyperVAdminMember func() error
 	vsockEntriesExist   func(int) bool
 	existingMachinesNum func() (int, error)
 }
@@ -41,7 +41,7 @@ type permissionChecks struct {
 func (h HyperVStubber) defaultPermissionChecks() permissionChecks {
 	return permissionChecks{
 		isElevatedProcess:   windows.HasAdminRights,
-		isHyperVAdminMember: IsHyperVAdminsGroupMember,
+		isHyperVAdminMember: VerifyHyperVPermissions,
 		vsockEntriesExist:   vsock.CheckIfHVSockRegistryEntriesExist,
 		existingMachinesNum: h.countMachinesWithToolname,
 	}
@@ -296,10 +296,7 @@ func checkCanCreate(checks permissionChecks, mounts int) error {
 	if !checks.vsockEntriesExist(mounts) {
 		return ErrHypervRegistryInitRequiresElevation
 	}
-	if !checks.isHyperVAdminMember() {
-		return ErrHypervUserNotInAdminGroup
-	}
-	return nil
+	return checks.isHyperVAdminMember()
 }
 
 // launchElevate attempts to automatically re-run the command as administrator
@@ -359,8 +356,8 @@ func checkCanRemove(mc *vmconfigs.MachineConfig, checks permissionChecks) error 
 	if isLegacyMachine(mc) {
 		return ErrHypervLegacyMachineRequiresElevation
 	}
-	if !checks.isHyperVAdminMember() {
-		return ErrHypervUserNotInAdminGroup
+	if err := checks.isHyperVAdminMember(); err != nil {
+		return err
 	}
 	machines, err := checks.existingMachinesNum()
 	if err != nil {
@@ -544,7 +541,8 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
 	// If the user does not have permissions, WMI will fail with an error anyway.
 	// Just return Unknown.
-	if !windows.HasAdminRights() && !IsHyperVAdminsGroupMember() {
+	if err := VerifyHyperVPermissions(); err != nil {
+		logrus.Warnf("unable to get state for machine %s: %v", mc.Name, err)
 		return define.Unknown, nil
 	}
 

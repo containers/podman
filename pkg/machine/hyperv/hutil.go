@@ -20,6 +20,7 @@ var (
 	ErrHypervRegistryUpdateRequiresElevation = errors.New("this machine's configuration requires additional Hyper-V networking (hvsock) entries in the Windows Registry. Please run Podman as an administrator")
 	ErrHypervLegacyMachineRequiresElevation  = errors.New("starting or stopping Hyper-V machines created with Podman 5.x or earlier requires admin rights. Please run Podman as an administrator")
 	ErrHypervPrepareHostForHyperV            = errors.New("podman needs to prepare the host to run Hyper-V machines without requiring Administrator rights in the future. This involves a one-time setup of the Windows Registry and adding your account to the 'Hyper-V Administrators' group")
+	ErrHypervUserSessionNotUpdated           = errors.New("you have been added to the Hyper-V Administrators group, but your active session has not updated. Please log out of Windows and log back in to apply the permissions. To run this command immediately without logging out, restart it as an administrator")
 
 	// Lazily load the NetAPI32 DLL and the function we need
 	modnetapi32                 = syswindows.NewLazySystemDLL("netapi32.dll")
@@ -250,7 +251,7 @@ func VerifyHyperVPermissions() error {
 
 	inGroup, _ := isUserInGroup(groupPtr, userSid)
 	if inGroup {
-		return errors.New("you have been added to the Hyper-V Administrators group, but your active session has not updated. Please log out of Windows and log back in to apply the permissions")
+		return ErrHypervUserSessionNotUpdated
 	}
 
 	// They are not an Admin, not in the token, and not in the group database.
