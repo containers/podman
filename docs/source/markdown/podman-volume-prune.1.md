@@ -21,6 +21,10 @@ removal unless **--force** is used.
 
 Remove all unused volumes (anonymous and named). Without this option, only anonymous unused volumes are removed.
 
+#### **--dry-run**
+
+Show which volumes would be pruned without removing them.
+
 #### **--filter**
 
 Provide filter values.
@@ -96,6 +100,12 @@ $ podman volume prune --filter label=environment
 Prune unused volumes that do NOT have a specific label key:
 ```
 $ podman volume prune --filter label!=environment
+```
+
+Preview all unused volumes without removing them.
+
+```
+$ podman volume prune --all --dry-run
 ```
 
 ## SEE ALSO

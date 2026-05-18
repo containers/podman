@@ -297,7 +297,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 		filterFuncs = append(filterFuncs, filterFunc)
 	}
 
-	pruned, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	pruned, err := runtime.PruneVolumes(r.Context(), filterFuncs, false)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

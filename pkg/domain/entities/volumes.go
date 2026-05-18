@@ -29,6 +29,7 @@ type VolumeInspectReport = types.VolumeInspectReport
 // - when filter "all" is true, all unused volumes are pruned.
 type VolumePruneOptions struct {
 	Filters url.Values `json:"filters" schema:"filters"`
+	DryRun  bool       `json:"dry_run" schema:"dryrun"`
 }
 
 type VolumeListOptions struct {

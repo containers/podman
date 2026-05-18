@@ -111,7 +111,7 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 }
 
 // PruneVolumes removes unused volumes from the system
-func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) ([]*reports.PruneReport, error) {
+func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter, dryRun bool) ([]*reports.PruneReport, error) {
 	preports := make([]*reports.PruneReport, 0)
 	vols, err := r.Volumes(filterFuncs...)
 	if err != nil {
@@ -119,6 +119,17 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 	}
 
 	for _, vol := range vols {
+		dangling, err := vol.IsDangling()
+		if err != nil {
+			preports = append(preports, &reports.PruneReport{
+				Id:  vol.Name(),
+				Err: err,
+			})
+		}
+		if !dangling {
+			continue
+		}
+
 		report := new(reports.PruneReport)
 		volSize, err := vol.Size()
 		if err != nil {
@@ -126,16 +137,18 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 		}
 		report.Size = volSize
 		report.Id = vol.Name()
-		var timeout *uint
-		if err := r.RemoveVolume(ctx, vol, false, timeout); err != nil {
-			if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) {
-				report.Err = err
+		if !dryRun {
+			var timeout *uint
+			if err := r.RemoveVolume(ctx, vol, false, timeout); err != nil {
+				if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) {
+					report.Err = err
+				} else {
+					// We didn't remove the volume for some reason
+					continue
+				}
 			} else {
-				// We didn't remove the volume for some reason
-				continue
+				vol.newVolumeEvent(events.Prune)
 			}
-		} else {
-			vol.newVolumeEvent(events.Prune)
 		}
 		preports = append(preports, report)
 	}

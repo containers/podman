@@ -5,6 +5,7 @@ package integration
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "go.podman.io/podman/v6/test/utils"
 )
 
 var _ = Describe("Podman volume prune", func() {
@@ -138,5 +139,81 @@ var _ = Describe("Podman volume prune", func() {
 		session := podmanTest.PodmanExitCleanly("volume", "ls", "-q")
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol1))
+	})
+
+	It("podman volume prune --all --dry-run", func() {
+		vol1 := "vol1"
+		vol2 := "vol2"
+
+		podmanTest.PodmanExitCleanly("volume", "create", vol1)
+		podmanTest.PodmanExitCleanly("volume", "create", vol2)
+
+		session := podmanTest.PodmanExitCleanly("volume", "prune", "--all", "--dry-run")
+		Expect(session.OutputToString()).To(ContainSubstring("Volumes that would be pruned:"))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).To(ContainSubstring(vol2))
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).To(ContainSubstring(vol2))
+	})
+
+	It("podman volume prune --filter --dry-run", func() {
+		vol1 := "vol1"
+		vol2 := "vol2"
+
+		podmanTest.PodmanExitCleanly("volume", "create", "--label", "dryrun=true", vol1)
+		podmanTest.PodmanExitCleanly("volume", "create", "--label", "dryrun=false", vol2)
+
+		session := podmanTest.PodmanExitCleanly("volume", "prune", "--dry-run", "--filter", "label=dryrun=true")
+		Expect(session.OutputToString()).To(ContainSubstring("Volumes that would be pruned:"))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).ToNot(ContainSubstring(vol2))
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).To(ContainSubstring(vol2))
+	})
+
+	It("podman volume prune --dry-run only shows anonymous volumes", func() {
+		vol1 := "vol1"
+		anon_vol := podmanTest.PodmanExitCleanly("volume", "create").OutputToString()
+		podmanTest.PodmanExitCleanly("volume", "create", vol1)
+
+		session := podmanTest.PodmanExitCleanly("volume", "prune", "--dry-run")
+		Expect(session.OutputToString()).To(ContainSubstring("Volumes that would be pruned:"))
+		Expect(session.OutputToString()).To(ContainSubstring(anon_vol))
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).To(ContainSubstring(anon_vol))
+	})
+
+	It("podman volume prune --all --dry-run excludes volumes in use", func() {
+		vol1 := "vol1"
+		vol2 := "vol2"
+
+		podmanTest.PodmanExitCleanly("volume", "create", vol1)
+		podmanTest.PodmanExitCleanly("volume", "create", vol2)
+		podmanTest.PodmanExitCleanly("create", "-v", "vol2:/data", ALPINE, "ls")
+
+		session := podmanTest.PodmanExitCleanly("volume", "prune", "--all", "--dry-run")
+		Expect(session.OutputToString()).To(ContainSubstring("Volumes that would be pruned:"))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).ToNot(ContainSubstring(vol2))
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring(vol1))
+		Expect(session.OutputToString()).To(ContainSubstring(vol2))
+	})
+
+	It("podman volume prune --force --dry-run fails", func() {
+		session := podmanTest.Podman([]string{"volume", "prune", "--force", "--dry-run"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "--force and --dry-run cannot be used together"))
 	})
 })

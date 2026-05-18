@@ -144,7 +144,16 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+
+	query := struct {
+		DryRun bool `schema:"dryrun"`
+	}{}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		return nil, err
+	}
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		return nil, err
@@ -160,7 +169,7 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 		filterFuncs = append(filterFuncs, filterFunc)
 	}
 
-	reports, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	reports, err := runtime.PruneVolumes(r.Context(), filterFuncs, query.DryRun)
 	if err != nil {
 		return nil, err
 	}

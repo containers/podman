@@ -95,6 +95,12 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//        - `anonymous` When true/false, restrict to anonymous or named volumes only.
 	//        - `until=<timestamp>` Prune volumes created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune volumes with (or without, in case `label!=...` is used) the specified labels.
+	//  - in: query
+	//    name: dryrun
+	//    type: boolean
+	//    required: false
+	//    default: false
+	//    description: Show which volumes would be pruned without removing them.
 	// responses:
 	//   '200':
 	//      "$ref": "#/responses/volumePruneLibpod"

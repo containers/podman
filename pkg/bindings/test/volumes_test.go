@@ -226,4 +226,20 @@ var _ = Describe("Podman volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pruned).To(HaveLen(1))
 	})
+
+	It("prune volume with dry-run", func() {
+		vol, err := volumes.Create(connText, entities.VolumeCreateOptions{Name: "vol"}, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		options := new(volumes.PruneOptions).
+			WithFilters(map[string][]string{"all": {"true"}}).
+			WithDryRun(true)
+
+		vols, err := volumes.Prune(connText, options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(reports.PruneReportsIds(vols)).To(ContainElement(vol.Name))
+
+		_, err = volumes.Inspect(connText, vol.Name, nil)
+		Expect(err).ToNot(HaveOccurred())
+	})
 })

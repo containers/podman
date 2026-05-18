@@ -31,3 +31,18 @@ func (o *PruneOptions) GetFilters() map[string][]string {
 	}
 	return o.Filters
 }
+
+// WithDryRun set field DryRun to given value
+func (o *PruneOptions) WithDryRun(value bool) *PruneOptions {
+	o.DryRun = &value
+	return o
+}
+
+// GetDryRun returns value of field DryRun
+func (o *PruneOptions) GetDryRun() bool {
+	if o.DryRun == nil {
+		var z bool
+		return z
+	}
+	return *o.DryRun
+}

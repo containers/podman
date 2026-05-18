@@ -76,7 +76,7 @@ func (ic *ContainerEngine) VolumeInspect(_ context.Context, namesOrIds []string,
 }
 
 func (ic *ContainerEngine) VolumePrune(_ context.Context, opts entities.VolumePruneOptions) ([]*reports.PruneReport, error) {
-	options := new(volumes.PruneOptions).WithFilters(opts.Filters)
+	options := new(volumes.PruneOptions).WithFilters(opts.Filters).WithDryRun(opts.DryRun)
 	return volumes.Prune(ic.ClientCtx, options)
 }
 

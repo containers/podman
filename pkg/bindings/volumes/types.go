@@ -24,6 +24,8 @@ type ListOptions struct {
 type PruneOptions struct {
 	// Filters applied to the pruning of volumes
 	Filters map[string][]string
+	// DryRun lists volumes that would be pruned without removing them.
+	DryRun *bool
 }
 
 // RemoveOptions are optional options for removing volumes
