@@ -15,14 +15,15 @@ var (
 	quadletRmDescription = `Remove one or more installed Quadlets from the current user`
 
 	quadletRmCmd = &cobra.Command{
-		Use:               "rm [options] QUADLET [QUADLET...]",
+		Use:               "rm [options] [QUADLET|APPLICATION...]",
 		Short:             "Remove Quadlets",
 		Long:              quadletRmDescription,
 		RunE:              rm,
 		ValidArgsFunction: common.AutocompleteQuadlets,
 		Example: `podman quadlet rm test.container
 podman quadlet rm --force mysql.container
-podman quadlet rm --all --reload-systemd=false`,
+podman quadlet rm --all --reload-systemd=false
+podman quadlet rm --recursive djangoapp`,
 	}
 
 	removeOptions entities.QuadletRemoveOptions
@@ -35,6 +36,7 @@ func rmFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&removeOptions.All, "all", "a", false, "Remove all Quadlets for the current user")
 	flags.BoolVarP(&removeOptions.Ignore, "ignore", "i", false, "Do not error for Quadlets that do not exist")
 	flags.BoolVar(&removeOptions.ReloadSystemd, "reload-systemd", true, "Reload systemd after removal")
+	flags.BoolVar(&removeOptions.Recursive, "recursive", false, "Remove all Quadlets belonging to the specified application and its directory")
 }
 
 func init() {

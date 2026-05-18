@@ -14,15 +14,28 @@ This command allows you to:
 
     * Install a single Quadlet file, optionally followed by additional non-Quadlet files.
 
-    * Specify a directory containing multiple Quadlet files and other non-Quadlet files for installation ( example a config file for a quadlet container ).
+    * Specify a directory containing multiple Quadlet files and other non-Quadlet files for installation (for example a config file for a quadlet container).
 
     * Install multiple Quadlets from a single file with the `.quadlets` extension, where each Quadlet is separated by a `---` delimiter. When using multiple quadlets in a single `.quadlets` file, each quadlet section must include a `# FileName=<name>` comment to specify the name for that quadlet.
 
-Note: If a quadlet is part of an application, removing that specific quadlet will remove the entire application. When a quadlet is installed from a directory, all files installed from that directory—including both quadlet and non-quadlet files—are considered part of a single application. Similarly, when multiple quadlets are installed from a single `.quadlets` file, they are all considered part of the same application.
+Note: If a quadlet is part of an application, removing that specific quadlet
+will remove the entire application. When a quadlet is installed from a
+directory, all files installed from that directory—including both quadlet and
+non-quadlet files—are considered part of a single application. Similarly, when
+multiple quadlets are installed from a single `.quadlets` file, they are all
+considered part of the same application.
 
-Note: In case user wants to install Quadlet application then first path should be the path to application directory.
+Note: In case user wants to install Quadlet application then first path should
+be the path to application directory.
 
 ## OPTIONS
+
+#### **--application**=*string*
+
+You can specify an application name, all files will be installed under a
+directory with the application name. The application name is required when
+specifying a directory path. An application name can't have a quadlet extension
+as suffix. For example `foo.container` isn't a valid application name.
 
 #### **--reload-systemd**
 
@@ -48,7 +61,7 @@ $ podman quadlet install test-service-quadlet.container
 Install quadlet from a dir.
 
 ```
-$ podman quadlet install /home/user/work/quadlet-app/
+$ podman quadlet install --application=foo /home/user/work/quadlet-app/
 /home/user/.config/containers/systemd/myquadlet1.container
 /home/user/.config/containers/systemd/myquadlet2.container
 /install/path/myquadlet1.container

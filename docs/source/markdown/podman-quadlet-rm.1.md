@@ -4,7 +4,7 @@
 podman\-quadlet\-rm - Removes an installed quadlet
 
 ## SYNOPSIS
-**podman quadlet rm** [*options*] *quadlet* [*quadlet*]...
+**podman quadlet rm** [*options*] *quadlet|application* [*quadlet|application*]...
 
 ## DESCRIPTION
 
@@ -29,6 +29,10 @@ Remove running quadlets.
 
 Do not error for Quadlets that do not exist.
 
+#### **--recursive**
+
+Required when removing applications (default false).
+
 #### **--reload-systemd**
 
 Reload systemd after removing Quadlets (default true).
@@ -40,6 +44,10 @@ of this flag to `false`.
 ```
 $ podman quadlet rm myquadlet.container
 myquadlet.container
+$ podman quadlet rm --recursive myapp
+web.container
+data.container
+data.volume
 ```
 
 ## SEE ALSO
