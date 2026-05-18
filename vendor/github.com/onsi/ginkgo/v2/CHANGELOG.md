@@ -1,3 +1,9 @@
+## 2.29.0
+
+`GinkgoHelperGo` makes it easier to write test helpers that need to run in goroutines.  Specifically, it makes managing the failure state and capturing failure panics correctly straightforward.
+
+`ginkgo outline` now includes entries defined in `DescribeTableSubtree`
+
 ## 2.28.3
 
 ### Maintenance
