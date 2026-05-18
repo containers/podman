@@ -58,7 +58,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		dirs, err := env.GetMachineDirs(machineProvider.VMType())
+		dirs, err := env.GetMachineDirs(vmProvider.VMType())
 		if err != nil {
 			return err
 		}
