@@ -1,19 +1,9 @@
 #!/bin/bash
 #
-# tests for pr-should-link-jira.t
+# tests for pr-should-link-jira
 #
 
-ME=$(basename $0)
-
-# Our test script queries github, for which we need token
-if [[ -z "$CIRRUS_REPO_CLONE_TOKEN" ]]; then
-    if [[ -n "$GITHUB_TOKEN" ]]; then
-       export CIRRUS_REPO_CLONE_TOKEN="$GITHUB_TOKEN"
-    else
-        echo "$ME: Please set \$CIRRUS_REPO_CLONE_TOKEN" >&2
-        exit 1
-    fi
-fi
+ME=$(basename "$0")
 
 ###############################################################################
 # BEGIN test cases
@@ -55,30 +45,30 @@ More text...
 EndOfText
 
 # Feel free to add as needed. Syntax is:
-#    <exit status> <pr> <commit message> <dest branch> # comments
+#    <exit status> <override> <commit message var> <dest branch> # comments
 #
 # Where:
 #    exit status        is the expected exit status of the script
-#    pr                 pr number (only used to get tag, 0000 if doesn't matter)
-#    commit message     commit message
+#    override           "true" if the "No Jira Link" label is set, else "false"
+#    commit message     name of a variable above containing the PR body
 #    dest branch        name of branch
 #
 
 tests="
-0  0000  msg_no_jira   main        not rhel branch, no link, should pass
-0  0000  msg_jira      main        not rhel branch, link, should pass
-0  0000  msg_invalid   main        not rhel branch, invalid link, should pass
-0  0000  msg_no_jira   v4.9        not rhel branch, no link, should pass
-1  23514 msg_no_jira   v4.9-rhel   no link, no tag, should fail
-0  8890  msg_no_jira   v4.9-rhel   no link, tag, should work
-1  23514 msg_invalid   v4.9-rhel   invalid link, no tag, should fail
-0  0000  msg_jira      v4.9-rhel   link, should work
-0  0000  msg_jira2     v4.9-rhel   link with colon, should work
-0  0000  msg_multiple  v4.9-rhel   multiple links, should work
+0  false  msg_no_jira   main        not rhel branch, no link, should pass
+0  false  msg_jira      main        not rhel branch, link, should pass
+0  false  msg_invalid   main        not rhel branch, invalid link, should pass
+0  false  msg_no_jira   v4.9        not rhel branch, no link, should pass
+1  false  msg_no_jira   v4.9-rhel   no link, no override, should fail
+0  true   msg_no_jira   v4.9-rhel   no link, override, should pass
+1  false  msg_invalid   v4.9-rhel   invalid link, no override, should fail
+0  false  msg_jira      v4.9-rhel   link, should pass
+0  false  msg_jira2     v4.9-rhel   link with colon, should pass
+0  false  msg_multiple  v4.9-rhel   multiple links, should pass
 "
 
 # The script we're testing
-test_script=$(dirname $0)/$(basename $0 .t)
+test_script=$(dirname "$0")/$(basename "$0" .t)
 
 # END   test cases
 ###############################################################################
@@ -126,17 +116,16 @@ function run_test_script() {
 
 rc=0
 testnum=0
-tested_override=
 
-while read expected_rc pr msg branch rest; do
+while read expected_rc override msg branch rest; do
     # Skip blank lines
     test -z "$expected_rc" && continue
 
     export DEST_BRANCH=$branch
-    export CIRRUS_CHANGE_MESSAGE="${!msg}"
-    export CIRRUS_PR=$pr
+    export PR_BODY="${!msg}"
+    export OVERRIDE=$override
 
-    run_test_script $expected_rc "PR $pr $msg $branch - $rest"
+    run_test_script $expected_rc "$msg $branch override=$override - $rest"
 done <<<"$tests"
 
 echo "1..$testnum"

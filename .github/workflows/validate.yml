@@ -22,3 +22,16 @@ jobs:
           pr-body: ${{ github.event.pull_request.body }}
           base-sha: ${{ github.event.pull_request.base.sha }}
           head-sha: ${{ github.event.pull_request.head.sha }}
+
+  pr-should-link-jira:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/pr-should-link-jira
+        with:
+          pr-body: ${{ github.event.pull_request.body }}
+          base-ref: ${{ github.event.pull_request.base.ref }}
+          override: ${{ contains(github.event.pull_request.labels.*.name, 'No Jira Link') }}
