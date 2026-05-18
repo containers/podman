@@ -74,8 +74,10 @@ t GET libpod/containers/json?all=true 200 \
 
 # Test compat API for Network Settings (.Network is N/A when rootless)
 network_expect="Networks.pasta.NetworkID=pasta"
+network_mode_expect="pasta"
 if root; then
     network_expect="Networks.podman.NetworkID=2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9"
+    network_mode_expect="bridge"
 fi
 t GET /containers/json?all=true 200 \
   length=1 \
@@ -83,7 +85,8 @@ t GET /containers/json?all=true 200 \
   .[0].Image=$IMAGE \
   .[0].State="exited" \
   .[0].Mounts~.*/tmp \
-  .[0].NetworkSettings.$network_expect
+  .[0].NetworkSettings.$network_expect \
+  .[0].HostConfig.NetworkMode=$network_mode_expect
 
 # compat API imageid with sha256: prefix
 t GET containers/json?limit=1 200 \
