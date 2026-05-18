@@ -307,4 +307,47 @@ var _ = Describe("Podman events", func() {
 		Expect(result).Should(ExitCleanly())
 		Expect(result.OutputToStringArray()).ToNot(BeEmpty(), "Number of health_status events")
 	})
+
+	It("podman events for artifacts", func() {
+		artifactFile, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		lock, port, err := setupRegistry(nil)
+		if err == nil {
+			defer lock.Unlock()
+		}
+		Expect(err).ToNot(HaveOccurred())
+
+		artifactName := fmt.Sprintf("localhost:%s/test/events-artifact-remote:latest", port)
+		add := podmanTest.Podman([]string{"artifact", "add", artifactName, artifactFile})
+		add.WaitWithDefaultTimeout()
+		Expect(add).Should(ExitCleanly())
+
+		push := podmanTest.Podman([]string{"artifact", "push", "-q", "--tls-verify=false", artifactName})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(ExitCleanly())
+
+		rm := podmanTest.Podman([]string{"artifact", "rm", artifactName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(ExitCleanly())
+
+		pull := podmanTest.Podman([]string{"artifact", "pull", "-q", "--tls-verify=false", artifactName})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull).Should(ExitCleanly())
+
+		var events []string
+		Eventually(func() int {
+			result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=artifact", "--filter", "artifact=" + artifactName})
+			result.WaitWithDefaultTimeout()
+			Expect(result).Should(ExitCleanly())
+			events = result.OutputToStringArray()
+			return len(events)
+		}, defaultWaitTimeout, 2).Should(BeNumerically("==", 4), "number of artifact events")
+
+		Expect(events).To(HaveLen(4), "number of artifact events")
+		Expect(events[0]).To(And(ContainSubstring("artifact create"), ContainSubstring(artifactName)), "event log includes artifact create")
+		Expect(events[1]).To(And(ContainSubstring("artifact push"), ContainSubstring(artifactName)), "event log includes artifact push")
+		Expect(events[2]).To(And(ContainSubstring("artifact remove"), ContainSubstring(artifactName)), "event log includes artifact remove")
+		Expect(events[3]).To(And(ContainSubstring("artifact pull"), ContainSubstring(artifactName)), "event log includes artifact pull")
+	})
 })

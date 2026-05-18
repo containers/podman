@@ -70,6 +70,12 @@ The *image* event type reports the following statuses:
  * unmount
  * untag
 
+The *artifact* event type reports the following statuses:
+ * create
+ * pull
+ * push
+ * remove
+
 The *system* type reports the following statuses:
  * refresh
  * renumber
@@ -102,6 +108,7 @@ filters are supported:
 
 | **Filter** | **Description**                     |
 |------------|-------------------------------------|
+| artifact   | [Name or ID] Artifact name or ID    |
 | container  | [Name or ID] Container's name or ID |
 | event      | event_status (described above)      |
 | image      | [Name or ID] Image name or ID       |
@@ -167,8 +174,8 @@ The journald events-backend of Podman uses the following journald identifiers.  
 | PODMAN_EVENT                  | The event status as described above                     |
 | PODMAN_TYPE                   | The event type as described above                       |
 | PODMAN_TIME                   | The time stamp when the event was written               |
-| PODMAN_NAME                   | Name of the event object (e.g., container, image)       |
-| PODMAN_ID                     | ID of the event object (e.g., container, image)         |
+| PODMAN_NAME                   | Name of the event object (e.g., container, image, artifact) |
+| PODMAN_ID                     | ID of the event object (e.g., container, image, artifact)   |
 | PODMAN_EXIT_CODE              | Exit code of the container                              |
 | PODMAN_POD_ID                 | Pod ID of the container                                 |
 | PODMAN_LABELS                 | Labels of the container                                 |

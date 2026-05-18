@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"go.podman.io/podman/v6/libpod/define"
@@ -256,4 +257,33 @@ func (r *Runtime) GetExecDiedEvent(ctx context.Context, nameOrID, execSessionID 
 		return nil, fmt.Errorf("exec died event for session %s (container %s) not found: %w", execSessionID, nameOrID, events.ErrEventNotFound)
 	}
 	return containerEvents[len(containerEvents)-1], nil
+}
+
+// spawnEventForwarder starts a goroutine that reads events from the given channel, transforms and forwards them to the eventer.
+func spawnEventForwarder[T any](eventer events.Eventer, toLibpodEvent func(libEvent T) events.Event, eventChannel <-chan T, shutdownChan chan bool) {
+	go func() {
+		sawShutdown := false
+		for {
+			// Make sure to read and write all events before
+			// shutting down.
+			for len(eventChannel) > 0 {
+				libEvent := <-eventChannel
+				libpodEvent := toLibpodEvent(libEvent)
+				if err := eventer.Write(libpodEvent); err != nil {
+					logrus.Errorf("Unable to write event of type %T: %q", libEvent, err)
+				}
+			}
+
+			if sawShutdown {
+				close(shutdownChan)
+				return
+			}
+
+			select {
+			case <-shutdownChan:
+				sawShutdown = true
+			case <-time.After(100 * time.Millisecond):
+			}
+		}
+	}()
 }

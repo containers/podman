@@ -37,7 +37,7 @@ func (e EventJournalD) Write(ee Event) error {
 
 	// Add specialized information based on the podman type
 	switch ee.Type {
-	case Image:
+	case Image, Artifact:
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
 		if ee.Error != "" {
@@ -281,7 +281,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 		if err := getLabelsFromJournal(entry, &newEvent); err != nil {
 			return nil, err
 		}
-	case Image:
+	case Image, Artifact:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		if val, ok := entry.Fields["ERROR"]; ok {
 			newEvent.Error = val
