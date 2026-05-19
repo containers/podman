@@ -33,6 +33,26 @@ provision:
         disk:
             - size: ">= 512 GB"
 
+finish:
+    how: shell
+    script: |
+        # Archive logs to TMT_PLAN_DATA for post-test analysis
+        mkdir -p "$TMT_PLAN_DATA/logs"
+
+        # Copy audit logs (SELinux denials, audit events)
+        if [ -f /var/log/audit/audit.log ]; then
+            cp /var/log/audit/audit.log "$TMT_PLAN_DATA/logs/"
+            echo "Audit logs copied to $TMT_PLAN_DATA/logs/audit.log"
+        else
+            echo "No audit log found at /var/log/audit/audit.log"
+        fi
+
+        # Capture full journal (current boot only)
+        journalctl -b --no-pager --all --output=short-precise &> "$TMT_PLAN_DATA/logs/journal.log"
+        echo "Journal output saved to $TMT_PLAN_DATA/logs/journal.log"
+
+        echo "All logs archived to $TMT_PLAN_DATA/logs/"
+
 /local-root:
     summary: Local rootful tests
     discover+:
