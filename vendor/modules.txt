@@ -467,7 +467,7 @@ github.com/onsi/ginkgo/v2/internal/reporters
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.40.0
+# github.com/onsi/gomega v1.41.0
 ## explicit; go 1.24.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -735,7 +735,7 @@ go.podman.io/buildah/pkg/sshagent
 go.podman.io/buildah/pkg/util
 go.podman.io/buildah/pkg/volumes
 go.podman.io/buildah/util
-# go.podman.io/common v0.67.2-0.20260515151312-e2c14667a598
+# go.podman.io/common v0.67.2-0.20260515151312-e2c14667a598 => github.com/containers/container-libs/common v0.67.2-0.20260518190429-32704ef88648
 ## explicit; go 1.25.6
 go.podman.io/common/internal
 go.podman.io/common/libimage
@@ -801,7 +801,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.39.3-0.20260515151312-e2c14667a598
+# go.podman.io/image/v5 v5.39.3-0.20260515151312-e2c14667a598 => github.com/containers/container-libs/image/v5 v5.0.0-20260518190429-32704ef88648
 ## explicit; go 1.25.6
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -878,7 +878,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.62.1-0.20260515151312-e2c14667a598
+# go.podman.io/storage v1.62.1-0.20260515151312-e2c14667a598 => github.com/containers/container-libs/storage v0.0.0-20260518190429-32704ef88648
 ## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -1182,3 +1182,6 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# go.podman.io/common => github.com/containers/container-libs/common v0.67.2-0.20260518190429-32704ef88648
+# go.podman.io/image/v5 => github.com/containers/container-libs/image/v5 v5.0.0-20260518190429-32704ef88648
+# go.podman.io/storage => github.com/containers/container-libs/storage v0.0.0-20260518190429-32704ef88648

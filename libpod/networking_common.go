@@ -110,11 +110,27 @@ func (r *Runtime) teardownNetwork(ctr *Container) error {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsPasta() && len(networks) > 0 {
-		netOpts := ctr.getNetworkOptions(networks)
-		return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
+	if len(networks) == 0 {
+		return nil
 	}
-	return nil
+
+	// --net=pasta: per-container pasta cleans up when it exits, nothing to tear down.
+	if ctr.config.NetMode.IsPasta() {
+		return nil
+	}
+
+	// Pasta forwarding mode: remove port forwarding rules (via pesto) before
+	// netavark tears down bridge/nftables so pasta stops forwarding first.
+	// Rootlessport mode: no explicit teardown needed (exits with conmon).
+	if rootless.IsRootless() && ctr.config.NetMode.IsBridge() && len(ctr.config.PortMappings) > 0 &&
+		r.config.Network.RootlessPortForwarder == config.RootlessPortForwarderPasta {
+		if err := r.teardownRootlessPortMappingViaPesto(ctr); err != nil {
+			logrus.Warnf("pesto port cleanup failed for container %s: %v", ctr.ID(), err)
+		}
+	}
+
+	netOpts := ctr.getNetworkOptions(networks)
+	return r.teardownNetworkBackend(ctr.state.NetNS, netOpts)
 }
 
 // isBridgeNetMode checks if the given network mode is bridge.
@@ -439,7 +455,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 
 	// Reload ports when there are still connected networks, maybe we removed the network interface with the child ip.
 	// Reloading without connected networks does not make sense, so we can skip this step.
-	if rootless.IsRootless() && len(networkStatus) > 0 {
+	if rootless.IsRootless() && c.runtime.config.Network.RootlessPortForwarder == config.RootlessPortForwarderRootlessport && len(networkStatus) > 0 {
 		if err := c.reloadRootlessRLKPortMapping(); err != nil {
 			return err
 		}
@@ -595,7 +611,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 	// The first network needs a port reload to set the correct child ip for the rootlessport process.
 	// Adding a second network does not require a port reload because the child ip is still valid.
-	if rootless.IsRootless() && len(networks) == 0 {
+	if rootless.IsRootless() && c.runtime.config.Network.RootlessPortForwarder == config.RootlessPortForwarderRootlessport && len(networks) == 0 {
 		if err := c.reloadRootlessRLKPortMapping(); err != nil {
 			return err
 		}

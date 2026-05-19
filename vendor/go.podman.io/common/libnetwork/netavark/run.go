@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/internal/util"
 	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/config"
 )
 
 type netavarkOptions struct {
@@ -162,6 +163,18 @@ func (n *netavarkNetwork) getCommonNetavarkOptions(needPlugin bool) []string {
 }
 
 func (n *netavarkNetwork) convertNetOpts(opts types.NetworkOptions) (*netavarkOptions, bool, error) {
+	// In pasta mode, strip HostIP from port mappings. Pasta handles host-side
+	// address binding; netavark only needs DNAT rules inside the netns without
+	// "ip daddr" constraints (pasta's splice changes the destination IP).
+	if n.rootlessPortForwarder == config.RootlessPortForwarderPasta && n.networkRootless && len(opts.PortMappings) > 0 {
+		stripped := make([]types.PortMapping, len(opts.PortMappings))
+		copy(stripped, opts.PortMappings)
+		for i := range stripped {
+			stripped[i].HostIP = ""
+		}
+		opts.PortMappings = stripped
+	}
+
 	netavarkOptions := netavarkOptions{
 		NetworkOptions: opts,
 		Networks:       make(map[string]*types.Network, len(opts.Networks)),

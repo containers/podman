@@ -1629,6 +1629,35 @@ func testPortConnection(port int) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+// startNCContainer starts a detached container running nc (netcat) listening
+// on the given port, waits for it to be ready, and returns the container name.
+//
+//nolint:unused,nolintlint // only called from linux-only test files, unused on freebsd
+func (p *PodmanTestIntegration) startNCContainer(name string, listenPort int, extraArgs ...string) string {
+	GinkgoHelper()
+	portStr := strconv.Itoa(listenPort)
+	args := append([]string{"run", "-d", "--name", name}, extraArgs...)
+	args = append(args, ALPINE, "sh", "-c", "nc -l -n -v -p "+portStr+" 2>&1")
+	p.PodmanExitCleanly(args...)
+	p.WaitForContainerLog(name, "listening")
+	return name
+}
+
+// WaitForContainerLog polls container logs until the given substring appears
+// in either stdout or stderr. Fails the test if not found within the timeout.
+func (p *PodmanTestIntegration) WaitForContainerLog(ctrName string, substr string) {
+	GinkgoHelper()
+	for range 10 {
+		logs := p.Podman([]string{"logs", ctrName})
+		logs.WaitWithDefaultTimeout()
+		if strings.Contains(logs.ErrorToString(), substr) || strings.Contains(logs.OutputToString(), substr) {
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	Fail(fmt.Sprintf("timed out waiting for %q in logs of container %s", substr, ctrName))
+}
+
 func createNetworkName(name string) string {
 	return name + stringid.GenerateRandomID()[:10]
 }

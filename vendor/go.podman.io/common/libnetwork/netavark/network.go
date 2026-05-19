@@ -71,6 +71,12 @@ type netavarkNetwork struct {
 
 	// rootlessNetns is used for the rootless network setup/teardown
 	rootlessNetns *rootlessnetns.Netns
+
+	// rootlessPortForwarder is the value of config.RootlessPortForwarder from
+	// containers.conf. When set to config.RootlessPortForwarderPasta, HostIP
+	// is stripped from port mappings before passing to netavark because pasta's
+	// splice changes the destination IP.
+	rootlessPortForwarder string
 }
 
 type InitConfig struct {
@@ -145,21 +151,22 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	}
 
 	n := &netavarkNetwork{
-		networkConfigDir:   conf.NetworkConfigDir,
-		networkRunDir:      conf.NetworkRunDir,
-		netavarkBinary:     conf.NetavarkBinary,
-		aardvarkBinary:     conf.AardvarkBinary,
-		networkRootless:    useRootlessNetns,
-		ipamDBPath:         filepath.Join(conf.NetworkRunDir, "ipam.db"),
-		firewallDriver:     conf.Config.Network.FirewallDriver,
-		defaultNetwork:     defaultNetworkName,
-		defaultSubnet:      defaultNet,
-		defaultsubnetPools: defaultSubnetPools,
-		dnsBindPort:        conf.Config.Network.DNSBindPort,
-		pluginDirs:         conf.Config.Network.NetavarkPluginDirs.Get(),
-		lock:               lock,
-		syslog:             conf.Syslog,
-		rootlessNetns:      netns,
+		networkConfigDir:      conf.NetworkConfigDir,
+		networkRunDir:         conf.NetworkRunDir,
+		netavarkBinary:        conf.NetavarkBinary,
+		aardvarkBinary:        conf.AardvarkBinary,
+		networkRootless:       useRootlessNetns,
+		ipamDBPath:            filepath.Join(conf.NetworkRunDir, "ipam.db"),
+		firewallDriver:        conf.Config.Network.FirewallDriver,
+		defaultNetwork:        defaultNetworkName,
+		defaultSubnet:         defaultNet,
+		defaultsubnetPools:    defaultSubnetPools,
+		dnsBindPort:           conf.Config.Network.DNSBindPort,
+		pluginDirs:            conf.Config.Network.NetavarkPluginDirs.Get(),
+		lock:                  lock,
+		syslog:                conf.Syslog,
+		rootlessNetns:         netns,
+		rootlessPortForwarder: conf.Config.Network.RootlessPortForwarder,
 	}
 
 	return n, nil

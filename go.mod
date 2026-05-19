@@ -47,7 +47,7 @@ require (
 	github.com/moby/term v0.5.2
 	github.com/nxadm/tail v1.4.11
 	github.com/onsi/ginkgo/v2 v2.29.0
-	github.com/onsi/gomega v1.40.0
+	github.com/onsi/gomega v1.41.0
 	github.com/opencontainers/cgroups v0.0.6
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -188,3 +188,9 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.1.0 // indirect
 )
+
+replace go.podman.io/common => github.com/containers/container-libs/common v0.67.2-0.20260518190429-32704ef88648
+
+replace go.podman.io/image/v5 => github.com/containers/container-libs/image/v5 v5.0.0-20260518190429-32704ef88648
+
+replace go.podman.io/storage => github.com/containers/container-libs/storage v0.0.0-20260518190429-32704ef88648

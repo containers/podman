@@ -1188,8 +1188,11 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// process cannot use them.
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
 
-		// For rootless port forwarding, create sync pipe and leak write end to conmon
-		if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 {
+		// For rootless port forwarding via rootlessport, create sync pipe and
+		// leak write end to conmon. Pasta forwarding mode does not use
+		// rootlessport, so no pipe is needed.
+		if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 &&
+			ctr.runtime.config.Network.RootlessPortForwarder == config.RootlessPortForwarderRootlessport {
 			ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
 			if err != nil {
 				return 0, fmt.Errorf("failed to create rootless port sync pipe: %w", err)

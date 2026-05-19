@@ -630,7 +630,18 @@ type NetworkConfig struct {
 	// If multiple IPs are specified, separate port mapping for each of the specified
 	// IP would be created.
 	DefaultHostIPs configfile.Slice `toml:"default_host_ips,omitempty"`
+
+	// RootlessPortForwarder selects the port forwarding mechanism for rootless
+	// bridge networks. Valid values are RootlessPortForwarderRootlessport
+	// (default, userspace TCP/UDP proxy) and RootlessPortForwarderPasta
+	// (experimental, pasta's kernel splice preserving the original source IP).
+	RootlessPortForwarder string `toml:"rootless_port_forwarder,omitempty"`
 }
+
+const (
+	RootlessPortForwarderRootlessport = "rootlessport"
+	RootlessPortForwarderPasta        = "pasta"
+)
 
 type SubnetPool struct {
 	// Base is a bigger subnet which will be used to allocate a subnet with

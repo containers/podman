@@ -96,6 +96,7 @@ host:
       spec: 1.0.0
       +SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +CRIU +YAJL
   os: linux
+  rootlessPortForwarder: rootlessport
   pasta:
     executable: /usr/bin/passt
     package: passt-0^20221116.gace074c-1.fc34.x86_64
@@ -237,6 +238,7 @@ $ podman info --format json
       "version": "crun version 1.0\ncommit: 139dc6971e2f1d931af520188763e984d6cdfbf8\nspec: 1.0.0\n+SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +CRIU +YAJL"
     },
     "os": "linux",
+    "rootlessPortForwarder": "rootlessport",
     "remoteSocket": {
       "path": "/run/user/3267/podman/podman.sock"
     },

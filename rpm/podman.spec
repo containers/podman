@@ -111,6 +111,8 @@ Requires: containers-common-extra
 %if %{defined sequoia}
 Requires: podman-sequoia
 %endif
+# pesto binary (ships with passt) is needed for rootless_port_forwarder="pasta"
+Recommends: passt >= 0^20260507.g1afd4ed
 
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
 Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}

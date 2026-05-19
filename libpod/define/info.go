@@ -53,8 +53,11 @@ type HostInfo struct {
 	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
 	RemoteSocket *RemoteSocket `json:"remoteSocket,omitempty"`
 	// RootlessNetworkCmd returns the default rootless network command (pasta)
-	RootlessNetworkCmd string         `json:"rootlessNetworkCmd"`
-	RuntimeInfo        map[string]any `json:"runtimeInfo,omitempty"`
+	RootlessNetworkCmd string `json:"rootlessNetworkCmd"`
+	// RootlessPortForwarder returns the port forwarding mechanism for rootless
+	// bridge networks: "rootlessport" (default) or "pasta" (experimental)
+	RootlessPortForwarder string         `json:"rootlessPortForwarder"`
+	RuntimeInfo           map[string]any `json:"runtimeInfo,omitempty"`
 	// ServiceIsRemote is true when the podman/libpod service is remote to the client
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
