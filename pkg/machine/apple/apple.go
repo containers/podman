@@ -25,7 +25,9 @@ import (
 	"go.podman.io/podman/v6/pkg/systemd/parser"
 )
 
-const applehvMACAddress = "5a:94:ef:e4:0c:ee"
+const (
+	applehvMACAddress = "5a:94:ef:e4:0c:ee"
+)
 
 var (
 	gvProxyWaitBackoff        = 500 * time.Millisecond
@@ -179,6 +181,14 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		return nil, nil, err
 	}
 	vm.Devices = append(vm.Devices, mounts...)
+
+	timesync, err := vfConfig.TimeSyncNew(define.TimeSyncVsockPort)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := vm.AddDevice(timesync); err != nil {
+		return nil, nil, err
+	}
 
 	// To start the VM, we need to call vfkit
 	cfg, err := config.Default()

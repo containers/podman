@@ -24,3 +24,6 @@ go env
 # The latest version is installed system-wide when instances are created. Make the
 # current version known.
 vfkit --version
+
+# Make the current version of krunkit known.
+krunkit --version
