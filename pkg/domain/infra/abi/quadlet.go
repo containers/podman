@@ -703,7 +703,8 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 	}
 
 	reports := make([]*entities.ListQuadlet, 0, len(quadletPaths))
-	allServiceNames := make([]string, 0, len(quadletPaths))
+	concreteServiceNames := make([]string, 0, len(quadletPaths))
+	templateServiceNames := make([]string, 0, len(quadletPaths))
 	partialReports := make(map[string]entities.ListQuadlet)
 
 	for _, path := range quadletPaths {
@@ -728,16 +729,21 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 			report.Pod = pod
 		}
 		partialReports[serviceName] = report
-		allServiceNames = append(allServiceNames, serviceName)
+
+		if systemdquadlet.IsTemplateUnitFileName(serviceName) {
+			templateServiceNames = append(templateServiceNames, serviceName)
+		} else {
+			concreteServiceNames = append(concreteServiceNames, serviceName)
+		}
 	}
 
-	// Get status of all systemd units with given names.
-	statuses, err := conn.ListUnitsByNamesContext(ctx, allServiceNames)
+	// Get status of concrete systemd units with given names.
+	statuses, err := conn.ListUnitsByNamesContext(ctx, concreteServiceNames)
 	if err != nil {
 		return nil, fmt.Errorf("querying systemd for unit status: %w", err)
 	}
-	if len(statuses) != len(allServiceNames) {
-		logrus.Warnf("Queried for %d services but received %d responses", len(allServiceNames), len(statuses))
+	if len(statuses) != len(concreteServiceNames) {
+		logrus.Warnf("Queried for %d services but received %d responses", len(concreteServiceNames), len(statuses))
 	}
 	for _, unitStatus := range statuses {
 		report, ok := partialReports[unitStatus.Name]
@@ -750,7 +756,7 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 
 		// Unit is not loaded
 		if unitStatus.LoadState != "loaded" {
-			report.Status = "Not loaded"
+			report.Status = entities.QuadletStatusNotLoaded
 		} else {
 			report.Status = fmt.Sprintf("%s/%s", unitStatus.ActiveState, unitStatus.SubState)
 		}
@@ -758,12 +764,37 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 		delete(partialReports, unitStatus.Name)
 	}
 
+	// Uninstantiated template units need to be handled separately, because
+	// ListUnitsBy* functions do not return anything for templates.
+	unitFiles, err := conn.ListUnitFilesByPatternsContext(ctx, []string{}, templateServiceNames)
+	if err != nil {
+		return nil, fmt.Errorf("querying systemd for unit file: %w", err)
+	}
+	unitFilesFound := make(map[string]struct{})
+	for _, unitFile := range unitFiles {
+		unitFilesFound[filepath.Base(unitFile.Path)] = struct{}{}
+	}
+	for _, templateServiceName := range templateServiceNames {
+		report := partialReports[templateServiceName]
+
+		report.UnitName = templateServiceName
+
+		if _, ok := unitFilesFound[templateServiceName]; ok {
+			report.Status = entities.QuadletStatusLoadedTemplate
+		} else {
+			report.Status = entities.QuadletStatusNotLoaded
+		}
+
+		reports = append(reports, &report)
+		delete(partialReports, templateServiceName)
+	}
+
 	// This should not happen.
 	// Systemd will give us output for everything we sent to them, even if it's not a valid unit.
 	// We can find them with LoadState, as we do above.
 	// Handle it anyways because it's easy enough to do.
 	for _, report := range partialReports {
-		report.Status = "Not loaded"
+		report.Status = entities.QuadletStatusNotLoaded
 		reports = append(reports, &report)
 	}
 
@@ -869,10 +900,12 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	}
 	quadlets = expandQuadletList
 	allQuadletPaths := make([]string, 0, len(quadlets))
-	allServiceNames := make([]string, 0, len(quadlets))
+	concreteServiceNames := make([]string, 0, len(quadlets))
+	templateServiceNames := make([]string, 0, len(quadlets))
 	runningQuadlets := make([]string, 0, len(quadlets))
 	serviceNameToQuadletName := make(map[string]string)
-	needReload := options.ReloadSystemd
+	serviceNameToQuadletPath := make(map[string]string)
+	needReload := false
 
 	if len(quadlets) == 0 && !options.All {
 		return nil, errors.New("must provide at least 1 quadlet to remove")
@@ -949,15 +982,20 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 			continue
 		}
 
-		allServiceNames = append(allServiceNames, serviceName)
+		if systemdquadlet.IsTemplateUnitFileName(serviceName) {
+			templateServiceNames = append(templateServiceNames, serviceName)
+		} else {
+			concreteServiceNames = append(concreteServiceNames, serviceName)
+		}
 		serviceNameToQuadletName[serviceName] = quadlet
+		serviceNameToQuadletPath[serviceName] = quadletPath
 	}
 
-	if len(allServiceNames) != 0 {
+	if len(concreteServiceNames) != 0 {
 		// Check if units are loaded into systemd, and further if they are running.
 		// If running and force is not set, error.
 		// If force is set, try and stop the unit.
-		statuses, err := conn.ListUnitsByNamesContext(ctx, allServiceNames)
+		statuses, err := conn.ListUnitsByNamesContext(ctx, concreteServiceNames)
 		if err != nil {
 			return nil, fmt.Errorf("querying systemd for unit status: %w", err)
 		}
@@ -968,7 +1006,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 				// Nothing to do here if it doesn't exist in systemd
 				continue
 			}
-			needReload = options.ReloadSystemd
+			needReload = needReload || options.ReloadSystemd
 			if unitStatus.ActiveState == "active" {
 				if !options.Force {
 					report.Errors[quadletName] = fmt.Errorf("quadlet %s is running and force is not set, refusing to remove: %w", quadletName, define.ErrQuadletRunning)
@@ -989,6 +1027,76 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 					runningQuadlets = append(runningQuadlets, quadletName)
 					continue
 				}
+			}
+		}
+	}
+
+	if len(templateServiceNames) != 0 {
+		// Check if templates are loaded into systemd, and further if they have running instances.
+		// If they have running instances and force is not set, error.
+		// If force is set, try and stop all the instances.
+		unitFiles, err := conn.ListUnitFilesByPatternsContext(ctx, []string{}, templateServiceNames)
+		if err != nil {
+			return nil, fmt.Errorf("querying systemd for template unit files: %w", err)
+		}
+
+		for _, unitFile := range unitFiles {
+			templateServiceName := filepath.Base(unitFile.Path)
+			extension := filepath.Ext(templateServiceName)
+			quadletName := serviceNameToQuadletName[templateServiceName]
+			templateQuadletPath := serviceNameToQuadletPath[templateServiceName]
+
+			// The regular expression in this pattern matches the template itself as well, but the
+			// ListUnitsBy* functions do not return anything for templates.
+			instancePattern := strings.TrimSuffix(templateServiceName, extension) + "*" + extension
+			instances, err := conn.ListUnitsByPatternsContext(ctx, []string{}, []string{instancePattern})
+			if err != nil {
+				return nil, fmt.Errorf("querying systemd for instances of %q: %w", templateServiceName, err)
+			}
+
+			var runningInstanceErrors []error
+			for _, instanceStatus := range instances {
+				properties, err := conn.GetUnitPropertiesContext(ctx, instanceStatus.Name)
+				if err != nil {
+					logrus.Warnf("getting unit properties for %q: %v", instanceStatus.Name, err)
+					continue
+				}
+				sourcePath, ok := properties["SourcePath"].(string)
+				if !ok || sourcePath == "" {
+					logrus.Warnf("source path not found for unit %q", instanceStatus.Name)
+					continue
+				}
+
+				if filepath.Clean(sourcePath) == filepath.Clean(templateQuadletPath) {
+					if instanceStatus.LoadState != "loaded" {
+						// Nothing to do here if it doesn't exist in systemd
+						continue
+					}
+					needReload = needReload || options.ReloadSystemd
+					if instanceStatus.ActiveState == "active" {
+						if !options.Force {
+							runningInstanceErrors = append(runningInstanceErrors, fmt.Errorf("template %q has running instance %q and force is not set, refusing to remove: %w", quadletName, instanceStatus.Name, define.ErrQuadletRunning))
+							continue
+						}
+						logrus.Infof("Going to stop systemd unit %q (Instance of template %q)", instanceStatus.Name, quadletName)
+						ch := make(chan string)
+						if _, err := conn.StopUnitContext(ctx, instanceStatus.Name, "replace", ch); err != nil {
+							runningInstanceErrors = append(runningInstanceErrors, fmt.Errorf("stopping instance %q of template %q: %w", instanceStatus.Name, quadletName, err))
+							continue
+						}
+						logrus.Debugf("Waiting for systemd unit %q to stop", instanceStatus.Name)
+						stopResult := <-ch
+						if stopResult != "done" && stopResult != "skipped" {
+							runningInstanceErrors = append(runningInstanceErrors, fmt.Errorf("unable to stop instance %q of template %q: %q", instanceStatus.Name, quadletName, stopResult))
+							continue
+						}
+					}
+				}
+			}
+
+			if len(runningInstanceErrors) > 0 {
+				report.Errors[quadletName] = errors.Join(runningInstanceErrors...)
+				runningQuadlets = append(runningQuadlets, quadletName)
 			}
 		}
 	}
