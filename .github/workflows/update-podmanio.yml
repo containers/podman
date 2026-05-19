@@ -73,7 +73,7 @@ jobs:
             echo "prexists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: >-
             steps.getversion.outputs.notRC == 'true' &&
             steps.checkpr.outputs.prexists == 'false'

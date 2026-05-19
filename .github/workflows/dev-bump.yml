@@ -14,7 +14,7 @@ jobs:
       contents: write # to create and push to a branch
       pull-requests: write # to read and create pull requests
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.ref_name }}
           token: ${{ secrets.PODMANBOT_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: main
           token: ${{ secrets.PODMANBOT_TOKEN }}
