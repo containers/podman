@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# pr-should-link-jira - require -rhel PRs to link a Jira issue
+#
+# Reads:
+#   DEST_BRANCH  name of the PR's base branch
+#   PR_BODY      body of the pull request
+#   OVERRIDE     "true" if the override label is set, else anything else
+#
+
+set -e
+
+ME=$(basename "$0")
+
+# GitHub label which allows overriding this check
+OVERRIDE_LABEL="No Jira Link"
+
+# Only -rhel branches need jira links
+BRANCH_REGEX="v.*-rhel"
+
+LINK_REGEX="Fixes:?[[:space:]]+https://issues.redhat.com/[[:alnum:]/-]*"
+
+if [[ -z "${DEST_BRANCH:-}" ]]; then
+    echo "$ME: \$DEST_BRANCH is undefined" >&2
+    exit 1
+fi
+
+if [[ ! "${DEST_BRANCH}" =~ $BRANCH_REGEX ]]; then
+    exit 0
+fi
+
+if [[ "${PR_BODY:-}" =~ $LINK_REGEX ]]; then
+    exit 0
+fi
+
+# No link. Allow if the GitHub override label is set.
+if [[ "${OVERRIDE:-false}" == "true" ]]; then
+    exit 0
+fi
+
+cat <<EOF
+$ME: PR does not include required references to Jira issues
+
+Please add a reference to the related Jira ticket(s) by adding to the
+description of the PR something like:
+
+Fixes: https://issues.redhat.com/browse/RHEL-50507
+
+You can use multiple lines like this, but only one issue per line.
+
+If your commit really, truly does not need a jira link, you can proceed
+by asking a repo maintainer to set the '$OVERRIDE_LABEL' github label.
+This will only be done when there's no reasonable alternative.
+EOF
+
+exit 1
