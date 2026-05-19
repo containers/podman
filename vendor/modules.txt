@@ -511,7 +511,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/validate/capabilities
-# github.com/opencontainers/selinux v1.14.1
+# github.com/opencontainers/selinux v1.15.0 => github.com/kolyshkin/selinux v1.0.0-rc1.0.20260518175914-f8d72733cb1b
 ## explicit; go 1.22
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
@@ -1182,3 +1182,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.1.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/opencontainers/selinux => github.com/kolyshkin/selinux v1.0.0-rc1.0.20260518175914-f8d72733cb1b
