@@ -90,7 +90,9 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		} else {
 			humanFormat = fmt.Sprintf("%s %s %s", e.Time, e.Type, e.Status)
 		}
-	case Volume, Machine:
+	case Volume:
+		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
+	case Machine:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
 	case Secret:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, id)
