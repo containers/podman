@@ -1,3 +1,13 @@
+## 1.41.0
+
+### Features
+
+Add `BeASlice` and `BeAnArray` matchers
+
+### Fixes
+
+Object formatting now detects pointer cycles to avoid runaway formatting output.
+
 ## 1.40.0
 
 We're adopting a new release strategy to minimize dependency bloat in projects that consume Gomega.  It is a limitation of the go mod toolchain that _test_ subdependencies of your project's direct dependencies get pulled in as *indirect* dependencies.  In the case of Gomega, this ends up pulling in all of Ginkgo into your `go.mod` even if you are only using Gomega (Gomega uses Ginkgo for its own tests).
