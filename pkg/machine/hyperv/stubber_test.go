@@ -17,7 +17,7 @@ func TestCanCreate(t *testing.T) {
 		name              string
 		isElevated        bool
 		vsockEntriesExist bool
-		isHyperVAdmin     bool
+		isHyperVAdmin     error
 		mounts            int
 		expectedErr       error
 	}{
@@ -25,7 +25,7 @@ func TestCanCreate(t *testing.T) {
 			name:              "in elevated process can always create",
 			isElevated:        true,
 			vsockEntriesExist: false,
-			isHyperVAdmin:     false,
+			isHyperVAdmin:     ErrHypervUserNotInAdminGroup,
 			mounts:            2,
 			expectedErr:       nil,
 		},
@@ -33,21 +33,21 @@ func TestCanCreate(t *testing.T) {
 			name:              "not elevated, no vsock entries",
 			isElevated:        false,
 			vsockEntriesExist: false,
-			isHyperVAdmin:     true,
+			isHyperVAdmin:     nil,
 			expectedErr:       ErrHypervRegistryInitRequiresElevation,
 		},
 		{
 			name:              "not elevated, vsock entries exist, not hyperv admin",
 			isElevated:        false,
 			vsockEntriesExist: true,
-			isHyperVAdmin:     false,
+			isHyperVAdmin:     ErrHypervUserNotInAdminGroup,
 			expectedErr:       ErrHypervUserNotInAdminGroup,
 		},
 		{
 			name:              "not elevated, vsock entries exist, hyperv admin",
 			isElevated:        false,
 			vsockEntriesExist: true,
-			isHyperVAdmin:     true,
+			isHyperVAdmin:     nil,
 			expectedErr:       nil,
 		},
 	}
@@ -58,7 +58,7 @@ func TestCanCreate(t *testing.T) {
 
 			checks := permissionChecks{
 				isElevatedProcess:   func() bool { return tt.isElevated },
-				isHyperVAdminMember: func() bool { return tt.isHyperVAdmin },
+				isHyperVAdminMember: func() error { return tt.isHyperVAdmin },
 				vsockEntriesExist:   func(int) bool { return tt.vsockEntriesExist },
 			}
 
@@ -74,7 +74,7 @@ func TestCanRemove(t *testing.T) {
 	tests := []struct {
 		name                    string
 		isElevatedProcess       bool
-		isHyperVAdminMember     bool
+		isHyperVAdminMember     error
 		isLegacyMachine         bool
 		skipVsockEntriesRemoval bool
 		isLastMachine           bool
@@ -83,7 +83,7 @@ func TestCanRemove(t *testing.T) {
 		{
 			name:                    "elevated process can always remove",
 			isElevatedProcess:       true,
-			isHyperVAdminMember:     false,
+			isHyperVAdminMember:     ErrHypervUserNotInAdminGroup,
 			isLegacyMachine:         false,
 			skipVsockEntriesRemoval: false,
 			isLastMachine:           true,
@@ -92,7 +92,7 @@ func TestCanRemove(t *testing.T) {
 		{
 			name:                    "not elevated, legacy machine requires elevation",
 			isElevatedProcess:       false,
-			isHyperVAdminMember:     false,
+			isHyperVAdminMember:     ErrHypervUserNotInAdminGroup,
 			isLegacyMachine:         true,
 			skipVsockEntriesRemoval: false,
 			isLastMachine:           true,
@@ -101,7 +101,7 @@ func TestCanRemove(t *testing.T) {
 		{
 			name:                    "not elevated, not hyperv admins member",
 			isElevatedProcess:       false,
-			isHyperVAdminMember:     false,
+			isHyperVAdminMember:     ErrHypervUserNotInAdminGroup,
 			isLegacyMachine:         false,
 			skipVsockEntriesRemoval: false,
 			isLastMachine:           true,
@@ -110,7 +110,7 @@ func TestCanRemove(t *testing.T) {
 		{
 			name:                    "not elevated, hyperv admins member, not last machine",
 			isElevatedProcess:       false,
-			isHyperVAdminMember:     true,
+			isHyperVAdminMember:     nil,
 			isLegacyMachine:         false,
 			skipVsockEntriesRemoval: false,
 			isLastMachine:           false,
@@ -119,7 +119,7 @@ func TestCanRemove(t *testing.T) {
 		{
 			name:                    "not elevated, hyperv admins member, last machine, skip vsock entries removal",
 			isElevatedProcess:       false,
-			isHyperVAdminMember:     true,
+			isHyperVAdminMember:     nil,
 			isLegacyMachine:         false,
 			skipVsockEntriesRemoval: true,
 			isLastMachine:           true,
@@ -128,7 +128,7 @@ func TestCanRemove(t *testing.T) {
 		{
 			name:                    "not elevated, hyperv admins member, last machine, don't skip vsock entries removal",
 			isElevatedProcess:       false,
-			isHyperVAdminMember:     true,
+			isHyperVAdminMember:     nil,
 			isLegacyMachine:         false,
 			skipVsockEntriesRemoval: false,
 			isLastMachine:           true,
@@ -142,7 +142,7 @@ func TestCanRemove(t *testing.T) {
 
 			checks := permissionChecks{
 				isElevatedProcess:   func() bool { return tt.isElevatedProcess },
-				isHyperVAdminMember: func() bool { return tt.isHyperVAdminMember },
+				isHyperVAdminMember: func() error { return tt.isHyperVAdminMember },
 				existingMachinesNum: func() (int, error) {
 					if tt.isLastMachine {
 						return 1, nil
