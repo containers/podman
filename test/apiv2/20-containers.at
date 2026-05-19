@@ -366,6 +366,21 @@ t POST  containers/${cid_top}/start 204
 t GET containers/${cid_top}/json 200 \
   .State.Status="running"
 
+# check that gateway is empty not "<nil>", https://github.com/containers/podman/issues/28705
+podman network create testnet --ipv6 --internal --disable-dns
+podman run --name testcon --network testnet -d $IMAGE top
+
+t GET containers/testcon/json 200 \
+  .NetworkSettings.Networks.testnet.Gateway="" \
+  .NetworkSettings.Networks.testnet.IPAddress~10\..* \
+  .NetworkSettings.Networks.testnet.IPPrefixLen=24 \
+  .NetworkSettings.Networks.testnet.IPv6Gateway="" \
+  .NetworkSettings.Networks.testnet.GlobalIPv6Address~fd.* \
+  .NetworkSettings.Networks.testnet.GlobalIPv6PrefixLen=64
+
+podman rm -f -t0 testcon
+podman network rm testnet
+
 # 0 means unlimited, need same with docker
 t GET containers/json?limit=0 200 \
   .[0].Id~[0-9a-f]\\{64\\}
