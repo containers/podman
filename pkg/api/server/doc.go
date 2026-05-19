@@ -48,7 +48,7 @@
 //	BasePath: /
 //	Version: 5.0.0
 //	License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
-//	Contact: Podman <podman@lists.podman.io> https://podman.io/community/
+//	Contact: Podman <podman@lists.podman.io> https://podman.io/community
 //
 //	InfoExtensions:
 //	x-logo:
