@@ -239,6 +239,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		s, err := io.ReadAll(f)
 		if err != nil {
 			return fmt.Errorf("read playbook: %w", err)

@@ -1380,6 +1380,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		if err != nil {
 			return nil, fmt.Errorf("not able to open %q: %w", c.bundlePath(), err)
 		}
+		defer statsDirectory.Close()
 
 		dumpStatistics, err := stats.CriuGetDumpStats(statsDirectory)
 		if err != nil {
@@ -1833,6 +1834,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			return nil, fmt.Errorf("not able to open %q: %w", c.bundlePath(), err)
 		}
+		defer statsDirectory.Close()
 
 		restoreStatistics, err := stats.CriuGetRestoreStats(statsDirectory)
 		if err != nil {
