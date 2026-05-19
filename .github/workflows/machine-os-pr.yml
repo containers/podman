@@ -68,7 +68,7 @@ jobs:
         run: |
           pip3 install git+https://github.com/packit/wait-for-copr.git@main
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: steps.getversion.outputs.update == 'true'
         id: checkout
         with:
