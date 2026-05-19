@@ -79,6 +79,22 @@ var _ = Describe("Podman prune", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
 
+	It("podman container prune filters by annotation", func() {
+		podmanTest.PodmanExitCleanly("create", "--annotation", "prune=me", "--name", "prune-me", BB)
+		podmanTest.PodmanExitCleanly("create", "--annotation", "prune=keep", "--name", "keep-me", BB)
+		podmanTest.PodmanExitCleanly("container", "prune", "-f", "--filter", "annotation=prune=me")
+		session := podmanTest.PodmanExitCleanly("ps", "-a", "--format", "{{.Names}}")
+		Expect(session.OutputToStringArray()).To(Equal([]string{"keep-me"}))
+	})
+
+	It("podman container prune filters by negated annotation", func() {
+		podmanTest.PodmanExitCleanly("create", "--annotation", "prune=me", "--name", "prune-me", BB)
+		podmanTest.PodmanExitCleanly("create", "--annotation", "prune=keep", "--name", "keep-me", BB)
+		podmanTest.PodmanExitCleanly("container", "prune", "-f", "--filter", "annotation!=prune=me")
+		session := podmanTest.PodmanExitCleanly("ps", "-a", "--format", "{{.Names}}")
+		Expect(session.OutputToStringArray()).To(Equal([]string{"prune-me"}))
+	})
+
 	It("podman image prune - remove only dangling images", func() {
 		session := podmanTest.Podman([]string{"images", "-a"})
 		session.WaitWithDefaultTimeout()

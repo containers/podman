@@ -75,9 +75,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    description: |
 	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the containers list. Available filters:
 	//        - `ancestor`=(`<image-name>[:<tag>]`, `<image id>`, or `<image@digest>`)
+	//        - `annotation`=(`key` or `"key=value"`) of a container annotation
 	//        - `before`=(`<container id>` or `<container name>`)
-	//        - `expose`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
 	//        - `exited=<int>` containers with exit code of `<int>`
+	//        - `expose`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
 	//        - `health`=(`starting`, `healthy`, `unhealthy` or `none`)
 	//        - `id=<ID>` a container's ID
 	//        - `is-task`=(`true` or `false`)
@@ -112,8 +113,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    description:  |
 	//      Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters:
-	//       - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
+	//       - `annotation` (`annotation=<key>`, `annotation=<key>=<value>`, `annotation!=<key>`, or `annotation!=<key>=<value>`) Prune containers with (or without, in case `annotation!=...` is used) the specified annotations.
 	//       - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune containers with (or without, in case `label!=...` is used) the specified labels.
+	//       - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	// produces:
 	// - application/json
 	// responses:
@@ -815,9 +817,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    description: |
 	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the containers list. Available filters:
 	//        - `ancestor`=(`<image-name>[:<tag>]`, `<image id>`, or `<image@digest>`)
+	//        - `annotation`=(`key` or `"key=value"`) of a container annotation
 	//        - `before`=(`<container id>` or `<container name>`)
-	//        - `expose`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
 	//        - `exited=<int>` containers with exit code of `<int>`
+	//        - `expose`=(`<port>[/<proto>]` or `<startport-endport>/[<proto>]`)
 	//        - `health`=(`starting`, `healthy`, `unhealthy` or `none`)
 	//        - `id=<ID>` a container's ID
 	//        - `is-task`=(`true` or `false`)
@@ -851,8 +854,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    description:  |
 	//      Filters to process on the prune list, encoded as JSON (a `map[string][]string`).  Available filters:
-	//       - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
+	//       - `annotation` (`annotation=<key>`, `annotation=<key>=<value>`, `annotation!=<key>`, or `annotation!=<key>=<value>`) Prune containers with (or without, in case `annotation!=...` is used) the specified annotations.
 	//       - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune containers with (or without, in case `label!=...` is used) the specified labels.
+	//       - `until=<timestamp>` Prune containers created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	// produces:
 	// - application/json
 	// responses:

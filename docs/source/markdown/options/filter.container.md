@@ -15,6 +15,8 @@ Valid filters are listed below:
 |----------------------|-------------------------------------------------------------------------------------------------|
 | id                   | [ID] Container's ID (CID prefix match by default; accepts regex)                                |
 | name                 | [Name] Container's name (accepts regex)                                                         |
+| annotation           | [Key] or [Key=Value] Annotation assigned to a container                                         |
+| annotation!          | [Key] or [Key=Value] Annotation NOT assigned to a container                                     |
 | label                | [Key] or [Key=Value] Label assigned to a container                                              |
 | label!               | [Key] or [Key=Value] Label NOT assigned to a container                                          |
 | exited               | [Int] Container's exit code                                                                     |

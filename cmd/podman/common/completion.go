@@ -1791,11 +1791,12 @@ func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([
 				define.HealthCheckUnhealthy,
 			}, cobra.ShellCompDirectiveNoFileComp
 		},
-		"id=":      func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeIDs) },
-		"label=":   nil,
-		"name=":    func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeNames) },
-		"network=": func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeDefault) },
-		"pod=":     func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeDefault) },
+		"id=":         func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeIDs) },
+		"annotation=": nil,
+		"label=":      nil,
+		"name=":       func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeNames) },
+		"network=":    func(s string) ([]string, cobra.ShellCompDirective) { return getNetworks(cmd, s, completeDefault) },
+		"pod=":        func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeDefault) },
 		"restart-policy=": func(_ string) ([]string, cobra.ShellCompDirective) {
 			return []string{
 				define.RestartPolicyAlways,
@@ -1875,10 +1876,13 @@ func AutocompleteImageFilters(cmd *cobra.Command, _ []string, toComplete string)
 }
 
 // AutocompletePruneFilters - Autocomplete container/image prune --filter options.
-func AutocompletePruneFilters(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePruneFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"label=": nil,
 		"until=": nil,
+	}
+	if cmd.CommandPath() == "podman container prune" {
+		kv["annotation="] = nil
 	}
 	return completeKeyValues(toComplete, kv)
 }

@@ -211,6 +211,20 @@ var _ = Describe("Podman ps", func() {
 		Expect(actual).ToNot(ContainSubstring("table"))
 	})
 
+	It("podman ps --filter annotation=test=with,comma", func() {
+		ctrAlpha := "first"
+		podmanTest.PodmanExitCleanly("create", "--annotation", "test=with,comma", "--name", ctrAlpha, ALPINE, "top")
+
+		ctrBravo := "second"
+		podmanTest.PodmanExitCleanly("create", "--name", ctrBravo, ALPINE, "top")
+
+		result := podmanTest.PodmanExitCleanly("ps", "-a", "--format", "{{.Names}}", "--filter", "annotation=test=with,comma")
+		Expect(result.OutputToStringArray()).To(Equal([]string{ctrAlpha}))
+
+		result = podmanTest.PodmanExitCleanly("ps", "-a", "--format", "{{.Names}}", "--filter", "annotation!=test=with,comma")
+		Expect(result.OutputToStringArray()).To(Equal([]string{ctrBravo}))
+	})
+
 	It("podman ps namespace flag", func() {
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
@@ -1012,6 +1026,18 @@ var _ = Describe("Podman ps", func() {
 
 		output := session.OutputToStringArray()
 		Expect(output).To(HaveLen(1))
+	})
+
+	It("podman ps rejects annotation filters for external containers", func() {
+		podmanTest.PodmanExitCleanly("create", "--name", "test", BB)
+
+		session := podmanTest.Podman([]string{"ps", "-a", "--external", "--filter", "annotation=test=value"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "filter annotation is not applicable for external containers"))
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--external", "--filter", "annotation!=test=value"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "filter annotation! is not applicable for external containers"))
 	})
 
 	// This test checks ps filtering of external container created earlier than a given

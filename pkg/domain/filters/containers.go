@@ -34,6 +34,14 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		return func(c *libpod.Container) bool {
 			return filters.MatchNegatedLabelFilters(filterValues, c.Labels())
 		}, nil
+	case "annotation":
+		return func(c *libpod.Container) bool {
+			return filters.MatchLabelFilters(filterValues, c.ConfigNoCopy().Spec.Annotations)
+		}, nil
+	case "annotation!":
+		return func(c *libpod.Container) bool {
+			return filters.MatchNegatedLabelFilters(filterValues, c.ConfigNoCopy().Spec.Annotations)
+		}, nil
 	case "name":
 		// we only have to match one name
 		return func(c *libpod.Container) bool {
@@ -311,6 +319,14 @@ func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, _ *
 		return func(c *libpod.Container) bool {
 			return filters.MatchNegatedLabelFilters(filterValues, c.Labels())
 		}, nil
+	case "annotation":
+		return func(c *libpod.Container) bool {
+			return filters.MatchLabelFilters(filterValues, c.ConfigNoCopy().Spec.Annotations)
+		}, nil
+	case "annotation!":
+		return func(c *libpod.Container) bool {
+			return filters.MatchNegatedLabelFilters(filterValues, c.ConfigNoCopy().Spec.Annotations)
+		}, nil
 	case "until":
 		return prepareUntilFilterFunc(filterValues)
 	}
@@ -330,7 +346,7 @@ func prepareUntilFilterFunc(filterValues []string) (func(container *libpod.Conta
 	}, nil
 }
 
-// GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
+// GenerateExternalContainerFilterFuncs return ContainerFilter functions for external containers
 func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, r *libpod.Runtime) (func(listContainer *types.ListContainer) bool, error) {
 	switch filter {
 	case "id":
@@ -534,7 +550,7 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 			}
 			return false
 		}, nil
-	case "restart-policy", "volume", "health":
+	case "restart-policy", "volume", "health", "annotation", "annotation!":
 		return nil, fmt.Errorf("filter %s is not applicable for external containers", filter)
 	}
 
