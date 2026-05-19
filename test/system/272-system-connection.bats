@@ -315,6 +315,52 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     run_podman system connection rm mysshconn
 }
 
+# same as above, but with a shh_config
+# Bug 25067
+@test "podman system connection - ssh with config" {
+    unset REMOTESYSTEM_TRANSPORT REMOTESYSTEM_TLS_{CLIENT,SERVER,CA}_{CRT,KEY}
+
+    # system connection only really works if we have an agent
+    run ssh-add -l
+    test "$status"      -eq 0 || skip "Not running under ssh-agent"
+    test "${#lines[@]}" -ge 1 || skip "ssh agent has no identities"
+
+    mkdir -p "${PODMAN_TMPDIR}/home/.ssh"
+    echo -e "Host localhost\n    HostName localhost\n" > "${PODMAN_TMPDIR}/home/.ssh/config"
+
+    # Can we actually ssh to localhost?
+    rand=$(random_string 20)
+    echo $rand >$PODMAN_TMPDIR/testfile
+    run ssh -q -o BatchMode=yes \
+        -o UserKnownHostsFile=/dev/null \
+        -o StrictHostKeyChecking=no \
+        -o CheckHostIP=no \
+        localhost \
+        cat $PODMAN_TMPDIR/testfile
+    test "$status" -eq 0 || skip "cannot ssh to localhost"
+    is "$output" "$rand" "weird! ssh worked, but could not cat local file"
+
+    PREV_HOME="${HOME}"
+    export HOME="${PODMAN_TMPDIR}/home"
+
+    # OK, ssh works.
+    # Create a new connection, over ssh, but using existing socket file
+    # (Remember, we're already podman-remote, there's a service running)
+    run_podman info --format '{{.Host.RemoteSocket.Path}}'
+    local socketpath="$output"
+    run_podman system connection add --socket-path "$socketpath" \
+               mysshconn_with_config ssh://localhost
+    is "$output" "" "output from system connection add"
+
+    # debug logs will confirm that we use ssh connection
+    run_podman_remote --log-level=debug info --format '{{.Host.RemoteSocket.Path}}'
+    is "$output" ".*msg=\"SSH Agent Key .*" "we are truly using ssh"
+
+    # Clean up
+    run_podman system connection rm mysshconn_with_config
+    export HOME="${PREV_HOME}"
+}
+
 @test "podman-remote: non-default connection" {
 
     # priority:
