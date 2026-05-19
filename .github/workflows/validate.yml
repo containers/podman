@@ -35,3 +35,17 @@ jobs:
           pr-body: ${{ github.event.pull_request.body }}
           base-ref: ${{ github.event.pull_request.base.ref }}
           override: ${{ contains(github.event.pull_request.labels.*.name, 'No Jira Link') }}
+
+  pr-should-include-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: ./.github/actions/pr-should-include-tests
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+          override: ${{ contains(github.event.pull_request.labels.*.name, 'No New Tests') }}
