@@ -203,7 +203,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 		} else {
 			conditions = options.Conditions
 		}
-		exitCode, err := c.WaitForConditionWithInterval(ctx, options.Interval, conditions...)
+		exitCode, err := c.WaitForConditionWithInterval(ctx, nil, options.Interval, conditions...)
 		if err != nil {
 			response.Error = err
 		} else {
@@ -225,7 +225,7 @@ func waitExitOnFirst(ctx context.Context, containers []containerWrapper, options
 			conditions = options.Conditions
 		}
 
-		exitCode, err := container.WaitForConditionWithInterval(ctx, options.Interval, conditions...)
+		exitCode, err := container.WaitForConditionWithInterval(ctx, nil, options.Interval, conditions...)
 		if err != nil {
 			response.Error = err
 		} else {

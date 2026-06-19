@@ -1400,7 +1400,7 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 		}()
 	}
 
-	if _, err := c.WaitForConditionWithInterval(ctx, DefaultWaitInterval, define.HealthCheckHealthy); err != nil {
+	if _, err := c.WaitForConditionWithInterval(ctx, nil, DefaultWaitInterval, define.HealthCheckHealthy); err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
 			return nil
 		}

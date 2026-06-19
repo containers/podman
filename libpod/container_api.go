@@ -734,7 +734,12 @@ type waitResult struct {
 	err  error
 }
 
-func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeout time.Duration, conditions ...string) (int32, error) {
+// WaitForConditionWithInterval blocks until one of the given conditions is met
+// and returns the resulting exit code.
+// `ready`, when non-nil, is called once all watchers are setup, right before
+// blocking. Callers use `ready` it to signal readiness to their own clients
+// without racing a "next-exit" against the container's exit (#28514).
+func (c *Container) WaitForConditionWithInterval(ctx context.Context, ready func(), waitTimeout time.Duration, conditions ...string) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
@@ -743,11 +748,17 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		panic("at least one condition should be passed")
 	}
 
+	if waitTimeout <= 0 {
+		waitTimeout = DefaultWaitInterval
+	}
+
 	ctx, cancelFn := context.WithCancel(ctx)
 	defer cancelFn()
 
 	resultChan := make(chan waitResult)
 	waitForExit := false
+	waitForNextExit := false
+	waitForRemoved := false
 	wantedStates := make(map[define.ContainerStatus]bool, len(conditions))
 	wantedHealthStates := make(map[string]bool)
 
@@ -758,6 +769,14 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 				return -1, fmt.Errorf("cannot use condition %q: container %s has no healthcheck", rawCondition, c.ID())
 			}
 			wantedHealthStates[rawCondition] = true
+		case define.WaitConditionNotRunning:
+			waitForExit = true
+		case define.WaitConditionNextExit:
+			waitForNextExit = true
+			// Like Docker, removal also ends the wait as no exit will follow.
+			waitForRemoved = true
+		case define.WaitConditionRemoved:
+			waitForRemoved = true
 		default:
 			condition, err := define.StringToContainerStatus(rawCondition)
 			if err != nil {
@@ -786,16 +805,29 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		}()
 	}
 
-	if len(wantedStates) > 0 || len(wantedHealthStates) > 0 {
+	if waitForNextExit {
+		// Subscribe before calling ready, otherwise the exit can be missed.
+		diedEvents, err := c.subscribeToDiedEvents(ctx)
+		if err != nil {
+			return -1, fmt.Errorf("subscribing to died events: %w", err)
+		}
+		go func() {
+			code, err := waitForNextExitEvent(diedEvents)
+			trySend(code, err)
+		}()
+	}
+
+	pollStates := len(wantedStates) > 0 || waitForRemoved
+	if pollStates || len(wantedHealthStates) > 0 {
 		go func() {
 			stoppedCount := 0
 			for {
-				if len(wantedStates) > 0 {
+				if pollStates {
 					state, err := c.State()
 					if err != nil {
-						// If the we wait for removing and the container is removed do not return this as error.
+						// If we wait for removal and the container is removed do not return this as error.
 						// This allows callers to actually wait for the ctr to be removed.
-						if wantedStates[define.ContainerStateRemoving] &&
+						if (wantedStates[define.ContainerStateRemoving] || waitForRemoved) &&
 							(errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
 							// check if the exit code was recorded in the db to return it
 							exitCode, err := c.runtime.state.GetContainerExitCode(c.ID())
@@ -803,7 +835,11 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 								trySend(exitCode, nil)
 								return
 							}
-
+							// Exit codes outlive the container, so none means it never ran.
+							if waitForRemoved {
+								trySend(0, nil)
+								return
+							}
 							trySend(-1, nil)
 							return
 						}
@@ -857,14 +893,57 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		}()
 	}
 
+	if ready != nil {
+		ready()
+	}
+
 	var result waitResult
 	select {
 	case result = <-resultChan:
-		cancelFn()
 	case <-ctx.Done():
-		result = waitResult{-1, define.ErrCanceled}
+	}
+	// Cancellation can also surface as a result, e.g. a closed event stream.
+	if ctx.Err() != nil {
+		return -1, define.ErrCanceled
 	}
 	return result.code, result.err
+}
+
+// subscribeToDiedEvents streams the container's "died" events until ctx is
+// cancelled.
+func (c *Container) subscribeToDiedEvents(ctx context.Context) (<-chan events.ReadResult, error) {
+	ch := make(chan events.ReadResult, 1)
+	err := c.runtime.Events(ctx, events.ReadOptions{
+		EventChannel: ch,
+		Filters: []string{
+			"event=died",
+			"type=container",
+			"container=" + c.ID(),
+		},
+		Stream: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ch, nil
+}
+
+// waitForNextExitEvent returns the exit code of the next "died" event.
+// Readers report undecodable entries as errors and keep going, so those are
+// only returned if the stream ends without a died event.
+func waitForNextExitEvent(diedEvents <-chan events.ReadResult) (int32, error) {
+	err := errors.New("event stream closed before the container exited")
+	for evt := range diedEvents {
+		if evt.Error != nil {
+			logrus.Debugf("Reading died events: %v", evt.Error)
+			err = evt.Error
+			continue
+		}
+		if evt.Event.ContainerExitCode != nil {
+			return int32(*evt.Event.ContainerExitCode), nil
+		}
+	}
+	return -1, err
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage

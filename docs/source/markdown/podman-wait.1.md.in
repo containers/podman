@@ -13,8 +13,8 @@ Waits on one or more containers to stop.  The container can be referred to by it
 name or ID.  In the case of multiple containers, Podman waits on each consecutively.
 After all conditions are satisfied, the containers' return codes are printed
 separated by newline in the same order as they were given to the command.  An
-exit code of -1 is emitted for all conditions other than "stopped" and
-"exited".
+exit code of -1 is emitted for all conditions other than "stopped", "exited",
+"not-running", "next-exit" and "removed".
 
 When waiting for containers with a restart policy of `always` or `on-failure`,
 such as those created by `podman kube play`, the containers may be repeatedly
@@ -23,12 +23,23 @@ only display and detect the first exit after the wait command was started.
 
 When running a container with podman run --rm wait does not wait for the
 container to be fully removed. To wait for the removal of a container use
-`--condition=removing`.
+`--condition=removed`.
 
 ## OPTIONS
 
 #### **--condition**=*state*
-Container state or condition to wait for.  Can be specified multiple times where at least one condition must match for the command to return.  Supported values are "configured", "created", "exited", "healthy", "initialized", "paused", "removing", "running", "stopped",  "stopping", "unhealthy".  The default condition is "stopped".
+Container state or condition to wait for.  Can be specified multiple times where at least one condition must match for the command to return.  Supported values are "configured", "created", "exited", "healthy", "initialized", "next-exit", "not-running", "paused", "removed", "removing", "running", "stopped",  "stopping", "unhealthy".  The default condition is "stopped".
+
+A container that was never started is considered "stopped", "exited" and
+"not-running", so waiting for these returns 0 immediately. The Docker-compatible
+conditions are:
+
+- "next-exit": wait for the next exit regardless of the current state, or until
+  the container is removed. It does not work with `events_logger="none"`. As
+  containers are waited on consecutively, the exit of a container that happens
+  while waiting on a previous one is missed.
+- "not-running": the same as "exited".
+- "removed": wait until the container has been removed.
 
 #### **--exit-first-match**
 Wait for exit of first container which matches conditions, ignore other ones.
@@ -83,6 +94,15 @@ Wait for the named container to exit, but do not fail if the container does not 
 ```
 $ podman wait --ignore does-not-exist
 -1
+```
+
+Wait for a container that has not been started yet to exit.
+```
+$ podman create --name myctr busybox sh -c "sleep 5; exit 7"
+$ podman wait --condition=next-exit myctr &
+$ podman start myctr
+$ wait
+7
 ```
 
 ## SEE ALSO
