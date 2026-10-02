@@ -99,7 +99,7 @@ jobs:
           --owner packit \
           --project "podman-container-tools-podman-${EVENT_NUMBER}" \
           podman \
-          ${SHA::9}
+          "${SHA::9}"
 
       - name: Push
         if: steps.getversion.outputs.update == 'true'
