@@ -44,7 +44,7 @@ jobs:
 
           if grep -Eq '.+-dev$' <<<"$VERSION"
           then
-            echo "Refusing to process a "-dev" version '$VERSION'"
+            echo "Refusing to process a '-dev' version '$VERSION'"
             exit 1
           fi
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -110,7 +110,7 @@ jobs:
         ver="$(echo "$VERSION" | sed -e "s/^v//" -e "s/-rc.*//")"
         releasenotes="$VERSION-release-notes.md"
         awk -v ver="$ver" '/^## / { if (p) { exit }; if ($2 == ver) { p=1; next } } p' RELEASE_NOTES.md > "$releasenotes"
-        if [[ -z $(grep '[^[:space:]]' "$releasenotes") ]]; then
+        if ! grep -q '[^[:space:]]' "$releasenotes"; then
           if [[ $VERSION != *-rc* ]]; then
               echo "::notice:: Release does not have release notes"
               exit 1
@@ -132,15 +132,16 @@ jobs:
         mv "win-msi-arm64-$VERSION"/* release-artifacts/
         mv "release-artifacts-$VERSION"/* release-artifacts/
         pushd release-artifacts
-        sha256sum * > shasums
+        sha256sum -- * > shasums
         popd
     - name: Create release
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         title=$VERSION
+        opts=()
         if [[ $VERSION == *-rc* ]]; then
-          RC="--prerelease"
+          opts+=(--prerelease)
           title="${title/rc/"RC"}"
         else
           # check if this version should not be marked latest
@@ -149,9 +150,9 @@ jobs:
           vers=${VERSION#"v"}
           echo "${prevvers},${vers}"
           # sort -V -C returns 0 if args are ascending version order
-          if !(echo "${prevvers},${vers}" | tr ',' '\n' | sort -V -C)
+          if ! echo "${prevvers},${vers}" | tr ',' '\n' | sort -V -C
           then
-            LATEST="--latest=false"
+            opts+=(--latest=false)
           fi
         fi
 
@@ -159,8 +160,7 @@ jobs:
             -t "$title" \
             --notes-file "$VERSION-release-notes.md" \
             --verify-tag \
-            $RC \
-            $LATEST \
+            "${opts[@]}" \
             release-artifacts/*
 
   notification:

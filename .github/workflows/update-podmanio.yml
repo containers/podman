@@ -93,7 +93,7 @@ jobs:
           VERSION: ${{ steps.getversion.outputs.version }}
         run: |
           # Check if version is actually higher than one on podman.io
-          prevversion=`grep -P "(?<=export const LATEST_VERSION = ')(\d.\d.\d)" -o static/data/global.ts`
+          prevversion=$(grep -P "(?<=export const LATEST_VERSION = ')(\d.\d.\d)" -o static/data/global.ts)
           echo "Version currently on site: ${prevversion}"
           echo "Version to update to: ${VERSION}"
           # sort -V -C returns 0 if args are ascending version order

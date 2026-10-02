@@ -155,9 +155,11 @@ jobs:
           if echo "$commits" | xargs -r git cherry-pick -x; then
             echo "Cherry-pick to $TARGET_BRANCH successful"
             git push origin "$cherry_pick_branch"
-            echo "cherry_pick_branch=$cherry_pick_branch" >> "$GITHUB_OUTPUT"
-            echo "original_title=$original_title" >> "$GITHUB_OUTPUT"
-            echo "success=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "cherry_pick_branch=$cherry_pick_branch"
+              echo "original_title=$original_title"
+              echo "success=true"
+            } >> "$GITHUB_OUTPUT"
           else
             echo "Cherry-pick to $TARGET_BRANCH failed"
             git cherry-pick --abort || true
@@ -177,6 +179,7 @@ jobs:
           cherry_pick_branch="cherry-pick-${PR_NUMBER}-to-${TARGET_BRANCH}"
           original_title=$(gh api "repos/${REPO}/pulls/$PR_NUMBER" -q '.title')
 
+          # shellcheck disable=SC2016 # Backticks are Markdown here.
           printf -v body 'Cherry-pick of #%s to `%s`.\n\nRequested by @%s\n\nOriginal merge commit: %s' \
             "$PR_NUMBER" "$TARGET_BRANCH" "$COMMENT_AUTHOR" "$MERGE_SHA"
 
@@ -322,6 +325,7 @@ jobs:
             cherry_pick_branch="cherry-pick-${PR_NUMBER}-to-${branch}"
             echo "Creating PR for $cherry_pick_branch"
 
+            # shellcheck disable=SC2016 # Backticks are Markdown here.
             printf -v body 'Cherry-pick of #%s to `%s`.\n\nOriginal merge commit: %s' \
               "$PR_NUMBER" "$branch" "$MERGE_SHA"
 

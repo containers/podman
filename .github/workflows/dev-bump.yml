@@ -28,8 +28,8 @@ jobs:
               devbump="${version%-*}-dev"
               echo "::notice:: is a rc - bumping z down to $devbump"
           else
-              arr=($(echo "$version" | tr . '\n'))
-              arr[2]=$((${arr[2]}+1))
+              IFS=. read -ra arr <<< "$version"
+              arr[2]=$((arr[2]+1))
               devbump="$(IFS=. ; echo "${arr[*]}")-dev"
               echo "::notice:: bumping z up to $devbump"
           fi
@@ -77,7 +77,7 @@ jobs:
         run: |
           bumpbranch="bump-${DEVBUMP}"
           base=${GITHUB_REF_NAME%.*}
-          body=$(printf '```release-note\nNone\n```\n')
+          body=$'```release-note\nNone\n```'
           gh pr create \
             --title "Bump Podman to v${DEVBUMP}" \
             --body  "$body" \
@@ -101,7 +101,7 @@ jobs:
       - name: Check version on main
         id: check
         run: |
-          mainvers=`grep -P '(?<=const RawVersion = ")(\d.\d)' -o version/rawversion/version.go`
+          mainvers=$(grep -P '(?<=const RawVersion = ")(\d.\d)' -o version/rawversion/version.go)
           releasevers=${GITHUB_REF_NAME#v}
           if echo "${mainvers},${releasevers}" | tr ',' '\n' | sort -V -C
           then
@@ -116,8 +116,8 @@ jobs:
         run: |
           releasevers=${GITHUB_REF_NAME#v}
 
-          arr=($(echo "$releasevers" | tr . '\n'))
-          arr[1]=$((${arr[1]}+1))
+          IFS=. read -ra arr <<< "$releasevers"
+          arr[1]=$((arr[1]+1))
           arr[2]=0
           devbump="$(IFS=. ; echo "${arr[*]}")-dev"
           echo "::notice:: Bumping main to: $devbump"
@@ -165,7 +165,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PODMANBOT_TOKEN }}
         run: |
           bumpbranch="bump-main-${DEVBUMP}"
-          body=$(printf '```release-note\nNone\n```\n')
+          body=$'```release-note\nNone\n```'
           gh pr create \
             --title "Bump main to v${DEVBUMP}" \
             --body  "$body" \
