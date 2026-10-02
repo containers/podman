@@ -379,7 +379,7 @@ jobs:
       distro: ${{ matrix.distro }}
       mode: ${{ matrix.mode }}
       priv: ${{ matrix.priv }}
-      timeout: ${{ matrix.timeout || 30 }}
+      timeout: 30
       # Top level if does not work because it does not have access to the matrix context.
       # However we can hack around by passing this input argument and the workflow_call
       # can then use this in the if condition to make it work that way.
