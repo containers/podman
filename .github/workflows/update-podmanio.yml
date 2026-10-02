@@ -97,7 +97,7 @@ jobs:
           echo "Version currently on site: ${prevversion}"
           echo "Version to update to: ${VERSION}"
           # sort -V -C returns 0 if args are ascending version order
-          if echo "${prevversion},${VERSION}" | tr ',' '\n' | sort -V -C && [[ "${prevversion}" != "${version}" ]]
+          if echo "${prevversion},${VERSION}" | tr ',' '\n' | sort -V -C && [[ "${prevversion}" != "${VERSION}" ]]
           then
             echo "needsUpdate=true" >> "$GITHUB_OUTPUT"
             echo "This release is a higher version, so we need to update podman.io"
