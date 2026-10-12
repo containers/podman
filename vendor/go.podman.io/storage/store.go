@@ -1986,20 +1986,17 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		// But in transient store mode, all container layers are volatile.
 		Volatile: options.Volatile || s.transientStore,
 	}
-	if s.canUseShifting(uidMap, gidMap) {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
-			HostUIDMapping: true,
-			HostGIDMapping: true,
-			UIDMap:         nil,
-			GIDMap:         nil,
-		}
-	} else {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
-			HostUIDMapping: idMappingsOptions.HostUIDMapping,
-			HostGIDMapping: idMappingsOptions.HostGIDMapping,
-			UIDMap:         copySlicePreferringNil(uidMap),
-			GIDMap:         copySlicePreferringNil(gidMap),
-		}
+	// When the driver supports shifting, the layer content is left at its
+	// identity ownership and the mapping is applied at mount time. Record the
+	// caller's maps but flag the layer as host-mapped so create() does not
+	// physically rechown the content into the container's range (which would
+	// then be shifted a second time by the id-mapped mount).
+	useHostMapping := idMappingsOptions.HostUIDMapping || s.canUseShifting(uidMap, gidMap)
+	layerOptions.IDMappingOptions = types.IDMappingOptions{
+		HostUIDMapping: useHostMapping,
+		HostGIDMapping: useHostMapping,
+		UIDMap:         copySlicePreferringNil(uidMap),
+		GIDMap:         copySlicePreferringNil(gidMap),
 	}
 	if options.Flags == nil {
 		options.Flags = make(map[string]any)
