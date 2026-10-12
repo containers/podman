@@ -1,5 +1,14 @@
 # Release Notes
 
+## 6.1.4
+### Bugfixes
+- Fixed an issue where Podman would not function when run under WSL 3 ([#29749](https://github.com/podman-container-tools/podman/issues/29749)).
+
+### Misc
+- Updated gvproxy to v0.9.0, resolving CVE-2026-107935
+- Updated Buildah to v1.45.2
+- Updated Storage to v1.64.2
+
 ## 6.1.3
 ### Security
 - This release addresses [CVE-2026-94603](https://github.com/podman-container-tools/podman/security/advisories/GHSA-2cvf-wqm6-wr9g), where a `podman run` on a checkpoint image (any image with the `io.podman.annotations.checkpoint.runtime.name` annotation) could disable all sandboxing, including sandboxing specified by the user, when the container was created.
