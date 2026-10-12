@@ -131,6 +131,7 @@ jobs:
     update_release: false
     dist_git_branches: &fedora_targets
       - fedora-rawhide
+      - fedora-45
 
   # Sync to CentOS Stream
   - job: propose_downstream

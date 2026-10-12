@@ -156,23 +156,28 @@ type IDMappings struct {
 	gids []IDMap
 }
 
-// NewIDMappings takes a requested user and group name and
-// using the data from /etc/sub{uid,gid} ranges, creates the
-// proper uid and gid remapping ranges for that user/group pair
-func NewIDMappings(username, groupname string) (*IDMappings, error) {
-	subuidRanges, err := readSubuid(username)
+// NewIDMappings takes the username (or user ID) for each sub{uid,gid}
+// mapping. Note that both files are indexed via username (or user ID),
+// and NOT the group name even for the subgid files.
+// It reads the data from the /etc/sub{uid,gid} files or
+// when using the libsubid build tag it then uses the libsubid functions
+// to query the user ranges which resolves them according to the system NSS
+// configuration, potentially fetching the ranges from a central network source.
+// It returns proper uid and gid remapping ranges for the given names.
+func NewIDMappings(usernameForUIDs, usernameForGIDs string) (*IDMappings, error) {
+	subuidRanges, err := readSubuid(usernameForUIDs)
 	if err != nil {
 		return nil, err
 	}
-	subgidRanges, err := readSubgid(groupname)
+	subgidRanges, err := readSubgid(usernameForGIDs)
 	if err != nil {
 		return nil, err
 	}
 	if len(subuidRanges) == 0 {
-		return nil, fmt.Errorf("no subuid ranges found for user %q in %s", username, subuidFileName)
+		return nil, fmt.Errorf("no subuid ranges found for user %q in %s", usernameForUIDs, subuidFileName)
 	}
 	if len(subgidRanges) == 0 {
-		return nil, fmt.Errorf("no subgid ranges found for group %q in %s", groupname, subgidFileName)
+		return nil, fmt.Errorf("no subgid ranges found for user %q in %s", usernameForGIDs, subgidFileName)
 	}
 
 	return &IDMappings{
