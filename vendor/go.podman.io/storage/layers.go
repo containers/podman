@@ -1575,6 +1575,13 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 	}
 
 	idMappings := idtools.NewIDMappingsFromMaps(moreOptions.UIDMap, moreOptions.GIDMap)
+	if moreOptions.HostUIDMapping && moreOptions.HostGIDMapping {
+		// The layer is host-mapped: its content stays at identity ownership and
+		// any id shifting happens at mount time. Rechowning to the container's
+		// maps here would double-shift the content once the id-mapped mount is
+		// applied, so keep the rechown target at identity.
+		idMappings = &idtools.IDMappings{}
+	}
 	opts := drivers.CreateOpts{
 		MountLabel: mountLabel,
 		StorageOpt: options,

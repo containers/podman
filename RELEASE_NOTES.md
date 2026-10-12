@@ -1,5 +1,15 @@
 # Release Notes
 
+## 5.8.9
+### Bugfixes
+- Fixed an issue where Podman would not function when run under WSL 3 ([#29749](https://github.com/podman-container-tools/podman/issues/29749)).
+- Fixed a bug with `podman machine` VMs on Mac where machines could be left in an inconsistent state if the `podman machine start` command was interrupted by a signal.
+
+### Misc
+- Updated gvproxy to v0.9.0, resolving CVE-2026-107935
+- Updated Buildah to v1.43.5
+- Updated Storage to v1.62.2
+
 ## 5.8.8
 - This release addresses [CVE-2026-94603](https://github.com/podman-container-tools/podman/security/advisories/GHSA-2cvf-wqm6-wr9g), where a `podman run` on a checkpoint image (any image with the `io.podman.annotations.checkpoint.runtime.name` annotation) could disable all sandboxing, including sandboxing specified by the user, when the container was created.
 

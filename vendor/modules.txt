@@ -78,7 +78,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.8.0
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.43.4
+# github.com/containers/buildah v1.43.5
 ## explicit; go 1.26.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -896,7 +896,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.62.1
+# go.podman.io/storage v1.62.2
 ## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -911,8 +911,11 @@ go.podman.io/storage/drivers/zfs
 go.podman.io/storage/internal/createpath
 go.podman.io/storage/internal/dedup
 go.podman.io/storage/internal/rawfilelock
+go.podman.io/storage/internal/rootlookupcache
 go.podman.io/storage/internal/staging_lockfile
+go.podman.io/storage/internal/stat
 go.podman.io/storage/internal/tempdir
+go.podman.io/storage/internal/xattrs
 go.podman.io/storage/pkg/archive
 go.podman.io/storage/pkg/chrootarchive
 go.podman.io/storage/pkg/chunked

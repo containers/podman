@@ -12,7 +12,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.4.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.8.0
-	github.com/containers/buildah v1.43.4
+	github.com/containers/buildah v1.43.5
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.9
 	github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
@@ -68,7 +68,7 @@ require (
 	go.etcd.io/bbolt v1.4.3
 	go.podman.io/common v0.67.2
 	go.podman.io/image/v5 v5.39.3
-	go.podman.io/storage v1.62.1
+	go.podman.io/storage v1.62.2
 	golang.org/x/crypto v0.56.0
 	golang.org/x/net v0.57.0
 	golang.org/x/sync v0.22.0
