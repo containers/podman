@@ -5,6 +5,7 @@ package idtools
 import (
 	"errors"
 	"os/user"
+	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -20,22 +21,30 @@ struct subid_range get_range(struct subid_range *ranges, int i)
     return ranges[i];
 }
 
-// helper for stderr to avoid referencing C.stderr from Go code,
-// which breaks cgo on musl due to stderr being declared as FILE *const
-static FILE *subid_stderr(void) {
-    return stderr;
-}
-
 #if !defined(SUBID_ABI_MAJOR) || (SUBID_ABI_MAJOR < 4)
 # define subid_init libsubid_init
 # define subid_get_uid_ranges get_subuid_ranges
 # define subid_get_gid_ranges get_subgid_ranges
 #endif
 
+#if !defined(SUBID_ABI_MAJOR) || (SUBID_ABI_MAJOR < 5)
+# define subid_free free
+#endif
+
+// Define our own static init function here instead of calling subid_init
+// from the go code so we can have the storage string inlined here.
+// static variables cannot be referenced from the go code.
+static void containers_storage_subid_init() {
+    subid_init("storage", stderr);
+}
+
 */
 import "C"
 
-var onceInit sync.Once
+var (
+	libsubidLock     sync.Mutex
+	subidInitialized bool
+)
 
 func readSubid(username string, isUser bool) ([]subIDRange, error) {
 	var ret []subIDRange
@@ -49,9 +58,21 @@ func readSubid(username string, isUser bool) ([]subIDRange, error) {
 		uidstr = u.Uid
 	}
 
-	onceInit.Do(func() {
-		C.subid_init(C.CString("storage"), C.subid_stderr())
-	})
+	// libsubid is not thread safe currently, concurrent calls often fail.
+	// https://github.com/shadow-maint/shadow/issues/1362
+	libsubidLock.Lock()
+	defer libsubidLock.Unlock()
+
+	// Avoid the goroutine being switched to different threads during our calls.
+	// While right now the library does not seem to depend on any thread local state
+	// lets be future proof in case it will be.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if !subidInitialized {
+		C.containers_storage_subid_init()
+		subidInitialized = true
+	}
 
 	cUsername := C.CString(username)
 	defer C.free(unsafe.Pointer(cUsername))
@@ -75,10 +96,10 @@ func readSubid(username string, isUser bool) ([]subIDRange, error) {
 	if nRanges < 0 {
 		return nil, errors.New("cannot read subids")
 	}
-	defer C.free(unsafe.Pointer(cRanges))
+	defer C.subid_free(unsafe.Pointer(cRanges))
 
-	for i := 0; i < int(nRanges); i++ {
-		r := C.get_range(cRanges, C.int(i))
+	for i := C.int(0); i < nRanges; i++ {
+		r := C.get_range(cRanges, i)
 		newRange := subIDRange{
 			Start:  int(r.start),
 			Length: int(r.count),

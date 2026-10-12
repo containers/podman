@@ -2,6 +2,13 @@
 
 # Changelog
 
+## v1.45.2 (2026-10-12)
+
+    copier: reject relative symlink escapes, only resolve absolute ones
+    copier: put: resolve symlinks before os.Root path check
+    ci: pin go version for lint to 1.26
+    vendor: update storage to v1.64.2
+
 ## v1.45.1 (2026-09-15)
 
     Bump go.podman.io/storage, go.podman.io/image/v5, and go.podman.io/common

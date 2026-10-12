@@ -703,11 +703,17 @@ func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMappi
 	return uidmap, gidmap, nil
 }
 
-// GetSubIDMappings reads mappings from /etc/subuid and /etc/subgid.
-func GetSubIDMappings(user, group string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
-	mappings, err := idtools.NewIDMappings(user, group)
+// GetSubIDMappings reads the uid and gid mappings for the given usernames.
+// It reads the data from the /etc/sub{uid,gid} files or
+// when using the libsubid build tag it then uses the libsubid functions
+// to query the user ranges which resolves them according to the system NSS
+// configuration, potentially fetching the ranges from a central network source.
+// It returns the uid mapping as first return value and the gid mapping as second
+// or an error otherwise.
+func GetSubIDMappings(usernameForUIDs, usernameForGIDs string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
+	mappings, err := idtools.NewIDMappings(usernameForUIDs, usernameForGIDs)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading subuid mappings for user %q and subgid mappings for group %q: %w", user, group, err)
+		return nil, nil, err
 	}
 	var uidmap, gidmap []specs.LinuxIDMapping
 	for _, m := range mappings.UIDs() {
