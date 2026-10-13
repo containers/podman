@@ -34,14 +34,14 @@ class TestCase(unittest.TestCase):
 
     def test_gh_actions_are_pinned_by(self):
         """ensure all actions are pinned by digest and have version comment"""
-        # Note local paths are allowed, i.e. uses: ./.github/workflows/lima.yml
-        pattern = re.compile(r"uses:\s+(?:(\./[\w./-]+)(?:\s+#.*)?|([\w.-]+/[\w./-]+)@([a-f0-9]{40})\s+#\s*(.+))$")
+        # Note local paths are allowed, i.e. uses: $/.github/workflows/lima.yml
+        pattern = re.compile(r"uses:\s+(?:(\$/[\w./-]+)(?:\s+#.*)?|([\w.-]+/[\w./-]+)@([a-f0-9]{40})\s+#\s*(.+))$")
         dir = os.path.join(REPO_ROOT, '.github/workflows')
         for name in os.listdir(dir):
             with open(os.path.join(dir, name)) as file:
                 for i, line in enumerate(file, 1):
                     if 'uses:' in line:
-                        self.assertRegex(line, pattern, msg=f"Action must be pinned with a version number comment, file: .github/workflows/{name}:{i}")
+                        self.assertRegex(line, pattern, msg=f"Action must be pinned with a version number comment or use a local path with '$/', file: .github/workflows/{name}:{i}")
 
     def test_job_timeout(self):
         """ensure all the ci jobs have a timeout set"""
