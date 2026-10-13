@@ -70,7 +70,7 @@ jobs:
 
   build-artifacts:
     name: Build Artifacts
-    uses: ./.github/workflows/release-build-artifacts.yml
+    uses: $/.github/workflows/release-build-artifacts.yml
     needs: check
     with:
       version: ${{ needs.check.outputs.version }}
@@ -213,7 +213,7 @@ jobs:
 
   updatepodmanio:
     name: Update podman.io
-    uses: ./.github/workflows/update-podmanio.yml
+    uses: $/.github/workflows/update-podmanio.yml
     needs: [check, release]
     permissions:
       contents: write # to push to a branch

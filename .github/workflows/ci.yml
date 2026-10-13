@@ -210,7 +210,7 @@ jobs:
       fail-fast: false
       matrix:
         distro: [fedora-current, fedora-prior, fedora-rawhide, debian-sid]
-    uses: ./.github/workflows/lima.yml
+    uses: $/.github/workflows/lima.yml
     with:
       runner: cncf-ubuntu-8-32-x86
       test: build
@@ -372,7 +372,7 @@ jobs:
             distro: fedora-current
             priv: root
             mode: remote
-    uses: ./.github/workflows/lima.yml
+    uses: $/.github/workflows/lima.yml
     with:
       runner: cncf-ubuntu-8-32-x86
       test: ${{ matrix.test }}
@@ -420,7 +420,7 @@ jobs:
             distro: fedora-current
             priv: rootless
 
-    uses: ./.github/workflows/lima.yml
+    uses: $/.github/workflows/lima.yml
     with:
       runner: cncf-ubuntu-4-16-x86
       test: ${{ matrix.test }}
