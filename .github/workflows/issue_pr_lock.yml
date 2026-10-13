@@ -62,6 +62,8 @@ jobs:
           # N/B: These are both defined at the podman-container-tools org level
           client-id: ${{ vars.STALE_LOCKING_CLIENT_ID }}
           private-key: ${{ secrets.STALE_LOCKING_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+          permission-issues: write
 
       # Ref: https://github.com/dessant/lock-threads#usage
       - uses: dessant/lock-threads@89ae32b08ed1a541efecbab17912962a5e38981c # v6.0.2
