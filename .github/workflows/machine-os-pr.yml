@@ -1,6 +1,8 @@
 name: "Machine OS PR"
 
 on:
+  # The workflow does not checkout untrusted code.
+  # zizmor: ignore[dangerous-triggers]
   pull_request_target:
     paths:
       - 'version/rawversion/version.go'
