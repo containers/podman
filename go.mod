@@ -6,7 +6,7 @@ module go.podman.io/podman/v6
 go 1.26.3
 
 require (
-	github.com/Microsoft/go-winio v0.6.3
+	github.com/Microsoft/go-winio v0.6.4
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.6.0
 	github.com/checkpoint-restore/go-criu/v8 v8.4.0
