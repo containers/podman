@@ -18,7 +18,7 @@ github.com/BurntSushi/toml/internal
 # github.com/Masterminds/semver/v3 v3.5.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
-# github.com/Microsoft/go-winio v0.6.3
+# github.com/Microsoft/go-winio v0.6.4
 ## explicit; go 1.26.0
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/internal/fs
