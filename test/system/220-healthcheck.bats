@@ -166,6 +166,44 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     run_podman rm -f -t0 $ctr
 }
 
+@test "podman healthcheck - inherited NONE never creates a timer" {
+    local image="i-hc-none-$(safename)"
+    local ctr="c-hc-none-$(safename)"
+    printf 'FROM %s\nHEALTHCHECK NONE\n' "$IMAGE" > "$PODMAN_TMPDIR/Containerfile"
+    run_podman build --format=docker --pull=never -t "$image" "$PODMAN_TMPDIR"
+
+    for option in "" "--no-healthcheck"; do
+        run_podman create --network=none --name "$ctr" $option "$image" /home/podman/pause
+        local cid="$output"
+        run_podman container init "$ctr"
+        run_podman start "$ctr"
+        run_podman inspect --format '{{.Config.Healthcheck.Test}}' "$ctr"
+        is "$output" "[NONE]" "disabled healthcheck remains NONE"
+        run -0 systemctl list-units --all --quiet "*$cid*.timer" "*$cid*.service"
+        is "$output" "" "disabled healthcheck creates no timer or service"
+        run_podman restart -t0 "$ctr"
+        run -0 systemctl list-units --all --quiet "*$cid*.timer" "*$cid*.service"
+        is "$output" "" "disabled healthcheck remains timer-free after restart"
+        run_podman rm -f -t0 "$ctr"
+    done
+    run_podman rmi "$image"
+}
+
+@test "podman healthcheck - disabling an active check removes its timer" {
+    local ctr="c-hc-disable-$(safename)"
+    run_podman run -d --network=none --name "$ctr" --health-cmd true --health-interval 1s "$IMAGE" /home/podman/pause
+    local cid="$output"
+    run -0 systemctl list-units --all --quiet "*$cid*.timer"
+    assert "$output" != "" "active healthcheck has a timer"
+
+    run_podman update --no-healthcheck "$ctr"
+    run_podman inspect --format '{{.Config.Healthcheck.Test}}' "$ctr"
+    is "$output" "[NONE]" "healthcheck was disabled"
+    run -0 systemctl list-units --all --quiet "*$cid*.timer" "*$cid*.service"
+    is "$output" "" "previous healthcheck timer and service were removed"
+    run_podman rm -f -t0 "$ctr"
+}
+
 @test "podman wait --condition={healthy,unhealthy}" {
     ctr="c-h-$(safename)"
 

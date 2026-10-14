@@ -114,7 +114,10 @@ func (c *Container) startTimer(isStartup bool) error {
 // removeTransientFiles removes the systemd timer and unit files
 // for the container
 func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool, unitName string) error {
-	if c.disableHealthCheckSystemd(isStartup) {
+	if !systemdCommon.RunsOnSystemd() || os.Getenv("DISABLE_HC_SYSTEMD") == "true" {
+		return nil
+	}
+	if unitName == "" && c.disableHealthCheckSystemd(isStartup) {
 		return nil
 	}
 	conn, err := systemd.ConnectToDBUS()
@@ -166,14 +169,9 @@ func (c *Container) disableHealthCheckSystemd(isStartup bool) bool {
 		return true
 	}
 	if isStartup {
-		if c.config.StartupHealthCheckConfig.Interval == 0 {
-			return true
-		}
+		return c.config.StartupHealthCheckConfig == nil || c.config.StartupHealthCheckConfig.Interval == 0
 	}
-	if c.config.HealthCheckConfig.Interval == 0 {
-		return true
-	}
-	return false
+	return !c.HasHealthCheck() || c.config.HealthCheckConfig.Interval == 0
 }
 
 // Systemd unit name for the healthcheck systemd unit.
