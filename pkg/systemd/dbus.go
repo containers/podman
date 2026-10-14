@@ -1,3 +1,5 @@
+//go:build !remote && (linux || freebsd)
+
 package systemd
 
 import (
