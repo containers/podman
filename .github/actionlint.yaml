@@ -1,4 +1,4 @@
 self-hosted-runner:
   labels:
     # Self-hosted runners provided by CNCF.
-    - cncf-ubuntu-*
+    - cncf-ubuntu-26.04-*

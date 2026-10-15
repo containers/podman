@@ -48,7 +48,7 @@ jobs:
 
   validate-source:
     name: Validate source code changes
-    runs-on: cncf-ubuntu-8-32-x86
+    runs-on: cncf-ubuntu-26.04-8-32-x86
     if: github.repository == 'podman-container-tools/podman'
     # While in most cases it should faster than 10m, if there are many commits in the PR "Build each commit" takes a bit longer
     timeout-minutes: 20
@@ -189,7 +189,7 @@ jobs:
 
   build-alt:
     name: Cross Build (Linux, FreeBSD)
-    runs-on: cncf-ubuntu-16-64-x86
+    runs-on: cncf-ubuntu-26.04-16-64-x86
     if: github.repository == 'podman-container-tools/podman'
     timeout-minutes: 10
     steps:
@@ -212,7 +212,7 @@ jobs:
         distro: [fedora-current, fedora-prior, fedora-rawhide, debian-sid]
     uses: $/.github/workflows/lima.yml
     with:
-      runner: cncf-ubuntu-8-32-x86
+      runner: cncf-ubuntu-26.04-8-32-x86
       test: build
       distro: ${{ matrix.distro }}
       timeout: 20
@@ -374,7 +374,7 @@ jobs:
             mode: remote
     uses: $/.github/workflows/lima.yml
     with:
-      runner: cncf-ubuntu-8-32-x86
+      runner: cncf-ubuntu-26.04-8-32-x86
       test: ${{ matrix.test }}
       distro: ${{ matrix.distro }}
       mode: ${{ matrix.mode }}
@@ -422,7 +422,7 @@ jobs:
 
     uses: $/.github/workflows/lima.yml
     with:
-      runner: cncf-ubuntu-4-16-x86
+      runner: cncf-ubuntu-26.04-4-16-x86
       test: ${{ matrix.test }}
       distro: ${{ matrix.distro }}
       priv: ${{ matrix.priv }}
@@ -447,10 +447,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ { runner: cncf-ubuntu-24-96-x86, arch: amd64 } ]
+        os: [ { runner: cncf-ubuntu-26.04-24-96-x86, arch: amd64 } ]
         # The default runners do not have vrit enabled so we cannot test on arm at the moment.
         # CNCF staff is looking if they can give us a bare metal host.
-        #  { runner: cncf-ubuntu-32-128-arm, arch: arm64 } ]
+        #  { runner: cncf-ubuntu-26.04-32-128-arm, arch: arm64 } ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
