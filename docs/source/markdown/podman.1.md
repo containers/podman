@@ -139,10 +139,10 @@ Name of the OCI runtime as specified in containers.conf or absolute path to the 
 
 #### **--runtime-flag**=*flag*
 
-Adds global flags for the container runtime. To list the supported flags, please
-consult the manpages of the selected container runtime (the default runtime is `crun`, the manpage to consult is `crun(8)`).
+Adds global flags for the container runtime. Can be specified multiple times.
+To list the supported flags, please consult the manpages of the selected container runtime (the default runtime is `crun`, the manpage to consult is `crun(8)`).
 
-Default runtime flags can be added in containers.conf.
+Default runtime flags can be set with the `engine.runtime_flags.<runtime>` settings in `containers.conf(5)`. Note that setting **--runtime-flag** causes any flags set in containers.conf to be ignored.
 
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given can be `--runtime-flag log-format=json`.
