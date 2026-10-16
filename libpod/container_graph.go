@@ -494,10 +494,13 @@ func stopContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, ti
 		doneChans = append(doneChans, doneChan)
 	}
 
-	// We don't care about the returns values, these functions always return nil
-	// But we do need all of the parallel jobs to terminate.
+	// We want all of the parallel jobs to terminate, so collect all errors into one.
+	var parallelErr error
 	for _, doneChan := range doneChans {
-		<-doneChan
+		err := <-doneChan
+		if err != nil {
+			parallelErr = errors.Join(parallelErr, err)
+		}
 	}
 
 	return nodeDetails.ctrErrors.Underlying(), nil
@@ -566,12 +569,15 @@ func removeContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, 
 		doneChans = append(doneChans, doneChan)
 	}
 
-	// We don't care about the returns values, these functions always return nil
-	// But we do need all of the parallel jobs to terminate.
+	// We want all of the parallel jobs to terminate, so collect all errors into one.
+	var parallelErr error
 	for _, doneChan := range doneChans {
-		<-doneChan
+		err := <-doneChan
+		if err != nil {
+			parallelErr = errors.Join(parallelErr, err)
+		}
 	}
 
 	// Safe to use Underlying as the SyncMap passes out of scope as we return
-	return ctrNamedVolumes.Underlying(), nodeDetails.ctrsVisited.Underlying(), nodeDetails.ctrErrors.Underlying(), nil
+	return ctrNamedVolumes.Underlying(), nodeDetails.ctrsVisited.Underlying(), nodeDetails.ctrErrors.Underlying(), parallelErr
 }
