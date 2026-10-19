@@ -53,7 +53,10 @@ func discriminatorInfo(doc *analysis.Spec, opts *GenOpts) *discInfo {
 		for _, ao := range sch.Schema.AllOf {
 			if ao.Ref.String() != "" {
 				if bt, ok := baseTypes[ao.Ref.String()]; ok {
-					name, _ := sch.Schema.Extensions.GetString(xClass)
+					name, _ := sch.Schema.Extensions.GetString(xDiscriminatorValue)
+					if name == "" {
+						name, _ = sch.Schema.Extensions.GetString(xClass)
+					}
 					if name == "" {
 						name = sch.Name
 					}
