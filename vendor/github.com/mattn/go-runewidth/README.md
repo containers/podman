@@ -15,6 +15,11 @@ Usage
 runewidth.StringWidth("つのだ☆HIRO") == 12
 ```
 
+NOTE: Latin letters that Unicode gives ambiguous East Asian width, such as
+`ü`, `é` and `ß`, are measured as one cell even when `EastAsianWidth` is
+set, as terminals draw them in CJK locales too. Other ambiguous characters
+such as `±`, `×` and `○` still take two cells there.
+
 
 Author
 ------
