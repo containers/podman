@@ -208,6 +208,15 @@ func (req *request) Excludes() []string {
 	}
 }
 
+func (req *request) Includes() []string {
+	switch req.Request {
+	case requestGet:
+		return req.GetOptions.Includes
+	default:
+		return nil
+	}
+}
+
 func (req *request) UIDMap() []idtools.IDMap {
 	switch req.Request {
 	case requestEval:
@@ -429,6 +438,7 @@ type GetOptions struct {
 	Timestamp          *time.Time        // timestamp to force on all contents
 	DisallowWildcard   bool              // reject glob patterns in source paths
 	AllowEmptyWildcard bool              // don't error when glob patterns match nothing
+	Includes           []string          // include only contents matching at least one of these patterns; Excludes take precedence
 }
 
 // Get calls GetContext with context.TODO().
@@ -742,6 +752,135 @@ func cleanerReldirectory(candidate string) string {
 		return "."
 	}
 	return cleaned
+}
+
+// pathHasAbsoluteSymlink resolves name component by component using readlink
+// (typically osRoot.Readlink) and returns true if any symlink in the
+// resolution has an absolute target.  This distinguishes absolute symlinks
+// (e.g. /var/run -> /run) that need chroot-style resolution from relative
+// escapes (e.g. escape -> ..) that should be rejected.
+//
+// When a relative symlink is encountered, its target components are
+// prepended to the remaining work list, mirroring the algorithm used by
+// resolvePath and os.Root.  Escape detection relies on readlink rejecting
+// paths that leave the root (e.g. readlink("..") must fail); without that
+// guarantee, this function does not confine.
+func pathHasAbsoluteSymlink(name string, readlink func(string) (string, error)) bool {
+	workingRel := ""
+	components := strings.Split(filepath.Clean(name), string(os.PathSeparator))
+	linksFollowed := 0
+
+	for len(components) > 0 {
+		comp := components[0]
+		components = components[1:]
+		if comp == "" || comp == "." {
+			continue
+		}
+
+		nextRel := filepath.Join(workingRel, comp)
+		target, err := readlink(nextRel)
+		if err != nil {
+			// Not a symlink (or does not exist): advance.
+			// When readlink is osRoot.Readlink, this also covers
+			// the case where ".." escapes the root. Readlink
+			// rejects the path, we advance with a broken workingRel,
+			// and all subsequent readlink calls fail too.
+			workingRel = nextRel
+			continue
+		}
+
+		linksFollowed++
+		if linksFollowed > maxLoopsFollowed {
+			return false
+		}
+
+		if filepath.IsAbs(target) || (len(target) > 0 && looksLikeAbs(target)) {
+			return true
+		}
+
+		// Relative symlink: prepend target components to the work
+		// list and continue from the current position.  Any ".."
+		// components are handled naturally by filepath.Join at the
+		// top of the loop, and readlink will reject paths that
+		// escape the root.
+		components = append(strings.Split(target, string(os.PathSeparator)), components...)
+	}
+	return false
+}
+
+// lstatPathComponents walks name component by component using osRoot.Lstat,
+// returning the first error encountered (or nil).  This is used as a
+// read-only compatibility check against recent versions of go-archive/tar
+// which reject paths that escape from the root.
+func lstatPathComponents(osRoot *os.Root, name string) error {
+	var components []string
+	for name != "." && name != "/" {
+		components = append(components, name)
+		name = filepath.Dir(name)
+	}
+	for _, partial := range slices.Backward(components) {
+		if _, err := osRoot.Lstat(partial); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkArchivePathEscape is a read-only check verifying that a tar entry
+// path does not escape from the target directory.  It never modifies any
+// paths used for actual file operations.
+//
+// osRoot must be opened on targetDirectory (the resolved form of directory
+// within root).  root is the container rootfs used by resolvePath as the
+// chroot boundary for symlink resolution.
+//
+// osRoot rejects symlinks with absolute targets (e.g. /var/run -> /run),
+// even when those symlinks are valid inside a container.  When the raw path
+// is rejected and the rejection is caused by an absolute symlink, this
+// function resolves symlinks with chroot-like semantics and re-checks the
+// resolved path through osRoot.  Relative escapes (e.g. escape -> ..) are
+// kept rejected, matching Docker behavior (moby/go-archive#93).
+func checkArchivePathEscape(osRoot *os.Root, root, directory, targetDirectory, cleanerHdrName string) error {
+	// Fast path: os.Root walks the raw entry path component by component.
+	// Example: "var/run/foo" where var/run is a plain directory -- OK.
+	err := lstatPathComponents(osRoot, cleanerHdrName)
+	if err == nil || errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	// osRoot rejected the path.  Only fall back to chroot-style resolution
+	// when the path traverses an absolute symlink (e.g. /var/run -> /run).
+	// Relative escapes (e.g. escape -> ..) are kept rejected, matching
+	// Docker behavior (moby/go-archive#93).
+	if !pathHasAbsoluteSymlink(cleanerHdrName, osRoot.Readlink) {
+		return err
+	}
+
+	// An absolute symlink was found.  Resolve symlinks treating root as a
+	// chroot boundary (absolute targets become root-relative).
+	//   - /var/run -> /run  resolves to  root/run,   relPath = "run/foo"
+	resolvedPath, resolveErr := resolvePath(root, filepath.Join(directory, cleanerHdrName), false)
+	if resolveErr != nil {
+		return errors.Join(err, resolveErr)
+	}
+
+	// Verify the resolved path did not land outside targetDirectory.
+	relPath, relErr := filepath.Rel(targetDirectory, resolvedPath)
+	if relErr != nil {
+		return errors.Join(err, relErr)
+	}
+	if !filepath.IsLocal(relPath) {
+		return err
+	}
+
+	// Re-check the resolved (symlink-free) path through os.Root.
+	// Example: "run/foo" -- no symlinks left, os.Root is happy.
+	// If os.Root still rejects it, it is a genuine escape.
+	resolvedErr := lstatPathComponents(osRoot, relPath)
+	if resolvedErr == nil || errors.Is(resolvedErr, os.ErrNotExist) {
+		return nil
+	}
+	return err
 }
 
 // convertToRelSubdirectory returns the path of directory, bound and relative to
@@ -1153,9 +1292,17 @@ func copierHandler(ctx context.Context, bulkReader io.Reader, bulkWriter io.Writ
 	// os.PathSeparator, implying that it expects OS-specific naming
 	// conventions.
 	excludes := req.Excludes()
-	pm, err := fileutils.NewPatternMatcher(excludes)
+	pmExcludes, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
 		return nil, nil, fmt.Errorf("processing excludes list %v: %w", excludes, err)
+	}
+
+	var pmIncludes *fileutils.PatternMatcher
+	if includes := req.Includes(); len(includes) > 0 {
+		pmIncludes, err = fileutils.NewPatternMatcher(includes)
+		if err != nil {
+			return nil, nil, fmt.Errorf("processing includes list %v: %w", includes, err)
+		}
 	}
 
 	var idMappings *idtools.IDMappings
@@ -1171,10 +1318,10 @@ func copierHandler(ctx context.Context, bulkReader io.Reader, bulkWriter io.Writ
 		resp := copierHandlerEval(ctx, req)
 		return resp, nil, nil
 	case requestStat:
-		resp := copierHandlerStat(ctx, req, pm, idMappings)
+		resp := copierHandlerStat(ctx, req, pmExcludes, idMappings)
 		return resp, nil, nil
 	case requestGet:
-		return copierHandlerGet(ctx, bulkWriter, req, pm, idMappings)
+		return copierHandlerGet(ctx, bulkWriter, req, pmExcludes, pmIncludes, idMappings)
 	case requestPut:
 		return copierHandlerPut(ctx, bulkReader, req, idMappings)
 	case requestMkdir:
@@ -1193,10 +1340,11 @@ func copierHandler(ctx context.Context, bulkReader io.Reader, bulkWriter io.Writ
 	}
 }
 
-// pathIsExcluded computes path relative to root, then asks the pattern matcher
-// if the result is excluded.  Returns the relative path and the matcher's
-// results.
-func pathIsExcluded(root, path string, pm *fileutils.PatternMatcher) (string, bool, error) {
+// pathMatches computes path relative to root, then asks the pattern matcher
+// if the result matches.  Returns the relative path and the matcher's
+// results. Callers treat a match as "excluded" or "included" depending on
+// whether pm is the excludes or includes pattern matcher.
+func pathMatches(root, path string, pm *fileutils.PatternMatcher) (string, bool, error) {
 	rel, err := convertToRelSubdirectory(root, path)
 	if err != nil {
 		return "", false, fmt.Errorf("copier: error computing path of %q relative to root %q: %w", path, root, err)
@@ -1253,7 +1401,7 @@ func insecureResolvePath(root, path string, evaluateFinalComponent bool, pm *fil
 	excluded := false
 	for len(components) > 0 {
 		// if anything we try to examine is excluded, then resolution has to "break"
-		_, thisExcluded, err := pathIsExcluded(root, filepath.Join(workingPath, components[0]), pm)
+		_, thisExcluded, err := pathMatches(root, filepath.Join(workingPath, components[0]), pm)
 		if err != nil {
 			return "", err
 		}
@@ -1323,10 +1471,11 @@ func containsWildcards(path string) bool {
 	return strings.ContainsAny(path, "*?[")
 }
 
-func copierHandlerStat(ctx context.Context, req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) *response {
+func copierHandlerStat(ctx context.Context, req request, pmExcludes *fileutils.PatternMatcher, idMappings *idtools.IDMappings) *response {
 	// FIXME: (At least because of extendedGlob and insecureResolvePath), this does not fully constrain the operation to req.Root.
 	// Currently known users either use chroot confinement, or only use this to access the users’ own files
 	// where a concept of req.Root is not clearly relevant.
+
 	errorResponse := func(fmtspec string, args ...any) *response {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse{}}
 	}
@@ -1370,7 +1519,7 @@ func copierHandlerStat(ctx context.Context, req request, pm *fileutils.PatternMa
 				return errorResponse("%v", ctx.Err())
 			default:
 			}
-			rel, excluded, err := pathIsExcluded(req.Root, globbed, pm)
+			rel, excluded, err := pathMatches(req.Root, globbed, pmExcludes)
 			if err != nil {
 				return errorResponse("copier: stat: %v", err)
 			}
@@ -1430,7 +1579,7 @@ func copierHandlerStat(ctx context.Context, req request, pm *fileutils.PatternMa
 				// could be a relative link) and in the context
 				// of the chroot
 				result.ImmediateTarget = immediateTarget
-				resolvedTarget, err := insecureResolvePath(req.Root, globbed, true, pm)
+				resolvedTarget, err := insecureResolvePath(req.Root, globbed, true, pmExcludes)
 				if err != nil {
 					return errorResponse("copier: stat: error resolving %q: %v", globbed, err)
 				}
@@ -1528,7 +1677,7 @@ func checkLinks(item string, req request, info os.FileInfo) (string, os.FileInfo
 	return item, info, nil
 }
 
-func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) (*response, func() error, error) {
+func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pmExcludes, pmIncludes *fileutils.PatternMatcher, idMappings *idtools.IDMappings) (*response, func() error, error) {
 	// FIXME: (At least because of extendedGlob and insecureResolvePath), this does not fully constrain the operation to req.Root.
 	// Currently known users either use chroot confinement, or only use this to access the users’ own files
 	// where a concept of req.Root is not clearly relevant.
@@ -1542,7 +1691,7 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 		DisallowWildcard:   req.GetOptions.DisallowWildcard,
 		AllowEmptyWildcard: req.GetOptions.AllowEmptyWildcard,
 	}
-	statResponse := copierHandlerStat(ctx, statRequest, pm, idMappings)
+	statResponse := copierHandlerStat(ctx, statRequest, pmExcludes, idMappings)
 	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse.Stat, Get: getResponse{}}, nil, nil
 	}
@@ -1732,7 +1881,7 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 						// skip the "." entry
 						return nil
 					}
-					skippedPath, skip, err := pathIsExcluded(req.Root, path, pm)
+					skippedPath, skip, err := pathMatches(req.Root, path, pmExcludes)
 					if err != nil {
 						return err
 					}
@@ -1743,14 +1892,14 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 							// all, we don't need to
 							// descend into this particular
 							// directory if it's a directory
-							if !pm.Exclusions() {
+							if !pmExcludes.Exclusions() {
 								return filepath.SkipDir
 							}
 							// if there are exclusion
 							// patterns for which this
 							// path is a prefix, we
 							// need to keep descending
-							for _, pattern := range pm.Patterns() {
+							for _, pattern := range pmExcludes.Patterns() {
 								if !pattern.Exclusion() {
 									continue
 								}
@@ -1772,6 +1921,16 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 						// something under it might
 						// also be in the excludes list
 						return nil
+					}
+					if pmIncludes != nil && !d.IsDir() {
+						_, included, err := pathMatches(req.Root, path, pmIncludes)
+						if err != nil {
+							return err
+						}
+
+						if !included {
+							return nil
+						}
 					}
 					// if it's a symlink, read its target
 					symlinkTarget := ""
@@ -1818,12 +1977,22 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 				}
 				itemsCopied++
 			} else {
-				_, skip, err := pathIsExcluded(req.Root, item, pm)
+				_, skip, err := pathMatches(req.Root, item, pmExcludes)
 				if err != nil {
 					return err
 				}
 				if skip {
 					continue
+				}
+
+				if pmIncludes != nil {
+					_, included, err := pathMatches(req.Root, item, pmIncludes)
+					if err != nil {
+						return err
+					}
+					if !included {
+						continue
+					}
 				}
 
 				name := filepath.Base(queue[i].glob)
@@ -2361,19 +2530,7 @@ func copierHandlerPut(ctx context.Context, bulkReader io.Reader, req request, id
 			// of the root, to improve our compatibility with
 			// recent versions of go-archive
 			cleanerHdrName := cleanerReldirectory(filepath.FromSlash(hdr.Name))
-			if err := func(hdrName string) error {
-				var hdrNameByComponent []string
-				for hdrName != "." && hdrName != "/" {
-					hdrNameByComponent = append(hdrNameByComponent, hdrName)
-					hdrName = filepath.Dir(hdrName)
-				}
-				for _, partial := range slices.Backward(hdrNameByComponent) {
-					if _, err := osRoot.Lstat(partial); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(cleanerHdrName); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if err := checkArchivePathEscape(osRoot, req.Root, req.Directory, targetDirectory, cleanerHdrName); err != nil {
 				return err
 			}
 			// figure out who should own this new item

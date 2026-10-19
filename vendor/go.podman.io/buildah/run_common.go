@@ -317,8 +317,22 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	return homeDir, nil
 }
 
-func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions, defaultEnv []string) {
+func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions, defaultEnv []string) error {
 	g.ClearProcessEnv()
+
+	conf, err := config.Default()
+	if err != nil {
+		return fmt.Errorf("failed to get container config: %w", err)
+	}
+	for _, envSpec := range conf.Containers.Env.Get() {
+		env := strings.SplitN(envSpec, "=", 2)
+		// Only pass proxy environment variables configured in containers.conf into build RUN steps.
+		// Arbitrary environment variables from containers.conf are excluded to preserve build reproducibility
+		// and avoid subtle build-to-build differences across environments.
+		if len(env) > 1 && slices.Contains(config.ProxyEnv, env[0]) {
+			g.AddProcessEnv(env[0], env[1])
+		}
+	}
 
 	if b.CommonBuildOpts.HTTPProxy {
 		for _, envSpec := range config.ProxyEnv {
@@ -334,6 +348,7 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 			g.AddProcessEnv(env[0], env[1])
 		}
 	}
+	return nil
 }
 
 // getNetworkInterface creates the network interface
@@ -1992,38 +2007,33 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 	if err != nil {
 		return nil, nil, err
 	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			if err := fwdAgent.Shutdown(); err != nil {
+				b.Logger.Errorf("error shutting down agent: %v", err)
+			}
+		}
+	}()
 
 	if err := relabel(filepath.Dir(hostSock), b.MountLabel, false); err != nil {
-		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
-			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
-		}
 		return nil, nil, err
 	}
 	if err := relabel(hostSock, b.MountLabel, false); err != nil {
-		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
-			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
-		}
 		return nil, nil, err
 	}
 	hostUID, hostGID, err := util.GetHostIDs(idMaps.uidmap, idMaps.gidmap, uid, gid)
 	if err != nil {
-		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
-			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
-		}
 		return nil, nil, err
 	}
 	if err := os.Lchown(hostSock, int(hostUID), int(hostGID)); err != nil {
-		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
-			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
-		}
 		return nil, nil, err
 	}
 	if err := os.Chmod(hostSock, os.FileMode(mode)); err != nil {
-		if shutdownErr := fwdAgent.Shutdown(); shutdownErr != nil {
-			b.Logger.Errorf("error shutting down agent: %v", shutdownErr)
-		}
 		return nil, nil, err
 	}
+
+	succeeded = true
 	newMount := specs.Mount{
 		Destination: target,
 		Type:        define.TypeBind,

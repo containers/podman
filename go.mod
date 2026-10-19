@@ -3,7 +3,7 @@ module go.podman.io/podman/v6
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.26.3
+go 1.26.8
 
 require (
 	github.com/Microsoft/go-winio v0.6.4
@@ -64,7 +64,7 @@ require (
 	github.com/vbauerster/mpb/v8 v8.16.2
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.5.0
-	go.podman.io/buildah v1.45.1-0.20260922153544-b05874667205
+	go.podman.io/buildah v1.45.1-0.20261019132740-4264a838f214
 	go.podman.io/common v0.69.3-0.20261016121351-f85704f3e0c4
 	go.podman.io/image/v5 v5.41.3-0.20261016121351-f85704f3e0c4
 	go.podman.io/storage v1.64.3-0.20261016121351-f85704f3e0c4
@@ -82,7 +82,7 @@ require (
 )
 
 require (
-	cyphar.com/go-pathrs v0.2.5 // indirect
+	cyphar.com/go-pathrs v0.2.6 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20261006220739-8c912ac31dd4 // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
@@ -137,7 +137,7 @@ require (
 	github.com/mdlayher/socket v0.6.0 // indirect
 	github.com/miekg/pkcs11 v1.1.2 // indirect
 	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect
-	github.com/moby/buildkit v0.33.0 // indirect
+	github.com/moby/buildkit v0.34.0 // indirect
 	github.com/moby/go-archive v0.3.3 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/devices v0.1.0 // indirect
@@ -146,7 +146,7 @@ require (
 	github.com/moby/sys/userns v0.2.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
-	github.com/opencontainers/runc v1.5.1 // indirect
+	github.com/opencontainers/runc v1.5.2 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.11 // indirect

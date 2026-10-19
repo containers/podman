@@ -52,7 +52,7 @@ ifeq ($(BUILDDEBUG), 1)
 endif
 
 # Managed by renovate.
-export GOLANGCI_LINT_VERSION := 2.13.2
+export GOLANGCI_LINT_VERSION := 2.15.0
 
 #   make all BUILDDEBUG=1
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
@@ -197,8 +197,8 @@ test-conformance: tests/conformance/testdata/mount-targets/true internal/mkcw/em
 test-integration: binaries
 	cd tests; ./test_runner.sh
 
-tests/testreport/testreport: tests/testreport/testreport.go
-	$(GO_BUILD) $(GO_LDFLAGS) "-linkmode external -extldflags -static" -tags "$(STORAGETAGS) $(SECURITYTAGS)" -o tests/testreport/testreport ./tests/testreport/testreport.go
+tests/testreport/testreport: tests/testreport/testreport_linux.go
+	$(GO_BUILD) $(GO_LDFLAGS) "-linkmode external -extldflags -static" -tags "$(STORAGETAGS) $(SECURITYTAGS)" -o tests/testreport/testreport ./tests/testreport/testreport_linux.go
 
 tests/conformance/testdata/mount-targets/true: tests/conformance/testdata/mount-targets/true.go
 	$(GO_BUILD) $(GO_LDFLAGS) "-linkmode external -extldflags -static" -o tests/conformance/testdata/mount-targets/true tests/conformance/testdata/mount-targets/true.go

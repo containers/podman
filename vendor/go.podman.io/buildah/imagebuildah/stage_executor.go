@@ -1331,6 +1331,23 @@ func (s *stageExecutor) getContentSummaryAfterAddingContent() string {
 	return summary
 }
 
+// setLinkedLayerHistory rewrites the CreatedBy of any linked layers appended
+// by the current step to match getCreatedBy(), which is what cache lookups
+// compare against. Relative destinations will never match without it.
+func (s *stageExecutor) setLinkedLayerHistory(node *parser.Node, addedContentSummary string, isLastStep bool, prevLinked int) error {
+	if len(s.builder.AppendedLinkedLayers) <= prevLinked {
+		return nil
+	}
+	createdBy, err := s.getCreatedBy(node, addedContentSummary, isLastStep)
+	if err != nil {
+		return fmt.Errorf("getting createdBy for linked layer: %w", err)
+	}
+	for i := prevLinked; i < len(s.builder.AppendedLinkedLayers); i++ {
+		s.builder.AppendedLinkedLayers[i].History.CreatedBy = createdBy
+	}
+	return nil
+}
+
 // Execute runs each of the steps in the stage's parsed tree, in turn.
 func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string, commitResults *buildah.CommitResults, onlyBaseImg bool, err error) {
 	select {
@@ -1761,6 +1778,7 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 			// and copy the content.
 			canMatchCacheOnlyAfterRun = (step.Command == command.Add || step.Command == command.Copy)
 			if canMatchCacheOnlyAfterRun {
+				prevLinked := len(s.builder.AppendedLinkedLayers)
 				if err = ib.Run(step, s, noRunsRemaining); err != nil {
 					logrus.Debugf("Error building at step %+v: %v", *step, err)
 					return "", nil, false, fmt.Errorf("building at STEP \"%s\": %w", step.Message, err)
@@ -1768,6 +1786,9 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 				// Retrieve the digest info for the content that we just copied
 				// into the rootfs.
 				addedContentSummary = s.getContentSummaryAfterAddingContent()
+				if err := s.setLinkedLayerHistory(node, addedContentSummary, lastInstruction && lastStage, prevLinked); err != nil {
+					return "", nil, false, err
+				}
 				// regenerate cache key with updated content summary
 				if needsCacheKey {
 					cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
@@ -1812,6 +1833,7 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 		if cacheID == "" && !canMatchCacheOnlyAfterRun {
 			// Process the instruction directly.
 			s.didExecute = true
+			prevLinked := len(s.builder.AppendedLinkedLayers)
 			if err = ib.Run(step, s, noRunsRemaining); err != nil {
 				logrus.Debugf("Error building at step %+v: %v", *step, err)
 				return "", nil, false, fmt.Errorf("building at STEP \"%s\": %w", step.Message, err)
@@ -1819,6 +1841,9 @@ func (s *stageExecutor) execute(ctx context.Context, base string) (imgID string,
 
 			// In case we added content, retrieve its digest.
 			addedContentSummary = s.getContentSummaryAfterAddingContent()
+			if err := s.setLinkedLayerHistory(node, addedContentSummary, lastInstruction && lastStage, prevLinked); err != nil {
+				return "", nil, false, err
+			}
 			// regenerate cache key with updated content summary
 			if needsCacheKey {
 				cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
