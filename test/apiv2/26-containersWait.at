@@ -26,6 +26,7 @@ t GET libpod/containers/${CTR}/json 200 \
 cid=$(jq -r '.Id' <<<"$output")
 
 t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
+t POST "libpod/containers/${CTR}/wait?condition=non-existent-cond" 500
 
 t POST "containers/${CTR}/wait?condition=not-running" 200
 

@@ -145,6 +145,9 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 	}
 	name := GetName(r)
 	reports, err := containerEngine.ContainerWait(r.Context(), []string{name}, opts)
+	if err == nil && len(reports) == 1 {
+		err = reports[0].Error
+	}
 	if err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
 			// Special case: In the common scenario of podman-remote run --rm
@@ -164,6 +167,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		InternalServerError(w, err)
+		return
 	}
 	if len(reports) != 1 {
 		Error(w, http.StatusInternalServerError, fmt.Errorf("the ContainerWait() function returned unexpected count of reports: %d", len(reports)))
