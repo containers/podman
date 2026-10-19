@@ -15,4 +15,5 @@ RUN dnf install -y systemd-devel \
 	perl \
 	perl-Clone \
 	perl-FindBin \
+	perl-Test-Differences \
 	pre-commit && dnf clean all
