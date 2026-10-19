@@ -15,9 +15,11 @@ import (
 	"go.podman.io/podman/v6/cmd/podman/validate"
 	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/podman/v6/pkg/domain/entities"
+	"go.podman.io/podman/v6/pkg/machine"
 	machineDefine "go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/env"
-	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	provider2 "go.podman.io/podman/v6/pkg/machine/provider"
+	"go.podman.io/podman/v6/pkg/machine/shim"
 	"gopkg.in/yaml.v3"
 )
 
@@ -96,16 +98,15 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS
 
-	dirs, err := env.GetMachineDirs(machineProvider.VMType())
+	// Enumerate machines across all providers (like "podman machine ls") so the
+	// reported details reflect the machine actually in use rather than only the
+	// system default provider.
+	listResponse, err := shim.List(provider2.GetAll(), machine.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	mcs, err := vmconfigs.LoadMachinesInDir(dirs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get machines %w", err)
-	}
 
-	host.NumberOfMachines = len(mcs)
+	host.NumberOfMachines = len(listResponse)
 
 	defaultCon := ""
 	con, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
@@ -116,23 +117,23 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 
 	// Default state of machine is stopped
 	host.MachineState = "Stopped"
-	for _, vm := range mcs {
+	// vmType of the machine whose details (VMType, dirs) we report.
+	var reportVMType, defaultVMType string
+	for _, vm := range listResponse {
 		// Set default machine if found
 		if vm.Name == defaultCon {
 			host.DefaultMachine = vm.Name
+			defaultVMType = vm.VMType
 		}
 		// If machine is running or starting, it is automatically the current machine
-		state, err := machineProvider.State(vm, false)
-		if err != nil {
-			return nil, err
-		}
-
-		if state == machineDefine.Running {
+		if vm.Running {
 			host.CurrentMachine = vm.Name
 			host.MachineState = "Running"
+			reportVMType = vm.VMType
 		} else if vm.Starting {
 			host.CurrentMachine = vm.Name
 			host.MachineState = "Starting"
+			reportVMType = vm.VMType
 		}
 	}
 	// If no machines are starting or running, set current machine to default machine
@@ -142,11 +143,24 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 			host.MachineState = ""
 		} else {
 			host.CurrentMachine = host.DefaultMachine
+			reportVMType = defaultVMType
 		}
 	}
 
-	host.VMType = machineProvider.VMType().String()
+	// Fall back to the system default provider when no machine exists.
+	if reportVMType == "" {
+		reportVMType = machineProvider.VMType().String()
+	}
+	host.VMType = reportVMType
 
+	vmType, err := machineDefine.ParseVMType(reportVMType, machineProvider.VMType())
+	if err != nil {
+		return nil, err
+	}
+	dirs, err := env.GetMachineDirs(vmType)
+	if err != nil {
+		return nil, err
+	}
 	host.MachineImageDir = dirs.DataDir.GetPath()
 	host.MachineConfigDir = dirs.ConfigDir.GetPath()
 

@@ -37,6 +37,12 @@ var _ = Describe("podman machine info", func() {
 		Expect(infoSession).Should(Exit(0))
 		Expect(infoSession.outputToString()).To(Equal(strconv.Itoa(numMachines + 1)))
 
+		// machine info should report the created machine's provider as the VMType
+		infoSession, err = mb.setCmd(info.withFormat("{{.Host.VMType}}")).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(infoSession).Should(Exit(0))
+		Expect(infoSession.outputToString()).To(Equal(testProvider.VMType().String()))
+
 		// Check if json is in correct format
 		infoSession, err = mb.setCmd(info.withFormat("json")).run()
 		Expect(err).NotTo(HaveOccurred())
