@@ -21,4 +21,6 @@ proxy environment at container build time.)
 When used with the remote client it uses the proxy environment variables
 that are set on the server process.
 
-Defaults to **true**.
+The default for this option is taken from the `http_proxy` setting in the
+`[containers]` table of containers.conf(5). If unset, that value defaults to
+**true**.
