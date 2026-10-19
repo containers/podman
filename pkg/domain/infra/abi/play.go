@@ -588,7 +588,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				return nil, err
 			}
 			message := fmt.Sprintf("MAINPID=%d\n%s", data.State.ConmonPid, daemon.SdNotifyReady)
-			if err := notifyproxy.SendMessage("", message); err != nil {
+			if err := notifyproxy.SendMessageWithBarrier("", message); err != nil {
 				return nil, err
 			}
 		default:
