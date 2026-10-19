@@ -21,56 +21,79 @@ var opts struct {
 }
 
 func main() {
-	parser := flags.NewParser(&opts, flags.Default)
+	var doc docCommand
+	parser, err := register(&doc)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clone, err := register(&doc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	doc.parser = clone
+
+	if err = run(parser, os.Args[1:]); err != nil {
+		os.Exit(1)
+	}
+}
+
+func register(doc *docCommand) (*flags.Parser, error) {
+	parser := flags.NewNamedParser("swagger", flags.Default)
+	_, err := parser.AddGroup("Application Options", "", &opts)
+	if err != nil {
+		return nil, err
+	}
+
 	parser.ShortDescription = "helps you keep your API well described"
 	parser.LongDescription = `
 Swagger tries to support you as best as possible when building APIs.
 
 It aims to represent the contract of your API with a language agnostic description of your application in json or yaml.
 `
-	_, err := parser.AddCommand("validate", "validate the swagger document", "validate the provided swagger document against a swagger spec", &commands.ValidateSpec{})
+	_, err = parser.AddCommand("validate", "validate the swagger document", "validate the provided swagger document against a swagger spec", &commands.ValidateSpec{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = parser.AddCommand("init", "initialize a spec document", "initialize a swagger spec document", &commands.InitCmd{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	_, err = parser.AddCommand("version", "print the version", "print the version of the swagger command", &commands.PrintVersion{})
+	_, err = parser.AddCommand("version", "print the version of go-swagger", "print the version of the swagger command you're running", &commands.PrintVersion{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = parser.AddCommand("serve", "serve spec and docs", "serve a spec and swagger or redoc documentation ui", &commands.ServeCmd{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = parser.AddCommand("expand", "expand $ref fields in a swagger spec", "expands the $refs in a swagger document to inline schemas", &commands.ExpandSpec{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = parser.AddCommand("flatten", "flattens a swagger document", "expand the remote references in a spec and move inline schemas to definitions, after flattening there are no complex inlined anymore", &commands.FlattenSpec{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = parser.AddCommand("mixin", "merge swagger documents", "merge additional specs into first/primary spec by copying their paths and definitions", &commands.MixinSpec{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = parser.AddCommand("diff", "diff swagger documents", "diff specs showing which changes will break existing clients", &commands.DiffCommand{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	genpar, err := parser.AddCommand("generate", "generate go code", "generate go code for the swagger spec file", &commands.Generate{})
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 	for _, cmd := range genpar.Commands() {
 		switch cmd.Name {
@@ -101,6 +124,15 @@ It aims to represent the contract of your API with a language agnostic descripti
 		}
 	}
 
+	_, err = parser.AddCommand("doc", "generate CLI usage documentation as markdown", "", doc)
+	if err != nil {
+		return nil, err
+	}
+
+	return parser, nil
+}
+
+func run(parser *flags.Parser, args []string) error {
 	opts.Quiet = func() {
 		log.SetOutput(io.Discard)
 	}
@@ -113,7 +145,7 @@ It aims to represent the contract of your API with a language agnostic descripti
 		log.SetOutput(f)
 	}
 
-	if _, err := parser.Parse(); err != nil {
-		os.Exit(1)
-	}
+	_, err := parser.ParseArgs(args)
+
+	return err
 }

@@ -7,7 +7,7 @@ import "github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd"
 
 // InitCmd is a command namespace for initializing things like a swagger spec.
 type InitCmd struct {
-	Model *initcmd.Spec `command:"spec"`
+	Model *initcmd.Spec `command:"spec" description:"initialize a swagger spec"`
 }
 
 // Execute provides default empty implementation.
