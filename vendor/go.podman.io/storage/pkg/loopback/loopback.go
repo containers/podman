@@ -8,20 +8,21 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 func getLoopbackBackingFile(file *os.File) (uint64, uint64, error) {
-	loopInfo, err := ioctlLoopGetStatus64(file.Fd())
+	loopInfo, err := unix.IoctlLoopGetStatus64(int(file.Fd()))
 	if err != nil {
 		logrus.Errorf("Get loopback backing file: %v", err)
 		return 0, 0, ErrGetLoopbackBackingFile
 	}
-	return loopInfo.loDevice, loopInfo.loInode, nil
+	return loopInfo.Device, loopInfo.Inode, nil
 }
 
 // SetCapacity reloads the size for the loopback device.
 func SetCapacity(file *os.File) error {
-	if err := ioctlLoopSetCapacity(file.Fd(), 0); err != nil {
+	if err := unix.IoctlSetInt(int(file.Fd()), unix.LOOP_SET_CAPACITY, 0); err != nil {
 		logrus.Errorf("loopbackSetCapacity: %s", err)
 		return ErrSetCapacity
 	}
