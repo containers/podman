@@ -33,7 +33,7 @@ func getNextFreeLoopbackIndex() (int, error) {
 	}
 	defer f.Close()
 
-	index, err := ioctlLoopCtlGetFree(f.Fd())
+	index, err := unix.IoctlRetInt(int(f.Fd()), unix.LOOP_CTL_GET_FREE)
 	if index < 0 {
 		index = 0
 	}
@@ -94,7 +94,7 @@ func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (*os.File
 		}
 
 		// Try to attach to the loop file
-		if err := ioctlLoopSetFd(loopFile.Fd(), sparseFile.Fd()); err != nil {
+		if err := unix.IoctlSetInt(int(loopFile.Fd()), unix.LOOP_SET_FD, int(sparseFile.Fd())); err != nil {
 			loopFile.Close()
 
 			// If the error is EBUSY, then try the next loopback
@@ -153,17 +153,17 @@ func attachLoopDevice(sparseName string, readonly bool) (loop *os.File, err erro
 	}
 
 	// Set the status of the loopback device
-	loopInfo := &loopInfo64{
-		loFileName: stringToLoopName(loopFile.Name()),
-		loOffset:   0,
-		loFlags:    LoFlagsAutoClear,
+	loopInfo := &unix.LoopInfo64{
+		File_name: stringToLoopName(loopFile.Name()),
+		Offset:    0,
+		Flags:     unix.LO_FLAGS_AUTOCLEAR,
 	}
 
-	if err := ioctlLoopSetStatus64(loopFile.Fd(), loopInfo); err != nil {
+	if err := unix.IoctlLoopSetStatus64(int(loopFile.Fd()), loopInfo); err != nil {
 		logrus.Errorf("Cannot set up loopback device info: %s", err)
 
 		// If the call failed, then free the loopback device
-		if err := ioctlLoopClrFd(loopFile.Fd()); err != nil {
+		if err := unix.IoctlSetInt(int(loopFile.Fd()), unix.LOOP_CLR_FD, 0); err != nil {
 			logrus.Error("While cleaning up the loopback device")
 		}
 		loopFile.Close()

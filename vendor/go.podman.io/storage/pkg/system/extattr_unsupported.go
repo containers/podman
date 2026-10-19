@@ -9,16 +9,25 @@ const (
 )
 
 // ExtattrGetLink is not supported on platforms other than FreeBSD.
+//
+// Deprecated: This has no known users and the FreeBSD implementation is violating unsafe.Pointer rules.
+// Use system.L{get,set,list}xattr instead.
 func ExtattrGetLink(path string, attrnamespace int, attrname string) ([]byte, error) {
 	return nil, ErrNotSupportedPlatform
 }
 
 // ExtattrSetLink is not supported on platforms other than FreeBSD.
+//
+// Deprecated: This has no known users and the FreeBSD implementation is violating unsafe.Pointer rules.
+// Use system.L{get,set,list}xattr instead.
 func ExtattrSetLink(path string, attrnamespace int, attrname string, data []byte) error {
 	return ErrNotSupportedPlatform
 }
 
 // ExtattrListLink is not supported on platforms other than FreeBSD.
+//
+// Deprecated: This has no known users and the FreeBSD implementation is violating unsafe.Pointer rules.
+// Use system.L{get,set,list}xattr instead.
 func ExtattrListLink(path string, attrnamespace int) ([]string, error) {
 	return nil, ErrNotSupportedPlatform
 }

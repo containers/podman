@@ -1148,34 +1148,20 @@ func tarWithOptionsTo(dest io.Writer, srcPath string, options *TarOptions) (resu
 			}
 
 			if skip {
-				// If we want to skip this file and its a directory
-				// then we should first check to see if there's an
-				// excludes pattern (e.g. !dir/file) that starts with this
-				// dir. If so then we can't skip this dir.
+				// If we want to skip this file and it's a directory
+				// then we should first check to see if there's a
+				// negation pattern (e.g. !dir/file or !**/*.go) that
+				// might re-include files under this dir. If so then
+				// we can't skip this dir.
 
-				// Its not a dir then so we can just return/skip.
+				// It's not a dir then so we can just return/skip.
 				if !d.IsDir() {
 					return nil
 				}
 
-				// No exceptions (!...) in patterns so just skip dir
-				if !pm.Exclusions() {
-					return filepath.SkipDir
+				if pm.ShouldDescendExcludedDir(relFilePath) {
+					return nil
 				}
-
-				dirSlash := relFilePath + string(filepath.Separator)
-
-				for _, pat := range pm.Patterns() {
-					if !pat.Exclusion() {
-						continue
-					}
-					if strings.HasPrefix(pat.String()+string(filepath.Separator), dirSlash) {
-						// found a match - so can't skip this dir
-						return nil
-					}
-				}
-
-				// No matching exclusion dir so just skip dir
 				return filepath.SkipDir
 			}
 

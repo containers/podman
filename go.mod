@@ -67,7 +67,7 @@ require (
 	go.podman.io/buildah v1.45.1-0.20260922153544-b05874667205
 	go.podman.io/common v0.69.3-0.20261016121351-f85704f3e0c4
 	go.podman.io/image/v5 v5.41.3-0.20261016121351-f85704f3e0c4
-	go.podman.io/storage v1.64.2
+	go.podman.io/storage v1.64.3-0.20261016121351-f85704f3e0c4
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.61.0
 	golang.org/x/sync v0.24.0

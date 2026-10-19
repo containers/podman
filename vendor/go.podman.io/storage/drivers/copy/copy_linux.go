@@ -1,15 +1,4 @@
-//go:build cgo
-
 package copy
-
-/*
-#include <linux/fs.h>
-
-#ifndef FICLONE
-#define FICLONE		_IOW(0x94, 9, int)
-#endif
-*/
-import "C"
 
 import (
 	"container/list"
@@ -48,13 +37,13 @@ func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, c
 	defer srcFile.Close()
 
 	if *copyWithFileClone {
-		_, _, errno := unix.Syscall(unix.SYS_IOCTL, dstFile.Fd(), C.FICLONE, srcFile.Fd())
-		if errno == 0 {
+		err := unix.IoctlFileClone(int(dstFile.Fd()), int(srcFile.Fd()))
+		if err == nil {
 			return nil
 		}
 
 		*copyWithFileClone = false
-		if errno == unix.EXDEV {
+		if errors.Is(err, unix.EXDEV) {
 			*copyWithFileRange = false
 		}
 	}

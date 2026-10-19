@@ -439,8 +439,8 @@ go.podman.io/common v0.69.3-0.20261016121351-f85704f3e0c4 h1:dUlgAv0aTMkjwlq1jox
 go.podman.io/common v0.69.3-0.20261016121351-f85704f3e0c4/go.mod h1:BejHOUUyxfF8y3/bmbJUWE1+wCd9FFoVh7iv+Of0A8A=
 go.podman.io/image/v5 v5.41.3-0.20261016121351-f85704f3e0c4 h1:J//SF+muirPd9rAribD+VNXBqSG+13WBOa+JwzoA4WM=
 go.podman.io/image/v5 v5.41.3-0.20261016121351-f85704f3e0c4/go.mod h1:AERimPiowNNbIPxRj7ZmN4qgcsWvLBNRO6sv+/IXyKI=
-go.podman.io/storage v1.64.2 h1:sIBU2vsdGo2gghTF17oxw4G4gojEZkPmt0LKiZWIwqc=
-go.podman.io/storage v1.64.2/go.mod h1:ft0DzCRMZs1yn0rszmLYXEEwgd7IIc66JRwSRPUDwwc=
+go.podman.io/storage v1.64.3-0.20261016121351-f85704f3e0c4 h1:Mdq47RchvlhqHtVPv9H5MkKP9FqBNeaFsoJy53BGk8A=
+go.podman.io/storage v1.64.3-0.20261016121351-f85704f3e0c4/go.mod h1:tqRGVELs97t+zAVJy/8f5dOTUF2kHKyc0m6J7Ryy0Wo=
 go.yaml.in/yaml/v2 v2.4.4 h1:tuyd0P+2Ont/d6e2rl3be67goVK4R6deVxCUX5vyPaQ=
 go.yaml.in/yaml/v2 v2.4.4/go.mod h1:gMZqIpDtDqOfM0uNfy0SkpRhvUryYH0Z6wdMYcacYXQ=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
