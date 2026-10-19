@@ -146,6 +146,10 @@ func (c *Container) Update(updateOptions *entities.ContainerUpdateOptions) error
 		return err
 	}
 	if changedStartupHealthCheck {
+		// Same restriction as on container creation, see validate().
+		if !startupHealthCheckConfig.IsNil() && c.config.HealthCheckConfig == nil {
+			return fmt.Errorf("cannot set a startup healthcheck when there is no regular healthcheck: %w", define.ErrInvalidArg)
+		}
 		if err := c.updateHealthCheck(
 			startupHealthCheckConfig,
 			&StartupHealthCheckConfig{StartupHealthCheck: c.config.StartupHealthCheckConfig},
