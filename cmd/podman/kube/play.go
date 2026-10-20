@@ -449,16 +449,20 @@ func readerFromArg(fileOrURL string) (io.ReadCloser, error) {
 }
 
 func teardown(ctx context.Context, body io.Reader, options entities.PlayKubeDownOptions) error {
+	reports, err := registry.ContainerEngine().PlayKubeDown(ctx, body, options)
+	if err != nil {
+		return err
+	}
+	return printPlayKubeDown(reports)
+}
+
+func printPlayKubeDown(reports *entities.PlayKubeReport) error {
 	var (
 		podStopErrors utils.OutputErrors
 		podRmErrors   utils.OutputErrors
 		volRmErrors   utils.OutputErrors
 		secRmErrors   utils.OutputErrors
 	)
-	reports, err := registry.ContainerEngine().PlayKubeDown(ctx, body, options)
-	if err != nil {
-		return err
-	}
 
 	// Output stopped pods
 	fmt.Println("Pods stopped:")
@@ -503,7 +507,7 @@ func teardown(ctx context.Context, body io.Reader, options entities.PlayKubeDown
 		}
 	}
 	lastSecretRmError := secRmErrors.PrintErrors()
-	if lastPodRmError != nil {
+	if lastSecretRmError != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", lastSecretRmError)
 	}
 
