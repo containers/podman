@@ -1,4 +1,4 @@
-# cyphar.com/go-pathrs v0.2.5
+# cyphar.com/go-pathrs v0.2.6
 ## explicit; go 1.18
 cyphar.com/go-pathrs
 cyphar.com/go-pathrs/internal/fdutils
@@ -413,8 +413,8 @@ github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs/v4 v4.0.0
 ## explicit; go 1.14
 github.com/mistifyio/go-zfs/v4
-# github.com/moby/buildkit v0.33.0
-## explicit; go 1.26.3
+# github.com/moby/buildkit v0.34.0
+## explicit; go 1.26.8
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
 github.com/moby/buildkit/frontend/dockerfile/shell
@@ -550,7 +550,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.5.1
+# github.com/opencontainers/runc v1.5.2
 ## explicit; go 1.25.0
 github.com/opencontainers/runc/internal/linux
 github.com/opencontainers/runc/internal/pathrs
@@ -759,8 +759,8 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/buildah v1.45.1-0.20260922153544-b05874667205
-## explicit; go 1.26.3
+# go.podman.io/buildah v1.45.1-0.20261019132740-4264a838f214
+## explicit; go 1.26.8
 go.podman.io/buildah
 go.podman.io/buildah/bind
 go.podman.io/buildah/chroot

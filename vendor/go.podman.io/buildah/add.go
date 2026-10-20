@@ -131,6 +131,10 @@ type AddAndCopyOptions struct {
 	// Callback which controls which, if any, proxy server to use when retrieving HTTP or
 	// HTTPS sources.  Used to construct an http.Client's Transport.
 	Proxy func(*http.Request) (*url.URL, error)
+	// Includes is a list of patterns to include, the complement to Excludes.
+	// Only items matching one of these patterns are copied. Has the same
+	// pattern format as lines of a .containerignore file.
+	Includes []string
 }
 
 // getURL writes a tar archive containing the named content
@@ -603,18 +607,25 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 		var multiErr *multierror.Error
 		var getErr, closeErr, renameErr, putErr error
 		var wg sync.WaitGroup
-		if urlsource.IsRemote(src) || urlsource.IsGit(src) {
+		isGitSrc := urlsource.IsGit(src)
+		if urlsource.IsRemote(src) || isGitSrc {
 			pipeReader, pipeWriter := io.Pipe()
 			var srcDigest digest.Digest
 			if options.Checksum != "" {
-				srcDigest, err = digest.Parse(options.Checksum)
-				if err != nil {
-					return fmt.Errorf("invalid checksum flag: %w", err)
+				if urlsource.IsGit(src) {
+					if !urlsource.IsCommitSHAPrefix(options.Checksum) {
+						return fmt.Errorf("invalid checksum flag: %q is not a valid Git commit SHA", options.Checksum)
+					}
+				} else {
+					srcDigest, err = digest.Parse(options.Checksum)
+					if err != nil {
+						return fmt.Errorf("invalid checksum flag: %w", err)
+					}
 				}
 			}
 
 			wg.Add(1)
-			if urlsource.IsGit(src) {
+			if isGitSrc {
 				go func() {
 					defer wg.Done()
 					defer pipeWriter.Close()
@@ -624,10 +635,23 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 						return
 					}
 					defer os.RemoveAll(cloneDir)
+					repositoryDir := filepath.Join(cloneDir, subdir)
+					if options.Checksum != "" {
+						var commit string
+						commit, getErr = urlsource.ResolveCommit(repositoryDir)
+						if getErr != nil {
+							return
+						}
+						if !strings.HasPrefix(strings.ToLower(commit), strings.ToLower(options.Checksum)) {
+							getErr = fmt.Errorf("unexpected commit for %q: %s, want %s", src, commit, options.Checksum)
+							return
+						}
+					}
 					getOptions := copier.GetOptions{
 						UIDMap:             srcUIDMap,
 						GIDMap:             srcGIDMap,
 						Excludes:           options.Excludes,
+						Includes:           options.Includes,
 						ExpandArchives:     extract,
 						Chmod:              options.Chmod,
 						ChownDirs:          chownDirs,
@@ -640,7 +664,6 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 						Timestamp:          options.Timestamp,
 					}
 					writer := io.WriteCloser(pipeWriter)
-					repositoryDir := filepath.Join(cloneDir, subdir)
 
 					// Unless the caller asked to keep the ".git", remove it before copying.
 					if !options.KeepGitDir {
@@ -665,7 +688,11 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 			}
 
 			wg.Go(func() {
-				b.ContentDigester.Start("")
+				if isGitSrc {
+					b.ContentDigester.Start("dir")
+				} else {
+					b.ContentDigester.Start("")
+				}
 				hashCloser := b.ContentDigester.Hash()
 				hasher := io.Writer(hashCloser)
 				if options.Hasher != nil {
@@ -762,7 +789,8 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 			}
 			st := localSourceStat.Results[globbed]
 			if options.Link && st.ModTime.After(latestTimestamp) {
-				latestTimestamp = st.ModTime
+				// history timestamps are normalized to UTC in buildah, --link shouldn't be an exception
+				latestTimestamp = st.ModTime.UTC()
 			}
 			pipeReader, pipeWriter := io.Pipe()
 			wg.Go(func() {
@@ -802,6 +830,7 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 					UIDMap:             srcUIDMap,
 					GIDMap:             srcGIDMap,
 					Excludes:           options.Excludes,
+					Includes:           options.Includes,
 					ExpandArchives:     extract,
 					Chmod:              options.Chmod,
 					ChownDirs:          chownDirs,

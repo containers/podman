@@ -130,7 +130,7 @@ jobs:
     trigger: release
     packages: [buildah-fedora]
     update_release: false
-    dist_git_branches: &fedora_targets
+    dist_git_branches:
       - fedora-rawhide
       - fedora-45
 
@@ -142,6 +142,12 @@ jobs:
     dist_git_branches:
       - c10s
 
+  # ***NOTE***: On the Fedora dist-git side, packit only triggers koji_build job
+  # for targets in .packit.yaml on the `rawhide` branch.
+  # So, enablement for fedora release branches needs to be on the rawhide
+  # branch itself.
+  # So, for koji_build, the target should typically be: fedora-all.
+  #
   # Fedora Koji build
   - job: koji_build
     trigger: commit
@@ -152,4 +158,5 @@ jobs:
     # Ref: https://packit.dev/docs/fedora-releases-guide/releasing-multiple-packages
     dependents:
       - podman
-    dist_git_branches: *fedora_targets
+    dist_git_branches:
+      - fedora-all

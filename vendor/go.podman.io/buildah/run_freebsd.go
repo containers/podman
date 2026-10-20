@@ -49,7 +49,8 @@ const (
 func procctl(idtype int, id int, cmd int, arg *byte) error {
 	_, _, e1 := unix.Syscall6(
 		unix.SYS_PROCCTL, uintptr(idtype), uintptr(id),
-		uintptr(cmd), uintptr(unsafe.Pointer(arg)), 0, 0)
+		uintptr(cmd), uintptr(unsafe.Pointer(arg)), 0, 0,
+	)
 	if e1 != 0 {
 		return unix.Errno(e1)
 	}
@@ -130,8 +131,11 @@ func (b *Builder) RunContext(ctx context.Context, command []string, options RunO
 		return err
 	}
 
-	// hardwire the environment to match docker build to avoid subtle and hard-to-debug differences due to containers.conf
-	b.configureEnvironment(g, options, []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
+	// Pass a fixed environment to match docker build because passing the whole containers.conf instead would cause
+	// subtle and hard-to-debug differences. Proxy variables are the exception, as they are read from containers.conf in configureEnvironment.
+	if err := b.configureEnvironment(g, options, []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}); err != nil {
+		return err
+	}
 
 	if b.CommonBuildOpts == nil {
 		return fmt.Errorf("invalid format on container you must recreate the container")
@@ -542,7 +546,7 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 	return teardown, netStatusToNetResult(netStatus, hostnames), nil
 }
 
-func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, networkString string, configureUTS bool, err error) {
+func setupNamespaces(g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, networkString string, configureUTS bool, err error) {
 	// Set namespace options in the container configuration.
 	for _, namespaceOption := range namespaceOptions {
 		switch namespaceOption.Name {
@@ -593,7 +597,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 		}
 	}
 
-	configureNetwork, networkString, configureUTS, err := setupNamespaces(options.Logger, g, namespaceOptions, b.IDMappingOptions, networkPolicy)
+	configureNetwork, networkString, configureUTS, err := setupNamespaces(g, namespaceOptions, b.IDMappingOptions, networkPolicy)
 	if err != nil {
 		return false, "", err
 	}
