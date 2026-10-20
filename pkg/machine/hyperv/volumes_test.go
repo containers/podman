@@ -101,6 +101,7 @@ func TestStartShareMountArgs(t *testing.T) {
 			wantArgs: []string{
 				"sudo", "mkdir", "-p", strconv.Quote("/mnt/readonly"), "; ",
 				"sudo", "CONTAINERS_MACHINE_9P_READ_ONLY=1", "podman", "machine", "client9p", "50000", strconv.Quote("/mnt/readonly"),
+				"; ", "sudo", "mount", "-o", "remount,ro", strconv.Quote("/mnt/readonly"),
 			},
 			wantErr: false,
 		},
@@ -115,6 +116,7 @@ func TestStartShareMountArgs(t *testing.T) {
 			wantArgs: []string{
 				"sudo", "mkdir", "-p", strconv.Quote("/mnt/readonly"), "; ",
 				"sudo", "CONTAINERS_MACHINE_9P_READ_ONLY=1", "podman", "--log-level=debug", "machine", "client9p", "50000", strconv.Quote("/mnt/readonly"),
+				"; ", "sudo", "mount", "-o", "remount,ro", strconv.Quote("/mnt/readonly"),
 			},
 			wantErr: false,
 		},
@@ -131,6 +133,7 @@ func TestStartShareMountArgs(t *testing.T) {
 				"sudo", "mkdir", "-p", strconv.Quote("/var/shared"), "; ",
 				"sudo", "chattr", "+i", "/", "; ",
 				"sudo", "CONTAINERS_MACHINE_9P_READ_ONLY=1", "podman", "machine", "client9p", "50000", strconv.Quote("/var/shared"),
+				"; ", "sudo", "mount", "-o", "remount,ro", strconv.Quote("/var/shared"),
 			},
 			wantErr: false,
 		},

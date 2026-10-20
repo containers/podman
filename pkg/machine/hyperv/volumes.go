@@ -58,6 +58,9 @@ func startShareMountArgs(mount *vmconfigs.Mount, debug bool) ([]string, error) {
 		return nil, err
 	}
 	args = append(args, clientArgs...)
+	if mount.ReadOnly {
+		args = append(args, "; ", "sudo", "mount", "-o", "remount,ro", strconv.Quote(cleanTarget))
+	}
 	return args, nil
 }
 
