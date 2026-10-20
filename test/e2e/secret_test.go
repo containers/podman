@@ -416,6 +416,39 @@ var _ = Describe("Podman secret", func() {
 		Expect(ignoreRm.ErrorToString()).To(BeEmpty())
 	})
 
+	It("podman secret rm with ambiguous ID prefix", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0o755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// IDs are hex, so with 17 secrets at least two of them start
+		// with the same character.
+		prefixes := map[string]int{}
+		for i := range 17 {
+			session := podmanTest.Podman([]string{"secret", "create", fmt.Sprintf("s%d", i), secretFilePath})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			prefixes[session.OutputToString()[:1]]++
+		}
+		prefix := ""
+		for p, n := range prefixes {
+			if n > 1 {
+				prefix = p
+				break
+			}
+		}
+		Expect(prefix).ToNot(BeEmpty())
+
+		session := podmanTest.Podman([]string{"secret", "rm", prefix})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "secret is ambiguous"))
+
+		session = podmanTest.Podman([]string{"secret", "ls", "--noheading"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(17))
+	})
+
 	It("podman secret creates from environment variable", func() {
 		// no env variable set, should fail
 		session := podmanTest.Podman([]string{"secret", "create", "--env", "a", "MYENVVAR"})

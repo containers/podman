@@ -87,6 +87,8 @@ func (ic *ContainerEngine) SecretRm(_ context.Context, nameOrIDs []string, optio
 				}
 				continue
 			}
+			allRm = append(allRm, &entities.SecretRmReport{Err: err})
+			continue
 		}
 		allRm = append(allRm, &entities.SecretRmReport{
 			Err: secrets.Remove(ic.ClientCtx, name),
