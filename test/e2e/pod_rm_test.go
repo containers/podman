@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	_ "github.com/mattn/go-sqlite3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "go.podman.io/podman/v6/test/utils"
@@ -328,5 +330,30 @@ var _ = Describe("Podman pod rm", func() {
 		ps2.WaitWithDefaultTimeout()
 		Expect(ps2).Should(ExitCleanly())
 		Expect(ps2.OutputToString()).To(Not(ContainSubstring(podName)))
+	})
+
+	It("podman pod rm with a volume that is already gone", func() {
+		podmanTest.PodmanExitCleanly("pod", "create", "--infra=false", "--name", "volpod")
+		podmanTest.PodmanExitCleanly("create", "--pod", "volpod", "--name", "volctr", "-v", "/data", ALPINE, "top")
+
+		session := podmanTest.PodmanExitCleanly("inspect", "--format", "{{range .Mounts}}{{.Name}}{{end}}", "volctr")
+		volName := session.OutputToString()
+		Expect(volName).ToNot(BeEmpty())
+
+		// Drop the anonymous volume from the database behind podman's
+		// back, the same way a concurrent "podman volume rm" can after
+		// pod rm has removed the containers. The container never ran, so
+		// its storage is not mounted and removing it doesn't need the
+		// volume.
+		db, err := sql.Open("sqlite3", filepath.Join(podmanTest.Root, "db.sql"))
+		Expect(err).ToNot(HaveOccurred())
+		defer db.Close()
+		_, err = db.Exec("DELETE FROM VolumeConfig WHERE Name=?;", volName)
+		Expect(err).ToNot(HaveOccurred())
+		_, err = db.Exec("DELETE FROM VolumeState WHERE Name=?;", volName)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("pod", "rm", "-f", "-t0", "volpod")
+		Expect(podmanTest.NumberOfPods()).To(Equal(0))
 	})
 })
