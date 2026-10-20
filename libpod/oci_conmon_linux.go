@@ -119,8 +119,8 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 					}
 					// Preserve /sys/kernel/security for AppArmor detection during container restart.
 					// This is visible to conmon and the cleanup process in this temporary namespace.
-					// The container will get a fresh mount namespace via the OCI spec, so it won't
-					// inherit these mounts.
+					// The container will inherit conmon's namespace but /sys/kernel paths are hidden
+					// via MaskedPaths in the OCI spec.
 					if strings.HasPrefix(m.Mountpoint, "/sys/kernel/security") {
 						continue
 					}
@@ -134,8 +134,7 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 			// Do NOT restore the original mount namespace before launching conmon.
 			// The bind mounts for the container rootfs were created in this temporary namespace,
 			// and conmon needs to remain in this namespace to see them. The container will get
-			// a fresh mount namespace via the OCI spec (added in addSharedNamespaces), ensuring
-			// it doesn't inherit conmon's mounts including /sys/kernel/security.
+			// conmon's namespace but /sys/kernel paths are hidden via MaskedPaths.
 			runtime.UnlockOSThread()
 
 			return r.createOCIContainer(ctr, restoreOptions)

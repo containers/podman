@@ -436,16 +436,15 @@ func (c *Container) addSharedNamespaces(g *generate.Generator) error {
 	}
 
 	// If the container was created via createRootlessContainer() with hideFiles=true,
-	// we need to ensure the container gets a fresh mount namespace to maintain
-	// /sys/kernel isolation. The conmon process runs in a temporary namespace
-	// with /sys/kernel/security preserved for AppArmor detection, but the container
-	// must not inherit that namespace. Adding a mount namespace entry with an empty
-	// path tells the OCI runtime to create a new namespace.
+	// conmon runs in a temporary namespace where /sys/kernel/* was unmounted except
+	// /sys/kernel/security (preserved for AppArmor detection). The container will
+	// inherit conmon's namespace but we hide /sys/kernel paths via MaskedPaths to
+	// maintain isolation while preserving AppArmor detection for the cleanup process.
 	if !hasCurrentUserMapped(c) || c.config.RootfsMapping != nil {
 		if !c.config.Privileged && !rootless.IsRootless() {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.MountNamespace), ""); err != nil {
-				return err
-			}
+			g.AddLinuxMaskedPaths("/sys/kernel/security")
+			g.AddLinuxMaskedPaths("/sys/kernel/debug")
+			g.AddLinuxMaskedPaths("/sys/kernel/tracing")
 		}
 	}
 
