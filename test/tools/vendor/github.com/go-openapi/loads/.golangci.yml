@@ -6,10 +6,12 @@ linters:
     - funlen
     - gochecknoglobals # on this repo, it is hard to refactor without globals/inits and no breaking change
     - gochecknoinits
+    - goconst
     - godox
     - gomodguard
     - gomodguard_v2
     - exhaustruct
+    - exhaustruct_v5
     - nlreturn
     - nonamedreturns
     - noinlineerr
