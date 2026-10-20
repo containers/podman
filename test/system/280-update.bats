@@ -231,6 +231,35 @@ function nrand() {
 }
 
 # bats test_tags=ci:parallel
+@test "podman update - startup HealthCheck without regular HealthCheck" {
+    local ctrname="c-h-$(safename)"
+
+    run_podman run -d --name $ctrname $IMAGE top
+    cid="$output"
+
+    run_podman 125 update --health-startup-cmd "echo startup" $ctrname
+    assert "$output" =~ "cannot set a startup healthcheck when there is no regular healthcheck" \
+           "startup healthcheck requires a regular one"
+
+    run_podman inspect $ctrname --format {{.Config.StartupHealthCheck}}
+    assert "$output" == "<nil>" "startup HealthCheck is not set"
+
+    # Changing the startup interval after a restart used to crash podman
+    # when the update above was accepted.
+    run_podman restart -t0 $ctrname
+    run_podman 125 update --health-startup-interval 5s $ctrname
+    assert "$output" =~ "startup healthcheck command is not set" \
+           "startup interval cannot be set without a startup healthcheck"
+
+    # Setting both at once is fine
+    run_podman update --health-cmd "echo regular" --health-startup-cmd "echo startup" $ctrname
+    run_podman inspect $ctrname --format {{.Config.StartupHealthCheck.Test}}
+    assert "$output" == "[CMD-SHELL echo startup]" "startup HealthCheck is set"
+
+    run_podman rm -f -t0 $cid
+}
+
+# bats test_tags=ci:parallel
 @test "podman update - --no-healthcheck" {
     local msg="healthmsg-$(random_string)"
     local ctrname="c-h-$(safename)"
