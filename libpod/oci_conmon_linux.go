@@ -51,16 +51,6 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 			if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
 				return 0, err
 			}
-			defer func() {
-				err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
-				if err == nil {
-					// If we are able to reset the previous mount namespace, unlock the thread and reuse it
-					runtime.UnlockOSThread()
-				} else {
-					// otherwise, leave the thread locked and the Go runtime will terminate it
-					logrus.Errorf("Unable to reset the previous mount namespace: %q", err)
-				}
-			}()
 
 			getMounts := sync.OnceValues(pmount.GetMounts)
 
@@ -127,12 +117,27 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 					if !strings.HasPrefix(m.Mountpoint, "/sys/kernel") {
 						continue
 					}
+					// Preserve /sys/kernel/security for AppArmor detection during container restart.
+					// This is visible to conmon and the cleanup process in this temporary namespace.
+					// The container will get a fresh mount namespace via the OCI spec, so it won't
+					// inherit these mounts.
+					if strings.HasPrefix(m.Mountpoint, "/sys/kernel/security") {
+						continue
+					}
 					err = unix.Unmount(m.Mountpoint, 0)
 					if err != nil && !errors.Is(err, fs.ErrNotExist) {
 						return 0, fmt.Errorf("cannot unmount %s: %w", m.Mountpoint, err)
 					}
 				}
 			}
+
+			// Do NOT restore the original mount namespace before launching conmon.
+			// The bind mounts for the container rootfs were created in this temporary namespace,
+			// and conmon needs to remain in this namespace to see them. The container will get
+			// a fresh mount namespace via the OCI spec (added in addSharedNamespaces), ensuring
+			// it doesn't inherit conmon's mounts including /sys/kernel/security.
+			runtime.UnlockOSThread()
+
 			return r.createOCIContainer(ctr, restoreOptions)
 		}()
 		ch <- result{

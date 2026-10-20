@@ -435,6 +435,20 @@ func (c *Container) addSharedNamespaces(g *generate.Generator) error {
 		}
 	}
 
+	// If the container was created via createRootlessContainer() with hideFiles=true,
+	// we need to ensure the container gets a fresh mount namespace to maintain
+	// /sys/kernel isolation. The conmon process runs in a temporary namespace
+	// with /sys/kernel/security preserved for AppArmor detection, but the container
+	// must not inherit that namespace. Adding a mount namespace entry with an empty
+	// path tells the OCI runtime to create a new namespace.
+	if !hasCurrentUserMapped(c) || c.config.RootfsMapping != nil {
+		if !c.config.Privileged && !rootless.IsRootless() {
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.MountNamespace), ""); err != nil {
+				return err
+			}
+		}
+	}
+
 	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

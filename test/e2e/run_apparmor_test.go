@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -145,5 +146,41 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
 		Expect(inspect[0]).To(HaveField("AppArmorProfile", ""))
+	})
+
+	It("podman run with uidmap and restart policy should restart successfully", func() {
+		skipIfAppArmorDisabled()
+		SkipIfRootless("Test requires root")
+
+		// Create a container with UID/GID mappings and restart policy
+		session := podmanTest.Podman([]string{
+			"run", "-d", "--name", "test-uidmap-restart",
+			"--restart", "always",
+			"--uidmap", "0:200000:65536",
+			"--gidmap", "0:200000:65536",
+			ALPINE, "sleep", "4",
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Wait for the container to exit
+		session = podmanTest.Podman([]string{"wait", "test-uidmap-restart"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Verify the container restarted (restart count should be > 0)
+		Eventually(func() int {
+			inspect := podmanTest.InspectContainer("test-uidmap-restart")
+			return int(inspect[0].RestartCount)
+		}, 10*time.Second, 500*time.Millisecond).Should(BeNumerically(">", 0))
+
+		// Verify it's running after restart
+		inspect := podmanTest.InspectContainer("test-uidmap-restart")
+		Expect(inspect[0]).To(HaveField("State", "running"))
+
+		// Clean up
+		session = podmanTest.Podman([]string{"rm", "-f", "test-uidmap-restart"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 	})
 })
