@@ -120,8 +120,7 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 	}
 
 	// Give a decent error message if nothing above worked.
-	// we want the colon here for the multiline error
-	//nolint:revive,staticcheck
+	//nolint:staticcheck // We want the colon here for the multiline error.
 	loadError := errors.New("payload does not match any of the supported image formats:")
 	for _, err := range loadErrors {
 		loadError = fmt.Errorf("%v\n * %v", loadError, err)

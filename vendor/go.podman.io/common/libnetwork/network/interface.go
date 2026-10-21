@@ -23,10 +23,6 @@ const (
 // NetworkBackend returns the network backend name and interface.
 // It returns the netavark backend. If no backend is set in the config,
 // it defaults to netavark. Any other backend value is an error.
-//
-// revive does not like the name because the package is already called network
-//
-//nolint:revive
 func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (types.NetworkBackend, types.ContainerNetwork, error) {
 	backend := types.NetworkBackend(conf.Network.NetworkBackend)
 	if backend != "" && backend != types.Netavark {

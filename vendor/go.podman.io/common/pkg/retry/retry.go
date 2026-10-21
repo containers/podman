@@ -26,10 +26,10 @@ type Options struct {
 }
 
 // RetryOptions is deprecated, use Options.
-type RetryOptions = Options // nolint:revive
+type RetryOptions = Options
 
 // RetryIfNecessary deprecated function use IfNecessary.
-func RetryIfNecessary(ctx context.Context, operation func() error, options *Options) error { // nolint:revive
+func RetryIfNecessary(ctx context.Context, operation func() error, options *Options) error {
 	return IfNecessary(ctx, operation, options)
 }
 

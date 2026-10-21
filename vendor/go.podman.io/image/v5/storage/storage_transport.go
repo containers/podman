@@ -236,74 +236,80 @@ func (s *storageTransport) GetStore() (storage.Store, error) {
 // If _id_ is the ID of an image that's present in local storage, it can be truncated, and
 // even be specified as if it were a _name_, value.
 func (s *storageTransport) ParseReference(reference string) (types.ImageReference, error) {
-	var store storage.Store
 	// Check if there's a store location prefix.  If there is, then it
 	// needs to match a store that was previously initialized using
 	// storage.GetStore(), or be enough to let the storage library fill out
 	// the rest using knowledge that it has from elsewhere.
+	storeSpec := ""
 	if len(reference) > 0 && reference[0] == '[' {
 		closeIndex := strings.IndexRune(reference, ']')
 		if closeIndex < 1 {
 			return nil, ErrInvalidReference
 		}
-		storeSpec := reference[1:closeIndex]
+		storeSpec = reference[:closeIndex+1]
 		reference = reference[closeIndex+1:]
-		// Peel off a "driver@" from the start.
-		driverInfo := ""
-		driverPart1, driverPart2, gotDriver := strings.Cut(storeSpec, "@")
-		if !gotDriver {
-			storeSpec = driverPart1
-			if storeSpec == "" {
-				return nil, ErrInvalidReference
-			}
-		} else {
-			driverInfo = driverPart1
-			if driverInfo == "" {
-				return nil, ErrInvalidReference
-			}
-			storeSpec = driverPart2
-			if storeSpec == "" {
-				return nil, ErrInvalidReference
-			}
-		}
-		// Peel off a ":options" from the end.
-		var options []string
-		storeSpec, optionsPart, gotOptions := strings.Cut(storeSpec, ":")
-		if gotOptions {
-			options = strings.Split(optionsPart, ",")
-		}
-		// Peel off a "+runroot" from the new end.
-		storeSpec, runRootInfo, _ := strings.Cut(storeSpec, "+") // runRootInfo is "" if there is no "+"
-		// The rest is our graph root.
-		rootInfo := storeSpec
-		// Check that any paths are absolute paths.
-		if rootInfo != "" && !filepath.IsAbs(rootInfo) {
-			return nil, ErrPathNotAbsolute
-		}
-		if runRootInfo != "" && !filepath.IsAbs(runRootInfo) {
-			return nil, ErrPathNotAbsolute
-		}
-		store2, err := storage.GetStore(storage.StoreOptions{
-			GraphDriverName:    driverInfo,
-			GraphRoot:          rootInfo,
-			RunRoot:            runRootInfo,
-			GraphDriverOptions: options,
-			UIDMap:             s.defaultUIDMap,
-			GIDMap:             s.defaultGIDMap,
-		})
-		if err != nil {
-			return nil, err
-		}
-		store = store2
-	} else {
-		// We didn't have a store spec, so use the default.
-		store2, err := s.GetStore()
-		if err != nil {
-			return nil, err
-		}
-		store = store2
+	}
+	store, err := s.storeForSpec(storeSpec)
+	if err != nil {
+		return nil, err
 	}
 	return s.ParseStoreReference(store, reference)
+}
+
+// storeForSpec returns the store named by a "[driver@graphroot+runroot:options]"
+// specifier, as it appears at the start of a containers-storage reference.
+// An empty spec means the default store.
+func (s *storageTransport) storeForSpec(spec string) (storage.Store, error) {
+	if spec == "" {
+		return s.GetStore()
+	}
+	if spec[0] != '[' || spec[len(spec)-1] != ']' {
+		return nil, ErrInvalidReference
+	}
+	storeSpec := spec[1 : len(spec)-1]
+	// Peel off a "driver@" from the start.
+	driverInfo := ""
+	driverPart1, driverPart2, gotDriver := strings.Cut(storeSpec, "@")
+	if !gotDriver {
+		storeSpec = driverPart1
+		if storeSpec == "" {
+			return nil, ErrInvalidReference
+		}
+	} else {
+		driverInfo = driverPart1
+		if driverInfo == "" {
+			return nil, ErrInvalidReference
+		}
+		storeSpec = driverPart2
+		if storeSpec == "" {
+			return nil, ErrInvalidReference
+		}
+	}
+	// Peel off a ":options" from the end.
+	var options []string
+	storeSpec, optionsPart, gotOptions := strings.Cut(storeSpec, ":")
+	if gotOptions {
+		options = strings.Split(optionsPart, ",")
+	}
+	// Peel off a "+runroot" from the new end.
+	storeSpec, runRootInfo, _ := strings.Cut(storeSpec, "+") // runRootInfo is "" if there is no "+"
+	// The rest is our graph root.
+	rootInfo := storeSpec
+	// Check that any paths are absolute paths.
+	if rootInfo != "" && !filepath.IsAbs(rootInfo) {
+		return nil, ErrPathNotAbsolute
+	}
+	if runRootInfo != "" && !filepath.IsAbs(runRootInfo) {
+		return nil, ErrPathNotAbsolute
+	}
+	return storage.GetStore(storage.StoreOptions{
+		GraphDriverName:    driverInfo,
+		GraphRoot:          rootInfo,
+		RunRoot:            runRootInfo,
+		GraphDriverOptions: options,
+		UIDMap:             s.defaultUIDMap,
+		GIDMap:             s.defaultGIDMap,
+	})
 }
 
 // Deprecated: Surprisingly, with a StoreTransport reference which contains an ID,

@@ -157,6 +157,10 @@ const (
 	// Newer versions of the image format might increase this value, so reject
 	// any version that is not supported.
 	FooterSizeSupported = 64
+
+	// ManifestBigDataKey is the layer big data key under which the manifest
+	// (TOC) of a layer pulled partially is stored.
+	ManifestBigDataKey = "zstd-chunked-manifest"
 )
 
 var (

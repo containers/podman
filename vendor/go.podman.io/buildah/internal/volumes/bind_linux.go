@@ -1,7 +1,6 @@
 package volumes
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -17,15 +16,9 @@ import (
 // the path of the temporary file or directory.  The caller is responsible for
 // unmounting and removing the temporary.
 func bindFromChroot(root, path, tmp string) (string, error) {
-	fd, _, err := open.InChroot(root, "", path, unix.O_DIRECTORY|unix.O_RDONLY, 0)
+	fd, _, err := open.InChroot(root, "", path, unix.O_PATH, 0)
 	if err != nil {
-		if !errors.Is(err, unix.ENOTDIR) {
-			return "", fmt.Errorf("opening directory %q under %q: %w", path, root, err)
-		}
-		fd, _, err = open.InChroot(root, "", path, unix.O_RDWR, 0)
-		if err != nil {
-			return "", fmt.Errorf("opening non-directory %q under %q: %w", path, root, err)
-		}
+		return "", fmt.Errorf("opening %q under %q: %w", path, root, err)
 	}
 	defer func() {
 		if err := unix.Close(fd); err != nil {

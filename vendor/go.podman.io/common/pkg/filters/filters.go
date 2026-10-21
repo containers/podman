@@ -39,10 +39,6 @@ func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 //
 // Please refer to https://github.com/containers/podman/issues/6899 for some
 // background.
-//
-// revive does not like the name because the package is already called filters
-//
-//nolint:revive
 func FiltersFromRequest(r *http.Request) ([]string, error) {
 	var (
 		compatFilters map[string]map[string]bool
