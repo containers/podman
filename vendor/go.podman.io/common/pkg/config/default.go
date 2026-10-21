@@ -138,8 +138,7 @@ var (
 	defaultContainerEnv = []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
 )
 
-// nolint:unparam
-func parseSubnetPool(subnet string, size int) SubnetPool {
+func parseSubnetPool(subnet string, size int) SubnetPool { //nolint:unparam // Suppress "size always receives 24".
 	_, n, _ := net.ParseCIDR(subnet)
 	return SubnetPool{
 		Base: &nettypes.IPNet{IPNet: *n},

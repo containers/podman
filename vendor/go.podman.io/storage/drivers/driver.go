@@ -242,6 +242,9 @@ type LayerIDMapUpdater interface {
 }
 
 // Driver is the interface for layered/snapshot file system drivers.
+//
+// Drivers can also implement optional interfaces that are not part of the
+// public API; see go.podman.io/storage/internal/driver/types.go.
 type Driver interface {
 	ProtoDriver
 	DiffDriver

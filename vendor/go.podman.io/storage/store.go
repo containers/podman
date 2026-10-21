@@ -26,6 +26,7 @@ import (
 	drivers "go.podman.io/storage/drivers"
 	"go.podman.io/storage/internal/dedup"
 	"go.podman.io/storage/internal/driver"
+	"go.podman.io/storage/internal/splitfdstreamserver"
 	"go.podman.io/storage/internal/tempdir"
 	"go.podman.io/storage/pkg/archive"
 	"go.podman.io/storage/pkg/directory"
@@ -808,6 +809,14 @@ type store struct {
 	digestLockRoot  string
 	disableVolatile bool
 	transientStore  bool
+
+	// splitFDStreamLock protects splitFDStreamServer.  It is not graphLock:
+	// Shutdown stops the server while holding no lock, because what it
+	// waits for takes the store's locks.
+	splitFDStreamLock sync.Mutex
+	// splitFDStreamServer serves the sockets handed out by
+	// SplitFDStreamStore.Socket.  It is created on first use.
+	splitFDStreamServer *splitfdstreamserver.Server
 
 	// The following fields can only be accessed with graphLock held.
 	graphLockLastWrite lockfile.LastWrite
@@ -3833,6 +3842,15 @@ func (s *store) FromContainerRunDirectory(id, file string) ([]byte, error) {
 
 func (s *store) Shutdown(force bool) ([]string, error) {
 	mounted := []string{}
+
+	// Stop serving layers before taking any lock: a request being served
+	// takes the store's locks, and stopping waits for it to be done.
+	s.splitFDStreamLock.Lock()
+	if s.splitFDStreamServer != nil {
+		s.splitFDStreamServer.Stop()
+		s.splitFDStreamServer = nil
+	}
+	s.splitFDStreamLock.Unlock()
 
 	if err := s.startUsingGraphDriver(); err != nil {
 		return mounted, err

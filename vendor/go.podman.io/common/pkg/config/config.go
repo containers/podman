@@ -678,11 +678,7 @@ type SecretConfig struct {
 	Opts map[string]string `toml:"opts,omitempty"`
 }
 
-// ConfigMapConfig represents the "configmap" TOML config table
-//
-// revive does not like the name because the package is already called config
-//
-//nolint:revive
+// ConfigMapConfig represents the "configmap" TOML config table.
 type ConfigMapConfig struct {
 	// Driver specifies the configmap driver to use.
 	// Current valid value:

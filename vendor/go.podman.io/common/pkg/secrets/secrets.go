@@ -54,11 +54,7 @@ var errIgnoreIfExistsAndReplace = errors.New("ignoreIfExists and replace cannot 
 // secretsFile is the name of the file that the secrets database will be stored in.
 var secretsFile = "secrets.json"
 
-// SecretsManager holds information on handling secrets
-//
-// revive does not like the name because the package is already called secrets
-//
-//nolint:revive
+// SecretsManager holds information on handling secrets.
 type SecretsManager struct {
 	// secretsPath is the path to the db file where secrets are stored
 	secretsDBPath string
@@ -92,10 +88,6 @@ type Secret struct {
 // The driver stores the actual bytes of secret data, as opposed to
 // the secret metadata.
 // Currently only the unencrypted filedriver is implemented.
-//
-// revive does not like the name because the package is already called secrets
-//
-//nolint:revive
 type SecretsDriver interface {
 	// List lists all secret ids in the secrets data store
 	List() ([]string, error)
