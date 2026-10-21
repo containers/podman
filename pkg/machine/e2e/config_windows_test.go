@@ -9,7 +9,9 @@ import (
 
 	"github.com/containers/libhvee/pkg/hypervctl"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/define"
 )
 
@@ -58,6 +60,28 @@ func pgrep(n string) (string, error) {
 		return "", fmt.Errorf("no task found")
 	}
 	return strOut, nil
+}
+
+// apiProxyPID returns the PID of the host proxy serving the machine API:
+// win-sshproxy on WSL (from its tid file), gvproxy otherwise.
+func apiProxyPID(name, runtimeDir string) int {
+	if testProvider.VMType() != define.WSLVirt {
+		return gvproxyPID(runtimeDir)
+	}
+	stateDir, err := machine.GetWinProxyStateDir(name, define.WSLVirt)
+	Expect(err).ToNot(HaveOccurred())
+	contents, err := os.ReadFile(filepath.Join(stateDir, "win-sshproxy.tid"))
+	Expect(err).ToNot(HaveOccurred())
+	var pid, tid int
+	_, err = fmt.Sscanf(string(contents), "%d:%d", &pid, &tid)
+	Expect(err).ToNot(HaveOccurred())
+	return pid
+}
+
+// processExists reports whether pid is running.
+func processExists(pid int) bool {
+	active, _ := machine.GetProcessState(pid)
+	return active
 }
 
 func runWslCommand(cmdArgs []string) *machineSession {
