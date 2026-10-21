@@ -1254,36 +1254,41 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 			volumeTarFilePath := filepath.Join(metadata.CheckpointVolumesDirectory, v.Name+".tar")
 			volumeTarFileFullPath := filepath.Join(c.bundlePath(), volumeTarFilePath)
 
-			volumeTarFile, err := os.Create(volumeTarFileFullPath)
-			if err != nil {
-				return fmt.Errorf("creating %q: %w", volumeTarFileFullPath, err)
-			}
+			// Defer on this function, not exportCheckpoint, so each volume
+			// file is closed before includeFiles is archived.
+			if err := func() error {
+				volumeTarFile, err := os.Create(volumeTarFileFullPath)
+				if err != nil {
+					return fmt.Errorf("creating %q: %w", volumeTarFileFullPath, err)
+				}
+				defer volumeTarFile.Close()
 
-			volume, err := c.runtime.GetVolume(v.Name)
-			if err != nil {
+				volume, err := c.runtime.GetVolume(v.Name)
+				if err != nil {
+					return err
+				}
+
+				mp, err := volume.MountPoint()
+				if err != nil {
+					return err
+				}
+				if mp == "" {
+					return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
+				}
+				input, err := chrootarchive.Tar(mp, &archive.TarOptions{
+					Compression:      archive.Uncompressed,
+					IncludeSourceDir: true,
+				}, mp)
+				if err != nil {
+					return fmt.Errorf("reading volume directory %q: %w", v.Dest, err)
+				}
+				defer input.Close()
+
+				_, err = io.Copy(volumeTarFile, input)
+				return err
+			}(); err != nil {
 				return err
 			}
-
-			mp, err := volume.MountPoint()
-			if err != nil {
-				return err
-			}
-			if mp == "" {
-				return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
-			}
-			input, err := chrootarchive.Tar(mp, &archive.TarOptions{
-				Compression:      archive.Uncompressed,
-				IncludeSourceDir: true,
-			}, mp)
-			if err != nil {
-				return fmt.Errorf("reading volume directory %q: %w", v.Dest, err)
-			}
-
-			_, err = io.Copy(volumeTarFile, input)
-			if err != nil {
-				return err
-			}
-			volumeTarFile.Close()
 
 			includeFiles = append(includeFiles, volumeTarFilePath)
 		}
