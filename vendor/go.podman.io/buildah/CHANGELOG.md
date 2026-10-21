@@ -2,6 +2,172 @@
 
 # Changelog
 
+## v1.46.0 (2026-10-20)
+
+    Bump Buildah to v1.46.0
+    add add/copy --required-path
+    tests/copy.bats(ignore-socket): don't assume $TEST_SCRATCH_DIR is empty
+    mount-sshfs: go back to using Command() instead of CommandContext()
+    fix(sftp): satisfy errcheck on sftp/sshfs done channels
+    Update common, image, and storage deps to f85704f
+    add: copy --parents leaking host directories
+    Update dependency golangci/golangci-lint to v2.15.0
+    Update zizmorcore/zizmor-action action to v0.7.1
+    Update dependency podman-container-tools/automation to v20261015
+    Bind from chroot with O_PATH
+    vendor: update latest container-libs
+    Update zizmorcore/zizmor-action action to v0.7.0
+    tests: stabilize manifest-skip all-platforms test for Packit
+    tests: add bud test for parallel stage error with external copy
+    Update module golang.org/x/crypto to v0.58.0
+    Update module golang.org/x/term to v0.47.0
+    Update module golang.org/x/sync to v0.24.0
+    Update module golang.org/x/sys to v0.49.0
+    copier: reject relative symlink escapes, only resolve absolute ones
+    Update module github.com/moby/moby/client to v0.6.2
+    Added --include flag to buildah add and buildah copy
+    tests: fix broken "ignore-socket" test case
+    tests: fix expect_output argument parsing
+    tests: fix "Verify /run/.containerenv exist"
+    tests: workaround broken nmap-ncat version
+    Update dependency podman-container-tools/automation to v20261006
+    Update module github.com/moby/buildkit to v0.34.0
+    Remove an unused logrus.Logger parameter
+    Consolidate repeated error handling code
+    Add build conditions to unportable files
+    add: verify --checksum against resolved commit for Git sources
+    Update actions/upload-artifact action to v7.0.2
+    copier: put: resolve symlinks before os.Root path check
+    tests/source: show diff on failure
+    tests/sftp: don't pipe run_buildah to tee
+    tests/blobcache: fix blob cache removal
+    Update module github.com/moby/moby/client to v0.6.1
+    Update module github.com/mattn/go-shellwords to v1.0.16
+    imagebuildah: fix --link caching with rel dest
+    manifest push: do not write digestfile or exit 0 on push error
+    Update module github.com/moby/buildkit to v0.33.1
+    ci: update automation VM image to 2026-09-30
+    tests: replace registry.k8s.io/pause with quay.io/libpod/k8s-pause
+    tests: add missing registry.access.redhat.com to cache config
+    Add support for sharing=private cache mounts
+    Update module github.com/opencontainers/runc to v1.5.2
+    Update dependency golangci/golangci-lint to v2.14.0
+    honor containers.conf http_proxy and proxy env vars during build
+    MAINTAINERS.md: move lsm5 to alumni
+    "bud-copy--parents-links" test: use readlink instead of stat -c %N
+    Switch to using more APIs which take context.Context values
+    add: git sources use cache
+    modifing the error message when kernel rejects the subid/subgid are large
+    Update dependency ubuntu to v26
+    Unify the tmpdir.ForURL() and Add() http client configurations
+    Move define.TempDirForURL() to pkg/tmpdir.ForURL()
+    packit: koji job target taken from rawhide config
+    Update module google.golang.org/grpc to v1.84.0
+    Update dependency podman-container-tools/automation to v20260916
+    link org wide SUPPORT.md, CONTRIBUTING.md and SECURITY.md
+    Implement the Docker-compatible --keep-git-dir in ADD
+    Preserve dir mode and ownership in RUN --mount
+    Update module github.com/mattn/go-shellwords to v1.0.15
+    Update docs/buildah-build.1.md
+    Add FIXMEs for the read path
+    Split insecureResolvePath from resolvePath
+    Fix root escapes in copier.Put
+    integration tests: set $CONTAINERS_POLICY_JSON
+    docs: fix grammar, articles, and SEE ALSO reference in man pages
+    Fix escaping symlinks in Ensure
+    Fix symlink escapes in ConditionalRemove
+    Remove unnecessary filepath.FromSlash
+    Use a separate hdrErr variable for the loop condition
+    Improve test coverage
+    Decrease size of the test archives
+    conformance: use t.Context() instead of context.TODO()
+    Revert "conformance tests: tweak how we read docker-daemon: locations"
+    vendor: go.podman.io/common with slirp removed
+    Update zizmorcore/zizmor-action action to v0.6.4
+    Update module golang.org/x/term to v0.46.0
+    Update module golang.org/x/crypto to v0.57.0
+    Added --log-level silences Containerfile Steps
+    Update module github.com/moby/sys/userns to v0.2.1
+    Add context-aware versions of several functions and some methods
+    mkcw: use xfsprogs -p to populate XFS filesystems
+    copier tests: fixup require/assert calls and format-specified errors
+    Update module golang.org/x/sys to v0.48.0
+    Update module golang.org/x/sync to v0.23.0
+    Set up log/slog and direct logrus output to it
+    tests: cover id-mapped capability xattrs
+    run: add a --umask CLI flag
+    copier.copierHandlerPut(): check each component in paths for escape
+    Bump container-libs to main
+    Update module tags.cncf.io/container-device-interface to v1.1.1
+    Update module github.com/moby/moby/client to v0.6.0
+    Update module github.com/moby/buildkit to v0.33.0
+    conformance tests: tweak how we read docker-daemon: locations
+    copier.copierHandlerPut(): run each path to extract through os.Root.Lstat()
+    Update dependency podman-container-tools/automation to v20260902
+    Fix new linter warnings
+    Update module golang.org/x/crypto to v0.56.0
+    parsevolume: use validated volume options
+    parsevolume: fix leading escaped colon
+    test(bud): pin fixture modes so symbolic --chmod tests ignore the runner umask
+    docs: fix typos and phrasing in man pages
+    Update zizmorcore/zizmor-action action to v0.6.3
+    test(bud): cover the conditional capital X in symbolic --chmod
+    test(bud): cover symbolic COPY/ADD --chmod
+    Update module github.com/seccomp/libseccomp-golang to v0.12.0
+    Update dependency golangci/golangci-lint to v2.13.2
+    Update module github.com/openshift/imagebuilder to v1.2.22
+    Update module google.golang.org/grpc to v1.83.2
+    Update module github.com/sirupsen/logrus to v1.10.2
+    pkg/parse.pullPolicyWithFlags(): use define.PolicyMap directly
+    add Honny1 as Maintainer
+    Update dependency golangci/golangci-lint to v2.13.1
+    linter(staticcheck): don't set deprecated fields when setting up overlay
+    linter(modernize): switch a strings.Split() call to use strings.Cut()
+    linter(gofumpt): update formatting to pass gofumpt
+    Update dependency golangci/golangci-lint to v2.13.0
+    Update module github.com/containerd/platforms to v1.0.0-rc.5
+    Update module google.golang.org/grpc to v1.83.1
+    Update module github.com/stretchr/testify to v1.12.1
+    Update module github.com/sirupsen/logrus to v1.10.1
+    Update module github.com/moby/go-archive to v0.3.3
+    add zizmor workflow
+    fix zizmor warnings
+    Update module github.com/moby/go-archive to v0.3.0 [SECURITY]
+    Update module github.com/opencontainers/cgroups to v0.1.0
+    chrootuser: report passwd and group read errors
+    chrootuser: skip unparseable passwd and group lines
+    Update module github.com/stretchr/testify to v1.12.0
+    Bump main to container-libs main
+    bud.bats(build push with --force-compression): don't depend on skopeo
+    imgtype: add TLS, authentication, and blob info cache dir CLI flags
+    copy: add TLS, authentication, and blob info cache dir CLI flags
+    CLI: add a hidden --blob-info-cache-dir flag
+    validate: run the helpers self-test
+    Update module github.com/opencontainers/cgroups to v0.0.9
+    bud.bats: update some tests that read data using HTTP to use localhost
+    setupSeccomp: avoid a cast that we don't need to do
+    info: add CDI information
+    run: use a private CDI cache
+    Update module golang.org/x/crypto to v0.55.0
+    update Maintainers and Governance to link to community repo
+    Update module github.com/moby/sys/userns to v0.2.0
+    docs(login): fold --tls-verify note into main paragraph
+    Update module google.golang.org/protobuf to v1.36.12
+    docs(login): note --tls-verify needs = for false
+    CI: enable several linters
+    chroot.bats(chroot run denies group access to a member when...): mount rw
+    Fix a few format-specifier warnings
+    Run tests in parallel on testing-farm
+    chore(deps): update dorny/paths-filter action to v4.0.3
+    link org wide LLM_POLICY
+    packit: add fedora-45 to dist_git_branches
+    packit: skip missing branched composes for Fedora tests
+    Bump version to 1.46.0-dev
+    fix(deps): update module google.golang.org/grpc to v1.83.0
+    mount: fix panic when parsing malformed --mount option
+    Makefile: add install.nobuild target to install ONLY.
+    docs: fix typo, --policy expects ifnewer instead of newer
+
 ## v1.45.0 (2026-07-30)
 
     Bump to c/storage 1.64.0, c/image 5.41.0, c/common v0.69.0

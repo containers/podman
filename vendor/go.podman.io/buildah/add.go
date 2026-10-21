@@ -135,6 +135,9 @@ type AddAndCopyOptions struct {
 	// Only items matching one of these patterns are copied. Has the same
 	// pattern format as lines of a .containerignore file.
 	Includes []string
+	// RequiredPaths is a list of required paths that must be copied. It must be used with
+	// the Includes flag.
+	RequiredPaths []string
 }
 
 // getURL writes a tar archive containing the named content
@@ -652,6 +655,7 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 						GIDMap:             srcGIDMap,
 						Excludes:           options.Excludes,
 						Includes:           options.Includes,
+						RequiredPaths:      options.RequiredPaths,
 						ExpandArchives:     extract,
 						Chmod:              options.Chmod,
 						ChownDirs:          chownDirs,
@@ -807,7 +811,7 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 				if options.Parents {
 					parentsPrefixToRemove, parentsToSkip := getParentsPrefixToRemoveAndParentsToSkip(src, options.ContextDir)
 					writer = newTarFilterer(writer, func(hdr *tar.Header) (tarFilterAction, bool, io.Reader) {
-						if slices.Contains(parentsToSkip, hdr.Name) && hdr.Typeflag == tar.TypeDir {
+						if hdr.Typeflag == tar.TypeDir && slices.Contains(parentsToSkip, strings.TrimSuffix(hdr.Name, "/")) {
 							return tarFilterSkip, false, nil
 						}
 						hdr.Name = strings.TrimPrefix(hdr.Name, parentsPrefixToRemove)
@@ -831,6 +835,7 @@ func (b *Builder) AddContext(ctx context.Context, destination string, extract bo
 					GIDMap:             srcGIDMap,
 					Excludes:           options.Excludes,
 					Includes:           options.Includes,
+					RequiredPaths:      options.RequiredPaths,
 					ExpandArchives:     extract,
 					Chmod:              options.Chmod,
 					ChownDirs:          chownDirs,

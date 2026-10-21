@@ -34,7 +34,7 @@ type ImageConfig struct {
 // * LABEL
 // * STOPSIGNAL
 // * ONBUILD.
-func ImageConfigFromChanges(changes []string) (*ImageConfig, error) { // nolint:gocyclo
+func ImageConfigFromChanges(changes []string) (*ImageConfig, error) {
 	config := &ImageConfig{}
 
 	for _, change := range changes {

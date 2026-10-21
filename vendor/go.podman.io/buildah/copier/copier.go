@@ -439,6 +439,7 @@ type GetOptions struct {
 	DisallowWildcard   bool              // reject glob patterns in source paths
 	AllowEmptyWildcard bool              // don't error when glob patterns match nothing
 	Includes           []string          // include only contents matching at least one of these patterns; Excludes take precedence
+	RequiredPaths      []string          // require these paths be present among the included items; only valid when Includes is also set
 }
 
 // Get calls GetContext with context.TODO().
@@ -1701,6 +1702,9 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 	if len(req.Globs) == 0 {
 		return errorResponse("copier: get: expected at least one glob pattern, got 0")
 	}
+	if len(req.GetOptions.RequiredPaths) > 0 && len(req.GetOptions.Includes) == 0 {
+		return errorResponse("copier: get: required paths specified without any include patterns")
+	}
 	select {
 	case <-ctx.Done():
 		return errorResponse("%v", ctx.Err())
@@ -1774,6 +1778,7 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 		tw := tar.NewWriter(bulkWriter)
 		hardlinkChecker := new(hardlinkChecker)
 		itemsCopied := 0
+		includedPaths := make([]string, 0, len(req.GetOptions.RequiredPaths))
 		addedParents := map[string]struct{}{}
 		for i, qItem := range queue {
 			select {
@@ -1969,6 +1974,7 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 						}
 						return err
 					}
+					includedPaths = append(includedPaths, rel)
 					return ok
 				}
 				// walk the directory tree, checking/adding items individually
@@ -2018,11 +2024,21 @@ func copierHandlerGet(ctx context.Context, bulkWriter io.Writer, req request, pm
 					}
 					return fmt.Errorf("copier: get: %q: %w", queue[i].glob, err)
 				}
+				includedPaths = append(includedPaths, name)
 				itemsCopied++
 			}
 		}
 		if itemsCopied == 0 && !req.GetOptions.AllowEmptyWildcard {
 			return fmt.Errorf("copier: get: copied no items: %w", syscall.ENOENT)
+		}
+		for _, requiredPath := range req.GetOptions.RequiredPaths {
+			required := filepath.Clean(requiredPath)
+			found := slices.ContainsFunc(includedPaths, func(includedPath string) bool {
+				return includedPath == required || strings.HasPrefix(includedPath, required+string(os.PathSeparator))
+			})
+			if !found {
+				return fmt.Errorf("copier: get: required path %q was not copied: %w", requiredPath, syscall.ENOENT)
+			}
 		}
 		select {
 		case <-ctx.Done():
