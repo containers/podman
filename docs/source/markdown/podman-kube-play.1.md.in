@@ -86,22 +86,22 @@ metadata:
 spec:
   containers:
   - name: container
-    image: foobar
+    image: my.registry/group/foo:bar
 ...
 ```
 
-If there is a directory named `foobar` in the current working directory with a file named `Containerfile` or `Dockerfile`,
-Podman kube play builds that image and name it `foobar`.  An example directory structure for this example looks
+If there is a directory named `foo` in the current working directory with a file named `Containerfile` or `Dockerfile`,
+Podman kube play builds that image and name it `foo`.  An example directory structure for this example looks
 like:
 ```
 |- mykubefiles
     |- myplayfile.yaml
-    |- foobar
+    |- foo
          |- Containerfile
 ```
 
-The build considers `foobar` to be the context directory for the build. If there is an image in local storage
-called `foobar`, the image is not built unless the `--build` flag is used. Use `--build=false` to completely
+The build considers `foo` to be the context directory for the build. If there is an image in local storage
+called `foo`, the image is not built unless the `--build` flag is used. Use `--build=false` to completely
 disable builds.
 
 Kube play supports CDI (Container Device Interface) device selectors to share
