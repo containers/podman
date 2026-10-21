@@ -17,6 +17,11 @@ the current active system connection associated with a podman machine. Regardles
 of the default system connection, the default podman machine will always be
 `podman-machine-default`.
 
+The `VMType`, `MachineConfigDir`, and `MachineImageDir` fields in the `Host` output
+reflect the provider of the current machine: the running or starting machine if there
+is one, otherwise the default machine. When no machine exists, they reflect the system
+default machine provider. `NumberOfMachines` counts machines across all providers.
+
 ## OPTIONS
 
 #### **--format**, **-f**=*format*
