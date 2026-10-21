@@ -338,6 +338,9 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result).Should(ExitWithError(125, "failed: exit status 1"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+		inspect := podmanTest.PodmanExitCleanly("inspect", cid)
+		inspectOut := inspect.InspectContainerToJSON()
+		Expect(inspectOut[0].State.CheckpointLog).To(Equal(filepath.Join(inspectOut[0].StaticDir, "dump.log")))
 
 		// Now it should work thanks to "--tcp-established"
 		podmanTest.PodmanExitCleanly("container", "checkpoint", cid, "--tcp-established")
