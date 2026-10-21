@@ -50,6 +50,12 @@ To use as a replacement for gzip, exchange
 with 
 ```import gzip "github.com/klauspost/pgzip"```.
 
+To use as a replacement for zlib, exchange 
+
+```import "compress/zlib"``` 
+with 
+```import zlib "github.com/klauspost/pgzip/zlib"```.
+
 # Changes
 
 * Oct 6, 2016: Fixed an issue if the destination writer returned an error.

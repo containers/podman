@@ -433,8 +433,14 @@ func (z *Reader) doReadAhead() {
 				wg.Wait()
 			}
 			if err == io.EOF {
-				// Finished file; check checksum + size.
-				if _, err = io.ReadFull(z.r, z.buf[0:8]); err == nil {
+				// Finished file; check checksum + size. A member cut where its
+				// trailer should begin is not complete: ReadFull's io.EOF here
+				// is a truncation, not the end of the stream.
+				_, err = io.ReadFull(z.r, z.buf[0:8])
+				if err == io.EOF {
+					err = io.ErrUnexpectedEOF
+				}
+				if err == nil {
 					crc32, isize := get4(z.buf[0:4]), get4(z.buf[4:8])
 					sum := z.digest.Sum32()
 					if sum != crc32 || isize != z.size {
@@ -514,6 +520,7 @@ func (z *Reader) Read(p []byte) (n int, err error) {
 				z.blockPool <- z.current
 				z.current = nil
 			}
+			z.roff = 0
 			if z.lastBlock {
 				err = io.EOF
 				break
