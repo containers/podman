@@ -375,7 +375,7 @@ github.com/klauspost/compress/internal/regmask
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/pgzip v1.2.7
+# github.com/klauspost/pgzip v1.3.0
 ## explicit; go 1.25
 github.com/klauspost/pgzip
 # github.com/kr/fs v0.1.0
