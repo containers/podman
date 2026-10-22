@@ -348,8 +348,7 @@ validate-binaries: man-page-check validate.completions
 validate: validate-source validate-binaries ## Run all validation checks (lint, shfmt, man-pages, completions)
 
 # The image used below is generated manually from contrib/validatepr/Containerfile in this podman repo.  The builds are
-# not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
-# image in the future.
+# not automated right now.
 .PHONY: validatepr
 # When run from a git worktree, $(CURDIR)/.git is a file pointing to the parent
 # git dir outside the bind mount; also mount that dir at its own path so git
