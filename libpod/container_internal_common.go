@@ -412,6 +412,10 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	// If they have idmap, then calculate the mappings to use in the OCI config file.
 	for i := range g.Config.Mounts {
 		m := &g.Config.Mounts[i]
+		// Trigger autofs before labeling/chown/bind-mount so dormant shares are mounted.
+		if m.Type == define.TypeBind {
+			triggerAutofsMount(m.Source)
+		}
 		var options []string
 		for _, o := range m.Options {
 			if subpath, ok := strings.CutPrefix(o, "subpath="); ok {
