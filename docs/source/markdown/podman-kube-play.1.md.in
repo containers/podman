@@ -91,7 +91,8 @@ spec:
 ```
 
 If there is a directory named `foo` in the current working directory with a file named `Containerfile` or `Dockerfile`,
-Podman kube play builds that image and name it `foo`.  An example directory structure for this example looks
+Podman kube play builds the image and tags it with the container `image` value from the YAML (for example, `my.registry/group/foo:bar`).
+
 like:
 ```
 |- mykubefiles
@@ -100,8 +101,7 @@ like:
          |- Containerfile
 ```
 
-The build considers `foo` to be the context directory for the build. If there is an image in local storage
-called `foo`, the image is not built unless the `--build` flag is used. Use `--build=false` to completely
+The build considers `foo` to be the context directory for the build. If an image with that same name already exists in local storage (matching the YAML `image` value), Podman does not rebuild unless `--build` is set.
 disable builds.
 
 Kube play supports CDI (Container Device Interface) device selectors to share
