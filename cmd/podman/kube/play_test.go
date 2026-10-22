@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -189,6 +190,17 @@ func captureStd(t *testing.T, fn func()) (string, string) {
 		t.Fatal(err)
 	}
 	return string(stdout), string(stderr)
+}
+
+func TestSecretRmReportJSONStringError(t *testing.T) {
+	in := []byte(`{"ID":"abc","Err":"deleting secret newsecret: is a directory"}`)
+	var report entities.SecretRmReport
+	if err := json.Unmarshal(in, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "abc" || report.Err == nil || !strings.Contains(report.Err.Error(), "deleting secret newsecret") {
+		t.Fatalf("report = %+v err=%v", report, report.Err)
+	}
 }
 
 func TestPrintPlayKubeDownSecretError(t *testing.T) {
