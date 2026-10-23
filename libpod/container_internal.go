@@ -1311,7 +1311,7 @@ func (c *Container) start() error {
 			payload += "\n"
 			payload += daemon.SdNotifyReady
 		}
-		if err := notifyproxy.SendMessage(c.config.SdNotifySocket, payload); err != nil {
+		if err := notifyproxy.SendMessageWithBarrier(c.config.SdNotifySocket, payload); err != nil {
 			logrus.Errorf("Notifying systemd of Conmon PID: %s", err.Error())
 		} else {
 			logrus.Debugf("Notify sent successfully")
@@ -1407,7 +1407,7 @@ func (c *Container) waitForHealthy(ctx context.Context) error {
 		return err
 	}
 
-	if err := notifyproxy.SendMessage(c.config.SdNotifySocket, daemon.SdNotifyReady); err != nil {
+	if err := notifyproxy.SendMessageWithBarrier(c.config.SdNotifySocket, daemon.SdNotifyReady); err != nil {
 		logrus.Errorf("Sending READY message after turning healthy: %s", err.Error())
 	} else {
 		logrus.Debugf("Notify sent successfully")

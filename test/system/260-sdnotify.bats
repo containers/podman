@@ -38,8 +38,10 @@ function teardown() {
 ###############################################################################
 # BEGIN helpers
 
-# Run socat process on a socket, logging to well-known path. Each received
+# Run a receiver on a socket, logging to well-known path. Each received
 # packet is logged with a newline appended, for ease of parsing the log file.
+# Barriers are not logged. This is not socat: socat keeps the fd that comes
+# with a barrier open, and podman would wait for the barrier's timeout.
 function _start_socat() {
     _SOCAT_LOG="$PODMAN_TMPDIR/socat.log"
 
@@ -49,8 +51,7 @@ function _start_socat() {
     # Execute in subshell so we can close fd3 (which BATS uses).
     # This is a superstitious ritual to try to avoid leaving processes behind,
     # and thus prevent CI hangs.
-    (exec socat unix-recvfrom:"$NOTIFY_SOCKET",fork \
-          system:"(cat;echo) >> $_SOCAT_LOG" 3>&-) &
+    (exec $PODMAN_TESTING sd-notify-listen "$NOTIFY_SOCKET" >> $_SOCAT_LOG 3>&-) &
     _SOCAT_PID=$!
 
     # Wait for socat to create the socket file. This _should_ be
@@ -67,12 +68,10 @@ function _start_socat() {
 # Stop the socat background process and clean up logs
 function _stop_socat() {
     if [[ -n "$_SOCAT_PID" ]]; then
-        # Kill all child processes, then the process itself.
-        # This is a superstitious incantation to avoid leaving processes behind.
-        # The '|| true' is because only f35 leaves behind socat processes;
-        # f33 (and perhaps others?) behave nicely. ARGH!
-        pkill -P $_SOCAT_PID || true
+        # Rootless, the receiver runs as a child of the process in
+        # _SOCAT_PID, which passes the signal on and exits with it.
         kill $_SOCAT_PID
+        wait $_SOCAT_PID
     fi
     _SOCAT_PID=
 

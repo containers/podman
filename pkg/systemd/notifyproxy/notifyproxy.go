@@ -28,10 +28,27 @@ const (
 	_notifyRdyMsg     = daemon.SdNotifyReady
 )
 
+// _notifyBarrierTimeout limits how long SendMessageWithBarrier waits for
+// the receiver to process a message.
+const _notifyBarrierTimeout = 5 * time.Second
+
 // SendMessage sends the specified message to the specified socket.
 // No message is sent if no socketPath is provided and the NOTIFY_SOCKET
 // variable is not set either.
 func SendMessage(socketPath string, message string) error {
+	return send(socketPath, message, false)
+}
+
+// SendMessageWithBarrier is like SendMessage but waits until the receiver
+// has processed the message. systemd attributes a message to a unit by its
+// sender, and ignores a message whose sender has exited before it was read
+// (see sd_notify_barrier(3)), so a caller that may exit right after
+// notifying must use it.
+func SendMessageWithBarrier(socketPath string, message string) error {
+	return send(socketPath, message, true)
+}
+
+func send(socketPath string, message string, barrier bool) error {
 	if socketPath == "" {
 		socketPath, _ = os.LookupEnv("NOTIFY_SOCKET")
 		if socketPath == "" {
@@ -48,8 +65,64 @@ func SendMessage(socketPath string, message string) error {
 	}
 	defer conn.Close()
 
-	_, err = conn.Write([]byte(message))
-	return err
+	if _, err := conn.Write([]byte(message)); err != nil {
+		return err
+	}
+	if !barrier {
+		return nil
+	}
+	// The message has been sent at this point, and a receiver without
+	// support for barriers lets it time out, so this is not an error.
+	if err := sendBarrier(conn); err != nil {
+		logrus.Debugf("Waiting for notify barrier on socket %q: %v", socketPath, err)
+	}
+	return nil
+}
+
+// sendBarrier sends BARRIER=1 with the write end of a pipe and waits until
+// the receiver closes it, which happens after all earlier messages on the
+// socket were processed.
+func sendBarrier(conn *net.UnixConn) error {
+	deadline := time.Now().Add(_notifyBarrierTimeout)
+	if err := conn.SetWriteDeadline(deadline); err != nil {
+		return err
+	}
+	r, w, err := os.Pipe()
+	if err != nil {
+		return fmt.Errorf("creating barrier pipe: %w", err)
+	}
+	defer r.Close()
+
+	// WriteMsgUnix refuses a connected datagram socket, so send on the raw
+	// socket to keep the barrier on the same connection as the message.
+	rawConn, err := conn.SyscallConn()
+	if err != nil {
+		w.Close()
+		return fmt.Errorf("getting raw conn: %w", err)
+	}
+	var sendErr error
+	err = rawConn.Write(func(fd uintptr) bool {
+		sendErr = unix.Sendmsg(int(fd), []byte(_notifyBarrierMsg), unix.UnixRights(int(w.Fd())), nil, 0)
+		return !errors.Is(sendErr, unix.EAGAIN)
+	})
+	w.Close()
+	if err == nil {
+		err = sendErr
+	}
+	if err != nil {
+		return fmt.Errorf("sending barrier: %w", err)
+	}
+
+	if err := r.SetReadDeadline(deadline); err != nil {
+		return err
+	}
+	if _, err := r.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("unexpected data on barrier pipe")
+		}
+		return err
+	}
+	return nil
 }
 
 // NotifyProxy can be used to proxy notify messages.
@@ -155,7 +228,7 @@ func (p *NotifyProxy) listen() {
 			}
 
 			if isBarrier {
-				scms, err := unix.ParseSocketControlMessage(oob)
+				scms, err := unix.ParseSocketControlMessage(oob[:oobn])
 				if err != nil {
 					logrus.Errorf("parsing control message on socket %q: %v", p.socketPath, err)
 				}
