@@ -51,6 +51,32 @@ eid=$(jq -r '.Id' <<<"$output")
 # The 017 is the byte length
 t POST exec/$eid/start 200 $'\001\017'$HELLO_S
 
+# A tar stream with only its two EOF records (no GNU tar record padding)
+# exercises draining gzip after the tar reader has reached EOF.
+GZIP_TAR="$TMPD/short-gzip.tar"
+python3 - "$GZIP_TAR" <<'PYTHON'
+import gzip
+import sys
+import tarfile
+
+payload = b"x" * 1700
+info = tarfile.TarInfo("gzip-drain.txt")
+info.mode = 0o644
+info.size = len(payload)
+data = info.tobuf(format=tarfile.USTAR_FORMAT) + payload
+data += b"\0" * (-len(payload) % 512) + b"\0" * 1024
+assert len(data) == 3584
+with gzip.open(sys.argv[1], "wb") as stream:
+    stream.write(data)
+PYTHON
+
+t PUT "/containers/$CTR/archive?path=%2Ftmp%2F" "$GZIP_TAR" 200 ''
+podman exec "$CTR" cat /tmp/gzip-drain.txt
+is "$(tail -n 1 "$WORKDIR/output.log")" "$(printf '%1700s' '' | tr ' ' x)" \
+    "short gzip tar: extracted contents"
+# A second request proves the service survived draining the first stream.
+t GET /_ping 200 OK
+
 # Now fetch hello.txt back as a tarfile
 t HEAD "containers/${CTR}/archive?path=%2Ftmp%2Fhello.txt" 200
 t GET  "containers/${CTR}/archive?path=%2Ftmp%2Fhello.txt" 200
