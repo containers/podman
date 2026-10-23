@@ -36,6 +36,17 @@ const (
 	ContainerStateStopping ContainerStatus = iota
 )
 
+// Docker-compatible wait conditions
+const (
+	// WaitConditionNextExit waits for the next exit, regardless of the
+	// current state.
+	WaitConditionNextExit = "next-exit"
+	// WaitConditionNotRunning is Docker's name for "exited".
+	WaitConditionNotRunning = "not-running"
+	// WaitConditionRemoved waits until the container has been removed.
+	WaitConditionRemoved = "removed"
+)
+
 // ContainerStatus returns a string representation for users of a container
 // state. All results should match Docker's versions (from `docker ps`) as
 // closely as possible, given the different set of states we support.

@@ -133,4 +133,41 @@ var _ = Describe("Podman wait", func() {
 		waitSession.Wait(10)
 		Expect(waitSession.OutputToString()).To(Equal("2"))
 	})
+
+	It("podman wait docker-compatible conditions", func() {
+		ctr := "wait_conditions"
+		podmanTest.PodmanExitCleanly("create", "--name", ctr, ALPINE, "sh", "-c", "sleep 5; exit 7")
+
+		// A never-started container is not running, so these return right away.
+		for _, condition := range []string{"", "exited", "stopped", "not-running"} {
+			args := []string{"wait", ctr}
+			if condition != "" {
+				args = []string{"wait", "--condition", condition, ctr}
+			}
+			session := podmanTest.PodmanExitCleanly(args...)
+			Expect(session.OutputToString()).To(Equal("0"), "condition %q", condition)
+		}
+
+		// The sleep in the container gives wait time to arm before the exit.
+		waitSession := podmanTest.Podman([]string{"wait", "--condition", "next-exit", ctr})
+		podmanTest.PodmanExitCleanly("start", ctr)
+		waitSession.WaitWithDefaultTimeout()
+		Expect(waitSession).Should(ExitCleanly())
+		Expect(waitSession.OutputToString()).To(Equal("7"))
+
+		session := podmanTest.PodmanExitCleanly("wait", "--condition", "not-running", ctr)
+		Expect(session.OutputToString()).To(Equal("7"))
+	})
+
+	It("podman wait --condition=removed", func() {
+		ctr := "wait_removed"
+		podmanTest.PodmanExitCleanly("run", "-d", "--rm", "--name", ctr, ALPINE, "sh", "-c", "sleep 3; exit 3")
+
+		session := podmanTest.PodmanExitCleanly("wait", "--condition", "removed", ctr)
+		Expect(session.OutputToString()).To(Equal("3"))
+
+		session = podmanTest.Podman([]string{"container", "exists", ctr})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(1, ""))
+	})
 })
