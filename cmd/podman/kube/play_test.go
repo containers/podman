@@ -1,10 +1,14 @@
 package kube
 
 import (
+	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	"go.podman.io/podman/v6/pkg/domain/entities"
 )
 
 var configMapYAML = strings.Join([]string{
@@ -145,5 +149,132 @@ func TestReaderFromArgs_Stdin(t *testing.T) {
 
 	if got := string(data); got != namespaceYAML {
 		t.Errorf("unexpected stdin result:\n--- got ---\n%s\n--- want ---\n%s", got, namespaceYAML)
+	}
+}
+
+func captureStd(t *testing.T, fn func()) (string, string) {
+	t.Helper()
+
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+	outR, outW, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	errR, errW, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = outW
+	os.Stderr = errW
+	t.Cleanup(func() {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+	})
+	fn()
+	os.Stdout = oldStdout
+	os.Stderr = oldStderr
+	if err := outW.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := errW.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, err := io.ReadAll(outR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stderr, err := io.ReadAll(errR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(stdout), string(stderr)
+}
+
+func TestSecretRmReportJSONStringError(t *testing.T) {
+	in := []byte(`{"ID":"abc","Err":"deleting secret newsecret: is a directory"}`)
+	var report entities.SecretRmReport
+	if err := json.Unmarshal(in, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "abc" || report.Err == nil || !strings.Contains(report.Err.Error(), "deleting secret newsecret") {
+		t.Fatalf("report = %+v err=%v", report, report.Err)
+	}
+}
+
+func TestSecretRmReportJSONOmitsNilError(t *testing.T) {
+	out, err := json.Marshal(entities.SecretRmReport{ID: "abc"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "Err") {
+		t.Fatalf("nil error was encoded: %s", out)
+	}
+	if string(out) != `{"ID":"abc"}` {
+		t.Fatalf("encoded = %s", out)
+	}
+
+	var report entities.SecretRmReport
+	if err := json.Unmarshal(out, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "abc" || report.Err != nil {
+		t.Fatalf("report = %+v err=%v", report, report.Err)
+	}
+	if err := json.Unmarshal([]byte(`{"ID":"abc","Err":null}`), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "abc" || report.Err != nil {
+		t.Fatalf("null report = %+v err=%v", report, report.Err)
+	}
+	if err := json.Unmarshal([]byte(`{"Err":""}`), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "" || report.Err != nil {
+		t.Fatalf("empty report = %+v err=%v", report, report.Err)
+	}
+}
+
+func TestPrintPlayKubeDownSecretError(t *testing.T) {
+	reports := &entities.PlayKubeReport{}
+	reports.SecretRmReport = []*entities.SecretRmReport{{
+		ID:  "sec1",
+		Err: errors.New("secret remove failed"),
+	}}
+
+	_, stderr := captureStd(t, func() {
+		if err := printPlayKubeDown(reports); err != nil {
+			t.Fatalf("printPlayKubeDown: %v", err)
+		}
+	})
+	if !strings.Contains(stderr, "secret remove failed") {
+		t.Fatalf("stderr = %q", stderr)
+	}
+}
+
+func TestPrintPlayKubeDownPodErrorDoesNotPrintNilSecret(t *testing.T) {
+	reports := &entities.PlayKubeReport{}
+	reports.RmReport = []*entities.PodRmReport{{
+		Id:  "pod1",
+		Err: errors.New("pod remove failed"),
+	}}
+	reports.SecretRmReport = []*entities.SecretRmReport{{
+		ID: "sec1",
+	}}
+
+	stdout, stderr := captureStd(t, func() {
+		if err := printPlayKubeDown(reports); err != nil {
+			t.Fatalf("printPlayKubeDown: %v", err)
+		}
+	})
+	if !strings.Contains(stderr, "pod remove failed") {
+		t.Fatalf("stderr = %q", stderr)
+	}
+	if strings.Contains(stderr, "%!s") || strings.Contains(stderr, "<nil>") {
+		t.Fatalf("stderr = %q", stderr)
+	}
+	if !strings.Contains(stdout, "sec1") {
+		t.Fatalf("stdout = %q", stdout)
 	}
 }

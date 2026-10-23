@@ -5070,6 +5070,24 @@ invalid kube kind
 		Expect(checkls.OutputToStringArray()).To(BeEmpty())
 	})
 
+	It("teardown prints a secret removal error", func() {
+		err := writeYaml(secretYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		// Root ignores a mode bit, so replace the data file with a directory.
+		// The file driver then fails the real kube down delete for every user.
+		dataFile := filepath.Join(podmanTest.Root, "secrets", "filedriver", "secretsdata.json")
+		Expect(os.Remove(dataFile)).To(Succeed())
+		Expect(os.Mkdir(dataFile, 0o700)).To(Succeed())
+
+		down := podmanTest.Podman([]string{"kube", "down", kubeYaml})
+		down.WaitWithDefaultTimeout()
+		Expect(down).Should(Exit(0))
+		Expect(down.ErrorToString()).To(ContainSubstring("deleting secret newsecret"))
+		Expect(down.ErrorToString()).To(ContainSubstring("is a directory"))
+	})
+
 	It("teardown pod does not exist", func() {
 		err := writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
