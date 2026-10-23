@@ -34,20 +34,20 @@ type SecretListReport struct {
 }
 
 type SecretRmReport struct {
-	ID  string
-	Err error
+	ID  string `json:"ID,omitempty"`
+	Err error  `json:"Err,omitempty"`
 }
 
-// secretRmReportJSON is the wire form. The service encodes Err with
-// json-iterator, which writes an error as a string. encoding/json cannot
-// store that string in an error field.
-type secretRmReportJSON struct {
-	ID  string
-	Err string
+// secretRmReportHelper is the wire form. json-iterator writes Err as a
+// string, which encoding/json cannot store in an error field. omitempty
+// leaves a nil error off the wire so it is not decoded as a string.
+type secretRmReportHelper struct {
+	ID  string `json:"ID,omitempty"`
+	Err string `json:"Err,omitempty"`
 }
 
 func (r SecretRmReport) MarshalJSON() ([]byte, error) {
-	helper := secretRmReportJSON{ID: r.ID}
+	helper := secretRmReportHelper{ID: r.ID}
 	if r.Err != nil {
 		helper.Err = r.Err.Error()
 	}
@@ -55,7 +55,7 @@ func (r SecretRmReport) MarshalJSON() ([]byte, error) {
 }
 
 func (r *SecretRmReport) UnmarshalJSON(data []byte) error {
-	var helper secretRmReportJSON
+	var helper secretRmReportHelper
 	if err := json.Unmarshal(data, &helper); err != nil {
 		return err
 	}

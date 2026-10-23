@@ -5078,15 +5078,8 @@ invalid kube kind
 		// Root ignores a mode bit, so replace the data file with a directory.
 		// The file driver then fails the real kube down delete for every user.
 		dataFile := filepath.Join(podmanTest.Root, "secrets", "filedriver", "secretsdata.json")
-		original, err := os.ReadFile(dataFile)
-		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Remove(dataFile)).To(Succeed())
 		Expect(os.Mkdir(dataFile, 0o700)).To(Succeed())
-		DeferCleanup(func() {
-			_ = os.RemoveAll(dataFile)
-			_ = os.WriteFile(dataFile, original, 0o600)
-			podmanTest.PodmanExitCleanly("secret", "rm", "--ignore", "newsecret")
-		})
 
 		down := podmanTest.Podman([]string{"kube", "down", kubeYaml})
 		down.WaitWithDefaultTimeout()

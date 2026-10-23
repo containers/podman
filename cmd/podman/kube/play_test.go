@@ -203,6 +203,39 @@ func TestSecretRmReportJSONStringError(t *testing.T) {
 	}
 }
 
+func TestSecretRmReportJSONOmitsNilError(t *testing.T) {
+	out, err := json.Marshal(entities.SecretRmReport{ID: "abc"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "Err") {
+		t.Fatalf("nil error was encoded: %s", out)
+	}
+	if string(out) != `{"ID":"abc"}` {
+		t.Fatalf("encoded = %s", out)
+	}
+
+	var report entities.SecretRmReport
+	if err := json.Unmarshal(out, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "abc" || report.Err != nil {
+		t.Fatalf("report = %+v err=%v", report, report.Err)
+	}
+	if err := json.Unmarshal([]byte(`{"ID":"abc","Err":null}`), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "abc" || report.Err != nil {
+		t.Fatalf("null report = %+v err=%v", report, report.Err)
+	}
+	if err := json.Unmarshal([]byte(`{"Err":""}`), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.ID != "" || report.Err != nil {
+		t.Fatalf("empty report = %+v err=%v", report, report.Err)
+	}
+}
+
 func TestPrintPlayKubeDownSecretError(t *testing.T) {
 	reports := &entities.PlayKubeReport{}
 	reports.SecretRmReport = []*entities.SecretRmReport{{
