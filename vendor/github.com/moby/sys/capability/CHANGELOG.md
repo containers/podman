@@ -5,6 +5,21 @@ from https://github.com/syndtr/gocapability/commit/42c35b4376354fd5.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-23
+
+### Breaking changes
+* Go 1.24 or later is now required. (#264)
+
+### Fixed
+* [LastCap] no longer reads `/proc/sys/kernel/cap_last_cap`, querying the
+  kernel via `prctl(PR_CAPBSET_READ)` instead. This makes the package work
+  when `/proc` is not mounted, and fixes a possible panic or infinite loop
+  when `/proc/sys/kernel/cap_last_cap` contains a bogus value (for example,
+  if something is mounted over `/proc`). (#265, #269)
+
+### Changed
+* Minor code cleanups. (#187)
+
 ## [0.4.0] - 2024-11-11
 
 ### Added
@@ -104,6 +119,7 @@ This is an initial release since the fork.
 [SetAmbient]: https://pkg.go.dev/github.com/moby/sys/capability#SetAmbient
 
 <!-- Minor releases. -->
+[0.5.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.5.0
 [0.4.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.4.0
 [0.3.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.3.0
 [0.2.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.2.0

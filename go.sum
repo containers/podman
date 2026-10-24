@@ -257,8 +257,8 @@ github.com/moby/moby/client v0.6.2 h1:ekSPlMccrZGcw6Scb8T9D39qE0mB+XupU/yS0zNw9N
 github.com/moby/moby/client v0.6.2/go.mod h1:DGcnO7qmPJrqobx/ggQgQ/AUk+2wgVdQv7uxB0/mEsc=
 github.com/moby/patternmatcher v0.6.1 h1:qlhtafmr6kgMIJjKJMDmMWq7WLkKIo23hsrpR3x084U=
 github.com/moby/patternmatcher v0.6.1/go.mod h1:hDPoyOpDY7OrrMDLaYoY3hf52gNCR/YOUYxkhApJIxc=
-github.com/moby/sys/capability v0.4.0 h1:4D4mI6KlNtWMCM1Z/K0i7RV1FkX+DBDHKVJpCndZoHk=
-github.com/moby/sys/capability v0.4.0/go.mod h1:4g9IK291rVkms3LKCDOoYlnV8xKwoDTpIrNEE35Wq0I=
+github.com/moby/sys/capability v0.5.0 h1:Bm4oD9xGCtZguPnaoQy1/jvKTSwZHMvM0FrnxNYtGYU=
+github.com/moby/sys/capability v0.5.0/go.mod h1:i+0cXvNSriGrL3C6sxnmlmGL5HVU0OdxocizXdC8A+g=
 github.com/moby/sys/devices v0.1.0 h1:uaMrDm1U3h0AwUDNWeT5lBV40v0eayt+VuukRbYn5K4=
 github.com/moby/sys/devices v0.1.0/go.mod h1:nIV6AO7t0DY2ObAm1GfL4AX9mBRqzxzHwGfvNCR9lfI=
 github.com/moby/sys/mount v0.3.5 h1:eS3fsZTjHaBihwjp4/+5Z3jxqLXYsbwxqpVSfFv3M00=
