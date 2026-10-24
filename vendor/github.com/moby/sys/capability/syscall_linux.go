@@ -141,16 +141,17 @@ func setVfsCap(path string, data *vfscapData) (err error) {
 		return
 	}
 	var size uintptr
-	if data.version == 1 {
+	switch data.version {
+	case 1:
 		data.magic = vfsCapVer1
 		size = vfscapDataSizeV1
-	} else if data.version == 2 {
+	case 2:
 		data.magic = vfsCapVer2
 		if data.effective[0] != 0 || data.effective[1] != 0 {
 			data.magic |= vfsCapFlageffective
 		}
 		size = vfscapDataSizeV2
-	} else {
+	default:
 		return syscall.EINVAL
 	}
 	_, _, e1 := syscall.RawSyscall6(syscall.SYS_SETXATTR, uintptr(unsafe.Pointer(_p0)), uintptr(unsafe.Pointer(_vfsXattrName)), uintptr(unsafe.Pointer(data)), size, 0, 0)

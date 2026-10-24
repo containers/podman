@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -25,26 +24,75 @@ const (
 	linuxCapVer3 = 0x20080522
 )
 
+// capValid reports whether the running kernel supports capability c.
+func capValid(c Cap) (bool, error) {
+	err := prctl(syscall.PR_CAPBSET_READ, uintptr(c), 0)
+	if errors.Is(err, syscall.EINVAL) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// lastCap returns the highest capability supported by the running kernel.
 var lastCap = sync.OnceValues(func() (Cap, error) {
-	f, err := os.Open("/proc/sys/kernel/cap_last_cap")
+	last, err := findLastCap()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("unable to get last capability: %w", err)
 	}
-
-	buf := make([]byte, 11)
-	l, err := f.Read(buf)
-	f.Close()
-	if err != nil {
-		return 0, err
-	}
-	buf = buf[:l]
-
-	last, err := strconv.Atoi(strings.TrimSpace(string(buf)))
-	if err != nil {
-		return 0, err
-	}
-	return Cap(last), nil
+	return last, nil
 })
+
+func findLastCap() (Cap, error) {
+	// Based on the fact Go 1.24+ supports Linux >= 3.2, and
+	//   - CAP_WAKE_ALARM (35) was added in 3.0;
+	//   - CAP_CHECKPOINT_RESTORE (40) was added in 5.9, and it is
+	//     the last added capability as of October 2026 (Linux 7.3);
+	//
+	// the last capability is at least minLastCap, and most probably
+	// lastKnownCap (but newer kernels may have more).
+	//
+	// maxLastCap is the highest capability which can be represented
+	// by the kernel capability ABI v3 (two 32-bit words per set).
+	const (
+		minLastCap   = CAP_WAKE_ALARM
+		lastKnownCap = CAP_CHECKPOINT_RESTORE
+		maxLastCap   = Cap(63)
+	)
+
+	// Start from lastKnownCap, and go up if it's valid, or down if it's
+	// not. For most kernels, this takes two syscalls.
+	c := lastKnownCap
+	ok, err := capValid(c)
+	if err != nil {
+		return 0, err
+	}
+	if ok {
+		// Go up while the next one is valid.
+		for c < maxLastCap {
+			ok, err := capValid(c + 1)
+			if err != nil {
+				return 0, err
+			}
+			if !ok {
+				break
+			}
+			c++
+		}
+		return c, nil
+	}
+	// Go down until a valid one is found.
+	for c > minLastCap {
+		c--
+		ok, err := capValid(c)
+		if err != nil {
+			return 0, err
+		}
+		if ok {
+			return c, nil
+		}
+	}
+	return 0, fmt.Errorf("PR_CAPBSET_READ returned EINVAL for %s", minLastCap)
+}
 
 func capUpperMask() uint32 {
 	last, err := lastCap()
